@@ -7,9 +7,9 @@ use crate::context::Context;
 
 pub struct Mesh {
 	gl: Rc<glow::Context>,
-	vao: NativeVertexArray,
-	vbo: NativeBuffer,
-	ebo: NativeBuffer,
+	vertex_array: NativeVertexArray,
+	vertex_buffer: NativeBuffer,
+	element_buffer: NativeBuffer,
 	num_indices: i32,
 }
 
@@ -22,21 +22,21 @@ impl Mesh {
 			raw_vertices.push(0.0);
 		}
 		let gl = ctx.graphics().gl();
-		let vao;
-		let vbo;
-		let ebo;
+		let vertex_array;
+		let vertex_buffer;
+		let element_buffer;
 		unsafe {
-			vao = gl.create_vertex_array()?;
-			vbo = gl.create_buffer()?;
-			ebo = gl.create_buffer()?;
-			gl.bind_vertex_array(Some(vao));
-			gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+			vertex_array = gl.create_vertex_array()?;
+			vertex_buffer = gl.create_buffer()?;
+			element_buffer = gl.create_buffer()?;
+			gl.bind_vertex_array(Some(vertex_array));
+			gl.bind_buffer(glow::ARRAY_BUFFER, Some(vertex_buffer));
 			gl.buffer_data_u8_slice(
 				glow::ARRAY_BUFFER,
 				bytemuck::cast_slice(&raw_vertices),
 				glow::STATIC_DRAW,
 			);
-			gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+			gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(element_buffer));
 			gl.buffer_data_u8_slice(
 				glow::ELEMENT_ARRAY_BUFFER,
 				bytemuck::cast_slice(indices),
@@ -54,16 +54,16 @@ impl Mesh {
 		}
 		Ok(Self {
 			gl,
-			vao,
-			vbo,
-			ebo,
+			vertex_array,
+			vertex_buffer,
+			element_buffer,
 			num_indices: indices.len().try_into().unwrap(),
 		})
 	}
 
 	pub fn draw(&self) {
 		unsafe {
-			self.gl.bind_vertex_array(Some(self.vao));
+			self.gl.bind_vertex_array(Some(self.vertex_array));
 			self.gl
 				.draw_elements(glow::TRIANGLES, self.num_indices, glow::UNSIGNED_INT, 0);
 			self.gl.bind_vertex_array(None);
@@ -74,9 +74,9 @@ impl Mesh {
 impl Drop for Mesh {
 	fn drop(&mut self) {
 		unsafe {
-			self.gl.delete_vertex_array(self.vao);
-			self.gl.delete_buffer(self.vbo);
-			self.gl.delete_buffer(self.ebo);
+			self.gl.delete_vertex_array(self.vertex_array);
+			self.gl.delete_buffer(self.vertex_buffer);
+			self.gl.delete_buffer(self.element_buffer);
 		}
 	}
 }

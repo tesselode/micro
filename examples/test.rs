@@ -15,10 +15,12 @@ impl Game {
 			mesh: Some(Mesh::new(
 				ctx,
 				&[
-					Vec2::new(-0.5, -0.5),
+					Vec2::new(0.5, 0.5),
 					Vec2::new(0.5, -0.5),
-					Vec2::new(0.0, 0.5),
+					Vec2::new(-0.5, -0.5),
+					Vec2::new(-0.5, 0.5),
 				],
+				&[0, 1, 3, 1, 2, 3],
 			)?),
 		})
 	}

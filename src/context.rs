@@ -1,4 +1,4 @@
-use std::{error::Error, time::Duration};
+use std::{error::Error, rc::Rc, time::Duration};
 
 use glow::{HasContext, NativeProgram};
 use sdl2::{
@@ -14,7 +14,7 @@ const FRAGMENT_SHADER: &str = include_str!("fragment.glsl");
 
 pub struct GraphicsContext {
 	_sdl_gl_ctx: GLContext,
-	pub(crate) gl: glow::Context,
+	gl: Rc<glow::Context>,
 	pub shader_program: NativeProgram,
 }
 
@@ -43,9 +43,13 @@ impl GraphicsContext {
 		}
 		Ok(Self {
 			_sdl_gl_ctx,
-			gl,
+			gl: Rc::new(gl),
 			shader_program,
 		})
+	}
+
+	pub(crate) fn gl(&self) -> Rc<glow::Context> {
+		self.gl.clone()
 	}
 
 	pub fn clear(&self, red: f32, green: f32, blue: f32, alpha: f32) {

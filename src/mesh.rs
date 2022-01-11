@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, rc::Rc};
 
 use glam::Vec2;
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
@@ -6,6 +6,7 @@ use glow::{HasContext, NativeBuffer, NativeVertexArray};
 use crate::context::Context;
 
 pub struct Mesh {
+	gl: Rc<glow::Context>,
 	vao: NativeVertexArray,
 	vbo: NativeBuffer,
 }
@@ -18,7 +19,7 @@ impl Mesh {
 			raw_vertices.push(vertex.y);
 			raw_vertices.push(0.0);
 		}
-		let gl = &ctx.graphics().gl;
+		let gl = ctx.graphics().gl();
 		let vao;
 		let vbo;
 		unsafe {
@@ -41,14 +42,22 @@ impl Mesh {
 			);
 			gl.enable_vertex_attrib_array(0);
 		}
-		Ok(Self { vao, vbo })
+		Ok(Self { gl, vao, vbo })
 	}
 
-	pub fn draw(&self, ctx: &Context) {
-		let gl = &ctx.graphics().gl;
+	pub fn draw(&self) {
 		unsafe {
-			gl.bind_vertex_array(Some(self.vao));
-			gl.draw_arrays(glow::TRIANGLES, 0, 3);
+			self.gl.bind_vertex_array(Some(self.vao));
+			self.gl.draw_arrays(glow::TRIANGLES, 0, 3);
+		}
+	}
+}
+
+impl Drop for Mesh {
+	fn drop(&mut self) {
+		unsafe {
+			self.gl.delete_vertex_array(self.vao);
+			self.gl.delete_buffer(self.vbo);
 		}
 	}
 }

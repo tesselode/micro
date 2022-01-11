@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bytemuck = "1.7.3"
+bytemuck = { version = "1.7.3", features = ["extern_crate_alloc"] }
+glam = "0.20.2"
 glow = "0.11.2"
 sdl2 = "0.35.1"

@@ -58,6 +58,14 @@ impl TextureInner {
 	}
 }
 
+impl Drop for TextureInner {
+	fn drop(&mut self) {
+		unsafe {
+			self.gl.delete_texture(self.texture);
+		}
+	}
+}
+
 #[derive(Clone)]
 pub struct Texture {
 	pub(crate) inner: Rc<TextureInner>,

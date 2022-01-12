@@ -39,11 +39,11 @@ impl TextureInner {
 			gl.tex_image_2d(
 				glow::TEXTURE_2D,
 				0,
-				glow::RGB.try_into().unwrap(),
+				glow::RGBA.try_into().unwrap(),
 				image_data.width.try_into().unwrap(),
 				image_data.height.try_into().unwrap(),
 				0,
-				glow::RGB,
+				glow::RGBA,
 				glow::UNSIGNED_BYTE,
 				Some(&image_data.data),
 			);

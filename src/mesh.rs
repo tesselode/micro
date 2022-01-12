@@ -40,6 +40,7 @@ impl Mesh {
 			raw_vertex_data.push(vertex.color.red);
 			raw_vertex_data.push(vertex.color.green);
 			raw_vertex_data.push(vertex.color.blue);
+			raw_vertex_data.push(vertex.color.alpha);
 			raw_vertex_data.push(vertex.texture_coords.x);
 			raw_vertex_data.push(vertex.texture_coords.y);
 		}
@@ -69,16 +70,16 @@ impl Mesh {
 				3,
 				glow::FLOAT,
 				false,
-				(8 * std::mem::size_of::<f32>()).try_into().unwrap(),
+				(9 * std::mem::size_of::<f32>()).try_into().unwrap(),
 				0,
 			);
 			gl.enable_vertex_attrib_array(0);
 			gl.vertex_attrib_pointer_f32(
 				1,
-				3,
+				4,
 				glow::FLOAT,
 				false,
-				(8 * std::mem::size_of::<f32>()).try_into().unwrap(),
+				(9 * std::mem::size_of::<f32>()).try_into().unwrap(),
 				(3 * std::mem::size_of::<f32>()).try_into().unwrap(),
 			);
 			gl.enable_vertex_attrib_array(1);
@@ -87,8 +88,8 @@ impl Mesh {
 				2,
 				glow::FLOAT,
 				false,
-				(8 * std::mem::size_of::<f32>()).try_into().unwrap(),
-				(6 * std::mem::size_of::<f32>()).try_into().unwrap(),
+				(9 * std::mem::size_of::<f32>()).try_into().unwrap(),
+				(7 * std::mem::size_of::<f32>()).try_into().unwrap(),
 			);
 			gl.enable_vertex_attrib_array(2);
 		}

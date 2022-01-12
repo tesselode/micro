@@ -26,6 +26,10 @@ impl GraphicsContext {
 		};
 		let shader_program;
 		unsafe {
+			// enable blending
+			gl.enable(glow::BLEND);
+			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
+
 			// set up shaders
 			let vertex_shader = gl.create_shader(glow::VERTEX_SHADER)?;
 			gl.shader_source(vertex_shader, VERTEX_SHADER);

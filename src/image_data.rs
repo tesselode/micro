@@ -14,7 +14,7 @@ impl ImageData {
 		let mut reader = decoder.read_info()?;
 		let mut data = vec![0; reader.output_buffer_size()];
 		let info = reader.next_frame(&mut data)?;
-		assert!(info.color_type == ColorType::Rgb);
+		assert!(info.color_type == ColorType::Rgba);
 		assert!(info.bit_depth == BitDepth::Eight);
 		Ok(Self {
 			data,

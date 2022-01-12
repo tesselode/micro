@@ -3,7 +3,18 @@ use std::{error::Error, rc::Rc};
 use glam::Vec2;
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
-use crate::context::Context;
+use crate::{
+	color::Rgba,
+	context::Context,
+	texture::{Texture, TextureInner},
+};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Vertex {
+	pub position: Vec2,
+	pub color: Rgba,
+	pub texture_coords: Vec2,
+}
 
 pub struct Mesh {
 	gl: Rc<glow::Context>,
@@ -11,15 +22,26 @@ pub struct Mesh {
 	vertex_buffer: NativeBuffer,
 	element_buffer: NativeBuffer,
 	num_indices: i32,
+	texture: Rc<TextureInner>,
 }
 
 impl Mesh {
-	pub fn new(ctx: &Context, vertices: &[Vec2], indices: &[u32]) -> Result<Self, Box<dyn Error>> {
-		let mut raw_vertices = vec![];
+	pub fn new(
+		ctx: &Context,
+		vertices: &[Vertex],
+		indices: &[u32],
+		texture: &Texture,
+	) -> Result<Self, Box<dyn Error>> {
+		let mut raw_vertex_data = vec![];
 		for vertex in vertices {
-			raw_vertices.push(vertex.x);
-			raw_vertices.push(vertex.y);
-			raw_vertices.push(0.0);
+			raw_vertex_data.push(vertex.position.x);
+			raw_vertex_data.push(vertex.position.y);
+			raw_vertex_data.push(0.0);
+			raw_vertex_data.push(vertex.color.red);
+			raw_vertex_data.push(vertex.color.green);
+			raw_vertex_data.push(vertex.color.blue);
+			raw_vertex_data.push(vertex.texture_coords.x);
+			raw_vertex_data.push(vertex.texture_coords.y);
 		}
 		let gl = ctx.graphics().gl();
 		let vertex_array;
@@ -33,7 +55,7 @@ impl Mesh {
 			gl.bind_buffer(glow::ARRAY_BUFFER, Some(vertex_buffer));
 			gl.buffer_data_u8_slice(
 				glow::ARRAY_BUFFER,
-				bytemuck::cast_slice(&raw_vertices),
+				bytemuck::cast_slice(&raw_vertex_data),
 				glow::STATIC_DRAW,
 			);
 			gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(element_buffer));
@@ -47,10 +69,28 @@ impl Mesh {
 				3,
 				glow::FLOAT,
 				false,
-				(3 * std::mem::size_of::<f32>()).try_into().unwrap(),
+				(8 * std::mem::size_of::<f32>()).try_into().unwrap(),
 				0,
 			);
 			gl.enable_vertex_attrib_array(0);
+			gl.vertex_attrib_pointer_f32(
+				1,
+				3,
+				glow::FLOAT,
+				false,
+				(8 * std::mem::size_of::<f32>()).try_into().unwrap(),
+				(3 * std::mem::size_of::<f32>()).try_into().unwrap(),
+			);
+			gl.enable_vertex_attrib_array(1);
+			gl.vertex_attrib_pointer_f32(
+				2,
+				2,
+				glow::FLOAT,
+				false,
+				(8 * std::mem::size_of::<f32>()).try_into().unwrap(),
+				(6 * std::mem::size_of::<f32>()).try_into().unwrap(),
+			);
+			gl.enable_vertex_attrib_array(2);
 		}
 		Ok(Self {
 			gl,
@@ -58,11 +98,14 @@ impl Mesh {
 			vertex_buffer,
 			element_buffer,
 			num_indices: indices.len().try_into().unwrap(),
+			texture: texture.inner.clone(),
 		})
 	}
 
 	pub fn draw(&self) {
 		unsafe {
+			self.gl
+				.bind_texture(glow::TEXTURE_2D, Some(self.texture.texture()));
 			self.gl.bind_vertex_array(Some(self.vertex_array));
 			self.gl
 				.draw_elements(glow::TRIANGLES, self.num_indices, glow::UNSIGNED_INT, 0);

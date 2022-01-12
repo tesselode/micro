@@ -1,7 +1,13 @@
 use std::error::Error;
 
 use glam::Vec2;
-use micro::{context::Context, mesh::Mesh};
+use micro::{
+	color::Rgba,
+	context::Context,
+	image_data::ImageData,
+	mesh::{Mesh, Vertex},
+	texture::Texture,
+};
 use sdl2::{event::Event, keyboard::Keycode};
 
 struct Game {
@@ -10,17 +16,50 @@ struct Game {
 
 impl Game {
 	fn new(ctx: &Context) -> Result<Self, Box<dyn Error>> {
-		// -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0
+		let texture = Texture::new(ctx, &ImageData::from_file("examples/bricks.png")?)?;
 		Ok(Self {
 			mesh: Some(Mesh::new(
 				ctx,
 				&[
-					Vec2::new(0.5, 0.5),
-					Vec2::new(0.5, -0.5),
-					Vec2::new(-0.5, -0.5),
-					Vec2::new(-0.5, 0.5),
+					Vertex {
+						position: Vec2::new(0.5, 0.5),
+						color: Rgba {
+							red: 1.0,
+							green: 0.0,
+							blue: 0.0,
+						},
+						texture_coords: Vec2::new(1.0, 1.0),
+					},
+					Vertex {
+						position: Vec2::new(0.5, -0.5),
+						color: Rgba {
+							red: 0.0,
+							green: 1.0,
+							blue: 0.0,
+						},
+						texture_coords: Vec2::new(1.0, 0.0),
+					},
+					Vertex {
+						position: Vec2::new(-0.5, -0.5),
+						color: Rgba {
+							red: 0.0,
+							green: 0.0,
+							blue: 1.0,
+						},
+						texture_coords: Vec2::new(0.0, 0.0),
+					},
+					Vertex {
+						position: Vec2::new(-0.5, 0.5),
+						color: Rgba {
+							red: 1.0,
+							green: 1.0,
+							blue: 0.0,
+						},
+						texture_coords: Vec2::new(0.0, 1.0),
+					},
 				],
 				&[0, 1, 3, 1, 2, 3],
+				&texture,
 			)?),
 		})
 	}

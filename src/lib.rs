@@ -1,5 +1,8 @@
+pub mod color;
 pub mod context;
+pub mod image_data;
 pub mod mesh;
+pub mod texture;
 
 use context::Context;
 use sdl2::event::Event;

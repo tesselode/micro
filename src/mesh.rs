@@ -6,7 +6,7 @@ use glow::{HasContext, NativeBuffer, NativeVertexArray};
 use crate::{
 	color::Rgba,
 	context::Context,
-	texture::{Texture, TextureInner},
+	texture::{RawTexture, Texture},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -22,7 +22,7 @@ pub struct Mesh {
 	vertex_buffer: NativeBuffer,
 	element_buffer: NativeBuffer,
 	num_indices: i32,
-	texture: Rc<TextureInner>,
+	texture: Rc<RawTexture>,
 }
 
 impl Mesh {
@@ -30,7 +30,7 @@ impl Mesh {
 		ctx: &Context,
 		vertices: &[Vertex],
 		indices: &[u32],
-		texture: &Texture,
+		texture: Option<&Texture>,
 	) -> Result<Self, Box<dyn Error>> {
 		let mut raw_vertex_data = vec![];
 		for vertex in vertices {
@@ -99,7 +99,9 @@ impl Mesh {
 			vertex_buffer,
 			element_buffer,
 			num_indices: indices.len().try_into().unwrap(),
-			texture: texture.inner.clone(),
+			texture: texture
+				.map(|texture| texture.raw.clone())
+				.unwrap_or_else(|| ctx.graphics().default_texture.clone()),
 		})
 	}
 

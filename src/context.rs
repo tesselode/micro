@@ -7,7 +7,7 @@ use sdl2::{
 	EventPump, Sdl, VideoSubsystem,
 };
 
-use crate::Game;
+use crate::{texture::RawTexture, Game};
 
 const VERTEX_SHADER: &str = include_str!("vertex.glsl");
 const FRAGMENT_SHADER: &str = include_str!("fragment.glsl");
@@ -15,17 +15,54 @@ const FRAGMENT_SHADER: &str = include_str!("fragment.glsl");
 pub struct GraphicsContext {
 	_sdl_gl_ctx: GLContext,
 	gl: Rc<glow::Context>,
-	pub shader_program: NativeProgram,
+	pub(crate) default_texture: Rc<RawTexture>,
+	pub(crate) shader_program: NativeProgram,
 }
 
 impl GraphicsContext {
 	fn new(video: &VideoSubsystem, window: &Window) -> Result<Self, Box<dyn Error>> {
 		let _sdl_gl_ctx = window.gl_create_context()?;
-		let gl = unsafe {
+		let gl = Rc::new(unsafe {
 			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
-		};
+		});
 		let shader_program;
+		let default_texture;
 		unsafe {
+			// create a default texture
+			default_texture = gl.create_texture()?;
+			gl.bind_texture(glow::TEXTURE_2D, Some(default_texture));
+			gl.tex_parameter_i32(
+				glow::TEXTURE_2D,
+				glow::TEXTURE_WRAP_S,
+				glow::REPEAT.try_into().unwrap(),
+			);
+			gl.tex_parameter_i32(
+				glow::TEXTURE_2D,
+				glow::TEXTURE_WRAP_T,
+				glow::REPEAT.try_into().unwrap(),
+			);
+			gl.tex_parameter_i32(
+				glow::TEXTURE_2D,
+				glow::TEXTURE_MIN_FILTER,
+				glow::LINEAR_MIPMAP_LINEAR.try_into().unwrap(),
+			);
+			gl.tex_parameter_i32(
+				glow::TEXTURE_2D,
+				glow::TEXTURE_MAG_FILTER,
+				glow::LINEAR.try_into().unwrap(),
+			);
+			gl.tex_image_2d(
+				glow::TEXTURE_2D,
+				0,
+				glow::RGBA.try_into().unwrap(),
+				1,
+				1,
+				0,
+				glow::RGBA,
+				glow::UNSIGNED_BYTE,
+				Some(&[255; 4]),
+			);
+
 			// enable blending
 			gl.enable(glow::BLEND);
 			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
@@ -47,8 +84,12 @@ impl GraphicsContext {
 		}
 		Ok(Self {
 			_sdl_gl_ctx,
-			gl: Rc::new(gl),
+			gl: gl.clone(),
 			shader_program,
+			default_texture: Rc::new(RawTexture {
+				gl,
+				texture: default_texture,
+			}),
 		})
 	}
 

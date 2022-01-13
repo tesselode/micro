@@ -4,12 +4,12 @@ use glow::{HasContext, NativeTexture};
 
 use crate::{context::Context, image_data::ImageData};
 
-pub(crate) struct TextureInner {
-	gl: Rc<glow::Context>,
-	texture: NativeTexture,
+pub(crate) struct RawTexture {
+	pub(crate) gl: Rc<glow::Context>,
+	pub(crate) texture: NativeTexture,
 }
 
-impl TextureInner {
+impl RawTexture {
 	pub fn new(ctx: &Context, image_data: &ImageData) -> Result<Self, Box<dyn Error>> {
 		let gl = ctx.graphics().gl();
 		let texture;
@@ -58,7 +58,7 @@ impl TextureInner {
 	}
 }
 
-impl Drop for TextureInner {
+impl Drop for RawTexture {
 	fn drop(&mut self) {
 		unsafe {
 			self.gl.delete_texture(self.texture);
@@ -68,13 +68,13 @@ impl Drop for TextureInner {
 
 #[derive(Clone)]
 pub struct Texture {
-	pub(crate) inner: Rc<TextureInner>,
+	pub(crate) raw: Rc<RawTexture>,
 }
 
 impl Texture {
 	pub fn new(ctx: &Context, image_data: &ImageData) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			inner: Rc::new(TextureInner::new(ctx, image_data)?),
+			raw: Rc::new(RawTexture::new(ctx, image_data)?),
 		})
 	}
 }

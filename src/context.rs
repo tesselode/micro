@@ -7,7 +7,7 @@ use sdl2::{
 	EventPump, Sdl, VideoSubsystem,
 };
 
-use crate::{texture::RawTexture, Game};
+use crate::{texture::Texture, Game};
 
 const VERTEX_SHADER: &str = include_str!("vertex.glsl");
 const FRAGMENT_SHADER: &str = include_str!("fragment.glsl");
@@ -15,7 +15,7 @@ const FRAGMENT_SHADER: &str = include_str!("fragment.glsl");
 pub struct GraphicsContext {
 	_sdl_gl_ctx: GLContext,
 	gl: Rc<glow::Context>,
-	pub(crate) default_texture: Rc<RawTexture>,
+	pub(crate) default_texture: Texture,
 	pub(crate) shader_program: NativeProgram,
 }
 
@@ -86,15 +86,16 @@ impl GraphicsContext {
 			_sdl_gl_ctx,
 			gl: gl.clone(),
 			shader_program,
-			default_texture: Rc::new(RawTexture {
-				gl,
-				texture: default_texture,
-			}),
+			default_texture: Texture::from_native_texture(gl, default_texture),
 		})
 	}
 
 	pub(crate) fn gl(&self) -> Rc<glow::Context> {
 		self.gl.clone()
+	}
+
+	pub(crate) fn default_texture(&self) -> Texture {
+		self.default_texture.clone()
 	}
 
 	pub fn clear(&self, red: f32, green: f32, blue: f32, alpha: f32) {

@@ -3,11 +3,7 @@ use std::{error::Error, rc::Rc};
 use glam::Vec2;
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
-use crate::{
-	color::Rgba,
-	context::Context,
-	texture::{RawTexture, Texture},
-};
+use crate::{color::Rgba, context::Context, texture::Texture};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vertex {
@@ -22,7 +18,7 @@ pub struct Mesh {
 	vertex_buffer: NativeBuffer,
 	element_buffer: NativeBuffer,
 	num_indices: i32,
-	texture: Rc<RawTexture>,
+	texture: Texture,
 }
 
 impl Mesh {
@@ -99,16 +95,14 @@ impl Mesh {
 			vertex_buffer,
 			element_buffer,
 			num_indices: indices.len().try_into().unwrap(),
-			texture: texture
-				.map(|texture| texture.raw.clone())
-				.unwrap_or_else(|| ctx.graphics().default_texture.clone()),
+			texture: texture.cloned().unwrap_or_else(|| ctx.graphics().default_texture()),
 		})
 	}
 
 	pub fn draw(&self) {
 		unsafe {
 			self.gl
-				.bind_texture(glow::TEXTURE_2D, Some(self.texture.texture()));
+				.bind_texture(glow::TEXTURE_2D, Some(self.texture.native_texture()));
 			self.gl.bind_vertex_array(Some(self.vertex_array));
 			self.gl
 				.draw_elements(glow::TRIANGLES, self.num_indices, glow::UNSIGNED_INT, 0);

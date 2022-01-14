@@ -1,13 +1,13 @@
 use std::{error::Error, rc::Rc, time::Duration};
 
-use glow::{HasContext, NativeProgram};
+use glow::HasContext;
 use sdl2::{
 	event::Event,
 	video::{GLContext, Window},
 	EventPump, Sdl, VideoSubsystem,
 };
 
-use crate::{texture::Texture, Game};
+use crate::{shader::Shader, texture::Texture, Game};
 
 const VERTEX_SHADER: &str = include_str!("vertex.glsl");
 const FRAGMENT_SHADER: &str = include_str!("fragment.glsl");
@@ -16,7 +16,7 @@ pub struct GraphicsContext {
 	_sdl_gl_ctx: GLContext,
 	gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
-	pub(crate) shader_program: NativeProgram,
+	pub(crate) shader: Shader,
 }
 
 impl GraphicsContext {
@@ -25,7 +25,6 @@ impl GraphicsContext {
 		let gl = Rc::new(unsafe {
 			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
 		});
-		let shader_program;
 		let default_texture;
 		unsafe {
 			// create a default texture
@@ -66,27 +65,12 @@ impl GraphicsContext {
 			// enable blending
 			gl.enable(glow::BLEND);
 			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
-
-			// set up shaders
-			let vertex_shader = gl.create_shader(glow::VERTEX_SHADER)?;
-			gl.shader_source(vertex_shader, VERTEX_SHADER);
-			gl.compile_shader(vertex_shader);
-			let fragment_shader = gl.create_shader(glow::FRAGMENT_SHADER)?;
-			gl.shader_source(fragment_shader, FRAGMENT_SHADER);
-			gl.compile_shader(fragment_shader);
-			shader_program = gl.create_program()?;
-			gl.attach_shader(shader_program, vertex_shader);
-			gl.attach_shader(shader_program, fragment_shader);
-			gl.link_program(shader_program);
-			gl.delete_shader(vertex_shader);
-			gl.delete_shader(fragment_shader);
-			gl.use_program(Some(shader_program));
 		}
 		Ok(Self {
 			_sdl_gl_ctx,
 			gl: gl.clone(),
-			shader_program,
-			default_texture: Texture::from_native_texture(gl, default_texture),
+			default_texture: Texture::from_native_texture(gl.clone(), default_texture),
+			shader: Shader::from_ctx_and_strs(gl, VERTEX_SHADER, FRAGMENT_SHADER)?,
 		})
 	}
 

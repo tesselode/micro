@@ -4,18 +4,20 @@ use glow::{HasContext, NativeTexture};
 
 use crate::{context::Context, image_data::ImageData};
 
-struct TextureInner {
+pub(crate) struct RawTexture {
 	gl: Rc<glow::Context>,
 	native_texture: NativeTexture,
 }
 
-impl TextureInner {
-	fn new(ctx: &Context, image_data: &ImageData) -> Result<Self, Box<dyn Error>> {
-		let gl = ctx.graphics().gl();
-		let texture;
+impl RawTexture {
+	pub(crate) fn new(
+		gl: Rc<glow::Context>,
+		image_data: &ImageData,
+	) -> Result<Self, Box<dyn Error>> {
+		let native_texture;
 		unsafe {
-			texture = gl.create_texture()?;
-			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+			native_texture = gl.create_texture()?;
+			gl.bind_texture(glow::TEXTURE_2D, Some(native_texture));
 			gl.tex_parameter_i32(
 				glow::TEXTURE_2D,
 				glow::TEXTURE_WRAP_S,
@@ -50,14 +52,11 @@ impl TextureInner {
 			gl.generate_mipmap(glow::TEXTURE_2D);
 			gl.bind_texture(glow::TEXTURE_2D, None);
 		}
-		Ok(Self {
-			gl,
-			native_texture: texture,
-		})
+		Ok(Self { gl, native_texture })
 	}
 }
 
-impl Drop for TextureInner {
+impl Drop for RawTexture {
 	fn drop(&mut self) {
 		unsafe {
 			self.gl.delete_texture(self.native_texture);
@@ -67,26 +66,23 @@ impl Drop for TextureInner {
 
 #[derive(Clone)]
 pub struct Texture {
-	inner: Rc<TextureInner>,
+	raw: Rc<RawTexture>,
 }
 
 impl Texture {
 	pub fn new(ctx: &Context, image_data: &ImageData) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			inner: Rc::new(TextureInner::new(ctx, image_data)?),
+			raw: Rc::new(RawTexture::new(ctx.graphics().gl(), image_data)?),
 		})
 	}
 
-	pub(crate) fn from_native_texture(
-		gl: Rc<glow::Context>,
-		native_texture: NativeTexture,
-	) -> Self {
+	pub(crate) fn from_raw(raw_texture: RawTexture) -> Self {
 		Self {
-			inner: Rc::new(TextureInner { gl, native_texture }),
+			raw: Rc::new(raw_texture),
 		}
 	}
 
 	pub(crate) fn native_texture(&self) -> NativeTexture {
-		self.inner.native_texture
+		self.raw.native_texture
 	}
 }

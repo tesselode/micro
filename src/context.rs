@@ -7,7 +7,12 @@ use sdl2::{
 	EventPump, Sdl, VideoSubsystem,
 };
 
-use crate::{shader::Shader, texture::Texture, Game};
+use crate::{
+	image_data::ImageData,
+	shader::{RawShader, Shader},
+	texture::{RawTexture, Texture},
+	Game,
+};
 
 const VERTEX_SHADER: &str = include_str!("vertex.glsl");
 const FRAGMENT_SHADER: &str = include_str!("fragment.glsl");
@@ -69,8 +74,15 @@ impl GraphicsContext {
 		Ok(Self {
 			_sdl_gl_ctx,
 			gl: gl.clone(),
-			default_texture: Texture::from_native_texture(gl.clone(), default_texture),
-			shader: Shader::from_ctx_and_strs(gl, VERTEX_SHADER, FRAGMENT_SHADER)?,
+			default_texture: Texture::from_raw(RawTexture::new(
+				gl.clone(),
+				&ImageData {
+					data: vec![255; 4],
+					width: 1,
+					height: 1,
+				},
+			)?),
+			shader: Shader::from_raw(RawShader::new(gl, VERTEX_SHADER, FRAGMENT_SHADER)?),
 		})
 	}
 

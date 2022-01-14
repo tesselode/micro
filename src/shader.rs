@@ -4,13 +4,17 @@ use glow::{HasContext, NativeProgram};
 
 use crate::color::Rgba;
 
-struct ShaderInner {
+pub(crate) struct RawShader {
 	gl: Rc<glow::Context>,
 	native_program: NativeProgram,
 }
 
-impl ShaderInner {
-	fn new(gl: Rc<glow::Context>, vertex: &str, fragment: &str) -> Result<Self, Box<dyn Error>> {
+impl RawShader {
+	pub(crate) fn new(
+		gl: Rc<glow::Context>,
+		vertex: &str,
+		fragment: &str,
+	) -> Result<Self, Box<dyn Error>> {
 		let native_program;
 		unsafe {
 			let vertex_shader = gl.create_shader(glow::VERTEX_SHADER)?;
@@ -47,7 +51,7 @@ impl ShaderInner {
 	}
 }
 
-impl Drop for ShaderInner {
+impl Drop for RawShader {
 	fn drop(&mut self) {
 		unsafe {
 			self.gl.delete_program(self.native_program);
@@ -56,21 +60,15 @@ impl Drop for ShaderInner {
 }
 
 pub struct Shader {
-	inner: Rc<ShaderInner>,
+	raw: Rc<RawShader>,
 }
 
 impl Shader {
-	pub(crate) fn from_ctx_and_strs(
-		gl: Rc<glow::Context>,
-		vertex: &str,
-		fragment: &str,
-	) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {
-			inner: Rc::new(ShaderInner::new(gl, vertex, fragment)?),
-		})
+	pub(crate) fn from_raw(raw: RawShader) -> Self {
+		Self { raw: Rc::new(raw) }
 	}
 
 	pub fn send_color(&self, name: &str, color: Rgba) {
-		self.inner.send_color(name, color);
+		self.raw.send_color(name, color);
 	}
 }

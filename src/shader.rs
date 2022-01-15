@@ -30,9 +30,15 @@ impl RawShader {
 			let vertex_shader = gl.create_shader(glow::VERTEX_SHADER)?;
 			gl.shader_source(vertex_shader, vertex);
 			gl.compile_shader(vertex_shader);
+			if !gl.get_shader_compile_status(vertex_shader) {
+				return Err(gl.get_shader_info_log(vertex_shader));
+			}
 			let fragment_shader = gl.create_shader(glow::FRAGMENT_SHADER)?;
 			gl.shader_source(fragment_shader, fragment);
 			gl.compile_shader(fragment_shader);
+			if !gl.get_shader_compile_status(fragment_shader) {
+				return Err(gl.get_shader_info_log(fragment_shader));
+			}
 			native_program = gl.create_program()?;
 			gl.attach_shader(native_program, vertex_shader);
 			gl.attach_shader(native_program, fragment_shader);

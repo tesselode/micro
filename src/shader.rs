@@ -1,8 +1,22 @@
-use std::{error::Error, rc::Rc};
+use std::{error::Error, fmt::Display, rc::Rc};
 
 use glow::{HasContext, NativeProgram};
 
 use crate::color::Rgba;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UniformNotFound(pub String);
+
+impl Display for UniformNotFound {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.write_fmt(format_args!(
+			"Could not find a uniform with the name {}",
+			self.0
+		))
+	}
+}
+
+impl Error for UniformNotFound {}
 
 pub(crate) struct RawShader {
 	gl: Rc<glow::Context>,
@@ -10,11 +24,7 @@ pub(crate) struct RawShader {
 }
 
 impl RawShader {
-	pub(crate) fn new(
-		gl: Rc<glow::Context>,
-		vertex: &str,
-		fragment: &str,
-	) -> Result<Self, Box<dyn Error>> {
+	pub(crate) fn new(gl: Rc<glow::Context>, vertex: &str, fragment: &str) -> Result<Self, String> {
 		let native_program;
 		unsafe {
 			let vertex_shader = gl.create_shader(glow::VERTEX_SHADER)?;
@@ -34,12 +44,12 @@ impl RawShader {
 		Ok(Self { gl, native_program })
 	}
 
-	fn send_color(&self, name: &str, color: Rgba) {
+	fn send_color(&self, name: &str, color: Rgba) -> Result<(), UniformNotFound> {
 		unsafe {
 			let location = self
 				.gl
 				.get_uniform_location(self.native_program, name)
-				.unwrap();
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			self.gl.uniform_4_f32(
 				Some(&location),
 				color.red,
@@ -48,6 +58,7 @@ impl RawShader {
 				color.alpha,
 			);
 		}
+		Ok(())
 	}
 }
 
@@ -68,7 +79,7 @@ impl Shader {
 		Self { raw: Rc::new(raw) }
 	}
 
-	pub fn send_color(&self, name: &str, color: Rgba) {
-		self.raw.send_color(name, color);
+	pub fn send_color(&self, name: &str, color: Rgba) -> Result<(), UniformNotFound> {
+		self.raw.send_color(name, color)
 	}
 }

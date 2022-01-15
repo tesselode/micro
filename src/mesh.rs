@@ -1,4 +1,4 @@
-use std::{error::Error, rc::Rc};
+use std::rc::Rc;
 
 use glam::Vec2;
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
@@ -27,7 +27,7 @@ impl Mesh {
 		vertices: &[Vertex],
 		indices: &[u32],
 		texture: Option<&Texture>,
-	) -> Result<Self, Box<dyn Error>> {
+	) -> Result<Self, String> {
 		let mut raw_vertex_data = vec![];
 		for vertex in vertices {
 			raw_vertex_data.push(vertex.position.x);
@@ -95,7 +95,9 @@ impl Mesh {
 			vertex_buffer,
 			element_buffer,
 			num_indices: indices.len().try_into().unwrap(),
-			texture: texture.cloned().unwrap_or_else(|| ctx.graphics().default_texture()),
+			texture: texture
+				.cloned()
+				.unwrap_or_else(|| ctx.graphics().default_texture()),
 		})
 	}
 

@@ -1,9 +1,9 @@
-use std::{error::Error, rc::Rc, time::Duration};
+use std::{error::Error, fmt::Display, rc::Rc, time::Duration};
 
 use glow::HasContext;
 use sdl2::{
 	event::Event,
-	video::{GLContext, Window},
+	video::{GLContext, Window, WindowBuildError},
 	EventPump, Sdl, VideoSubsystem,
 };
 
@@ -17,6 +17,41 @@ use crate::{
 const VERTEX_SHADER: &str = include_str!("vertex.glsl");
 const FRAGMENT_SHADER: &str = include_str!("fragment.glsl");
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum CreateContextError {
+	WindowTooLarge,
+	InvalidWindowTitle,
+	SdlError(String),
+	GlError(String),
+}
+
+impl Display for CreateContextError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			CreateContextError::WindowTooLarge => f.write_str("The window is too large"),
+			CreateContextError::InvalidWindowTitle => {
+				f.write_str("The window title contains a nul byte")
+			}
+			CreateContextError::SdlError(error) => f.write_str(error),
+			CreateContextError::GlError(error) => f.write_str(error),
+		}
+	}
+}
+
+impl Error for CreateContextError {}
+
+impl From<WindowBuildError> for CreateContextError {
+	fn from(error: WindowBuildError) -> Self {
+		match error {
+			WindowBuildError::HeightOverflows(_) | WindowBuildError::WidthOverflows(_) => {
+				Self::WindowTooLarge
+			}
+			WindowBuildError::InvalidTitle(_) => Self::InvalidWindowTitle,
+			WindowBuildError::SdlError(error) => Self::SdlError(error),
+		}
+	}
+}
+
 pub struct GraphicsContext {
 	_sdl_gl_ctx: GLContext,
 	gl: Rc<glow::Context>,
@@ -25,15 +60,17 @@ pub struct GraphicsContext {
 }
 
 impl GraphicsContext {
-	fn new(video: &VideoSubsystem, window: &Window) -> Result<Self, Box<dyn Error>> {
-		let _sdl_gl_ctx = window.gl_create_context()?;
+	fn new(video: &VideoSubsystem, window: &Window) -> Result<Self, CreateContextError> {
+		let _sdl_gl_ctx = window
+			.gl_create_context()
+			.map_err(CreateContextError::SdlError)?;
 		let gl = Rc::new(unsafe {
 			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
 		});
 		let default_texture;
 		unsafe {
 			// create a default texture
-			default_texture = gl.create_texture()?;
+			default_texture = gl.create_texture().map_err(CreateContextError::GlError)?;
 			gl.bind_texture(glow::TEXTURE_2D, Some(default_texture));
 			gl.tex_parameter_i32(
 				glow::TEXTURE_2D,
@@ -74,15 +111,21 @@ impl GraphicsContext {
 		Ok(Self {
 			_sdl_gl_ctx,
 			gl: gl.clone(),
-			default_texture: Texture::from_raw(RawTexture::new(
-				gl.clone(),
-				&ImageData {
-					data: vec![255; 4],
-					width: 1,
-					height: 1,
-				},
-			)?),
-			shader: Shader::from_raw(RawShader::new(gl, VERTEX_SHADER, FRAGMENT_SHADER)?),
+			default_texture: Texture::from_raw(
+				RawTexture::new(
+					gl.clone(),
+					&ImageData {
+						data: vec![255; 4],
+						width: 1,
+						height: 1,
+					},
+				)
+				.map_err(CreateContextError::GlError)?,
+			),
+			shader: Shader::from_raw(
+				RawShader::new(gl, VERTEX_SHADER, FRAGMENT_SHADER)
+					.map_err(CreateContextError::GlError)?,
+			),
 		})
 	}
 
@@ -111,15 +154,15 @@ pub struct Context {
 }
 
 impl Context {
-	pub fn new() -> Result<Self, Box<dyn Error>> {
-		let sdl = sdl2::init()?;
-		let video = sdl.video()?;
+	pub fn new() -> Result<Self, CreateContextError> {
+		let sdl = sdl2::init().map_err(CreateContextError::SdlError)?;
+		let video = sdl.video().map_err(CreateContextError::SdlError)?;
 		let gl_attr = video.gl_attr();
 		gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
 		gl_attr.set_context_version(3, 3);
 		let window = video.window("Window", 800, 600).opengl().build()?;
 		let graphics_ctx = GraphicsContext::new(&video, &window)?;
-		let event_pump = sdl.event_pump()?;
+		let event_pump = sdl.event_pump().map_err(CreateContextError::SdlError)?;
 		Ok(Self {
 			_sdl: sdl,
 			video,

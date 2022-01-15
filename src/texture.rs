@@ -1,4 +1,4 @@
-use std::{error::Error, rc::Rc};
+use std::rc::Rc;
 
 use glow::{HasContext, NativeTexture};
 
@@ -10,10 +10,7 @@ pub(crate) struct RawTexture {
 }
 
 impl RawTexture {
-	pub(crate) fn new(
-		gl: Rc<glow::Context>,
-		image_data: &ImageData,
-	) -> Result<Self, Box<dyn Error>> {
+	pub(crate) fn new(gl: Rc<glow::Context>, image_data: &ImageData) -> Result<Self, String> {
 		let native_texture;
 		unsafe {
 			native_texture = gl.create_texture()?;
@@ -70,7 +67,7 @@ pub struct Texture {
 }
 
 impl Texture {
-	pub fn new(ctx: &Context, image_data: &ImageData) -> Result<Self, Box<dyn Error>> {
+	pub fn new(ctx: &Context, image_data: &ImageData) -> Result<Self, String> {
 		Ok(Self {
 			raw: Rc::new(RawTexture::new(ctx.graphics().gl(), image_data)?),
 		})

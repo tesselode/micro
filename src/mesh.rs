@@ -3,7 +3,7 @@ use std::rc::Rc;
 use glam::Vec2;
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
-use crate::{color::Rgba, context::Context, texture::Texture};
+use crate::{color::Rgba, context::Context, draw_params::DrawParams, texture::Texture};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vertex {
@@ -101,7 +101,11 @@ impl Mesh {
 		})
 	}
 
-	pub fn draw(&self) {
+	pub fn draw(&self, ctx: &Context, params: DrawParams) {
+		ctx.graphics()
+			.shader
+			.send_color("BlendColor", params.color)
+			.expect("Current shader does not have a BlendColor uniform");
 		unsafe {
 			self.gl
 				.bind_texture(glow::TEXTURE_2D, Some(self.texture.native_texture()));

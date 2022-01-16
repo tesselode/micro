@@ -8,8 +8,9 @@ use sdl2::{
 };
 
 use crate::{
+	color::Rgba,
 	image_data::ImageData,
-	shader::{RawShader, Shader},
+	shader::{CreateShaderError, RawShader, Shader},
 	texture::{RawTexture, Texture},
 	Game,
 };
@@ -122,10 +123,21 @@ impl GraphicsContext {
 				)
 				.map_err(CreateContextError::GlError)?,
 			),
-			shader: Shader::from_raw(
-				RawShader::new(gl, VERTEX_SHADER, FRAGMENT_SHADER)
-					.map_err(CreateContextError::GlError)?,
-			),
+			shader: {
+				let shader =
+					Shader::from_raw(RawShader::new(gl, VERTEX_SHADER, FRAGMENT_SHADER).map_err(
+						|error| match error {
+							CreateShaderError::NoBlendColorUniform => {
+								panic!("Default shader does not have a BlendColor uniform")
+							}
+							CreateShaderError::GlError(error) => CreateContextError::GlError(error),
+						},
+					)?);
+				shader
+					.send_color("BlendColor", Rgba::WHITE)
+					.expect("Default shader does not have a BlendColor uniform");
+				shader
+			},
 		})
 	}
 

@@ -18,28 +18,59 @@ impl Display for UniformNotFound {
 
 impl Error for UniformNotFound {}
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum CreateShaderError {
+	NoBlendColorUniform,
+	GlError(String),
+}
+
+impl Display for CreateShaderError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			CreateShaderError::NoBlendColorUniform => {
+				f.write_str("The shader does not have a BlendColor uniform")
+			}
+			CreateShaderError::GlError(error) => f.write_str(error),
+		}
+	}
+}
+
+impl Error for CreateShaderError {}
+
 pub(crate) struct RawShader {
 	gl: Rc<glow::Context>,
 	native_program: NativeProgram,
 }
 
 impl RawShader {
-	pub(crate) fn new(gl: Rc<glow::Context>, vertex: &str, fragment: &str) -> Result<Self, String> {
+	pub(crate) fn new(
+		gl: Rc<glow::Context>,
+		vertex: &str,
+		fragment: &str,
+	) -> Result<Self, CreateShaderError> {
 		let native_program;
 		unsafe {
-			let vertex_shader = gl.create_shader(glow::VERTEX_SHADER)?;
+			let vertex_shader = gl
+				.create_shader(glow::VERTEX_SHADER)
+				.map_err(CreateShaderError::GlError)?;
 			gl.shader_source(vertex_shader, vertex);
 			gl.compile_shader(vertex_shader);
 			if !gl.get_shader_compile_status(vertex_shader) {
-				return Err(gl.get_shader_info_log(vertex_shader));
+				return Err(CreateShaderError::GlError(
+					gl.get_shader_info_log(vertex_shader),
+				));
 			}
-			let fragment_shader = gl.create_shader(glow::FRAGMENT_SHADER)?;
+			let fragment_shader = gl
+				.create_shader(glow::FRAGMENT_SHADER)
+				.map_err(CreateShaderError::GlError)?;
 			gl.shader_source(fragment_shader, fragment);
 			gl.compile_shader(fragment_shader);
 			if !gl.get_shader_compile_status(fragment_shader) {
-				return Err(gl.get_shader_info_log(fragment_shader));
+				return Err(CreateShaderError::GlError(
+					gl.get_shader_info_log(fragment_shader),
+				));
 			}
-			native_program = gl.create_program()?;
+			native_program = gl.create_program().map_err(CreateShaderError::GlError)?;
 			gl.attach_shader(native_program, vertex_shader);
 			gl.attach_shader(native_program, fragment_shader);
 			gl.link_program(native_program);

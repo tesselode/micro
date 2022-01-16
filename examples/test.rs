@@ -4,6 +4,7 @@ use glam::Vec2;
 use micro::{
 	color::Rgba,
 	context::Context,
+	draw_params::DrawParams,
 	image_data::ImageData,
 	mesh::{Mesh, Vertex},
 	texture::Texture,
@@ -11,14 +12,15 @@ use micro::{
 use sdl2::{event::Event, keyboard::Keycode};
 
 struct Game {
-	mesh: Option<Mesh>,
+	mesh: Mesh,
+	color: Rgba,
 }
 
 impl Game {
 	fn new(ctx: &Context) -> Result<Self, Box<dyn Error>> {
 		let texture = Texture::new(ctx, &ImageData::from_file("examples/bricks.png")?)?;
 		Ok(Self {
-			mesh: Some(Mesh::new(
+			mesh: Mesh::new(
 				ctx,
 				&[
 					Vertex {
@@ -64,7 +66,8 @@ impl Game {
 				],
 				&[0, 1, 3, 1, 2, 3],
 				Some(&texture),
-			)?),
+			)?,
+			color: Rgba::WHITE,
 		})
 	}
 }
@@ -76,16 +79,19 @@ impl micro::Game<()> for Game {
 			..
 		} = event
 		{
-			self.mesh = None;
+			self.color = Rgba {
+				red: 1.0,
+				green: 0.0,
+				blue: 0.0,
+				alpha: 1.0,
+			};
 		}
 		Ok(())
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), ()> {
 		ctx.graphics().clear(0.1, 0.2, 0.3, 1.0);
-		if let Some(mesh) = &self.mesh {
-			mesh.draw();
-		}
+		self.mesh.draw(ctx, DrawParams { color: self.color });
 		Ok(())
 	}
 }

@@ -1,5 +1,6 @@
 use std::{error::Error, fmt::Display, rc::Rc, time::Duration};
 
+use glam::{Mat4, Vec3};
 use glow::HasContext;
 use sdl2::{
 	event::Event,
@@ -127,15 +128,20 @@ impl GraphicsContext {
 				let shader =
 					Shader::from_raw(RawShader::new(gl, VERTEX_SHADER, FRAGMENT_SHADER).map_err(
 						|error| match error {
-							CreateShaderError::NoBlendColorUniform => {
-								panic!("Default shader does not have a BlendColor uniform")
+							CreateShaderError::MissingUniform(name) => {
+								panic!("Default shader does not have a {} uniform", name)
 							}
 							CreateShaderError::GlError(error) => CreateContextError::GlError(error),
 						},
 					)?);
+				shader.send_color("BlendColor", Rgba::WHITE).unwrap();
 				shader
-					.send_color("BlendColor", Rgba::WHITE)
-					.expect("Default shader does not have a BlendColor uniform");
+					.send_mat4(
+						"GlobalTransform",
+						Mat4::from_scale(Vec3::new(2.0 / 800.0, -2.0 / 600.0, 1.0))
+							* Mat4::from_translation(Vec3::new(-400.0, -300.0, 0.0)),
+					)
+					.unwrap();
 				shader
 			},
 		})

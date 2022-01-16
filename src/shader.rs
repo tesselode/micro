@@ -1,5 +1,6 @@
 use std::{error::Error, fmt::Display, rc::Rc};
 
+use glam::Mat4;
 use glow::{HasContext, NativeProgram};
 
 use crate::color::Rgba;
@@ -20,15 +21,15 @@ impl Error for UniformNotFound {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CreateShaderError {
-	NoBlendColorUniform,
+	MissingUniform(String),
 	GlError(String),
 }
 
 impl Display for CreateShaderError {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
-			CreateShaderError::NoBlendColorUniform => {
-				f.write_str("The shader does not have a BlendColor uniform")
+			CreateShaderError::MissingUniform(name) => {
+				f.write_fmt(format_args!("The shader is missing a {} uniform", name))
 			}
 			CreateShaderError::GlError(error) => f.write_str(error),
 		}
@@ -77,6 +78,12 @@ impl RawShader {
 			gl.delete_shader(vertex_shader);
 			gl.delete_shader(fragment_shader);
 			gl.use_program(Some(native_program));
+			const REQUIRED_UNIFORMS: &[&str] = &["BlendColor", "GlobalTransform"];
+			for name in REQUIRED_UNIFORMS {
+				if gl.get_uniform_location(native_program, name).is_none() {
+					return Err(CreateShaderError::MissingUniform(name.to_string()));
+				}
+			}
 		}
 		Ok(Self { gl, native_program })
 	}
@@ -94,6 +101,18 @@ impl RawShader {
 				color.blue,
 				color.alpha,
 			);
+		}
+		Ok(())
+	}
+
+	fn send_mat4(&self, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
+		unsafe {
+			let location = self
+				.gl
+				.get_uniform_location(self.native_program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			self.gl
+				.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
 		}
 		Ok(())
 	}
@@ -118,5 +137,9 @@ impl Shader {
 
 	pub fn send_color(&self, name: &str, color: Rgba) -> Result<(), UniformNotFound> {
 		self.raw.send_color(name, color)
+	}
+
+	pub fn send_mat4(&self, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
+		self.raw.send_mat4(name, mat4)
 	}
 }

@@ -24,7 +24,7 @@ impl Game {
 				ctx,
 				&[
 					Vertex {
-						position: Vec2::new(0.5, 0.5),
+						position: Vec2::new(800.0, 600.0),
 						color: Rgba {
 							red: 1.0,
 							green: 0.0,
@@ -34,7 +34,7 @@ impl Game {
 						texture_coords: Vec2::new(1.0, 1.0),
 					},
 					Vertex {
-						position: Vec2::new(0.5, -0.5),
+						position: Vec2::new(800.0, 0.0),
 						color: Rgba {
 							red: 0.0,
 							green: 1.0,
@@ -44,7 +44,7 @@ impl Game {
 						texture_coords: Vec2::new(1.0, 0.0),
 					},
 					Vertex {
-						position: Vec2::new(-0.5, -0.5),
+						position: Vec2::new(0.0, 0.0),
 						color: Rgba {
 							red: 0.0,
 							green: 0.0,
@@ -54,7 +54,7 @@ impl Game {
 						texture_coords: Vec2::new(0.0, 0.0),
 					},
 					Vertex {
-						position: Vec2::new(-0.5, 0.5),
+						position: Vec2::new(0.0, 600.0),
 						color: Rgba {
 							red: 1.0,
 							green: 1.0,

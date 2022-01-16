@@ -5,6 +5,8 @@ use glow::{HasContext, NativeProgram};
 
 use crate::color::Rgba;
 
+const REQUIRED_UNIFORMS: &[&str] = &["BlendColor", "GlobalTransform", "LocalTransform"];
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UniformNotFound(pub String);
 
@@ -78,7 +80,6 @@ impl RawShader {
 			gl.delete_shader(vertex_shader);
 			gl.delete_shader(fragment_shader);
 			gl.use_program(Some(native_program));
-			const REQUIRED_UNIFORMS: &[&str] = &["BlendColor", "GlobalTransform"];
 			for name in REQUIRED_UNIFORMS {
 				if gl.get_uniform_location(native_program, name).is_none() {
 					return Err(CreateShaderError::MissingUniform(name.to_string()));

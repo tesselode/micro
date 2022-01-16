@@ -105,7 +105,11 @@ impl Mesh {
 		ctx.graphics()
 			.shader
 			.send_color("BlendColor", params.color)
-			.expect("Current shader does not have a BlendColor uniform");
+			.unwrap();
+		ctx.graphics()
+			.shader
+			.send_mat4("LocalTransform", params.transform)
+			.unwrap();
 		unsafe {
 			self.gl
 				.bind_texture(glow::TEXTURE_2D, Some(self.texture.native_texture()));

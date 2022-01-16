@@ -142,6 +142,7 @@ impl GraphicsContext {
 							* Mat4::from_translation(Vec3::new(-400.0, -300.0, 0.0)),
 					)
 					.unwrap();
+				shader.send_mat4("LocalTransform", Mat4::IDENTITY).unwrap();
 				shader
 			},
 		})

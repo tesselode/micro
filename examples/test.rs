@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use glam::Vec2;
+use glam::{Mat4, Vec2, Vec3};
 use micro::{
 	color::Rgba,
 	context::Context,
@@ -14,6 +14,7 @@ use sdl2::{event::Event, keyboard::Keycode};
 struct Game {
 	mesh: Mesh,
 	color: Rgba,
+	angle: f32,
 }
 
 impl Game {
@@ -68,6 +69,7 @@ impl Game {
 				Some(&texture),
 			)?,
 			color: Rgba::WHITE,
+			angle: 0.0,
 		})
 	}
 }
@@ -89,9 +91,22 @@ impl micro::Game<()> for Game {
 		Ok(())
 	}
 
+	fn update(&mut self, _ctx: &mut Context) -> Result<(), ()> {
+		self.angle += 1.0 / 60.0;
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), ()> {
 		ctx.graphics().clear(0.1, 0.2, 0.3, 1.0);
-		self.mesh.draw(ctx, DrawParams { color: self.color });
+		self.mesh.draw(
+			ctx,
+			DrawParams {
+				color: self.color,
+				transform: Mat4::from_translation(Vec3::new(400.0, 300.0, 0.0))
+					* Mat4::from_rotation_z(self.angle)
+					* Mat4::from_translation(Vec3::new(-400.0, -300.0, 0.0)),
+			},
+		);
 		Ok(())
 	}
 }

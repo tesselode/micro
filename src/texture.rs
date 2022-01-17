@@ -5,8 +5,8 @@ use glow::{HasContext, NativeTexture};
 use crate::{context::Context, image_data::ImageData};
 
 pub(crate) struct RawTexture {
-	gl: Rc<glow::Context>,
-	native_texture: NativeTexture,
+	pub(crate) gl: Rc<glow::Context>,
+	pub(crate) native_texture: NativeTexture,
 }
 
 impl RawTexture {

@@ -2,11 +2,7 @@ use std::error::Error;
 
 use glam::{Mat4, Vec2, Vec3};
 use micro::{
-	color::Rgba,
-	context::Context,
-	draw_params::DrawParams,
-	image_data::ImageData,
-	mesh::{Mesh, Vertex},
+	color::Rgba, context::Context, draw_params::DrawParams, image_data::ImageData, mesh::Mesh,
 	texture::Texture,
 };
 use sdl2::{event::Event, keyboard::Keycode};
@@ -21,53 +17,7 @@ impl Game {
 	fn new(ctx: &Context) -> Result<Self, Box<dyn Error>> {
 		let texture = Texture::new(ctx, &ImageData::from_file("examples/bricks.png")?)?;
 		Ok(Self {
-			mesh: Mesh::new(
-				ctx,
-				&[
-					Vertex {
-						position: Vec2::new(800.0, 600.0),
-						color: Rgba {
-							red: 1.0,
-							green: 0.0,
-							blue: 0.0,
-							alpha: 1.0,
-						},
-						texture_coords: Vec2::new(1.0, 1.0),
-					},
-					Vertex {
-						position: Vec2::new(800.0, 0.0),
-						color: Rgba {
-							red: 0.0,
-							green: 1.0,
-							blue: 0.0,
-							alpha: 1.0,
-						},
-						texture_coords: Vec2::new(1.0, 0.0),
-					},
-					Vertex {
-						position: Vec2::new(0.0, 0.0),
-						color: Rgba {
-							red: 0.0,
-							green: 0.0,
-							blue: 1.0,
-							alpha: 1.0,
-						},
-						texture_coords: Vec2::new(0.0, 0.0),
-					},
-					Vertex {
-						position: Vec2::new(0.0, 600.0),
-						color: Rgba {
-							red: 1.0,
-							green: 1.0,
-							blue: 0.0,
-							alpha: 1.0,
-						},
-						texture_coords: Vec2::new(0.0, 1.0),
-					},
-				],
-				&[0, 1, 3, 1, 2, 3],
-				Some(&texture),
-			)?,
+			mesh: Mesh::rectangle(ctx, Vec2::ZERO, Vec2::new(800.0, 600.0), Some(&texture))?,
 			color: Rgba::WHITE,
 			angle: 0.0,
 		})

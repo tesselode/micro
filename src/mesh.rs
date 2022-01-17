@@ -101,6 +101,41 @@ impl Mesh {
 		})
 	}
 
+	pub fn rectangle(
+		ctx: &Context,
+		position: Vec2,
+		size: Vec2,
+		texture: Option<&Texture>,
+	) -> Result<Self, String> {
+		Self::new(
+			ctx,
+			&[
+				Vertex {
+					position: position + size,
+					color: Rgba::WHITE,
+					texture_coords: Vec2::new(1.0, 1.0),
+				},
+				Vertex {
+					position: position + Vec2::new(size.x, 0.0),
+					color: Rgba::WHITE,
+					texture_coords: Vec2::new(1.0, 0.0),
+				},
+				Vertex {
+					position,
+					color: Rgba::WHITE,
+					texture_coords: Vec2::new(0.0, 0.0),
+				},
+				Vertex {
+					position: position + Vec2::new(0.0, size.y),
+					color: Rgba::WHITE,
+					texture_coords: Vec2::new(0.0, 1.0),
+				},
+			],
+			&[0, 1, 3, 1, 2, 3],
+			texture,
+		)
+	}
+
 	pub fn draw(&self, ctx: &Context, params: DrawParams) {
 		ctx.graphics()
 			.shader

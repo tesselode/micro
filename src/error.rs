@@ -6,36 +6,36 @@ use std::{
 use sdl2::video::WindowBuildError;
 
 #[derive(Debug, Clone)]
-pub enum RunError {
+pub enum InitError {
 	InitSdlError(String),
 	WindowBuildError(WindowBuildError),
 }
 
-impl Display for RunError {
+impl Display for InitError {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		match self {
-			RunError::InitSdlError(error) => f.write_str(error),
-			RunError::WindowBuildError(error) => error.fmt(f),
+			InitError::InitSdlError(error) => f.write_str(error),
+			InitError::WindowBuildError(error) => error.fmt(f),
 		}
 	}
 }
 
-impl Error for RunError {
+impl Error for InitError {
 	fn source(&self) -> Option<&(dyn Error + 'static)> {
 		match self {
-			RunError::WindowBuildError(error) => Some(error),
+			InitError::WindowBuildError(error) => Some(error),
 			_ => None,
 		}
 	}
 }
 
-impl From<String> for RunError {
+impl From<String> for InitError {
 	fn from(v: String) -> Self {
 		Self::InitSdlError(v)
 	}
 }
 
-impl From<WindowBuildError> for RunError {
+impl From<WindowBuildError> for InitError {
 	fn from(v: WindowBuildError) -> Self {
 		Self::WindowBuildError(v)
 	}

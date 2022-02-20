@@ -19,15 +19,19 @@ impl MainState {
 				ctx,
 				&[
 					Vertex {
-						position: Vec3::new(-0.5, -0.5, 0.0),
+						position: Vec3::new(0.5, 0.5, 0.0),
 					},
 					Vertex {
 						position: Vec3::new(0.5, -0.5, 0.0),
 					},
 					Vertex {
-						position: Vec3::new(0.0, 0.5, 0.0),
+						position: Vec3::new(-0.5, -0.5, 0.0),
+					},
+					Vertex {
+						position: Vec3::new(-0.5, 0.5, 0.0),
 					},
 				],
+				&[0, 1, 3, 1, 2, 3],
 			)
 			.unwrap(),
 		}

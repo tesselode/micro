@@ -5,17 +5,23 @@ use thiserror::Error;
 
 use crate::context::Context;
 
-#[derive(Debug, Error)]
-pub enum LoadShaderError {
-	#[error("{0}")]
-	IoError(#[from] std::io::Error),
-	#[error("{0}")]
-	ShaderError(String),
+pub struct Shader {
+	pub(crate) raw_shader: Rc<RawShader>,
 }
 
-impl From<String> for LoadShaderError {
-	fn from(v: String) -> Self {
-		Self::ShaderError(v)
+impl Shader {
+	pub fn new(
+		ctx: &Context,
+		vertex: impl AsRef<Path>,
+		fragment: impl AsRef<Path>,
+	) -> Result<Self, LoadShaderError> {
+		Ok(Self {
+			raw_shader: Rc::new(RawShader::new(
+				ctx.gl.clone(),
+				&std::fs::read_to_string(vertex)?,
+				&std::fs::read_to_string(fragment)?,
+			)?),
+		})
 	}
 }
 
@@ -65,22 +71,16 @@ impl Drop for RawShader {
 	}
 }
 
-pub struct Shader {
-	pub(crate) raw_shader: Rc<RawShader>,
+#[derive(Debug, Error)]
+pub enum LoadShaderError {
+	#[error("{0}")]
+	IoError(#[from] std::io::Error),
+	#[error("{0}")]
+	ShaderError(String),
 }
 
-impl Shader {
-	pub fn new(
-		ctx: &Context,
-		vertex: impl AsRef<Path>,
-		fragment: impl AsRef<Path>,
-	) -> Result<Self, LoadShaderError> {
-		Ok(Self {
-			raw_shader: Rc::new(RawShader::new(
-				ctx.gl.clone(),
-				&std::fs::read_to_string(vertex)?,
-				&std::fs::read_to_string(fragment)?,
-			)?),
-		})
+impl From<String> for LoadShaderError {
+	fn from(v: String) -> Self {
+		Self::ShaderError(v)
 	}
 }

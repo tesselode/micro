@@ -8,17 +8,16 @@ use crate::{
 	image_data::{ImageData, LoadImageDataError},
 };
 
-#[derive(Debug, Error)]
-pub enum LoadTextureError {
-	#[error("{0}")]
-	LoadImageDataError(#[from] LoadImageDataError),
-	#[error("{0}")]
-	GlError(String),
+pub struct Texture {
+	pub(crate) raw_texture: Rc<RawTexture>,
 }
 
-impl From<String> for LoadTextureError {
-	fn from(v: String) -> Self {
-		Self::GlError(v)
+impl Texture {
+	pub fn load(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadTextureError> {
+		let image_data = ImageData::load(path)?;
+		Ok(Self {
+			raw_texture: Rc::new(RawTexture::new(ctx.gl.clone(), &image_data)?),
+		})
 	}
 }
 
@@ -57,15 +56,16 @@ impl Drop for RawTexture {
 	}
 }
 
-pub struct Texture {
-	pub(crate) raw_texture: Rc<RawTexture>,
+#[derive(Debug, Error)]
+pub enum LoadTextureError {
+	#[error("{0}")]
+	LoadImageDataError(#[from] LoadImageDataError),
+	#[error("{0}")]
+	GlError(String),
 }
 
-impl Texture {
-	pub fn load(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadTextureError> {
-		let image_data = ImageData::load(path)?;
-		Ok(Self {
-			raw_texture: Rc::new(RawTexture::new(ctx.gl.clone(), &image_data)?),
-		})
+impl From<String> for LoadTextureError {
+	fn from(v: String) -> Self {
+		Self::GlError(v)
 	}
 }

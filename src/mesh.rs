@@ -6,6 +6,32 @@ use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
 use crate::{context::Context, texture::Texture};
 
+pub struct Mesh {
+	raw_mesh: Rc<RawMesh>,
+}
+
+impl Mesh {
+	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Result<Self, String> {
+		Ok(Self {
+			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
+		})
+	}
+
+	pub fn draw(&self, ctx: &Context, texture: &Texture) {
+		let gl = &ctx.gl;
+		unsafe {
+			gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw_texture.texture));
+			gl.bind_vertex_array(Some(self.raw_mesh.vertex_array));
+			gl.draw_elements(
+				glow::TRIANGLES,
+				self.raw_mesh.num_indices,
+				glow::UNSIGNED_INT,
+				0,
+			);
+		}
+	}
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct Vertex {
@@ -79,32 +105,6 @@ impl Drop for RawMesh {
 			self.gl.delete_vertex_array(self.vertex_array);
 			self.gl.delete_buffer(self.vertex_buffer);
 			self.gl.delete_buffer(self.index_buffer);
-		}
-	}
-}
-
-pub struct Mesh {
-	raw_mesh: Rc<RawMesh>,
-}
-
-impl Mesh {
-	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Result<Self, String> {
-		Ok(Self {
-			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
-		})
-	}
-
-	pub fn draw(&self, ctx: &Context, texture: &Texture) {
-		let gl = &ctx.gl;
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw_texture.texture));
-			gl.bind_vertex_array(Some(self.raw_mesh.vertex_array));
-			gl.draw_elements(
-				glow::TRIANGLES,
-				self.raw_mesh.num_indices,
-				glow::UNSIGNED_INT,
-				0,
-			);
 		}
 	}
 }

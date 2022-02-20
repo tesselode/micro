@@ -1,6 +1,7 @@
 pub mod color;
 pub mod context;
 pub mod error;
+pub mod mesh;
 pub mod shader;
 
 use std::time::Duration;

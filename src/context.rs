@@ -28,6 +28,9 @@ impl Context {
 				.expect("Error compiling default shader"),
 			),
 		};
+		unsafe {
+			gl.use_program(Some(default_shader.raw_shader.program));
+		}
 		Self { gl, default_shader }
 	}
 

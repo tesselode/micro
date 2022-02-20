@@ -10,7 +10,7 @@ use self::error::LoadShaderError;
 
 pub(crate) struct RawShader {
 	gl: Arc<glow::Context>,
-	program: NativeProgram,
+	pub(crate) program: NativeProgram,
 }
 
 impl RawShader {

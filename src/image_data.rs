@@ -1,10 +1,15 @@
-pub mod error;
-
 use std::path::Path;
 
-use image::RgbaImage;
+use image::{ImageError, RgbaImage};
+use thiserror::Error;
 
-use self::error::LoadImageDataError;
+#[derive(Debug, Error)]
+pub enum LoadImageDataError {
+	#[error("{0}")]
+	IoError(#[from] std::io::Error),
+	#[error("{0}")]
+	ImageError(#[from] ImageError),
+}
 
 pub struct ImageData(pub(crate) RgbaImage);
 

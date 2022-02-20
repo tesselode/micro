@@ -1,12 +1,23 @@
-pub mod error;
-
 use std::{path::Path, sync::Arc};
 
 use glow::{HasContext, NativeProgram};
+use thiserror::Error;
 
 use crate::context::Context;
 
-use self::error::LoadShaderError;
+#[derive(Debug, Error)]
+pub enum LoadShaderError {
+	#[error("{0}")]
+	IoError(#[from] std::io::Error),
+	#[error("{0}")]
+	ShaderError(String),
+}
+
+impl From<String> for LoadShaderError {
+	fn from(v: String) -> Self {
+		Self::ShaderError(v)
+	}
+}
 
 pub(crate) struct RawShader {
 	gl: Arc<glow::Context>,

@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::{path::Path, rc::Rc};
 
 use glow::{HasContext, NativeTexture};
 use thiserror::Error;
@@ -23,12 +23,12 @@ impl From<String> for LoadTextureError {
 }
 
 pub struct RawTexture {
-	gl: Arc<glow::Context>,
+	gl: Rc<glow::Context>,
 	pub(crate) texture: NativeTexture,
 }
 
 impl RawTexture {
-	pub fn new(gl: Arc<glow::Context>, image_data: &ImageData) -> Result<Self, String> {
+	pub fn new(gl: Rc<glow::Context>, image_data: &ImageData) -> Result<Self, String> {
 		let texture = unsafe { gl.create_texture()? };
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
@@ -58,14 +58,14 @@ impl Drop for RawTexture {
 }
 
 pub struct Texture {
-	pub(crate) raw_texture: Arc<RawTexture>,
+	pub(crate) raw_texture: Rc<RawTexture>,
 }
 
 impl Texture {
 	pub fn load(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadTextureError> {
 		let image_data = ImageData::load(path)?;
 		Ok(Self {
-			raw_texture: Arc::new(RawTexture::new(ctx.gl.clone(), &image_data)?),
+			raw_texture: Rc::new(RawTexture::new(ctx.gl.clone(), &image_data)?),
 		})
 	}
 }

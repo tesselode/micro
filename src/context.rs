@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use glow::HasContext;
 use sdl2::VideoSubsystem;
@@ -9,17 +9,17 @@ use crate::{
 };
 
 pub struct Context {
-	pub(crate) gl: Arc<glow::Context>,
+	pub(crate) gl: Rc<glow::Context>,
 	default_shader: Shader,
 }
 
 impl Context {
 	pub fn new(video: &VideoSubsystem) -> Self {
-		let gl = Arc::new(unsafe {
+		let gl = Rc::new(unsafe {
 			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
 		});
 		let default_shader = Shader {
-			raw_shader: Arc::new(
+			raw_shader: Rc::new(
 				RawShader::new(
 					gl.clone(),
 					include_str!("vertex.glsl"),

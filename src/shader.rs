@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::{path::Path, rc::Rc};
 
 use glow::{HasContext, NativeProgram};
 use thiserror::Error;
@@ -20,16 +20,12 @@ impl From<String> for LoadShaderError {
 }
 
 pub(crate) struct RawShader {
-	gl: Arc<glow::Context>,
+	gl: Rc<glow::Context>,
 	pub(crate) program: NativeProgram,
 }
 
 impl RawShader {
-	pub(crate) fn new(
-		gl: Arc<glow::Context>,
-		vertex: &str,
-		fragment: &str,
-	) -> Result<Self, String> {
+	pub(crate) fn new(gl: Rc<glow::Context>, vertex: &str, fragment: &str) -> Result<Self, String> {
 		let vertex_shader = unsafe { gl.create_shader(glow::VERTEX_SHADER) }?;
 		unsafe {
 			gl.shader_source(vertex_shader, vertex);
@@ -70,7 +66,7 @@ impl Drop for RawShader {
 }
 
 pub struct Shader {
-	pub(crate) raw_shader: Arc<RawShader>,
+	pub(crate) raw_shader: Rc<RawShader>,
 }
 
 impl Shader {
@@ -80,7 +76,7 @@ impl Shader {
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
 		Ok(Self {
-			raw_shader: Arc::new(RawShader::new(
+			raw_shader: Rc::new(RawShader::new(
 				ctx.gl.clone(),
 				&std::fs::read_to_string(vertex)?,
 				&std::fs::read_to_string(fragment)?,

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec3};
@@ -14,7 +14,7 @@ pub struct Vertex {
 }
 
 pub struct RawMesh {
-	gl: Arc<glow::Context>,
+	gl: Rc<glow::Context>,
 	vertex_array: NativeVertexArray,
 	vertex_buffer: NativeBuffer,
 	index_buffer: NativeBuffer,
@@ -23,7 +23,7 @@ pub struct RawMesh {
 
 impl RawMesh {
 	pub fn new(
-		gl: Arc<glow::Context>,
+		gl: Rc<glow::Context>,
 		vertices: &[Vertex],
 		indices: &[u32],
 	) -> Result<Self, String> {
@@ -84,13 +84,13 @@ impl Drop for RawMesh {
 }
 
 pub struct Mesh {
-	raw_mesh: Arc<RawMesh>,
+	raw_mesh: Rc<RawMesh>,
 }
 
 impl Mesh {
 	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Result<Self, String> {
 		Ok(Self {
-			raw_mesh: Arc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
+			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
 		})
 	}
 

@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
 use bytemuck::{Pod, Zeroable};
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
-use crate::context::Context;
+use crate::{context::Context, texture::Texture};
 
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct Vertex {
 	pub position: Vec3,
+	pub texture_coords: Vec2,
 }
 
 pub struct RawMesh {
@@ -48,10 +49,19 @@ impl RawMesh {
 				3,
 				glow::FLOAT,
 				false,
-				(3 * std::mem::size_of::<f32>()) as i32,
+				std::mem::size_of::<Vertex>() as i32,
 				0,
 			);
 			gl.enable_vertex_attrib_array(0);
+			gl.vertex_attrib_pointer_f32(
+				1,
+				2,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<Vertex>() as i32,
+				3 * std::mem::size_of::<f32>() as i32,
+			);
+			gl.enable_vertex_attrib_array(1);
 		}
 		Ok(Self {
 			gl,
@@ -84,9 +94,10 @@ impl Mesh {
 		})
 	}
 
-	pub fn draw(&self, ctx: &Context) {
+	pub fn draw(&self, ctx: &Context, texture: &Texture) {
 		let gl = &ctx.gl;
 		unsafe {
+			gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw_texture.texture));
 			gl.bind_vertex_array(Some(self.raw_mesh.vertex_array));
 			gl.draw_elements(
 				glow::TRIANGLES,

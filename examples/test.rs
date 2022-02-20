@@ -1,15 +1,17 @@
 use std::error::Error;
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 use micro::{
 	color::Rgba,
 	context::Context,
 	mesh::{Mesh, Vertex},
+	texture::Texture,
 	Game, State,
 };
 
 struct MainState {
 	mesh: Mesh,
+	texture: Texture,
 }
 
 impl MainState {
@@ -20,20 +22,25 @@ impl MainState {
 				&[
 					Vertex {
 						position: Vec3::new(0.5, 0.5, 0.0),
+						texture_coords: Vec2::new(1.0, 1.0),
 					},
 					Vertex {
 						position: Vec3::new(0.5, -0.5, 0.0),
+						texture_coords: Vec2::new(1.0, -1.0),
 					},
 					Vertex {
 						position: Vec3::new(-0.5, -0.5, 0.0),
+						texture_coords: Vec2::new(-1.0, -1.0),
 					},
 					Vertex {
 						position: Vec3::new(-0.5, 0.5, 0.0),
+						texture_coords: Vec2::new(-1.0, 1.0),
 					},
 				],
 				&[0, 1, 3, 1, 2, 3],
 			)
 			.unwrap(),
+			texture: Texture::load(ctx, "examples/wall.png").unwrap(),
 		}
 	}
 }
@@ -41,7 +48,7 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::new(0.1, 0.2, 0.3, 1.0));
-		self.mesh.draw(ctx);
+		self.mesh.draw(ctx, &self.texture);
 		Ok(())
 	}
 }

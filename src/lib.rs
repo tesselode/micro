@@ -1,8 +1,10 @@
 pub mod color;
 pub mod context;
 pub mod error;
+pub mod image_data;
 pub mod mesh;
 pub mod shader;
+pub mod texture;
 
 use std::time::Duration;
 

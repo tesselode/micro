@@ -51,7 +51,7 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::new(0.1, 0.2, 0.3, 1.0));
-		self.mesh.draw(ctx);
+		self.mesh.draw(ctx, Rgba::RED);
 		Ok(())
 	}
 }

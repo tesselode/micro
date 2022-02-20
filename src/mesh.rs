@@ -4,7 +4,7 @@ use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec3};
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
-use crate::{context::Context, texture::Texture};
+use crate::{context::Context, draw_params::DrawParams, texture::Texture};
 
 pub struct Mesh {
 	raw_mesh: Rc<RawMesh>,
@@ -35,19 +35,28 @@ impl Mesh {
 		self.texture = texture.cloned();
 	}
 
-	pub fn draw(&self, ctx: &Context) {
-		let texture = self.texture.as_ref().unwrap_or(&ctx.default_texture);
-		let gl = &ctx.gl;
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw_texture.texture));
-			gl.bind_vertex_array(Some(self.raw_mesh.vertex_array));
-			gl.draw_elements(
-				glow::TRIANGLES,
-				self.raw_mesh.num_indices,
-				glow::UNSIGNED_INT,
-				0,
-			);
+	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) {
+		fn inner(mesh: &Mesh, ctx: &Context, params: DrawParams) {
+			let texture = mesh.texture.as_ref().unwrap_or(&ctx.default_texture);
+			let gl = &ctx.gl;
+			unsafe {
+				let shader = params.shader.as_ref().unwrap_or(&ctx.default_shader);
+				shader
+					.send_color(ctx, "blendColor", params.color)
+					.expect("Shader does not have a blendColor uniform");
+				gl.use_program(Some(shader.raw_shader.program));
+				gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw_texture.texture));
+				gl.bind_vertex_array(Some(mesh.raw_mesh.vertex_array));
+				gl.draw_elements(
+					glow::TRIANGLES,
+					mesh.raw_mesh.num_indices,
+					glow::UNSIGNED_INT,
+					0,
+				);
+			}
 		}
+
+		inner(self, ctx, params.into())
 	}
 }
 

@@ -3,8 +3,9 @@ use std::{path::Path, rc::Rc};
 use glow::{HasContext, NativeProgram};
 use thiserror::Error;
 
-use crate::context::Context;
+use crate::{color::Rgba, context::Context};
 
+#[derive(Debug, Clone)]
 pub struct Shader {
 	pub(crate) raw_shader: Rc<RawShader>,
 }
@@ -23,8 +24,32 @@ impl Shader {
 			)?),
 		})
 	}
+
+	pub fn send_color(
+		&self,
+		ctx: &Context,
+		name: &str,
+		color: Rgba,
+	) -> Result<(), UniformNotFound> {
+		let gl = &ctx.gl;
+		unsafe {
+			gl.use_program(Some(self.raw_shader.program));
+			let location = gl
+				.get_uniform_location(self.raw_shader.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			gl.uniform_4_f32(
+				Some(&location),
+				color.red,
+				color.green,
+				color.blue,
+				color.alpha,
+			);
+		}
+		Ok(())
+	}
 }
 
+#[derive(Debug)]
 pub(crate) struct RawShader {
 	gl: Rc<glow::Context>,
 	pub(crate) program: NativeProgram,
@@ -84,3 +109,7 @@ impl From<String> for LoadShaderError {
 		Self::ShaderError(v)
 	}
 }
+
+#[derive(Debug, Clone, Error)]
+#[error("This shader does not have a uniform called {0}")]
+pub struct UniformNotFound(pub String);

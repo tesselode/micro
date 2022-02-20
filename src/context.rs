@@ -14,7 +14,7 @@ use crate::{
 pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
-	default_shader: Shader,
+	pub(crate) default_shader: Shader,
 }
 
 impl Context {
@@ -45,9 +45,6 @@ impl Context {
 				.expect("Error compiling default shader"),
 			),
 		};
-		unsafe {
-			gl.use_program(Some(default_shader.raw_shader.program));
-		}
 		Self {
 			gl,
 			default_texture,

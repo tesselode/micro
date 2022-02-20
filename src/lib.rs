@@ -1,8 +1,9 @@
 pub mod color;
 pub mod context;
 pub mod error;
+pub mod shader;
 
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use context::Context;
 use error::InitError;
@@ -37,13 +38,7 @@ impl Game {
 		gl_attr.set_context_version(3, 3);
 		let window = video.window("Test", 800, 600).opengl().build()?;
 		let _gl_ctx = window.gl_create_context()?;
-		let ctx = Context {
-			gl: Arc::new(unsafe {
-				glow::Context::from_loader_function(|name| {
-					video.gl_get_proc_address(name) as *const _
-				})
-			}),
-		};
+		let ctx = Context::new(&video);
 		let event_pump = sdl.event_pump()?;
 		Ok(Self {
 			_sdl: sdl,

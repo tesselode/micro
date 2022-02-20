@@ -44,6 +44,9 @@ impl Mesh {
 				shader
 					.send_color(ctx, "blendColor", params.color)
 					.expect("Shader does not have a blendColor uniform");
+				shader
+					.send_mat4(ctx, "transform", params.transform)
+					.expect("Shader does not have a transform uniform");
 				gl.use_program(Some(shader.raw_shader.program));
 				gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw_texture.texture));
 				gl.bind_vertex_array(Some(mesh.raw_mesh.vertex_array));

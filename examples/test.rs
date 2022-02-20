@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use glam::{Vec2, Vec3};
+use glam::{Mat4, Vec2, Vec3};
 use micro::{
 	color::Rgba,
 	context::Context,
@@ -51,7 +51,11 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::new(0.1, 0.2, 0.3, 1.0));
-		self.mesh.draw(ctx, Rgba::RED);
+		self.mesh.draw(
+			ctx,
+			Mat4::from_translation(Vec3::new(-0.25, -0.25, 0.0))
+				* Mat4::from_scale(Vec3::splat(0.1)),
+		);
 		Ok(())
 	}
 }

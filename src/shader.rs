@@ -1,5 +1,6 @@
 use std::{path::Path, rc::Rc};
 
+use glam::Mat4;
 use glow::{HasContext, NativeProgram};
 use thiserror::Error;
 
@@ -23,6 +24,18 @@ impl Shader {
 				&std::fs::read_to_string(fragment)?,
 			)?),
 		})
+	}
+
+	pub fn send_mat4(&self, ctx: &Context, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
+		let gl = &ctx.gl;
+		unsafe {
+			gl.use_program(Some(self.raw_shader.program));
+			let location = gl
+				.get_uniform_location(self.raw_shader.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
+		}
+		Ok(())
 	}
 
 	pub fn send_color(

@@ -8,6 +8,7 @@ use crate::{
 	image_data::{ImageData, LoadImageDataError},
 };
 
+#[derive(Debug, Clone)]
 pub struct Texture {
 	pub(crate) raw_texture: Rc<RawTexture>,
 }
@@ -21,6 +22,7 @@ impl Texture {
 	}
 }
 
+#[derive(Debug)]
 pub struct RawTexture {
 	gl: Rc<glow::Context>,
 	pub(crate) texture: NativeTexture,

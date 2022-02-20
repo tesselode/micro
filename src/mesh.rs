@@ -8,16 +8,35 @@ use crate::{context::Context, texture::Texture};
 
 pub struct Mesh {
 	raw_mesh: Rc<RawMesh>,
+	texture: Option<Texture>,
 }
 
 impl Mesh {
 	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Result<Self, String> {
 		Ok(Self {
 			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
+			texture: None,
 		})
 	}
 
-	pub fn draw(&self, ctx: &Context, texture: &Texture) {
+	pub fn textured(
+		ctx: &Context,
+		vertices: &[Vertex],
+		indices: &[u32],
+		texture: &Texture,
+	) -> Result<Self, String> {
+		Ok(Self {
+			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
+			texture: Some(texture.clone()),
+		})
+	}
+
+	pub fn set_texture(&mut self, texture: Option<&Texture>) {
+		self.texture = texture.cloned();
+	}
+
+	pub fn draw(&self, ctx: &Context) {
+		let texture = self.texture.as_ref().unwrap_or(&ctx.default_texture);
 		let gl = &ctx.gl;
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.raw_texture.texture));

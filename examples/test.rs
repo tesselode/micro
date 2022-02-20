@@ -11,36 +11,39 @@ use micro::{
 
 struct MainState {
 	mesh: Mesh,
-	texture: Texture,
 }
 
 impl MainState {
 	fn new(ctx: &Context) -> Self {
+		let texture = Texture::load(ctx, "examples/wall.png").unwrap();
 		Self {
-			mesh: Mesh::new(
-				ctx,
-				&[
-					Vertex {
-						position: Vec3::new(0.5, 0.5, 0.0),
-						texture_coords: Vec2::new(1.0, 1.0),
-					},
-					Vertex {
-						position: Vec3::new(0.5, -0.5, 0.0),
-						texture_coords: Vec2::new(1.0, -1.0),
-					},
-					Vertex {
-						position: Vec3::new(-0.5, -0.5, 0.0),
-						texture_coords: Vec2::new(-1.0, -1.0),
-					},
-					Vertex {
-						position: Vec3::new(-0.5, 0.5, 0.0),
-						texture_coords: Vec2::new(-1.0, 1.0),
-					},
-				],
-				&[0, 1, 3, 1, 2, 3],
-			)
-			.unwrap(),
-			texture: Texture::load(ctx, "examples/wall.png").unwrap(),
+			mesh: {
+				let mut mesh = Mesh::new(
+					ctx,
+					&[
+						Vertex {
+							position: Vec3::new(0.5, 0.5, 0.0),
+							texture_coords: Vec2::new(1.0, 1.0),
+						},
+						Vertex {
+							position: Vec3::new(0.5, -0.5, 0.0),
+							texture_coords: Vec2::new(1.0, -1.0),
+						},
+						Vertex {
+							position: Vec3::new(-0.5, -0.5, 0.0),
+							texture_coords: Vec2::new(-1.0, -1.0),
+						},
+						Vertex {
+							position: Vec3::new(-0.5, 0.5, 0.0),
+							texture_coords: Vec2::new(-1.0, 1.0),
+						},
+					],
+					&[0, 1, 3, 1, 2, 3],
+				)
+				.unwrap();
+				mesh.set_texture(Some(&texture));
+				mesh
+			},
 		}
 	}
 }
@@ -48,7 +51,7 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::new(0.1, 0.2, 0.3, 1.0));
-		self.mesh.draw(ctx, &self.texture);
+		self.mesh.draw(ctx);
 		Ok(())
 	}
 }

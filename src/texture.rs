@@ -1,11 +1,14 @@
 use std::{path::Path, rc::Rc};
 
+use glam::{Vec2, Vec3};
 use glow::{HasContext, NativeTexture};
 use thiserror::Error;
 
 use crate::{
 	context::Context,
+	draw_params::DrawParams,
 	image_data::{ImageData, LoadImageDataError},
+	mesh::{Mesh, Vertex},
 };
 
 #[derive(Debug, Clone)]
@@ -20,16 +23,46 @@ impl Texture {
 			raw_texture: Rc::new(RawTexture::new(ctx.gl.clone(), &image_data)?),
 		})
 	}
+
+	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), String> {
+		Mesh::textured(
+			ctx,
+			&[
+				Vertex {
+					position: Vec3::new(self.raw_texture.size.x, self.raw_texture.size.y, 0.0),
+					texture_coords: Vec2::new(1.0, 1.0),
+				},
+				Vertex {
+					position: Vec3::new(self.raw_texture.size.x, 0.0, 0.0),
+					texture_coords: Vec2::new(1.0, 0.0),
+				},
+				Vertex {
+					position: Vec3::new(0.0, 0.0, 0.0),
+					texture_coords: Vec2::new(0.0, 0.0),
+				},
+				Vertex {
+					position: Vec3::new(0.0, self.raw_texture.size.y, 0.0),
+					texture_coords: Vec2::new(0.0, 1.0),
+				},
+			],
+			&[0, 1, 3, 1, 2, 3],
+			self,
+		)?
+		.draw(ctx, params);
+		Ok(())
+	}
 }
 
 #[derive(Debug)]
 pub struct RawTexture {
 	gl: Rc<glow::Context>,
 	pub(crate) texture: NativeTexture,
+	pub(crate) size: Vec2,
 }
 
 impl RawTexture {
 	pub fn new(gl: Rc<glow::Context>, image_data: &ImageData) -> Result<Self, String> {
+		let (width, height) = image_data.0.dimensions();
 		let texture = unsafe { gl.create_texture()? };
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
@@ -46,7 +79,11 @@ impl RawTexture {
 			);
 			gl.generate_mipmap(glow::TEXTURE_2D);
 		}
-		Ok(Self { gl, texture })
+		Ok(Self {
+			gl,
+			texture,
+			size: Vec2::new(width as f32, height as f32),
+		})
 	}
 }
 

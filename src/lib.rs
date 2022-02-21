@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use context::Context;
 use sdl2::{
-	event::Event,
+	event::{Event, WindowEvent},
 	video::{GLContext, GLProfile, Window, WindowBuildError},
 	EventPump, Sdl, VideoSubsystem,
 };
@@ -39,9 +39,14 @@ impl Game {
 		let gl_attr = video.gl_attr();
 		gl_attr.set_context_profile(GLProfile::Core);
 		gl_attr.set_context_version(3, 3);
-		let window = video.window("Test", 800, 600).opengl().build()?;
+		let window = video
+			.window("Test", 800, 600)
+			.opengl()
+			.resizable()
+			.build()?;
+		let (window_width, window_height) = window.size();
 		let _gl_ctx = window.gl_create_context()?;
-		let ctx = Context::new(&video);
+		let ctx = Context::new(&video, window_width, window_height);
 		let event_pump = sdl.event_pump()?;
 		Ok(Self {
 			_sdl: sdl,
@@ -64,6 +69,13 @@ impl Game {
 			self.window.gl_swap_window();
 			for event in self.event_pump.poll_iter() {
 				match event {
+					Event::Window {
+						win_event: WindowEvent::Resized(width, height),
+						..
+					} => {
+						println!("{width}, {height}");
+						self.ctx.resize(width as u32, height as u32);
+					}
 					Event::Quit { .. } => {
 						break 'running;
 					}

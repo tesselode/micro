@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use glam::{Mat4, Vec3};
 use glow::HasContext;
 use image::RgbaImage;
 use sdl2::VideoSubsystem;
@@ -15,13 +16,17 @@ pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
+	pub(crate) global_transform: Mat4,
 }
 
 impl Context {
-	pub fn new(video: &VideoSubsystem) -> Self {
+	pub(crate) fn new(video: &VideoSubsystem, window_width: u32, window_height: u32) -> Self {
 		let gl = Rc::new(unsafe {
 			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
 		});
+		unsafe {
+			gl.viewport(0, 0, window_width as i32, window_height as i32);
+		}
 		let default_texture = Texture {
 			raw_texture: Rc::new(
 				RawTexture::new(
@@ -49,7 +54,16 @@ impl Context {
 			gl,
 			default_texture,
 			default_shader,
+			global_transform: global_transform(window_width, window_height),
 		}
+	}
+
+	pub(crate) fn resize(&mut self, window_width: u32, window_height: u32) {
+		unsafe {
+			self.gl
+				.viewport(0, 0, window_width as i32, window_height as i32);
+		}
+		self.global_transform = global_transform(window_width, window_height);
 	}
 
 	pub fn clear(&self, color: Rgba) {
@@ -59,4 +73,13 @@ impl Context {
 			self.gl.clear(glow::COLOR_BUFFER_BIT);
 		}
 	}
+}
+
+fn global_transform(window_width: u32, window_height: u32) -> Mat4 {
+	Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+		* Mat4::from_scale(Vec3::new(
+			2.0 / window_width as f32,
+			-2.0 / window_height as f32,
+			1.0,
+		))
 }

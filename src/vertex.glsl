@@ -4,10 +4,11 @@ layout (location = 1) in vec2 aTexCoord;
 
 out vec2 TexCoord;
 
-uniform mat4 transform;
+uniform mat4 globalTransform;
+uniform mat4 localTransform;
 
 void main()
 {
-    gl_Position = transform * vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = globalTransform * localTransform * vec4(aPos.x, aPos.y, aPos.z, 1.0);
     TexCoord = aTexCoord;
 }

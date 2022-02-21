@@ -4,6 +4,7 @@ use glam::{Mat4, Vec2, Vec3};
 use micro::{
 	color::Rgba,
 	context::Context,
+	draw_params::DrawParams,
 	mesh::{Mesh, Vertex},
 	texture::Texture,
 	Game, State,
@@ -22,20 +23,20 @@ impl MainState {
 					ctx,
 					&[
 						Vertex {
-							position: Vec3::new(0.5, 0.5, 0.0),
+							position: Vec3::new(400.0, 300.0, 0.0),
 							texture_coords: Vec2::new(1.0, 1.0),
 						},
 						Vertex {
-							position: Vec3::new(0.5, -0.5, 0.0),
-							texture_coords: Vec2::new(1.0, -1.0),
+							position: Vec3::new(400.0, 0.0, 0.0),
+							texture_coords: Vec2::new(1.0, 0.0),
 						},
 						Vertex {
-							position: Vec3::new(-0.5, -0.5, 0.0),
-							texture_coords: Vec2::new(-1.0, -1.0),
+							position: Vec3::new(0.0, 0.0, 0.0),
+							texture_coords: Vec2::new(0.0, 0.0),
 						},
 						Vertex {
-							position: Vec3::new(-0.5, 0.5, 0.0),
-							texture_coords: Vec2::new(-1.0, 1.0),
+							position: Vec3::new(0.0, 300.0, 0.0),
+							texture_coords: Vec2::new(0.0, 1.0),
 						},
 					],
 					&[0, 1, 3, 1, 2, 3],
@@ -51,11 +52,7 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::new(0.1, 0.2, 0.3, 1.0));
-		self.mesh.draw(
-			ctx,
-			Mat4::from_translation(Vec3::new(-0.25, -0.25, 0.0))
-				* Mat4::from_scale(Vec3::splat(0.1)),
-		);
+		self.mesh.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

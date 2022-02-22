@@ -25,6 +25,8 @@ impl Context {
 			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
 		});
 		unsafe {
+			gl.enable(glow::BLEND);
+			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 			gl.viewport(0, 0, window_width as i32, window_height as i32);
 		}
 		let default_texture = Texture {

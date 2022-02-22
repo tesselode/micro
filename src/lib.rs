@@ -1,3 +1,4 @@
+pub mod blend_mode;
 pub mod color;
 pub mod context;
 pub mod draw_params;

@@ -1,12 +1,13 @@
 use glam::Mat4;
 
-use crate::{color::Rgba, shader::Shader};
+use crate::{blend_mode::BlendMode, color::Rgba, shader::Shader};
 
 #[derive(Debug, Clone, Default)]
 pub struct DrawParams {
 	pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: Rgba,
+	pub blend_mode: BlendMode,
 }
 
 impl DrawParams {
@@ -34,6 +35,13 @@ impl DrawParams {
 			..self.clone()
 		}
 	}
+
+	pub fn blend_mode(&self, blend_mode: BlendMode) -> Self {
+		Self {
+			blend_mode,
+			..self.clone()
+		}
+	}
 }
 
 impl From<Shader> for DrawParams {
@@ -51,5 +59,11 @@ impl From<Mat4> for DrawParams {
 impl From<Rgba> for DrawParams {
 	fn from(color: Rgba) -> Self {
 		Self::new().color(color)
+	}
+}
+
+impl From<BlendMode> for DrawParams {
+	fn from(blend_mode: BlendMode) -> Self {
+		Self::new().blend_mode(blend_mode)
 	}
 }

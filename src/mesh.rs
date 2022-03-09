@@ -3,6 +3,14 @@ use std::rc::Rc;
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec3};
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
+use lyon::{
+	lyon_tessellation::{
+		BuffersBuilder, StrokeOptions, StrokeTessellator, StrokeVertex, TessellationError,
+		VertexBuffers,
+	},
+	path::Path,
+};
+use thiserror::Error;
 
 use crate::{context::Context, draw_params::DrawParams, texture::Texture};
 
@@ -17,6 +25,26 @@ impl Mesh {
 			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
 			texture: None,
 		})
+	}
+
+	pub fn from_path_stroke(
+		ctx: &Context,
+		path: Path,
+		options: &StrokeOptions,
+	) -> Result<Self, FromPathError> {
+		let mut geometry = VertexBuffers::<Vertex, u32>::new();
+		let mut tessellator = StrokeTessellator::new();
+		tessellator
+			.tessellate_path(
+				&path,
+				options,
+				&mut BuffersBuilder::new(&mut geometry, |vertex: StrokeVertex| Vertex {
+					position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
+					texture_coords: Vec2::ZERO,
+				}),
+			)
+			.map_err(FromPathError::TessellationError)?;
+		Self::new(ctx, &geometry.vertices, &geometry.indices).map_err(FromPathError::GlError)
 	}
 
 	pub fn textured(
@@ -142,4 +170,12 @@ impl Drop for RawMesh {
 			self.gl.delete_buffer(self.index_buffer);
 		}
 	}
+}
+
+#[derive(Debug, Clone, PartialEq, Error)]
+pub enum FromPathError {
+	#[error("An error occured while tessellating the path")]
+	TessellationError(TessellationError),
+	#[error("{0}")]
+	GlError(String),
 }

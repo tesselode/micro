@@ -5,8 +5,8 @@ use glam::{Vec2, Vec3};
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 use lyon::{
 	lyon_tessellation::{
-		BuffersBuilder, StrokeOptions, StrokeTessellator, StrokeVertex, TessellationError,
-		VertexBuffers,
+		BuffersBuilder, FillOptions, FillTessellator, FillVertex, StrokeOptions, StrokeTessellator,
+		StrokeVertex, TessellationError, VertexBuffers,
 	},
 	path::Path,
 };
@@ -25,6 +25,51 @@ impl Mesh {
 			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
 			texture: None,
 		})
+	}
+
+	pub fn rectangle(ctx: &Context, top_left: Vec2, size: Vec2) -> Result<Self, String> {
+		Self::new(
+			ctx,
+			&[
+				Vertex {
+					position: Vec3::new(top_left.x + size.x, top_left.y + size.y, 0.0),
+					texture_coords: Vec2::new(1.0, 1.0),
+				},
+				Vertex {
+					position: Vec3::new(top_left.x + size.x, top_left.y, 0.0),
+					texture_coords: Vec2::new(1.0, 0.0),
+				},
+				Vertex {
+					position: Vec3::new(top_left.x, top_left.y, 0.0),
+					texture_coords: Vec2::new(0.0, 0.0),
+				},
+				Vertex {
+					position: Vec3::new(top_left.x, top_left.y + size.y, 0.0),
+					texture_coords: Vec2::new(0.0, 1.0),
+				},
+			],
+			&[0, 1, 3, 1, 2, 3],
+		)
+	}
+
+	pub fn from_path_fill(
+		ctx: &Context,
+		path: Path,
+		options: &FillOptions,
+	) -> Result<Self, FromPathError> {
+		let mut geometry = VertexBuffers::<Vertex, u32>::new();
+		let mut tessellator = FillTessellator::new();
+		tessellator
+			.tessellate_path(
+				&path,
+				options,
+				&mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| Vertex {
+					position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
+					texture_coords: Vec2::ZERO,
+				}),
+			)
+			.map_err(FromPathError::TessellationError)?;
+		Self::new(ctx, &geometry.vertices, &geometry.indices).map_err(FromPathError::GlError)
 	}
 
 	pub fn from_path_stroke(
@@ -47,20 +92,11 @@ impl Mesh {
 		Self::new(ctx, &geometry.vertices, &geometry.indices).map_err(FromPathError::GlError)
 	}
 
-	pub fn textured(
-		ctx: &Context,
-		vertices: &[Vertex],
-		indices: &[u32],
-		texture: &Texture,
-	) -> Result<Self, String> {
-		Ok(Self {
-			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
+	pub fn with_texture(self, texture: &Texture) -> Self {
+		Self {
 			texture: Some(texture.clone()),
-		})
-	}
-
-	pub fn set_texture(&mut self, texture: Option<&Texture>) {
-		self.texture = texture.cloned();
+			..self
+		}
 	}
 
 	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) {

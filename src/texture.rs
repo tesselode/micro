@@ -1,6 +1,6 @@
 use std::{path::Path, rc::Rc};
 
-use glam::{Vec2, Vec3};
+use glam::Vec2;
 use glow::{HasContext, NativeTexture};
 use thiserror::Error;
 
@@ -8,7 +8,7 @@ use crate::{
 	context::Context,
 	draw_params::DrawParams,
 	image_data::{ImageData, LoadImageDataError},
-	mesh::{Mesh, Vertex},
+	mesh::Mesh,
 };
 
 #[derive(Debug, Clone)]
@@ -25,30 +25,9 @@ impl Texture {
 	}
 
 	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), String> {
-		Mesh::textured(
-			ctx,
-			&[
-				Vertex {
-					position: Vec3::new(self.raw_texture.size.x, self.raw_texture.size.y, 0.0),
-					texture_coords: Vec2::new(1.0, 1.0),
-				},
-				Vertex {
-					position: Vec3::new(self.raw_texture.size.x, 0.0, 0.0),
-					texture_coords: Vec2::new(1.0, 0.0),
-				},
-				Vertex {
-					position: Vec3::new(0.0, 0.0, 0.0),
-					texture_coords: Vec2::new(0.0, 0.0),
-				},
-				Vertex {
-					position: Vec3::new(0.0, self.raw_texture.size.y, 0.0),
-					texture_coords: Vec2::new(0.0, 1.0),
-				},
-			],
-			&[0, 1, 3, 1, 2, 3],
-			self,
-		)?
-		.draw(ctx, params);
+		Mesh::rectangle(ctx, Vec2::ZERO, self.raw_texture.size)?
+			.with_texture(self)
+			.draw(ctx, params);
 		Ok(())
 	}
 }

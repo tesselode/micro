@@ -4,7 +4,7 @@ use glam::Mat4;
 use glow::{HasContext, NativeProgram};
 use thiserror::Error;
 
-use crate::{color::Rgba, context::Context};
+use crate::{color::Rgba, context::Context, error::GlError};
 
 #[derive(Debug, Clone)]
 pub struct Shader {
@@ -18,11 +18,14 @@ impl Shader {
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
 		Ok(Self {
-			raw_shader: Rc::new(RawShader::new(
-				ctx.gl.clone(),
-				&std::fs::read_to_string(vertex)?,
-				&std::fs::read_to_string(fragment)?,
-			)?),
+			raw_shader: Rc::new(
+				RawShader::new(
+					ctx.gl.clone(),
+					&std::fs::read_to_string(vertex)?,
+					&std::fs::read_to_string(fragment)?,
+				)
+				.map_err(|error| LoadShaderError::ShaderError(error.0))?,
+			),
 		})
 	}
 
@@ -69,30 +72,35 @@ pub(crate) struct RawShader {
 }
 
 impl RawShader {
-	pub(crate) fn new(gl: Rc<glow::Context>, vertex: &str, fragment: &str) -> Result<Self, String> {
-		let vertex_shader = unsafe { gl.create_shader(glow::VERTEX_SHADER) }?;
+	pub(crate) fn new(
+		gl: Rc<glow::Context>,
+		vertex: &str,
+		fragment: &str,
+	) -> Result<Self, GlError> {
+		let vertex_shader = unsafe { gl.create_shader(glow::VERTEX_SHADER) }.map_err(GlError)?;
 		unsafe {
 			gl.shader_source(vertex_shader, vertex);
 			gl.compile_shader(vertex_shader);
 			if !gl.get_shader_compile_status(vertex_shader) {
-				return Err(gl.get_shader_info_log(vertex_shader));
+				return Err(GlError(gl.get_shader_info_log(vertex_shader)));
 			}
 		}
-		let fragment_shader = unsafe { gl.create_shader(glow::FRAGMENT_SHADER) }?;
+		let fragment_shader =
+			unsafe { gl.create_shader(glow::FRAGMENT_SHADER) }.map_err(GlError)?;
 		unsafe {
 			gl.shader_source(fragment_shader, fragment);
 			gl.compile_shader(fragment_shader);
 			if !gl.get_shader_compile_status(fragment_shader) {
-				return Err(gl.get_shader_info_log(fragment_shader));
+				return Err(GlError(gl.get_shader_info_log(fragment_shader)));
 			}
 		}
-		let program = unsafe { gl.create_program()? };
+		let program = unsafe { gl.create_program() }.map_err(GlError)?;
 		unsafe {
 			gl.attach_shader(program, vertex_shader);
 			gl.attach_shader(program, fragment_shader);
 			gl.link_program(program);
 			if !gl.get_program_link_status(program) {
-				return Err(gl.get_program_info_log(program));
+				return Err(GlError(gl.get_program_info_log(program)));
 			}
 			gl.delete_shader(vertex_shader);
 			gl.delete_shader(fragment_shader);

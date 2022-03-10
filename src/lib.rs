@@ -2,6 +2,7 @@ pub mod blend_mode;
 pub mod color;
 pub mod context;
 pub mod draw_params;
+pub mod error;
 pub mod image_data;
 pub mod mesh;
 pub mod shader;

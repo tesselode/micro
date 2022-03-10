@@ -7,6 +7,7 @@ use thiserror::Error;
 use crate::{
 	context::Context,
 	draw_params::DrawParams,
+	error::GlError,
 	image_data::{ImageData, LoadImageDataError},
 	mesh::Mesh,
 };
@@ -20,11 +21,14 @@ impl Texture {
 	pub fn load(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadTextureError> {
 		let image_data = ImageData::load(path)?;
 		Ok(Self {
-			raw_texture: Rc::new(RawTexture::new(ctx.gl.clone(), &image_data)?),
+			raw_texture: Rc::new(
+				RawTexture::new(ctx.gl.clone(), &image_data)
+					.map_err(|error| LoadTextureError::GlError(error.0))?,
+			),
 		})
 	}
 
-	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), String> {
+	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), GlError> {
 		Mesh::rectangle(ctx, Vec2::ZERO, self.raw_texture.size)?
 			.with_texture(self)
 			.draw(ctx, params);
@@ -40,9 +44,9 @@ pub struct RawTexture {
 }
 
 impl RawTexture {
-	pub fn new(gl: Rc<glow::Context>, image_data: &ImageData) -> Result<Self, String> {
+	pub fn new(gl: Rc<glow::Context>, image_data: &ImageData) -> Result<Self, GlError> {
 		let (width, height) = image_data.0.dimensions();
-		let texture = unsafe { gl.create_texture()? };
+		let texture = unsafe { gl.create_texture() }.map_err(GlError)?;
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
 			gl.tex_image_2d(

@@ -12,7 +12,7 @@ use lyon::{
 };
 use thiserror::Error;
 
-use crate::{context::Context, draw_params::DrawParams, texture::Texture};
+use crate::{context::Context, draw_params::DrawParams, error::GlError, texture::Texture};
 
 pub struct Mesh {
 	raw_mesh: Rc<RawMesh>,
@@ -20,14 +20,14 @@ pub struct Mesh {
 }
 
 impl Mesh {
-	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Result<Self, String> {
+	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Result<Self, GlError> {
 		Ok(Self {
 			raw_mesh: Rc::new(RawMesh::new(ctx.gl.clone(), vertices, indices)?),
 			texture: None,
 		})
 	}
 
-	pub fn rectangle(ctx: &Context, top_left: Vec2, size: Vec2) -> Result<Self, String> {
+	pub fn rectangle(ctx: &Context, top_left: Vec2, size: Vec2) -> Result<Self, GlError> {
 		Self::new(
 			ctx,
 			&[
@@ -69,7 +69,8 @@ impl Mesh {
 				}),
 			)
 			.map_err(FromPathError::TessellationError)?;
-		Self::new(ctx, &geometry.vertices, &geometry.indices).map_err(FromPathError::GlError)
+		Self::new(ctx, &geometry.vertices, &geometry.indices)
+			.map_err(|error| FromPathError::GlError(error.0))
 	}
 
 	pub fn from_path_stroke(
@@ -89,7 +90,8 @@ impl Mesh {
 				}),
 			)
 			.map_err(FromPathError::TessellationError)?;
-		Self::new(ctx, &geometry.vertices, &geometry.indices).map_err(FromPathError::GlError)
+		Self::new(ctx, &geometry.vertices, &geometry.indices)
+			.map_err(|error| FromPathError::GlError(error.0))
 	}
 
 	pub fn with_texture(self, texture: &Texture) -> Self {
@@ -151,10 +153,10 @@ impl RawMesh {
 		gl: Rc<glow::Context>,
 		vertices: &[Vertex],
 		indices: &[u32],
-	) -> Result<Self, String> {
-		let vertex_array = unsafe { gl.create_vertex_array()? };
-		let vertex_buffer = unsafe { gl.create_buffer()? };
-		let index_buffer = unsafe { gl.create_buffer()? };
+	) -> Result<Self, GlError> {
+		let vertex_array = unsafe { gl.create_vertex_array() }.map_err(GlError)?;
+		let vertex_buffer = unsafe { gl.create_buffer() }.map_err(GlError)?;
+		let index_buffer = unsafe { gl.create_buffer() }.map_err(GlError)?;
 		unsafe {
 			gl.bind_vertex_array(Some(vertex_array));
 			gl.bind_buffer(glow::ARRAY_BUFFER, Some(vertex_buffer));

@@ -18,14 +18,15 @@ pub struct Texture {
 }
 
 impl Texture {
+	pub fn from_image_data(ctx: &Context, image_data: &ImageData) -> Result<Self, GlError> {
+		Ok(Self {
+			raw_texture: Rc::new(RawTexture::new(ctx.gl.clone(), image_data)?),
+		})
+	}
+
 	pub fn load(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadTextureError> {
 		let image_data = ImageData::load(path)?;
-		Ok(Self {
-			raw_texture: Rc::new(
-				RawTexture::new(ctx.gl.clone(), &image_data)
-					.map_err(|error| LoadTextureError::GlError(error.0))?,
-			),
-		})
+		Self::from_image_data(ctx, &image_data).map_err(|error| LoadTextureError::GlError(error.0))
 	}
 
 	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), GlError> {
@@ -45,7 +46,6 @@ pub struct RawTexture {
 
 impl RawTexture {
 	pub fn new(gl: Rc<glow::Context>, image_data: &ImageData) -> Result<Self, GlError> {
-		let (width, height) = image_data.0.dimensions();
 		let texture = unsafe { gl.create_texture() }.map_err(GlError)?;
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
@@ -53,19 +53,19 @@ impl RawTexture {
 				glow::TEXTURE_2D,
 				0,
 				glow::RGBA as i32,
-				image_data.0.width().try_into().expect("Image is too wide"),
-				image_data.0.height().try_into().expect("Image is too tall"),
+				image_data.width.try_into().expect("Image is too wide"),
+				image_data.height.try_into().expect("Image is too tall"),
 				0,
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
-				Some(image_data.0.as_raw()),
+				Some(&image_data.pixels),
 			);
 			gl.generate_mipmap(glow::TEXTURE_2D);
 		}
 		Ok(Self {
 			gl,
 			texture,
-			size: Vec2::new(width as f32, height as f32),
+			size: Vec2::new(image_data.width as f32, image_data.height as f32),
 		})
 	}
 }

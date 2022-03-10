@@ -33,11 +33,11 @@ impl Context {
 			raw_texture: Rc::new(
 				RawTexture::new(
 					gl.clone(),
-					&ImageData({
-						let mut rgba_image = RgbaImage::new(1, 1);
-						rgba_image.put_pixel(0, 0, image::Rgba([255, 255, 255, 255]));
-						rgba_image
-					}),
+					&ImageData {
+						width: 1,
+						height: 1,
+						pixels: vec![255, 255, 255, 255],
+					},
 				)
 				.expect("Error creating default texture"),
 			),

@@ -11,6 +11,7 @@ use crate::{
 	texture::Texture,
 };
 
+#[derive(Debug)]
 pub struct SpriteBatch {
 	sprites: Arena<()>,
 	mesh: Mesh,
@@ -100,7 +101,12 @@ impl SpriteBatch {
 		Ok(())
 	}
 
-	pub fn draw(&self, ctx: &mut Context, texture: &Texture, params: impl Into<DrawParams>) {
+	pub fn draw<'a>(
+		&self,
+		ctx: &mut Context,
+		texture: &Texture,
+		params: impl Into<DrawParams<'a>>,
+	) {
 		self.mesh.draw_textured(ctx, texture, params);
 	}
 }

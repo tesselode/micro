@@ -6,9 +6,10 @@ use thiserror::Error;
 
 use crate::{color::Rgba, context::Context, error::GlError};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Shader {
-	pub(crate) raw_shader: Rc<RawShader>,
+	gl: Rc<glow::Context>,
+	pub(crate) program: NativeProgram,
 }
 
 impl Shader {
@@ -17,62 +18,15 @@ impl Shader {
 		vertex: impl AsRef<Path>,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Ok(Self {
-			raw_shader: Rc::new(
-				RawShader::new(
-					ctx.gl.clone(),
-					&std::fs::read_to_string(vertex)?,
-					&std::fs::read_to_string(fragment)?,
-				)
-				.map_err(|error| LoadShaderError::ShaderError(error.0))?,
-			),
-		})
+		Self::new_from_gl(
+			ctx.gl.clone(),
+			&std::fs::read_to_string(vertex)?,
+			&std::fs::read_to_string(fragment)?,
+		)
+		.map_err(|error| LoadShaderError::ShaderError(error.0))
 	}
 
-	pub fn send_mat4(&self, ctx: &Context, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
-		let gl = &ctx.gl;
-		unsafe {
-			gl.use_program(Some(self.raw_shader.program));
-			let location = gl
-				.get_uniform_location(self.raw_shader.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
-		}
-		Ok(())
-	}
-
-	pub fn send_color(
-		&self,
-		ctx: &Context,
-		name: &str,
-		color: Rgba,
-	) -> Result<(), UniformNotFound> {
-		let gl = &ctx.gl;
-		unsafe {
-			gl.use_program(Some(self.raw_shader.program));
-			let location = gl
-				.get_uniform_location(self.raw_shader.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_4_f32(
-				Some(&location),
-				color.red,
-				color.green,
-				color.blue,
-				color.alpha,
-			);
-		}
-		Ok(())
-	}
-}
-
-#[derive(Debug)]
-pub(crate) struct RawShader {
-	gl: Rc<glow::Context>,
-	pub(crate) program: NativeProgram,
-}
-
-impl RawShader {
-	pub(crate) fn new(
+	pub(crate) fn new_from_gl(
 		gl: Rc<glow::Context>,
 		vertex: &str,
 		fragment: &str,
@@ -107,9 +61,44 @@ impl RawShader {
 		}
 		Ok(Self { gl, program })
 	}
+
+	pub fn send_mat4(&self, ctx: &Context, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
+		let gl = &ctx.gl;
+		unsafe {
+			gl.use_program(Some(self.program));
+			let location = gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
+		}
+		Ok(())
+	}
+
+	pub fn send_color(
+		&self,
+		ctx: &Context,
+		name: &str,
+		color: Rgba,
+	) -> Result<(), UniformNotFound> {
+		let gl = &ctx.gl;
+		unsafe {
+			gl.use_program(Some(self.program));
+			let location = gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			gl.uniform_4_f32(
+				Some(&location),
+				color.red,
+				color.green,
+				color.blue,
+				color.alpha,
+			);
+		}
+		Ok(())
+	}
 }
 
-impl Drop for RawShader {
+impl Drop for Shader {
 	fn drop(&mut self) {
 		unsafe {
 			self.gl.delete_program(self.program);

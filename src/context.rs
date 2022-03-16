@@ -4,12 +4,7 @@ use glam::{Mat4, Vec3};
 use glow::HasContext;
 use sdl2::VideoSubsystem;
 
-use crate::{
-	color::Rgba,
-	image_data::ImageData,
-	shader::{RawShader, Shader},
-	texture::{RawTexture, Texture},
-};
+use crate::{color::Rgba, image_data::ImageData, shader::Shader, texture::Texture};
 
 pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,
@@ -28,29 +23,21 @@ impl Context {
 			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 			gl.viewport(0, 0, window_width as i32, window_height as i32);
 		}
-		let default_texture = Texture {
-			raw_texture: Rc::new(
-				RawTexture::new(
-					gl.clone(),
-					&ImageData {
-						width: 1,
-						height: 1,
-						pixels: vec![255, 255, 255, 255],
-					},
-				)
-				.expect("Error creating default texture"),
-			),
-		};
-		let default_shader = Shader {
-			raw_shader: Rc::new(
-				RawShader::new(
-					gl.clone(),
-					include_str!("vertex.glsl"),
-					include_str!("fragment.glsl"),
-				)
-				.expect("Error compiling default shader"),
-			),
-		};
+		let default_texture = Texture::new_from_gl(
+			gl.clone(),
+			&ImageData {
+				width: 1,
+				height: 1,
+				pixels: vec![255, 255, 255, 255],
+			},
+		)
+		.expect("Error creating default texture");
+		let default_shader = Shader::new_from_gl(
+			gl.clone(),
+			include_str!("vertex.glsl"),
+			include_str!("fragment.glsl"),
+		)
+		.expect("Error compiling default shader");
 		Self {
 			gl,
 			default_texture,

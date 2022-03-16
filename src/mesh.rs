@@ -98,6 +98,19 @@ impl Mesh {
 			.map_err(|error| FromPathError::GlError(error.0))
 	}
 
+	pub fn set_vertex(&self, index: usize, vertex: Vertex) {
+		let gl = &self.raw_mesh.gl;
+		unsafe {
+			gl.bind_vertex_array(Some(self.raw_mesh.vertex_array));
+			gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.raw_mesh.vertex_buffer));
+			gl.buffer_sub_data_u8_slice(
+				glow::ARRAY_BUFFER,
+				(std::mem::size_of::<Vertex>() * index) as i32,
+				bytemuck::cast_slice(&[vertex]),
+			);
+		}
+	}
+
 	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) {
 		self.draw_inner(ctx, &ctx.default_texture, params.into());
 	}

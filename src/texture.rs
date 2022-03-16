@@ -30,9 +30,7 @@ impl Texture {
 	}
 
 	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), GlError> {
-		Mesh::rectangle(ctx, Vec2::ZERO, self.raw_texture.size)?
-			.with_texture(self)
-			.draw(ctx, params);
+		Mesh::rectangle(ctx, Vec2::ZERO, self.raw_texture.size)?.draw_textured(ctx, self, params);
 		Ok(())
 	}
 }

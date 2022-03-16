@@ -30,6 +30,10 @@ impl Texture {
 		Self::from_image_data(ctx, &image_data).map_err(|error| LoadTextureError::GlError(error.0))
 	}
 
+	pub fn size(&self) -> Vec2 {
+		self.raw_texture.size
+	}
+
 	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), GlError> {
 		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.raw_texture.size))?
 			.draw_textured(ctx, self, params);

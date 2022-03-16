@@ -1,5 +1,5 @@
 use generational_arena::{Arena, Index};
-use glam::{Vec2, Vec3};
+use glam::Vec2;
 use thiserror::Error;
 
 use crate::{
@@ -20,7 +20,7 @@ impl SpriteBatch {
 	pub fn new(ctx: &mut Context, capacity: usize) -> Result<Self, GlError> {
 		let vertices = vec![
 			Vertex {
-				position: Vec3::ZERO,
+				position: Vec2::ZERO,
 				texture_coords: Vec2::ZERO,
 			};
 			capacity * 4
@@ -54,44 +54,28 @@ impl SpriteBatch {
 		self.mesh.set_vertex(
 			start_vertex_index,
 			Vertex {
-				position: Vec3::new(
-					sprite.display_rect.bottom_right().x,
-					sprite.display_rect.bottom_right().y,
-					0.0,
-				),
+				position: sprite.display_rect.bottom_right(),
 				texture_coords: sprite.texture_rect.bottom_right(),
 			},
 		);
 		self.mesh.set_vertex(
 			start_vertex_index + 1,
 			Vertex {
-				position: Vec3::new(
-					sprite.display_rect.top_right().x,
-					sprite.display_rect.top_right().y,
-					0.0,
-				),
+				position: sprite.display_rect.top_right(),
 				texture_coords: sprite.texture_rect.top_right(),
 			},
 		);
 		self.mesh.set_vertex(
 			start_vertex_index + 2,
 			Vertex {
-				position: Vec3::new(
-					sprite.display_rect.top_left.x,
-					sprite.display_rect.top_left.y,
-					0.0,
-				),
+				position: sprite.display_rect.top_left,
 				texture_coords: sprite.texture_rect.top_left,
 			},
 		);
 		self.mesh.set_vertex(
 			start_vertex_index + 3,
 			Vertex {
-				position: Vec3::new(
-					sprite.display_rect.bottom_left().x,
-					sprite.display_rect.bottom_left().y,
-					0.0,
-				),
+				position: sprite.display_rect.bottom_left(),
 				texture_coords: sprite.texture_rect.bottom_left(),
 			},
 		);
@@ -108,7 +92,7 @@ impl SpriteBatch {
 			self.mesh.set_vertex(
 				start_vertex_index + i,
 				Vertex {
-					position: Vec3::ZERO,
+					position: Vec2::ZERO,
 					texture_coords: Vec2::ZERO,
 				},
 			);

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use bytemuck::{Pod, Zeroable};
-use glam::{Vec2, Vec3};
+use glam::Vec2;
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 use lyon::{
 	lyon_tessellation::{
@@ -32,23 +32,19 @@ impl Mesh {
 			ctx,
 			&[
 				Vertex {
-					position: Vec3::new(
-						rect.top_left.x + rect.size.x,
-						rect.top_left.y + rect.size.y,
-						0.0,
-					),
+					position: rect.bottom_right(),
 					texture_coords: Vec2::new(1.0, 1.0),
 				},
 				Vertex {
-					position: Vec3::new(rect.top_left.x + rect.size.x, rect.top_left.y, 0.0),
+					position: rect.top_right(),
 					texture_coords: Vec2::new(1.0, 0.0),
 				},
 				Vertex {
-					position: Vec3::new(rect.top_left.x, rect.top_left.y, 0.0),
+					position: rect.top_left,
 					texture_coords: Vec2::new(0.0, 0.0),
 				},
 				Vertex {
-					position: Vec3::new(rect.top_left.x, rect.top_left.y + rect.size.y, 0.0),
+					position: rect.bottom_left(),
 					texture_coords: Vec2::new(0.0, 1.0),
 				},
 			],
@@ -68,7 +64,7 @@ impl Mesh {
 				&path,
 				options,
 				&mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| Vertex {
-					position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
+					position: Vec2::new(vertex.position().x, vertex.position().y),
 					texture_coords: Vec2::ZERO,
 				}),
 			)
@@ -89,7 +85,7 @@ impl Mesh {
 				&path,
 				options,
 				&mut BuffersBuilder::new(&mut geometry, |vertex: StrokeVertex| Vertex {
-					position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
+					position: Vec2::new(vertex.position().x, vertex.position().y),
 					texture_coords: Vec2::ZERO,
 				}),
 			)
@@ -149,7 +145,7 @@ impl Mesh {
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct Vertex {
-	pub position: Vec3,
+	pub position: Vec2,
 	pub texture_coords: Vec2,
 }
 
@@ -186,7 +182,7 @@ impl RawMesh {
 			);
 			gl.vertex_attrib_pointer_f32(
 				0,
-				3,
+				2,
 				glow::FLOAT,
 				false,
 				std::mem::size_of::<Vertex>() as i32,
@@ -199,7 +195,7 @@ impl RawMesh {
 				glow::FLOAT,
 				false,
 				std::mem::size_of::<Vertex>() as i32,
-				3 * std::mem::size_of::<f32>() as i32,
+				2 * std::mem::size_of::<f32>() as i32,
 			);
 			gl.enable_vertex_attrib_array(1);
 		}

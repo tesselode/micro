@@ -12,7 +12,9 @@ use lyon::{
 };
 use thiserror::Error;
 
-use crate::{context::Context, draw_params::DrawParams, error::GlError, texture::Texture};
+use crate::{
+	context::Context, draw_params::DrawParams, error::GlError, rect::Rect, texture::Texture,
+};
 
 pub struct Mesh {
 	raw_mesh: Rc<RawMesh>,
@@ -25,24 +27,28 @@ impl Mesh {
 		})
 	}
 
-	pub fn rectangle(ctx: &Context, top_left: Vec2, size: Vec2) -> Result<Self, GlError> {
+	pub fn rectangle(ctx: &Context, rect: Rect) -> Result<Self, GlError> {
 		Self::new(
 			ctx,
 			&[
 				Vertex {
-					position: Vec3::new(top_left.x + size.x, top_left.y + size.y, 0.0),
+					position: Vec3::new(
+						rect.top_left.x + rect.size.x,
+						rect.top_left.y + rect.size.y,
+						0.0,
+					),
 					texture_coords: Vec2::new(1.0, 1.0),
 				},
 				Vertex {
-					position: Vec3::new(top_left.x + size.x, top_left.y, 0.0),
+					position: Vec3::new(rect.top_left.x + rect.size.x, rect.top_left.y, 0.0),
 					texture_coords: Vec2::new(1.0, 0.0),
 				},
 				Vertex {
-					position: Vec3::new(top_left.x, top_left.y, 0.0),
+					position: Vec3::new(rect.top_left.x, rect.top_left.y, 0.0),
 					texture_coords: Vec2::new(0.0, 0.0),
 				},
 				Vertex {
-					position: Vec3::new(top_left.x, top_left.y + size.y, 0.0),
+					position: Vec3::new(rect.top_left.x, rect.top_left.y + rect.size.y, 0.0),
 					texture_coords: Vec2::new(0.0, 1.0),
 				},
 			],

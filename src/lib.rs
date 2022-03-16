@@ -5,6 +5,7 @@ pub mod draw_params;
 pub mod error;
 pub mod image_data;
 pub mod mesh;
+pub mod rect;
 pub mod shader;
 pub mod texture;
 

@@ -2,7 +2,6 @@ use std::rc::Rc;
 
 use glam::{Mat4, Vec3};
 use glow::HasContext;
-use image::RgbaImage;
 use sdl2::VideoSubsystem;
 
 use crate::{

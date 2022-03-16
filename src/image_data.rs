@@ -3,8 +3,6 @@ use std::path::Path;
 use image::ImageError;
 use thiserror::Error;
 
-use crate::color::Rgba;
-
 pub struct ImageData {
 	pub width: u32,
 	pub height: u32,

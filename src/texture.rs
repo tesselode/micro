@@ -10,6 +10,7 @@ use crate::{
 	error::GlError,
 	image_data::{ImageData, LoadImageDataError},
 	mesh::Mesh,
+	rect::Rect,
 };
 
 #[derive(Debug, Clone)]
@@ -30,7 +31,8 @@ impl Texture {
 	}
 
 	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), GlError> {
-		Mesh::rectangle(ctx, Vec2::ZERO, self.raw_texture.size)?.draw_textured(ctx, self, params);
+		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.raw_texture.size))?
+			.draw_textured(ctx, self, params);
 		Ok(())
 	}
 }

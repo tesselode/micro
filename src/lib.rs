@@ -7,6 +7,7 @@ pub mod image_data;
 pub mod mesh;
 pub mod rect;
 pub mod shader;
+pub mod sprite_batch;
 pub mod texture;
 
 use std::time::Duration;

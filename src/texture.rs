@@ -34,6 +34,13 @@ impl Texture {
 		self.raw_texture.size
 	}
 
+	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
+		Rect {
+			top_left: absolute_rect.top_left / self.size(),
+			size: absolute_rect.size / self.size(),
+		}
+	}
+
 	pub fn draw(&self, ctx: &Context, params: impl Into<DrawParams>) -> Result<(), GlError> {
 		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.raw_texture.size))?
 			.draw_textured(ctx, self, params);

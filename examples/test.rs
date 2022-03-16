@@ -1,51 +1,57 @@
 use std::error::Error;
 
-use fontdue::{Font, FontSettings};
-use glam::{Vec2, Vec3};
+use glam::Vec2;
 use micro::{
 	color::Rgba,
 	context::Context,
 	draw_params::DrawParams,
-	image_data::ImageData,
-	mesh::{Mesh, Vertex},
 	rect::Rect,
+	sprite_batch::{Sprite, SpriteBatch, SpriteId},
 	texture::Texture,
 	Game, State,
 };
 
 struct MainState {
-	mesh: Mesh,
-	change_timer: usize,
+	texture: Texture,
+	sprite_batch: SpriteBatch,
+	sprite_id: SpriteId,
+	remove_timer: usize,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		let texture = Texture::load(ctx, "examples/player.png")?;
+		let mut sprite_batch = SpriteBatch::new(ctx, 10)?;
+		sprite_batch.add(Sprite {
+			display_rect: Rect::new(Vec2::new(100.0, 100.0), Vec2::new(100.0, 100.0)),
+			texture_rect: texture
+				.relative_rect(Rect::new(Vec2::new(0.0, 0.0), Vec2::new(72.0, 97.0))),
+		})?;
+		let sprite_id = sprite_batch.add(Sprite {
+			display_rect: Rect::new(Vec2::new(500.0, 100.0), Vec2::new(100.0, 100.0)),
+			texture_rect: texture
+				.relative_rect(Rect::new(Vec2::new(73.0, 0.0), Vec2::new(72.0, 97.0))),
+		})?;
 		Ok(Self {
-			mesh: Mesh::rectangle(
-				ctx,
-				Rect::new(Vec2::new(100.0, 100.0), Vec2::new(100.0, 100.0)),
-			)?,
-			change_timer: 100,
+			texture,
+			sprite_batch,
+			sprite_id,
+			remove_timer: 100,
 		})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		if self.change_timer > 0 {
-			self.change_timer -= 1;
-			if self.change_timer == 0 {
-				self.mesh.set_vertex(
-					2,
-					Vertex {
-						position: Vec3::ZERO,
-						texture_coords: Vec2::ZERO,
-					},
-				);
+		ctx.clear(Rgba::BLACK);
+		if self.remove_timer > 0 {
+			self.remove_timer -= 1;
+			if self.remove_timer == 0 {
+				self.sprite_batch.remove(self.sprite_id)?;
 			}
 		}
-		ctx.clear(Rgba::new(0.1, 0.2, 0.3, 1.0));
-		self.mesh.draw(ctx, DrawParams::new());
+		self.sprite_batch
+			.draw(ctx, &self.texture, DrawParams::new());
 		Ok(())
 	}
 }

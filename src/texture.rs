@@ -1,7 +1,7 @@
 use std::{path::Path, rc::Rc};
 
 use glam::Vec2;
-use glow::{HasContext, NativeTexture};
+use glow::{HasContext, NativeTexture, PixelUnpackData};
 use thiserror::Error;
 
 use crate::{
@@ -21,6 +21,31 @@ pub struct Texture {
 }
 
 impl Texture {
+	pub fn empty(ctx: &Context, width: i32, height: i32) -> Result<Self, GlError> {
+		let gl = ctx.gl.clone();
+		let texture = unsafe { gl.create_texture() }.map_err(GlError)?;
+		unsafe {
+			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+			gl.tex_image_2d(
+				glow::TEXTURE_2D,
+				0,
+				glow::RGBA as i32,
+				width,
+				height,
+				0,
+				glow::RGBA,
+				glow::UNSIGNED_BYTE,
+				None,
+			);
+			gl.generate_mipmap(glow::TEXTURE_2D);
+		}
+		Ok(Self {
+			gl,
+			texture,
+			size: Vec2::new(width as f32, height as f32),
+		})
+	}
+
 	pub fn from_image_data(ctx: &Context, image_data: &ImageData) -> Result<Self, GlError> {
 		Self::new_from_gl(ctx.gl.clone(), image_data)
 	}
@@ -65,6 +90,23 @@ impl Texture {
 		Rect {
 			top_left: absolute_rect.top_left / self.size(),
 			size: absolute_rect.size / self.size(),
+		}
+	}
+
+	pub fn replace(&self, x: i32, y: i32, image_data: &ImageData) {
+		unsafe {
+			self.gl.bind_texture(glow::TEXTURE_2D, Some(self.texture));
+			self.gl.tex_sub_image_2d(
+				glow::TEXTURE_2D,
+				0,
+				x,
+				y,
+				image_data.width.try_into().expect("Image data too wide"),
+				image_data.height.try_into().expect("Image data too tall"),
+				glow::RGBA,
+				glow::UNSIGNED_BYTE,
+				PixelUnpackData::Slice(&image_data.pixels),
+			);
 		}
 	}
 

@@ -3,6 +3,7 @@ pub mod color;
 pub mod context;
 pub mod draw_params;
 pub mod error;
+pub mod font;
 pub mod image_data;
 pub mod mesh;
 pub mod rect;

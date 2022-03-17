@@ -1,3 +1,5 @@
+pub mod text;
+
 use std::{collections::HashMap, path::Path, rc::Rc};
 
 use crunch::pack_into_po2;
@@ -11,6 +13,8 @@ use crate::{
 const GLYPH_PADDING: usize = 2;
 
 pub struct Font {
+	pub(crate) font: fontdue::Font,
+	pub(crate) scale: f32,
 	pub(crate) texture: Rc<Texture>,
 	pub(crate) glyph_rects: HashMap<char, Rect>,
 }
@@ -29,25 +33,33 @@ impl Font {
 		data: &[u8],
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
+		let scale = settings.scale;
 		let font = fontdue::Font::from_bytes(
 			data,
 			fontdue::FontSettings {
-				scale: settings.scale,
+				scale,
 				..Default::default()
 			},
 		)
 		.map_err(LoadFontError::FontError)?;
 		let glyph_image_data = rasterize_chars(&font, settings);
-		let (width, height, glyph_rects) = pack_glyphs(&glyph_image_data);
-		let texture = create_texture(ctx, width, height, &glyph_image_data, &glyph_rects)
+		let (width, height, absolute_glyph_rects) = pack_glyphs(&glyph_image_data);
+		let texture = create_texture(ctx, width, height, &glyph_image_data, &absolute_glyph_rects)
 			.map_err(|error| LoadFontError::GlError(error.0))?;
+		let glyph_rects = absolute_glyph_rects
+			.iter()
+			.map(|(char, rect)| (*char, texture.relative_rect(*rect)))
+			.collect();
 		Ok(Self {
+			font,
+			scale,
 			texture: Rc::new(texture),
 			glyph_rects,
 		})
 	}
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct FontSettings {
 	pub scale: f32,
 	pub chars: String,
@@ -118,8 +130,14 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 				(
 					*char,
 					Rect {
-						top_left: Vec2::new(rect.x as f32, rect.y as f32),
-						size: Vec2::new(rect.w as f32, rect.h as f32),
+						top_left: Vec2::new(
+							(rect.x + GLYPH_PADDING) as f32,
+							(rect.y + GLYPH_PADDING) as f32,
+						),
+						size: Vec2::new(
+							(rect.w - GLYPH_PADDING * 2) as f32,
+							(rect.h - GLYPH_PADDING * 2) as f32,
+						),
 					},
 				)
 			})
@@ -141,8 +159,8 @@ fn create_texture(
 	)?;
 	for (char, rect) in glyph_rects {
 		texture.replace(
-			(rect.top_left.x + GLYPH_PADDING as f32) as i32,
-			(rect.top_left.y + GLYPH_PADDING as f32) as i32,
+			rect.top_left.x as i32,
+			rect.top_left.y as i32,
 			glyph_image_data.get(char).expect("No image data for glyph"),
 		);
 	}

@@ -1,17 +1,18 @@
-pub mod context;
+mod context;
 pub mod error;
 pub mod graphics;
-pub mod rect;
+pub mod math;
+
+pub use context::*;
 
 use std::time::Duration;
 
-use context::Context;
+use error::InitError;
 use sdl2::{
 	event::{Event, WindowEvent},
-	video::{GLContext, GLProfile, Window, WindowBuildError},
+	video::{GLContext, GLProfile, Window},
 	EventPump, Sdl, VideoSubsystem,
 };
-use thiserror::Error;
 
 #[allow(unused_variables)]
 pub trait State<E> {
@@ -82,19 +83,5 @@ impl Game {
 			std::thread::sleep(Duration::from_millis(2));
 		}
 		Ok(())
-	}
-}
-
-#[derive(Debug, Clone, Error)]
-pub enum InitError {
-	#[error("{0}")]
-	InitSdlError(String),
-	#[error("{0}")]
-	WindowBuildError(#[from] WindowBuildError),
-}
-
-impl From<String> for InitError {
-	fn from(v: String) -> Self {
-		Self::InitSdlError(v)
 	}
 }

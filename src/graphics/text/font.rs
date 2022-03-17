@@ -8,7 +8,7 @@ use crate::{
 	context::Context,
 	error::GlError,
 	graphics::{image_data::ImageData, texture::Texture},
-	rect::Rect,
+	math::Rect,
 };
 
 const GLYPH_PADDING: usize = 2;

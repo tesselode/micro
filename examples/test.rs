@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use micro::{
-	context::Context,
 	graphics::{
 		color::Rgba,
 		draw_params::DrawParams,
@@ -10,7 +9,7 @@ use micro::{
 			Text,
 		},
 	},
-	Game, State,
+	Context, Game, State,
 };
 
 struct MainState {

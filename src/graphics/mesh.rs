@@ -16,7 +16,7 @@ use crate::{
 	context::Context,
 	error::GlError,
 	graphics::{draw_params::DrawParams, texture::Texture},
-	rect::Rect,
+	math::Rect,
 };
 
 #[derive(Debug)]

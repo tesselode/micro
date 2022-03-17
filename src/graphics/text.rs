@@ -1,13 +1,13 @@
-pub mod font;
+mod font;
+
+pub use font::*;
 
 use std::rc::Rc;
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::Vec2;
 
-use crate::{context::Context, error::GlError, graphics::texture::Texture, rect::Rect};
-
-use self::font::Font;
+use crate::{context::Context, error::GlError, graphics::texture::Texture, math::Rect};
 
 use super::{
 	draw_params::DrawParams,

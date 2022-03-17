@@ -12,7 +12,7 @@ use crate::{
 		image_data::{ImageData, LoadImageDataError},
 		mesh::Mesh,
 	},
-	rect::Rect,
+	math::Rect,
 };
 
 #[derive(Debug)]

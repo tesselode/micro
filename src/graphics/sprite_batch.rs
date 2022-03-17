@@ -10,7 +10,7 @@ use crate::{
 		mesh::{Mesh, Vertex},
 		texture::Texture,
 	},
-	rect::Rect,
+	math::Rect,
 };
 
 #[derive(Debug)]

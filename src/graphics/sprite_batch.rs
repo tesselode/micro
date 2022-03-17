@@ -4,11 +4,13 @@ use thiserror::Error;
 
 use crate::{
 	context::Context,
-	draw_params::DrawParams,
 	error::GlError,
-	mesh::{Mesh, Vertex},
+	graphics::{
+		draw_params::DrawParams,
+		mesh::{Mesh, Vertex},
+		texture::Texture,
+	},
 	rect::Rect,
-	texture::Texture,
 };
 
 #[derive(Debug)]

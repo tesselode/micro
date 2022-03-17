@@ -1,6 +1,6 @@
 use glam::Mat4;
 
-use crate::{blend_mode::BlendMode, color::Rgba, shader::Shader};
+use crate::graphics::{blend_mode::BlendMode, color::Rgba, shader::Shader};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DrawParams<'a> {

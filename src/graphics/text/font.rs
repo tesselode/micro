@@ -1,5 +1,3 @@
-pub mod text;
-
 use std::{collections::HashMap, path::Path, rc::Rc};
 
 use crunch::pack_into_po2;
@@ -7,7 +5,10 @@ use glam::Vec2;
 use thiserror::Error;
 
 use crate::{
-	context::Context, error::GlError, image_data::ImageData, rect::Rect, texture::Texture,
+	context::Context,
+	error::GlError,
+	graphics::{image_data::ImageData, texture::Texture},
+	rect::Rect,
 };
 
 const GLYPH_PADDING: usize = 2;

@@ -13,7 +13,10 @@ use lyon::{
 use thiserror::Error;
 
 use crate::{
-	context::Context, draw_params::DrawParams, error::GlError, rect::Rect, texture::Texture,
+	context::Context,
+	error::GlError,
+	graphics::{draw_params::DrawParams, texture::Texture},
+	rect::Rect,
 };
 
 #[derive(Debug)]

@@ -1,11 +1,15 @@
 use std::error::Error;
 
 use micro::{
-	blend_mode::{BlendAlphaMode, BlendMode},
-	color::Rgba,
 	context::Context,
-	draw_params::DrawParams,
-	font::{text::Text, Font, FontSettings},
+	graphics::{
+		color::Rgba,
+		draw_params::DrawParams,
+		text::{
+			font::{Font, FontSettings},
+			Text,
+		},
+	},
 	Game, State,
 };
 

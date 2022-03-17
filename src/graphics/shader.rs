@@ -4,7 +4,7 @@ use glam::Mat4;
 use glow::{HasContext, NativeProgram};
 use thiserror::Error;
 
-use crate::{color::Rgba, context::Context, error::GlError};
+use crate::{context::Context, error::GlError, graphics::color::Rgba};
 
 #[derive(Debug)]
 pub struct Shader {

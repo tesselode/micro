@@ -6,10 +6,12 @@ use thiserror::Error;
 
 use crate::{
 	context::Context,
-	draw_params::DrawParams,
 	error::GlError,
-	image_data::{ImageData, LoadImageDataError},
-	mesh::Mesh,
+	graphics::{
+		draw_params::DrawParams,
+		image_data::{ImageData, LoadImageDataError},
+		mesh::Mesh,
+	},
 	rect::Rect,
 };
 

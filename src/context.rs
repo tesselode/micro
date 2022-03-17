@@ -4,7 +4,7 @@ use glam::{Mat4, Vec3};
 use glow::HasContext;
 use sdl2::VideoSubsystem;
 
-use crate::{color::Rgba, image_data::ImageData, shader::Shader, texture::Texture};
+use crate::graphics::{color::Rgba, image_data::ImageData, shader::Shader, texture::Texture};
 
 pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,

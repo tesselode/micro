@@ -1,18 +1,18 @@
+pub mod font;
+
 use std::rc::Rc;
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::Vec2;
 
-use crate::{
-	context::Context,
-	draw_params::DrawParams,
-	error::GlError,
-	rect::Rect,
-	sprite_batch::{Sprite, SpriteBatch},
-	texture::Texture,
-};
+use crate::{context::Context, error::GlError, graphics::texture::Texture, rect::Rect};
 
-use super::Font;
+use self::font::Font;
+
+use super::{
+	draw_params::DrawParams,
+	sprite_batch::{Sprite, SpriteBatch},
+};
 
 pub struct Text {
 	pub(crate) texture: Rc<Texture>,

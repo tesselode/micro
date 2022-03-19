@@ -7,7 +7,7 @@ use glam::{Mat4, Vec3};
 use glow::HasContext;
 use sdl2::{
 	event::{Event, WindowEvent},
-	video::{GLContext, GLProfile, Window},
+	video::{GLContext, GLProfile, SwapInterval, Window},
 	EventPump, Sdl, VideoSubsystem,
 };
 
@@ -34,42 +34,25 @@ pub struct Context {
 }
 
 impl Context {
-	pub fn new() -> Result<Self, InitError> {
+	pub fn new(settings: ContextSettings) -> Result<Self, InitError> {
 		let sdl = sdl2::init()?;
 		let video = sdl.video()?;
 		let gl_attr = video.gl_attr();
 		gl_attr.set_context_profile(GLProfile::Core);
 		gl_attr.set_context_version(3, 3);
-		let window = video
-			.window("Test", 800, 600)
-			.opengl()
-			.resizable()
-			.build()?;
+		let window = build_window(&video, &settings)?;
 		let (window_width, window_height) = window.size();
 		let _sdl_gl_ctx = window.gl_create_context()?;
+		video
+			.gl_set_swap_interval(if settings.vsync {
+				SwapInterval::VSync
+			} else {
+				SwapInterval::Immediate
+			})
+			.expect("Could not set vsync");
 		let event_pump = sdl.event_pump()?;
-		let gl = Rc::new(unsafe {
-			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
-		});
-		unsafe {
-			gl.enable(glow::BLEND);
-			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
-			gl.viewport(0, 0, window_width as i32, window_height as i32);
-		}
-		let default_texture = Texture::new_from_gl(
-			gl.clone(),
-			1,
-			1,
-			Some(&[255, 255, 255, 255]),
-			TextureSettings::default(),
-		)
-		.expect("Error creating default texture");
-		let default_shader = Shader::new_from_gl(
-			gl.clone(),
-			include_str!("vertex.glsl"),
-			include_str!("fragment.glsl"),
-		)
-		.expect("Error compiling default shader");
+		let (gl, default_texture, default_shader) =
+			create_gl_context(&video, window_width, window_height);
 		Ok(Self {
 			gl,
 			default_texture,
@@ -132,6 +115,70 @@ impl Context {
 			self.gl.clear(glow::COLOR_BUFFER_BIT);
 		}
 	}
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ContextSettings {
+	pub window_title: String,
+	pub window_width: u32,
+	pub window_height: u32,
+	pub resizable: bool,
+	pub vsync: bool,
+}
+
+impl Default for ContextSettings {
+	fn default() -> Self {
+		Self {
+			window_title: "Game".into(),
+			window_width: 800,
+			window_height: 600,
+			resizable: false,
+			vsync: true,
+		}
+	}
+}
+
+fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Result<Window, InitError> {
+	let mut window_builder = video.window(
+		&settings.window_title,
+		settings.window_width,
+		settings.window_height,
+	);
+	window_builder.opengl();
+	if settings.resizable {
+		window_builder.resizable();
+	}
+	Ok(window_builder.build()?)
+}
+
+fn create_gl_context(
+	video: &VideoSubsystem,
+	window_width: u32,
+	window_height: u32,
+) -> (Rc<glow::Context>, Texture, Shader) {
+	let gl = Rc::new(unsafe {
+		glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
+	});
+	unsafe {
+		gl.enable(glow::BLEND);
+		gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
+		gl.viewport(0, 0, window_width as i32, window_height as i32);
+	}
+	let default_texture = Texture::new_from_gl(
+		gl.clone(),
+		1,
+		1,
+		Some(&[255, 255, 255, 255]),
+		TextureSettings::default(),
+	)
+	.expect("Error creating default texture");
+	let default_shader = Shader::new_from_gl(
+		gl.clone(),
+		include_str!("vertex.glsl"),
+		include_str!("fragment.glsl"),
+	)
+	.expect("Error compiling default shader");
+	(gl, default_texture, default_shader)
 }
 
 fn global_transform(window_width: u32, window_height: u32) -> Mat4 {

@@ -1,16 +1,15 @@
 use std::{error::Error, time::Duration};
 
-use glam::{Mat4, Vec3};
 use micro::{
 	graphics::{
 		color::Rgba,
-		text::{Font, FontSettings, Text},
-		texture::{Texture, TextureFilter, TextureSettings},
+		texture::{Texture, TextureSettings},
 		DrawParams,
 	},
 	math::Rect,
 	Context, ContextSettings, State,
 };
+use sdl2::keyboard::{Keycode, Scancode};
 
 struct MainState {
 	texture: Texture,
@@ -25,7 +24,9 @@ impl MainState {
 
 impl State<Box<dyn Error>> for MainState {
 	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		println!("delta time: {}", delta_time.as_secs_f32());
+		if ctx.is_key_down(Scancode::A) {
+			println!("a");
+		}
 		Ok(())
 	}
 

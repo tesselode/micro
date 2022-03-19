@@ -1,6 +1,6 @@
 Needed for Picross Platformer:
 
-- [ ] `Context::is_key_down`
+- [x] `Context::is_key_down`
 - [x] `Texture::draw_region`
 
 Other:

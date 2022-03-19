@@ -1,3 +1,7 @@
+mod error;
+
+pub use error::*;
+
 use std::{
 	rc::Rc,
 	time::{Duration, Instant},
@@ -7,12 +11,12 @@ use glam::{Mat4, Vec3};
 use glow::HasContext;
 use sdl2::{
 	event::{Event, WindowEvent},
+	keyboard::{Keycode, Scancode},
 	video::{GLContext, GLProfile, SwapInterval, Window},
 	EventPump, Sdl, VideoSubsystem,
 };
 
 use crate::{
-	error::InitError,
 	graphics::{
 		color::Rgba,
 		shader::Shader,
@@ -114,6 +118,12 @@ impl Context {
 				.clear_color(color.red, color.green, color.blue, color.alpha);
 			self.gl.clear(glow::COLOR_BUFFER_BIT);
 		}
+	}
+
+	pub fn is_key_down(&self, scancode: Scancode) -> bool {
+		self.event_pump
+			.keyboard_state()
+			.is_scancode_pressed(scancode)
 	}
 }
 

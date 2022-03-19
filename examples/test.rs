@@ -1,12 +1,11 @@
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
-use glam::{Mat4, Vec2, Vec3};
+use glam::{Mat4, Vec3};
 use micro::{
 	graphics::{
 		color::Rgba,
-		mesh::{Mesh, Vertex},
 		text::{Font, FontSettings, Text},
-		texture::{Texture, TextureFilter, TextureSettings, TextureWrapping},
+		texture::{TextureFilter, TextureSettings},
 		DrawParams,
 	},
 	Context, Game, State,
@@ -36,6 +35,11 @@ impl MainState {
 }
 
 impl State<Box<dyn Error>> for MainState {
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
+		println!("delta time: {}", delta_time.as_secs_f32());
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
 		self.text.draw(

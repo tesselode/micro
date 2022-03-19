@@ -5,7 +5,7 @@ pub mod math;
 
 pub use context::*;
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use error::InitError;
 use sdl2::{
@@ -16,6 +16,10 @@ use sdl2::{
 
 #[allow(unused_variables)]
 pub trait State<E> {
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), E> {
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), E> {
 		Ok(())
 	}
@@ -62,7 +66,12 @@ impl Game {
 		F: FnMut(&mut Context) -> Result<S, E>,
 	{
 		let mut state = state_constructor(&mut self.ctx)?;
+		let mut last_update_time = Instant::now();
 		'running: loop {
+			let now = Instant::now();
+			let delta_time = now - last_update_time;
+			last_update_time = now;
+			state.update(&mut self.ctx, delta_time)?;
 			state.draw(&mut self.ctx)?;
 			self.window.gl_swap_window();
 			for event in self.event_pump.poll_iter() {
@@ -71,7 +80,6 @@ impl Game {
 						win_event: WindowEvent::Resized(width, height),
 						..
 					} => {
-						println!("{width}, {height}");
 						self.ctx.resize(width as u32, height as u32);
 					}
 					Event::Quit { .. } => {

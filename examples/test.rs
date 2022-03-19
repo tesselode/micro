@@ -8,7 +8,7 @@ use micro::{
 		texture::{TextureFilter, TextureSettings},
 		DrawParams,
 	},
-	Context, Game, State,
+	Context, State,
 };
 
 struct MainState {
@@ -51,6 +51,6 @@ impl State<Box<dyn Error>> for MainState {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-	Game::init()?.run(MainState::new)?;
+	Context::new()?.run(MainState::new)?;
 	Ok(())
 }

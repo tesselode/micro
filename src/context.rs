@@ -1,16 +1,32 @@
-use std::rc::Rc;
+use std::{
+	rc::Rc,
+	time::{Duration, Instant},
+};
 
 use glam::{Mat4, Vec3};
 use glow::HasContext;
-use sdl2::VideoSubsystem;
+use sdl2::{
+	event::{Event, WindowEvent},
+	video::{GLContext, GLProfile, Window},
+	EventPump, Sdl, VideoSubsystem,
+};
 
-use crate::graphics::{
-	color::Rgba,
-	shader::Shader,
-	texture::{Texture, TextureSettings},
+use crate::{
+	error::InitError,
+	graphics::{
+		color::Rgba,
+		shader::Shader,
+		texture::{Texture, TextureSettings},
+	},
+	State,
 };
 
 pub struct Context {
+	_sdl: Sdl,
+	_video: VideoSubsystem,
+	window: Window,
+	_sdl_gl_ctx: GLContext,
+	event_pump: EventPump,
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
@@ -18,7 +34,20 @@ pub struct Context {
 }
 
 impl Context {
-	pub(crate) fn new(video: &VideoSubsystem, window_width: u32, window_height: u32) -> Self {
+	pub fn new() -> Result<Self, InitError> {
+		let sdl = sdl2::init()?;
+		let video = sdl.video()?;
+		let gl_attr = video.gl_attr();
+		gl_attr.set_context_profile(GLProfile::Core);
+		gl_attr.set_context_version(3, 3);
+		let window = video
+			.window("Test", 800, 600)
+			.opengl()
+			.resizable()
+			.build()?;
+		let (window_width, window_height) = window.size();
+		let _sdl_gl_ctx = window.gl_create_context()?;
+		let event_pump = sdl.event_pump()?;
 		let gl = Rc::new(unsafe {
 			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
 		});
@@ -41,12 +70,51 @@ impl Context {
 			include_str!("fragment.glsl"),
 		)
 		.expect("Error compiling default shader");
-		Self {
+		Ok(Self {
 			gl,
 			default_texture,
 			default_shader,
 			global_transform: global_transform(window_width, window_height),
+			_sdl: sdl,
+			_video: video,
+			window,
+			_sdl_gl_ctx,
+			event_pump,
+		})
+	}
+
+	pub fn run<E, S, F>(&mut self, mut state_constructor: F) -> Result<(), E>
+	where
+		S: State<E>,
+		F: FnMut(&mut Context) -> Result<S, E>,
+	{
+		let mut state = state_constructor(self)?;
+		let mut last_update_time = Instant::now();
+		'running: loop {
+			let now = Instant::now();
+			let delta_time = now - last_update_time;
+			last_update_time = now;
+			state.update(self, delta_time)?;
+			state.draw(self)?;
+			self.window.gl_swap_window();
+			while let Some(event) = self.event_pump.poll_event() {
+				match event {
+					Event::Window {
+						win_event: WindowEvent::Resized(width, height),
+						..
+					} => {
+						self.resize(width as u32, height as u32);
+					}
+					Event::Quit { .. } => {
+						break 'running;
+					}
+					_ => {}
+				}
+				state.event(self, event)?;
+			}
+			std::thread::sleep(Duration::from_millis(2));
 		}
+		Ok(())
 	}
 
 	pub(crate) fn resize(&mut self, window_width: u32, window_height: u32) {

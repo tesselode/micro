@@ -15,6 +15,8 @@ use crate::{
 	math::Rect,
 };
 
+use super::color::Rgba;
+
 #[derive(Debug)]
 pub struct Texture {
 	gl: Rc<glow::Context>,
@@ -23,11 +25,53 @@ pub struct Texture {
 }
 
 impl Texture {
-	pub fn empty(ctx: &Context, width: i32, height: i32) -> Result<Self, GlError> {
-		let gl = ctx.gl.clone();
+	pub fn empty(
+		ctx: &Context,
+		width: i32,
+		height: i32,
+		settings: TextureSettings,
+	) -> Result<Self, GlError> {
+		Self::new_from_gl(ctx.gl.clone(), width, height, None, settings)
+	}
+
+	pub fn from_image_data(
+		ctx: &Context,
+		image_data: &ImageData,
+		settings: TextureSettings,
+	) -> Result<Self, GlError> {
+		Self::new_from_gl(
+			ctx.gl.clone(),
+			image_data.width.try_into().expect("Image is too wide"),
+			image_data.height.try_into().expect("Image is too tall"),
+			Some(&image_data.pixels),
+			settings,
+		)
+	}
+
+	pub(crate) fn new_from_gl(
+		gl: Rc<glow::Context>,
+		width: i32,
+		height: i32,
+		pixels: Option<&[u8]>,
+		settings: TextureSettings,
+	) -> Result<Self, GlError> {
 		let texture = unsafe { gl.create_texture() }.map_err(GlError)?;
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+			gl.tex_parameter_i32(
+				glow::TEXTURE_2D,
+				glow::TEXTURE_WRAP_S,
+				settings.wrapping.as_u32().try_into().unwrap(),
+			);
+			gl.tex_parameter_i32(
+				glow::TEXTURE_2D,
+				glow::TEXTURE_WRAP_T,
+				settings.wrapping.as_u32().try_into().unwrap(),
+			);
+			if let TextureWrapping::ClampToBorder(color) = settings.wrapping {
+				let color: [f32; 4] = color.into();
+				gl.tex_parameter_f32_slice(glow::TEXTURE_2D, glow::TEXTURE_BORDER_COLOR, &color);
+			}
 			gl.tex_image_2d(
 				glow::TEXTURE_2D,
 				0,
@@ -37,7 +81,7 @@ impl Texture {
 				0,
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
-				None,
+				pixels,
 			);
 			gl.generate_mipmap(glow::TEXTURE_2D);
 		}
@@ -48,40 +92,14 @@ impl Texture {
 		})
 	}
 
-	pub fn from_image_data(ctx: &Context, image_data: &ImageData) -> Result<Self, GlError> {
-		Self::new_from_gl(ctx.gl.clone(), image_data)
-	}
-
-	pub(crate) fn new_from_gl(
-		gl: Rc<glow::Context>,
-		image_data: &ImageData,
-	) -> Result<Self, GlError> {
-		let texture = unsafe { gl.create_texture() }.map_err(GlError)?;
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
-			gl.tex_image_2d(
-				glow::TEXTURE_2D,
-				0,
-				glow::RGBA as i32,
-				image_data.width.try_into().expect("Image is too wide"),
-				image_data.height.try_into().expect("Image is too tall"),
-				0,
-				glow::RGBA,
-				glow::UNSIGNED_BYTE,
-				Some(&image_data.pixels),
-			);
-			gl.generate_mipmap(glow::TEXTURE_2D);
-		}
-		Ok(Self {
-			gl,
-			texture,
-			size: Vec2::new(image_data.width as f32, image_data.height as f32),
-		})
-	}
-
-	pub fn load(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadTextureError> {
+	pub fn load(
+		ctx: &Context,
+		path: impl AsRef<Path>,
+		settings: TextureSettings,
+	) -> Result<Self, LoadTextureError> {
 		let image_data = ImageData::load(path)?;
-		Self::from_image_data(ctx, &image_data).map_err(|error| LoadTextureError::GlError(error.0))
+		Self::from_image_data(ctx, &image_data, settings)
+			.map_err(|error| LoadTextureError::GlError(error.0))
 	}
 
 	pub fn size(&self) -> Vec2 {
@@ -127,6 +145,36 @@ impl Drop for Texture {
 		unsafe {
 			self.gl.delete_texture(self.texture);
 		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct TextureSettings {
+	pub wrapping: TextureWrapping,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TextureWrapping {
+	Repeat,
+	MirroredRepeat,
+	ClampToEdge,
+	ClampToBorder(Rgba),
+}
+
+impl TextureWrapping {
+	fn as_u32(&self) -> u32 {
+		match self {
+			TextureWrapping::Repeat => glow::REPEAT,
+			TextureWrapping::MirroredRepeat => glow::MIRRORED_REPEAT,
+			TextureWrapping::ClampToEdge => glow::CLAMP_TO_EDGE,
+			TextureWrapping::ClampToBorder(_) => glow::CLAMP_TO_BORDER,
+		}
+	}
+}
+
+impl Default for TextureWrapping {
+	fn default() -> Self {
+		Self::Repeat
 	}
 }
 

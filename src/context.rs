@@ -4,7 +4,11 @@ use glam::{Mat4, Vec3};
 use glow::HasContext;
 use sdl2::VideoSubsystem;
 
-use crate::graphics::{color::Rgba, image_data::ImageData, shader::Shader, texture::Texture};
+use crate::graphics::{
+	color::Rgba,
+	shader::Shader,
+	texture::{Texture, TextureSettings},
+};
 
 pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,
@@ -25,11 +29,10 @@ impl Context {
 		}
 		let default_texture = Texture::new_from_gl(
 			gl.clone(),
-			&ImageData {
-				width: 1,
-				height: 1,
-				pixels: vec![255, 255, 255, 255],
-			},
+			1,
+			1,
+			Some(&[255, 255, 255, 255]),
+			TextureSettings::default(),
 		)
 		.expect("Error creating default texture");
 		let default_shader = Shader::new_from_gl(

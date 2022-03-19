@@ -1,41 +1,61 @@
 use std::error::Error;
 
+use glam::Vec2;
 use micro::{
 	graphics::{
 		color::Rgba,
-		draw_params::DrawParams,
-		text::{
-			font::{Font, FontSettings},
-			Text,
-		},
+		mesh::{Mesh, Vertex},
+		texture::{Texture, TextureSettings, TextureWrapping},
+		DrawParams,
 	},
 	Context, Game, State,
 };
 
 struct MainState {
-	font: Font,
-	text: Text,
+	texture: Texture,
+	mesh: Mesh,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let font = Font::from_file(
+		let texture = Texture::load(
 			ctx,
-			"examples/Roboto-Regular.ttf",
-			FontSettings {
-				scale: 64.0,
-				..Default::default()
+			"examples/wall.png",
+			TextureSettings {
+				wrapping: TextureWrapping::ClampToBorder(Rgba::BLUE),
 			},
 		)?;
-		let text = Text::new(ctx, &font, "hello world!")?;
-		Ok(Self { font, text })
+		let mesh = Mesh::new(
+			ctx,
+			&[
+				Vertex {
+					position: Vec2::new(200.0, 200.0),
+					texture_coords: Vec2::new(2.0, 2.0),
+				},
+				Vertex {
+					position: Vec2::new(200.0, 100.0),
+					texture_coords: Vec2::new(2.0, 0.0),
+				},
+				Vertex {
+					position: Vec2::new(100.0, 100.0),
+					texture_coords: Vec2::new(0.0, 0.0),
+				},
+				Vertex {
+					position: Vec2::new(100.0, 200.0),
+					texture_coords: Vec2::new(0.0, 2.0),
+				},
+			],
+			&[0, 1, 3, 1, 2, 3],
+		)?;
+		Ok(Self { texture, mesh })
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		self.text.draw(ctx, DrawParams::new());
+		self.mesh
+			.draw_textured(ctx, &self.texture, DrawParams::new());
 		Ok(())
 	}
 }

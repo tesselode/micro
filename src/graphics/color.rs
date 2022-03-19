@@ -37,3 +37,9 @@ impl Default for Rgba {
 		}
 	}
 }
+
+impl From<Rgba> for [f32; 4] {
+	fn from(rgba: Rgba) -> Self {
+		[rgba.red, rgba.green, rgba.blue, rgba.alpha]
+	}
+}

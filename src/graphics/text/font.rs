@@ -7,7 +7,10 @@ use thiserror::Error;
 use crate::{
 	context::Context,
 	error::GlError,
-	graphics::{image_data::ImageData, texture::Texture},
+	graphics::{
+		image_data::ImageData,
+		texture::{Texture, TextureSettings},
+	},
 	math::Rect,
 };
 
@@ -35,6 +38,7 @@ impl Font {
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
 		let scale = settings.scale;
+		let texture_settings = settings.texture_settings;
 		let font = fontdue::Font::from_bytes(
 			data,
 			fontdue::FontSettings {
@@ -45,8 +49,15 @@ impl Font {
 		.map_err(LoadFontError::FontError)?;
 		let glyph_image_data = rasterize_chars(&font, settings);
 		let (width, height, absolute_glyph_rects) = pack_glyphs(&glyph_image_data);
-		let texture = create_texture(ctx, width, height, &glyph_image_data, &absolute_glyph_rects)
-			.map_err(|error| LoadFontError::GlError(error.0))?;
+		let texture = create_texture(
+			ctx,
+			width,
+			height,
+			&glyph_image_data,
+			&absolute_glyph_rects,
+			texture_settings,
+		)
+		.map_err(|error| LoadFontError::GlError(error.0))?;
 		let glyph_rects = absolute_glyph_rects
 			.iter()
 			.map(|(char, rect)| (*char, texture.relative_rect(*rect)))
@@ -64,6 +75,7 @@ impl Font {
 pub struct FontSettings {
 	pub scale: f32,
 	pub chars: String,
+	pub texture_settings: TextureSettings,
 }
 
 impl Default for FontSettings {
@@ -71,6 +83,7 @@ impl Default for FontSettings {
 		Self {
 			scale: 16.0,
 			chars: (32u8..127u8).map(|code| code as char).collect(),
+			texture_settings: TextureSettings::default(),
 		}
 	}
 }
@@ -152,11 +165,13 @@ fn create_texture(
 	height: usize,
 	glyph_image_data: &HashMap<char, ImageData>,
 	glyph_rects: &HashMap<char, Rect>,
+	texture_settings: TextureSettings,
 ) -> Result<Texture, GlError> {
 	let texture = Texture::empty(
 		ctx,
 		width.try_into().expect("Packed glyphs are too wide"),
 		height.try_into().expect("Packed glyphs are too tall"),
+		texture_settings,
 	)?;
 	for (char, rect) in glyph_rects {
 		texture.replace(

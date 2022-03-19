@@ -16,6 +16,10 @@ use sdl2::{
 
 #[allow(unused_variables)]
 pub trait State<E> {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), E> {
+		Ok(())
+	}
+
 	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), E> {
 		Ok(())
 	}
@@ -87,6 +91,7 @@ impl Game {
 					}
 					_ => {}
 				}
+				state.event(&mut self.ctx, event)?;
 			}
 			std::thread::sleep(Duration::from_millis(2));
 		}

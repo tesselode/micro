@@ -72,6 +72,16 @@ impl Texture {
 				let color: [f32; 4] = color.into();
 				gl.tex_parameter_f32_slice(glow::TEXTURE_2D, glow::TEXTURE_BORDER_COLOR, &color);
 			}
+			gl.tex_parameter_i32(
+				glow::TEXTURE_2D,
+				glow::TEXTURE_MIN_FILTER,
+				settings.minifying_filter.as_u32().try_into().unwrap(),
+			);
+			gl.tex_parameter_i32(
+				glow::TEXTURE_2D,
+				glow::TEXTURE_MAG_FILTER,
+				settings.magnifying_filter.as_u32().try_into().unwrap(),
+			);
 			gl.tex_image_2d(
 				glow::TEXTURE_2D,
 				0,
@@ -151,6 +161,8 @@ impl Drop for Texture {
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct TextureSettings {
 	pub wrapping: TextureWrapping,
+	pub minifying_filter: TextureFilter,
+	pub magnifying_filter: TextureFilter,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -175,6 +187,27 @@ impl TextureWrapping {
 impl Default for TextureWrapping {
 	fn default() -> Self {
 		Self::Repeat
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TextureFilter {
+	Nearest,
+	Linear,
+}
+
+impl TextureFilter {
+	fn as_u32(&self) -> u32 {
+		match self {
+			TextureFilter::Nearest => glow::NEAREST,
+			TextureFilter::Linear => glow::LINEAR,
+		}
+	}
+}
+
+impl Default for TextureFilter {
+	fn default() -> Self {
+		Self::Nearest
 	}
 }
 

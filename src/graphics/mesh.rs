@@ -84,24 +84,32 @@ impl Mesh {
 	}
 
 	pub fn rectangle(ctx: &Context, rect: Rect) -> Result<Self, GlError> {
+		Self::rectangle_with_texture_region(ctx, rect, Rect::xywh(0.0, 0.0, 1.0, 1.0))
+	}
+
+	pub fn rectangle_with_texture_region(
+		ctx: &Context,
+		display_rect: Rect,
+		texture_rect: Rect,
+	) -> Result<Self, GlError> {
 		Self::new(
 			ctx,
 			&[
 				Vertex {
-					position: rect.bottom_right(),
-					texture_coords: Vec2::new(1.0, 1.0),
+					position: display_rect.bottom_right(),
+					texture_coords: texture_rect.bottom_right(),
 				},
 				Vertex {
-					position: rect.top_right(),
-					texture_coords: Vec2::new(1.0, 0.0),
+					position: display_rect.top_right(),
+					texture_coords: texture_rect.top_right(),
 				},
 				Vertex {
-					position: rect.top_left,
-					texture_coords: Vec2::new(0.0, 0.0),
+					position: display_rect.top_left,
+					texture_coords: texture_rect.top_left,
 				},
 				Vertex {
-					position: rect.bottom_left(),
-					texture_coords: Vec2::new(0.0, 1.0),
+					position: display_rect.bottom_left(),
+					texture_coords: texture_rect.bottom_left(),
 				},
 			],
 			&[0, 1, 3, 1, 2, 3],

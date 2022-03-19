@@ -5,32 +5,21 @@ use micro::{
 	graphics::{
 		color::Rgba,
 		text::{Font, FontSettings, Text},
-		texture::{TextureFilter, TextureSettings},
+		texture::{Texture, TextureFilter, TextureSettings},
 		DrawParams,
 	},
+	math::Rect,
 	Context, ContextSettings, State,
 };
 
 struct MainState {
-	text: Text,
+	texture: Texture,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let font = Font::from_file(
-			ctx,
-			"examples/Roboto-Regular.ttf",
-			FontSettings {
-				scale: 128.0,
-				texture_settings: TextureSettings {
-					minifying_filter: TextureFilter::Linear,
-					..Default::default()
-				},
-				..Default::default()
-			},
-		)?;
-		let text = Text::new(ctx, &font, "hello world!")?;
-		Ok(Self { text })
+		let texture = Texture::load(ctx, "examples/player.png", TextureSettings::default())?;
+		Ok(Self { texture })
 	}
 }
 
@@ -42,10 +31,8 @@ impl State<Box<dyn Error>> for MainState {
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		self.text.draw(
-			ctx,
-			DrawParams::new().transform(Mat4::from_scale(Vec3::new(0.5, 0.5, 0.5))),
-		);
+		self.texture
+			.draw_region(ctx, Rect::xywh(0.0, 0.0, 76.0, 95.0), DrawParams::new())?;
 		Ok(())
 	}
 }

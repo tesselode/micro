@@ -11,6 +11,10 @@ impl Rect {
 		Self { top_left, size }
 	}
 
+	pub fn xywh(x: f32, y: f32, width: f32, height: f32) -> Self {
+		Self::new(Vec2::new(x, y), Vec2::new(width, height))
+	}
+
 	pub fn top_right(&self) -> Vec2 {
 		self.top_left + Vec2::new(self.size.x, 0.0)
 	}

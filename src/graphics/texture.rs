@@ -148,6 +148,21 @@ impl Texture {
 		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.size))?.draw_textured(ctx, self, params);
 		Ok(())
 	}
+
+	pub fn draw_region<'a>(
+		&self,
+		ctx: &Context,
+		region: Rect,
+		params: impl Into<DrawParams<'a>>,
+	) -> Result<(), GlError> {
+		Mesh::rectangle_with_texture_region(
+			ctx,
+			Rect::new(Vec2::ZERO, region.size),
+			self.relative_rect(region),
+		)?
+		.draw_textured(ctx, self, params);
+		Ok(())
+	}
 }
 
 impl Drop for Texture {

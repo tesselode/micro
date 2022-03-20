@@ -11,7 +11,7 @@ use glam::{Mat4, Vec3};
 use glow::HasContext;
 use sdl2::{
 	event::{Event, WindowEvent},
-	keyboard::{Keycode, Scancode},
+	keyboard::Scancode,
 	mouse::MouseButton,
 	video::{GLContext, GLProfile, SwapInterval, Window},
 	EventPump, Sdl, VideoSubsystem,

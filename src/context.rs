@@ -220,8 +220,7 @@ fn create_gl_context(
 	}
 	let default_texture = Texture::new_from_gl(
 		gl.clone(),
-		1,
-		1,
+		(1, 1),
 		Some(&[255, 255, 255, 255]),
 		TextureSettings::default(),
 	)

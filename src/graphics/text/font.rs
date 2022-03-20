@@ -51,8 +51,10 @@ impl Font {
 		let (width, height, absolute_glyph_rects) = pack_glyphs(&glyph_image_data);
 		let texture = create_texture(
 			ctx,
-			width,
-			height,
+			(
+				width.try_into().expect("Packed glyphs are too wide"),
+				height.try_into().expect("Packed glyphs are too tall"),
+			),
 			&glyph_image_data,
 			&absolute_glyph_rects,
 			texture_settings,
@@ -161,18 +163,12 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 
 fn create_texture(
 	ctx: &mut Context,
-	width: usize,
-	height: usize,
+	size: (u32, u32),
 	glyph_image_data: &HashMap<char, ImageData>,
 	glyph_rects: &HashMap<char, Rect>,
 	texture_settings: TextureSettings,
 ) -> Result<Texture, GlError> {
-	let texture = Texture::empty(
-		ctx,
-		width.try_into().expect("Packed glyphs are too wide"),
-		height.try_into().expect("Packed glyphs are too tall"),
-		texture_settings,
-	)?;
+	let texture = Texture::empty(ctx, size, texture_settings)?;
 	for (char, rect) in glyph_rects {
 		texture.replace(
 			rect.top_left.x as i32,

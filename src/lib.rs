@@ -6,4 +6,5 @@ pub mod math;
 mod state;
 
 pub use context::*;
+pub use sdl2::event::Event;
 pub use state::*;

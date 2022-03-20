@@ -1,20 +1,20 @@
-use glam::Vec2;
+use vek::Vec2;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {
-	pub top_left: Vec2,
-	pub bottom_right: Vec2,
+	pub top_left: Vec2<f32>,
+	pub bottom_right: Vec2<f32>,
 }
 
 impl Rect {
-	pub fn new(top_left: Vec2, bottom_right: Vec2) -> Self {
+	pub fn new(top_left: Vec2<f32>, bottom_right: Vec2<f32>) -> Self {
 		Self {
 			top_left,
 			bottom_right,
 		}
 	}
 
-	pub fn from_top_left_and_size(top_left: Vec2, size: Vec2) -> Self {
+	pub fn from_top_left_and_size(top_left: Vec2<f32>, size: Vec2<f32>) -> Self {
 		Self::new(top_left, top_left + size)
 	}
 
@@ -22,7 +22,7 @@ impl Rect {
 		Self::new(Vec2::new(x, y), Vec2::new(x + width, y + height))
 	}
 
-	pub fn size(&self) -> Vec2 {
+	pub fn size(&self) -> Vec2<f32> {
 		self.bottom_right - self.top_left
 	}
 
@@ -34,7 +34,7 @@ impl Rect {
 		self.top_left.y + (self.bottom_right.y - self.top_left.y) * fraction
 	}
 
-	pub fn relative_point(&self, fraction: Vec2) -> Vec2 {
+	pub fn relative_point(&self, fraction: Vec2<f32>) -> Vec2<f32> {
 		Vec2::new(self.relative_x(fraction.x), self.relative_y(fraction.y))
 	}
 
@@ -62,23 +62,23 @@ impl Rect {
 		self.relative_y(1.0)
 	}
 
-	pub fn top_left(&self) -> Vec2 {
+	pub fn top_left(&self) -> Vec2<f32> {
 		self.top_left
 	}
 
-	pub fn top_right(&self) -> Vec2 {
+	pub fn top_right(&self) -> Vec2<f32> {
 		self.relative_point(Vec2::new(1.0, 0.0))
 	}
 
-	pub fn bottom_left(&self) -> Vec2 {
+	pub fn bottom_left(&self) -> Vec2<f32> {
 		self.relative_point(Vec2::new(0.0, 1.0))
 	}
 
-	pub fn bottom_right(&self) -> Vec2 {
+	pub fn bottom_right(&self) -> Vec2<f32> {
 		self.bottom_right
 	}
 
-	pub fn center(&self) -> Vec2 {
+	pub fn center(&self) -> Vec2<f32> {
 		self.relative_point(Vec2::new(0.5, 0.5))
 	}
 

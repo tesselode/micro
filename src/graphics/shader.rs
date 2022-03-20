@@ -1,8 +1,8 @@
 use std::{path::Path, rc::Rc};
 
-use glam::Mat4;
 use glow::{HasContext, NativeProgram};
 use thiserror::Error;
+use vek::Mat4;
 
 use crate::{context::Context, error::GlError, graphics::color::Rgba};
 
@@ -62,14 +62,19 @@ impl Shader {
 		Ok(Self { gl, program })
 	}
 
-	pub fn send_mat4(&self, ctx: &Context, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
+	pub fn send_mat4(
+		&self,
+		ctx: &Context,
+		name: &str,
+		mat4: Mat4<f32>,
+	) -> Result<(), UniformNotFound> {
 		let gl = &ctx.gl;
 		unsafe {
 			gl.use_program(Some(self.program));
 			let location = gl
 				.get_uniform_location(self.program, name)
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
+			gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.into_col_array());
 		}
 		Ok(())
 	}

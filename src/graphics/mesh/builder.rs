@@ -1,4 +1,3 @@
-use glam::Vec2;
 use lyon::{
 	lyon_tessellation::{
 		BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor,
@@ -7,6 +6,7 @@ use lyon::{
 	path::{traits::PathBuilder, Winding},
 };
 use thiserror::Error;
+use vek::Vec2;
 
 use crate::{error::GlError, math::Rect, Context};
 
@@ -61,7 +61,7 @@ impl MeshBuilder {
 	pub fn add_circle(
 		&mut self,
 		style: ShapeStyle,
-		center: Vec2,
+		center: Vec2<f32>,
 		radius: f32,
 	) -> Result<(), TessellationError> {
 		match style {
@@ -84,7 +84,7 @@ impl MeshBuilder {
 	pub fn with_circle(
 		mut self,
 		style: ShapeStyle,
-		center: Vec2,
+		center: Vec2<f32>,
 		radius: f32,
 	) -> Result<Self, TessellationError> {
 		self.add_circle(style, center, radius)?;
@@ -94,8 +94,8 @@ impl MeshBuilder {
 	pub fn add_ellipse(
 		&mut self,
 		style: ShapeStyle,
-		center: Vec2,
-		radii: Vec2,
+		center: Vec2<f32>,
+		radii: Vec2<f32>,
 		rotation: f32,
 	) -> Result<(), TessellationError> {
 		match style {
@@ -122,8 +122,8 @@ impl MeshBuilder {
 	pub fn with_ellipse(
 		mut self,
 		style: ShapeStyle,
-		center: Vec2,
-		radii: Vec2,
+		center: Vec2<f32>,
+		radii: Vec2<f32>,
 		rotation: f32,
 	) -> Result<Self, TessellationError> {
 		self.add_ellipse(style, center, radii, rotation)?;
@@ -133,7 +133,7 @@ impl MeshBuilder {
 	pub fn add_polygon(
 		&mut self,
 		style: ShapeStyle,
-		points: &[Vec2],
+		points: &[Vec2<f32>],
 	) -> Result<(), TessellationError> {
 		let polygon = lyon::path::Polygon {
 			points: &points
@@ -160,7 +160,7 @@ impl MeshBuilder {
 	pub fn with_polygon(
 		mut self,
 		style: ShapeStyle,
-		points: &[Vec2],
+		points: &[Vec2<f32>],
 	) -> Result<Self, TessellationError> {
 		self.add_polygon(style, points)?;
 		Ok(self)
@@ -169,7 +169,7 @@ impl MeshBuilder {
 	pub fn add_polyline(
 		&mut self,
 		line_width: f32,
-		points: &[Vec2],
+		points: &[Vec2<f32>],
 	) -> Result<(), TessellationError> {
 		if points.is_empty() {
 			panic!("Need at least one point to build a polyline");
@@ -189,7 +189,7 @@ impl MeshBuilder {
 	pub fn with_polyline(
 		mut self,
 		line_width: f32,
-		points: &[Vec2],
+		points: &[Vec2<f32>],
 	) -> Result<Self, TessellationError> {
 		self.add_polyline(line_width, points)?;
 		Ok(self)
@@ -218,7 +218,7 @@ impl FillVertexConstructor<Vertex> for FillVertexToVertex {
 	fn new_vertex(&mut self, vertex: FillVertex) -> Vertex {
 		Vertex {
 			position: Vec2::new(vertex.position().x, vertex.position().y),
-			texture_coords: Vec2::ZERO,
+			texture_coords: Vec2::zero(),
 		}
 	}
 }
@@ -229,7 +229,7 @@ impl StrokeVertexConstructor<Vertex> for StrokeVertexToVertex {
 	fn new_vertex(&mut self, vertex: StrokeVertex) -> Vertex {
 		Vertex {
 			position: Vec2::new(vertex.position().x, vertex.position().y),
-			texture_coords: Vec2::ZERO,
+			texture_coords: Vec2::zero(),
 		}
 	}
 }

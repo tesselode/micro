@@ -4,12 +4,12 @@ use micro::{
 	graphics::{
 		color::Rgba,
 		mesh::{Mesh, MeshBuilder, ShapeStyle},
-		text::{Font, FontSettings, Text},
 		DrawParams,
 	},
 	math::Rect,
 	Context, ContextSettings, State,
 };
+use vek::Mat4;
 
 struct MainState {
 	mesh: Mesh,

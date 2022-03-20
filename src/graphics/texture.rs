@@ -1,8 +1,8 @@
 use std::{path::Path, rc::Rc};
 
-use glam::Vec2;
 use glow::{HasContext, NativeTexture, PixelUnpackData};
 use thiserror::Error;
+use vek::Vec2;
 
 use crate::{
 	context::Context,
@@ -21,13 +21,13 @@ use super::color::Rgba;
 pub struct Texture {
 	gl: Rc<glow::Context>,
 	pub(crate) texture: NativeTexture,
-	pub(crate) size: (u32, u32),
+	pub(crate) size: Vec2<u32>,
 }
 
 impl Texture {
 	pub fn empty(
 		ctx: &Context,
-		size: (u32, u32),
+		size: Vec2<u32>,
 		settings: TextureSettings,
 	) -> Result<Self, GlError> {
 		Self::new_from_gl(ctx.gl.clone(), size, None, settings)
@@ -48,7 +48,7 @@ impl Texture {
 
 	pub(crate) fn new_from_gl(
 		gl: Rc<glow::Context>,
-		size: (u32, u32),
+		size: Vec2<u32>,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
 	) -> Result<Self, GlError> {
@@ -83,8 +83,8 @@ impl Texture {
 				glow::TEXTURE_2D,
 				0,
 				glow::RGBA as i32,
-				size.0.try_into().expect("Texture is too wide"),
-				size.1.try_into().expect("Texture is too tall"),
+				size.x.try_into().expect("Texture is too wide"),
+				size.y.try_into().expect("Texture is too tall"),
 				0,
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
@@ -105,12 +105,12 @@ impl Texture {
 			.map_err(|error| LoadTextureError::GlError(error.0))
 	}
 
-	pub fn size(&self) -> (u32, u32) {
+	pub fn size(&self) -> Vec2<u32> {
 		self.size
 	}
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
-		let size = Vec2::new(self.size.0 as f32, self.size.1 as f32);
+		let size = self.size.as_::<f32>();
 		Rect {
 			top_left: absolute_rect.top_left / size,
 			bottom_right: absolute_rect.bottom_right / size,
@@ -125,8 +125,8 @@ impl Texture {
 				0,
 				x,
 				y,
-				image_data.size.0.try_into().expect("Image data too wide"),
-				image_data.size.1.try_into().expect("Image data too tall"),
+				image_data.size.x.try_into().expect("Image data too wide"),
+				image_data.size.y.try_into().expect("Image data too tall"),
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
 				PixelUnpackData::Slice(&image_data.pixels),
@@ -139,14 +139,8 @@ impl Texture {
 		ctx: &Context,
 		params: impl Into<DrawParams<'a>>,
 	) -> Result<(), GlError> {
-		Mesh::rectangle(
-			ctx,
-			Rect::new(
-				Vec2::ZERO,
-				Vec2::new(self.size.0 as f32, self.size.1 as f32),
-			),
-		)?
-		.draw_textured(ctx, self, params);
+		Mesh::rectangle(ctx, Rect::new(Vec2::zero(), self.size.as_::<f32>()))?
+			.draw_textured(ctx, self, params);
 		Ok(())
 	}
 
@@ -158,7 +152,7 @@ impl Texture {
 	) -> Result<(), GlError> {
 		Mesh::rectangle_with_texture_region(
 			ctx,
-			Rect::new(Vec2::ZERO, region.size()),
+			Rect::new(Vec2::zero(), region.size()),
 			self.relative_rect(region),
 		)?
 		.draw_textured(ctx, self, params);

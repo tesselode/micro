@@ -1,6 +1,6 @@
 use generational_arena::{Arena, Index};
-use glam::Vec2;
 use thiserror::Error;
+use vek::Vec2;
 
 use crate::{
 	context::Context,
@@ -23,8 +23,8 @@ impl SpriteBatch {
 	pub fn new(ctx: &mut Context, capacity: usize) -> Result<Self, GlError> {
 		let vertices = vec![
 			Vertex {
-				position: Vec2::ZERO,
-				texture_coords: Vec2::ZERO,
+				position: Vec2::zero(),
+				texture_coords: Vec2::zero(),
 			};
 			capacity * 4
 		];
@@ -95,8 +95,8 @@ impl SpriteBatch {
 			self.mesh.set_vertex(
 				start_vertex_index + i,
 				Vertex {
-					position: Vec2::ZERO,
-					texture_coords: Vec2::ZERO,
+					position: Vec2::zero(),
+					texture_coords: Vec2::zero(),
 				},
 			);
 		}

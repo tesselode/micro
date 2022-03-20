@@ -1,11 +1,11 @@
 mod builder;
 
 pub use builder::*;
+use vek::Vec2;
 
 use std::rc::Rc;
 
 use bytemuck::{Pod, Zeroable};
-use glam::Vec2;
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 use lyon::lyon_tessellation::TessellationError;
 use thiserror::Error;
@@ -175,8 +175,8 @@ impl Drop for Mesh {
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct Vertex {
-	pub position: Vec2,
-	pub texture_coords: Vec2,
+	pub position: Vec2<f32>,
+	pub texture_coords: Vec2<f32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Error)]

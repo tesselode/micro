@@ -1,13 +1,13 @@
 mod error;
 
 pub use error::*;
+use vek::{Mat4, Vec2, Vec3};
 
 use std::{
 	rc::Rc,
 	time::{Duration, Instant},
 };
 
-use glam::{Mat4, Vec3};
 use glow::HasContext;
 use sdl2::{
 	event::{Event, WindowEvent},
@@ -38,7 +38,7 @@ pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
-	pub(crate) transform_stack: Vec<Mat4>,
+	pub(crate) transform_stack: Vec<Mat4<f32>>,
 }
 
 impl Context {
@@ -119,7 +119,7 @@ impl Context {
 		}
 	}
 
-	pub(crate) fn global_transform(&self) -> Mat4 {
+	pub(crate) fn global_transform(&self) -> Mat4<f32> {
 		let (window_width, window_height) = self.window.size();
 		self.transform_stack.iter().fold(
 			coordinate_system_transform(window_width, window_height),
@@ -141,7 +141,7 @@ impl Context {
 
 	pub fn push_transform(
 		&mut self,
-		transform: Mat4,
+		transform: Mat4<f32>,
 	) -> Result<(), MaximumTransformStackDepthReached> {
 		if self.transform_stack.len() == MAX_TRANSFORM_STACK_DEPTH {
 			return Err(MaximumTransformStackDepthReached);
@@ -222,7 +222,7 @@ fn create_gl_context(
 	}
 	let default_texture = Texture::new_from_gl(
 		gl.clone(),
-		(1, 1),
+		Vec2::new(1, 1),
 		Some(&[255, 255, 255, 255]),
 		TextureSettings::default(),
 	)
@@ -236,11 +236,11 @@ fn create_gl_context(
 	(gl, default_texture, default_shader)
 }
 
-fn coordinate_system_transform(window_width: u32, window_height: u32) -> Mat4 {
-	Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
-		* Mat4::from_scale(Vec3::new(
-			2.0 / window_width as f32,
-			-2.0 / window_height as f32,
-			1.0,
-		))
+fn coordinate_system_transform(window_width: u32, window_height: u32) -> Mat4<f32> {
+	Mat4::scaling_3d(Vec3::new(
+		2.0 / window_width as f32,
+		-2.0 / window_height as f32,
+		1.0,
+	))
+	.translated_2d(Vec2::new(-1.0, 1.0))
 }

@@ -1,8 +1,8 @@
 use std::{collections::HashMap, path::Path, rc::Rc};
 
 use crunch::pack_into_po2;
-use glam::Vec2;
 use thiserror::Error;
+use vek::Vec2;
 
 use crate::{
 	context::Context,
@@ -51,7 +51,7 @@ impl Font {
 		let (width, height, absolute_glyph_rects) = pack_glyphs(&glyph_image_data);
 		let texture = create_texture(
 			ctx,
-			(
+			Vec2::new(
 				width.try_into().expect("Packed glyphs are too wide"),
 				height.try_into().expect("Packed glyphs are too tall"),
 			),
@@ -113,7 +113,7 @@ fn rasterize_chars(font: &fontdue::Font, settings: FontSettings) -> HashMap<char
 			(
 				char,
 				ImageData {
-					size: (
+					size: Vec2::new(
 						metrics.width.try_into().expect("Glyph too wide"),
 						metrics.height.try_into().expect("Glyph too tall"),
 					),
@@ -128,8 +128,8 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 	let (width, height, packed_items) = pack_into_po2(
 		usize::MAX,
 		glyph_image_data.iter().map(|(char, image_data)| {
-			let base_width: usize = image_data.size.0.try_into().unwrap();
-			let base_height: usize = image_data.size.1.try_into().unwrap();
+			let base_width: usize = image_data.size.x.try_into().unwrap();
+			let base_height: usize = image_data.size.y.try_into().unwrap();
 			crunch::Item {
 				data: char,
 				w: base_width + GLYPH_PADDING * 2,
@@ -165,7 +165,7 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 
 fn create_texture(
 	ctx: &mut Context,
-	size: (u32, u32),
+	size: Vec2<u32>,
 	glyph_image_data: &HashMap<char, ImageData>,
 	glyph_rects: &HashMap<char, Rect>,
 	texture_settings: TextureSettings,

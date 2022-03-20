@@ -17,6 +17,7 @@ use super::{
 pub struct Text {
 	pub(crate) texture: Rc<Texture>,
 	pub(crate) sprite_batch: SpriteBatch,
+	pub(crate) bounds: Option<Rect>,
 }
 
 impl Text {
@@ -33,13 +34,20 @@ impl Text {
 		);
 		let glyphs = layout.glyphs();
 		let mut sprite_batch = SpriteBatch::new(ctx, glyphs.len())?;
+		let mut bounds: Option<Rect> = None;
 		for glyph in glyphs {
+			let display_rect = Rect::from_top_left_and_size(
+				Vec2::new(glyph.x, glyph.y),
+				Vec2::new(glyph.width as f32, glyph.height as f32),
+			);
+			if let Some(bounds) = &mut bounds {
+				*bounds = bounds.combine(display_rect);
+			} else {
+				bounds = Some(display_rect);
+			}
 			sprite_batch
 				.add(Sprite {
-					display_rect: Rect::from_top_left_and_size(
-						Vec2::new(glyph.x, glyph.y),
-						Vec2::new(glyph.width as f32, glyph.height as f32),
-					),
+					display_rect,
 					texture_rect: *font
 						.glyph_rects
 						.get(&glyph.parent)
@@ -50,7 +58,12 @@ impl Text {
 		Ok(Self {
 			texture: font.texture.clone(),
 			sprite_batch,
+			bounds,
 		})
+	}
+
+	pub fn bounds(&self) -> Option<Rect> {
+		self.bounds
 	}
 
 	pub fn draw<'a>(&self, ctx: &mut Context, params: impl Into<DrawParams<'a>>) {

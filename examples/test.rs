@@ -3,6 +3,7 @@ use std::error::Error;
 use micro::{
 	graphics::{
 		color::Rgba,
+		mesh::Mesh,
 		text::{Font, FontSettings, Text},
 		DrawParams,
 	},
@@ -11,6 +12,7 @@ use micro::{
 
 struct MainState {
 	text: Text,
+	mesh: Mesh,
 }
 
 impl MainState {
@@ -24,13 +26,15 @@ impl MainState {
 			},
 		)?;
 		let text = Text::new(ctx, &font, "Hello world!")?;
-		Ok(Self { text })
+		let mesh = Mesh::rectangle(ctx, text.bounds().unwrap())?;
+		Ok(Self { text, mesh })
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
+		self.mesh.draw(ctx, Rgba::WHITE.with_alpha(0.5));
 		self.text.draw(ctx, DrawParams::new());
 		Ok(())
 	}

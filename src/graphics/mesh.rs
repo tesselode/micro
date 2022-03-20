@@ -195,7 +195,7 @@ impl Mesh {
 				.send_mat4(ctx, "globalTransform", ctx.global_transform)
 				.expect("Shader does not have a globalTransform uniform");
 			shader
-				.send_mat4(ctx, "localTransform", params.transform)
+				.send_mat4(ctx, "localTransform", params.transform())
 				.expect("Shader does not have a localTransform uniform");
 			gl.use_program(Some(shader.program));
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.texture));

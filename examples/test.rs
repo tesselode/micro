@@ -1,5 +1,6 @@
 use std::{error::Error, time::Duration};
 
+use glam::Vec2;
 use micro::{
 	graphics::{
 		color::Rgba,
@@ -50,8 +51,16 @@ impl State<Box<dyn Error>> for MainState {
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		self.texture
-			.draw_region(ctx, Rect::xywh(0.0, 0.0, 76.0, 95.0), DrawParams::new())?;
+		let size = Vec2::new(76.0, 95.0);
+		self.texture.draw_region(
+			ctx,
+			Rect::new(Vec2::ZERO, size),
+			DrawParams::new()
+				.origin(size / 2.0)
+				.scale(Vec2::splat(2.0))
+				.rotation(0.5)
+				.position(Vec2::splat(100.0)),
+		)?;
 		Ok(())
 	}
 }

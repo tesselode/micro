@@ -1,18 +1,29 @@
-use glam::Mat4;
+use glam::{Mat4, Vec2, Vec3};
 
 use crate::graphics::{blend_mode::BlendMode, color::Rgba, shader::Shader};
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct DrawParams<'a> {
 	pub shader: Option<&'a Shader>,
-	pub transform: Mat4,
+	pub position: Vec2,
+	pub rotation: f32,
+	pub scale: Vec2,
+	pub origin: Vec2,
 	pub color: Rgba,
 	pub blend_mode: BlendMode,
 }
 
 impl<'a> DrawParams<'a> {
 	pub fn new() -> Self {
-		Self::default()
+		Self {
+			shader: None,
+			position: Vec2::ZERO,
+			rotation: 0.0,
+			scale: Vec2::ONE,
+			origin: Vec2::ZERO,
+			color: Rgba::WHITE,
+			blend_mode: BlendMode::default(),
+		}
 	}
 
 	pub fn shader(self, shader: impl Into<Option<&'a Shader>>) -> Self {
@@ -22,9 +33,27 @@ impl<'a> DrawParams<'a> {
 		}
 	}
 
-	pub fn transform(self, transform: impl Into<Mat4>) -> Self {
+	pub fn position(self, position: impl Into<Vec2>) -> Self {
 		Self {
-			transform: transform.into(),
+			position: position.into(),
+			..self
+		}
+	}
+
+	pub fn rotation(self, rotation: f32) -> Self {
+		Self { rotation, ..self }
+	}
+
+	pub fn scale(self, scale: impl Into<Vec2>) -> Self {
+		Self {
+			scale: scale.into(),
+			..self
+		}
+	}
+
+	pub fn origin(self, origin: impl Into<Vec2>) -> Self {
+		Self {
+			origin: origin.into(),
 			..self
 		}
 	}
@@ -39,17 +68,24 @@ impl<'a> DrawParams<'a> {
 	pub fn blend_mode(self, blend_mode: BlendMode) -> Self {
 		Self { blend_mode, ..self }
 	}
+
+	pub fn transform(&self) -> Mat4 {
+		Mat4::from_translation(Vec3::new(self.position.x, self.position.y, 0.0))
+			* Mat4::from_rotation_z(self.rotation)
+			* Mat4::from_scale(Vec3::new(self.scale.x, self.scale.y, 1.0))
+			* Mat4::from_translation(Vec3::new(-self.origin.x, -self.origin.y, 0.0))
+	}
+}
+
+impl<'a> Default for DrawParams<'a> {
+	fn default() -> Self {
+		Self::new()
+	}
 }
 
 impl<'a> From<&'a Shader> for DrawParams<'a> {
 	fn from(shader: &'a Shader) -> Self {
 		Self::new().shader(shader)
-	}
-}
-
-impl<'a> From<Mat4> for DrawParams<'a> {
-	fn from(transform: Mat4) -> Self {
-		Self::new().transform(transform)
 	}
 }
 

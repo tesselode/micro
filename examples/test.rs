@@ -9,7 +9,10 @@ use micro::{
 	math::Rect,
 	Context, ContextSettings, State,
 };
-use sdl2::keyboard::{Keycode, Scancode};
+use sdl2::{
+	event::Event,
+	keyboard::{Keycode, Scancode},
+};
 
 struct MainState {
 	texture: Texture,
@@ -23,6 +26,17 @@ impl MainState {
 }
 
 impl State<Box<dyn Error>> for MainState {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Box<dyn Error>> {
+		if let Event::KeyDown {
+			keycode: Some(Keycode::Q),
+			..
+		} = event
+		{
+			ctx.quit();
+		}
+		Ok(())
+	}
+
 	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
 		if ctx.is_key_down(Scancode::A) {
 			println!("a");

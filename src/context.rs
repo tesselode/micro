@@ -31,6 +31,7 @@ pub struct Context {
 	window: Window,
 	_sdl_gl_ctx: GLContext,
 	event_pump: EventPump,
+	should_quit: bool,
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
@@ -58,15 +59,16 @@ impl Context {
 		let (gl, default_texture, default_shader) =
 			create_gl_context(&video, window_width, window_height);
 		Ok(Self {
-			gl,
-			default_texture,
-			default_shader,
-			global_transform: global_transform(window_width, window_height),
 			_sdl: sdl,
 			_video: video,
 			window,
 			_sdl_gl_ctx,
 			event_pump,
+			should_quit: false,
+			gl,
+			default_texture,
+			default_shader,
+			global_transform: global_transform(window_width, window_height),
 		})
 	}
 
@@ -77,7 +79,7 @@ impl Context {
 	{
 		let mut state = state_constructor(self)?;
 		let mut last_update_time = Instant::now();
-		'running: loop {
+		loop {
 			let now = Instant::now();
 			let delta_time = now - last_update_time;
 			last_update_time = now;
@@ -93,11 +95,14 @@ impl Context {
 						self.resize(width as u32, height as u32);
 					}
 					Event::Quit { .. } => {
-						break 'running;
+						self.should_quit = true;
 					}
 					_ => {}
 				}
 				state.event(self, event)?;
+			}
+			if self.should_quit {
+				break;
 			}
 			std::thread::sleep(Duration::from_millis(2));
 		}
@@ -124,6 +129,10 @@ impl Context {
 		self.event_pump
 			.keyboard_state()
 			.is_scancode_pressed(scancode)
+	}
+
+	pub fn quit(&mut self) {
+		self.should_quit = true;
 	}
 }
 

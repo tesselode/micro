@@ -18,7 +18,7 @@ struct MainState {
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		let mesh = MeshBuilder::new()
-			.rectangle(
+			.with_rectangle(
 				ShapeStyle::Stroke(8.0),
 				Rect::xywh(50.0, 50.0, 200.0, 300.0),
 			)?

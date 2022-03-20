@@ -23,7 +23,11 @@ impl MeshBuilder {
 		}
 	}
 
-	pub fn rectangle(mut self, style: ShapeStyle, rect: Rect) -> Result<Self, TessellationError> {
+	pub fn add_rectangle(
+		&mut self,
+		style: ShapeStyle,
+		rect: Rect,
+	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
 				&lyon::math::Rect {
@@ -42,15 +46,24 @@ impl MeshBuilder {
 				&mut BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex),
 			)?,
 		};
+		Ok(())
+	}
+
+	pub fn with_rectangle(
+		mut self,
+		style: ShapeStyle,
+		rect: Rect,
+	) -> Result<Self, TessellationError> {
+		self.add_rectangle(style, rect)?;
 		Ok(self)
 	}
 
-	pub fn circle(
-		mut self,
+	pub fn add_circle(
+		&mut self,
 		style: ShapeStyle,
 		center: Vec2,
 		radius: f32,
-	) -> Result<Self, TessellationError> {
+	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_circle(
 				lyon::math::point(center.x, center.y),
@@ -65,16 +78,26 @@ impl MeshBuilder {
 				&mut BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex),
 			)?,
 		};
+		Ok(())
+	}
+
+	pub fn with_circle(
+		mut self,
+		style: ShapeStyle,
+		center: Vec2,
+		radius: f32,
+	) -> Result<Self, TessellationError> {
+		self.add_circle(style, center, radius)?;
 		Ok(self)
 	}
 
-	pub fn ellipse(
-		mut self,
+	pub fn add_ellipse(
+		&mut self,
 		style: ShapeStyle,
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
-	) -> Result<Self, TessellationError> {
+	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_ellipse(
 				lyon::math::point(center.x, center.y),
@@ -93,14 +116,25 @@ impl MeshBuilder {
 				&mut BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex),
 			)?,
 		};
+		Ok(())
+	}
+
+	pub fn with_ellipse(
+		mut self,
+		style: ShapeStyle,
+		center: Vec2,
+		radii: Vec2,
+		rotation: f32,
+	) -> Result<Self, TessellationError> {
+		self.add_ellipse(style, center, radii, rotation)?;
 		Ok(self)
 	}
 
-	pub fn polygon(
-		mut self,
+	pub fn add_polygon(
+		&mut self,
 		style: ShapeStyle,
 		points: &[Vec2],
-	) -> Result<Self, TessellationError> {
+	) -> Result<(), TessellationError> {
 		let polygon = lyon::path::Polygon {
 			points: &points
 				.iter()
@@ -120,10 +154,23 @@ impl MeshBuilder {
 				&mut BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex),
 			)?,
 		};
+		Ok(())
+	}
+
+	pub fn with_polygon(
+		mut self,
+		style: ShapeStyle,
+		points: &[Vec2],
+	) -> Result<Self, TessellationError> {
+		self.add_polygon(style, points)?;
 		Ok(self)
 	}
 
-	pub fn polyline(mut self, line_width: f32, points: &[Vec2]) -> Result<Self, TessellationError> {
+	pub fn add_polyline(
+		&mut self,
+		line_width: f32,
+		points: &[Vec2],
+	) -> Result<(), TessellationError> {
 		if points.is_empty() {
 			panic!("Need at least one point to build a polyline");
 		}
@@ -136,6 +183,15 @@ impl MeshBuilder {
 			builder.line_to(lyon::math::point(point.x, point.y));
 		}
 		builder.end(false);
+		Ok(())
+	}
+
+	pub fn with_polyline(
+		mut self,
+		line_width: f32,
+		points: &[Vec2],
+	) -> Result<Self, TessellationError> {
+		self.add_polyline(line_width, points)?;
 		Ok(self)
 	}
 

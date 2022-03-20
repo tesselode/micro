@@ -192,7 +192,7 @@ impl Mesh {
 				.send_color(ctx, "blendColor", params.color)
 				.expect("Shader does not have a blendColor uniform");
 			shader
-				.send_mat4(ctx, "globalTransform", ctx.global_transform)
+				.send_mat4(ctx, "globalTransform", ctx.global_transform())
 				.expect("Shader does not have a globalTransform uniform");
 			shader
 				.send_mat4(ctx, "localTransform", params.transform())

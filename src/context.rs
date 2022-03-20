@@ -26,6 +26,8 @@ use crate::{
 	State,
 };
 
+const MAX_TRANSFORM_STACK_DEPTH: usize = 256;
+
 pub struct Context {
 	_sdl: Sdl,
 	_video: VideoSubsystem,
@@ -36,7 +38,7 @@ pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
-	pub(crate) global_transform: Mat4,
+	pub(crate) transform_stack: Vec<Mat4>,
 }
 
 impl Context {
@@ -69,7 +71,7 @@ impl Context {
 			gl,
 			default_texture,
 			default_shader,
-			global_transform: global_transform(window_width, window_height),
+			transform_stack: vec![],
 		})
 	}
 
@@ -115,7 +117,14 @@ impl Context {
 			self.gl
 				.viewport(0, 0, window_width as i32, window_height as i32);
 		}
-		self.global_transform = global_transform(window_width, window_height);
+	}
+
+	pub(crate) fn global_transform(&self) -> Mat4 {
+		let (window_width, window_height) = self.window.size();
+		self.transform_stack.iter().fold(
+			coordinate_system_transform(window_width, window_height),
+			|previous, transform| previous * *transform,
+		)
 	}
 
 	pub fn clear(&self, color: Rgba) {
@@ -124,6 +133,36 @@ impl Context {
 				.clear_color(color.red, color.green, color.blue, color.alpha);
 			self.gl.clear(glow::COLOR_BUFFER_BIT);
 		}
+	}
+
+	pub fn push_transform(
+		&mut self,
+		transform: impl Into<Mat4>,
+	) -> Result<(), MaximumTransformStackDepthReached> {
+		if self.transform_stack.len() == MAX_TRANSFORM_STACK_DEPTH {
+			return Err(MaximumTransformStackDepthReached);
+		}
+		self.transform_stack.push(transform.into());
+		Ok(())
+	}
+
+	pub fn pop_transform(&mut self) -> Result<(), NoTransformToPop> {
+		if self.transform_stack.is_empty() {
+			return Err(NoTransformToPop);
+		}
+		self.transform_stack.pop();
+		Ok(())
+	}
+
+	pub fn with_transform<T>(
+		&mut self,
+		transform: impl Into<Mat4>,
+		mut f: impl FnMut(&mut Self) -> T,
+	) -> T {
+		self.transform_stack.push(transform.into());
+		let result = f(self);
+		self.transform_stack.pop();
+		result
 	}
 
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
@@ -207,7 +246,7 @@ fn create_gl_context(
 	(gl, default_texture, default_shader)
 }
 
-fn global_transform(window_width: u32, window_height: u32) -> Mat4 {
+fn coordinate_system_transform(window_width: u32, window_height: u32) -> Mat4 {
 	Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
 		* Mat4::from_scale(Vec3::new(
 			2.0 / window_width as f32,

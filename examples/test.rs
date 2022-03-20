@@ -1,39 +1,37 @@
 use std::error::Error;
 
-use glam::Vec2;
 use micro::{
 	graphics::{
 		color::Rgba,
-		mesh::{Mesh, MeshBuilder},
+		text::{Font, FontSettings, Text},
 		DrawParams,
 	},
 	Context, ContextSettings, State,
 };
 
 struct MainState {
-	mesh: Mesh,
+	text: Text,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let mesh = MeshBuilder::new()
-			.polyline(
-				4.0,
-				&[
-					Vec2::new(50.0, 50.0),
-					Vec2::new(100.0, 50.0),
-					Vec2::new(50.0, 100.0),
-				],
-			)?
-			.build(ctx)?;
-		Ok(Self { mesh })
+		let font = Font::from_file(
+			ctx,
+			"examples/Roboto-Regular.ttf",
+			FontSettings {
+				scale: 128.0,
+				..Default::default()
+			},
+		)?;
+		let text = Text::new(ctx, &font, "Hello world!")?;
+		Ok(Self { text })
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		self.mesh.draw(ctx, DrawParams::new());
+		self.text.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

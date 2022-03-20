@@ -119,7 +119,7 @@ impl Texture {
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
 		Rect {
 			top_left: absolute_rect.top_left / self.size(),
-			size: absolute_rect.size / self.size(),
+			bottom_right: absolute_rect.bottom_right / self.size(),
 		}
 	}
 
@@ -157,7 +157,7 @@ impl Texture {
 	) -> Result<(), GlError> {
 		Mesh::rectangle_with_texture_region(
 			ctx,
-			Rect::new(Vec2::ZERO, region.size),
+			Rect::new(Vec2::ZERO, region.size()),
 			self.relative_rect(region),
 		)?
 		.draw_textured(ctx, self, params);

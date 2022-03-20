@@ -36,10 +36,10 @@ impl Text {
 		for glyph in glyphs {
 			sprite_batch
 				.add(Sprite {
-					display_rect: Rect {
-						top_left: Vec2::new(glyph.x, glyph.y),
-						size: Vec2::new(glyph.width as f32, glyph.height as f32),
-					},
+					display_rect: Rect::from_top_left_and_size(
+						Vec2::new(glyph.x, glyph.y),
+						Vec2::new(glyph.width as f32, glyph.height as f32),
+					),
 					texture_rect: *font
 						.glyph_rects
 						.get(&glyph.parent)

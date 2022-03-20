@@ -28,10 +28,10 @@ impl MeshBuilder {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
 				&lyon::math::Rect {
 					origin: lyon::math::point(
-						rect.top_left.x + rect.size.x / 2.0,
-						rect.top_left.y + rect.size.y / 2.0,
+						rect.top_left.x + rect.size().x / 2.0,
+						rect.top_left.y + rect.size().y / 2.0,
 					),
-					size: lyon::math::size(rect.size.x, rect.size.y),
+					size: lyon::math::size(rect.size().x, rect.size().y),
 				},
 				&FillOptions::default(),
 				&mut BuffersBuilder::new(&mut self.buffers, FillVertexToVertex),
@@ -39,10 +39,10 @@ impl MeshBuilder {
 			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_rectangle(
 				&lyon::math::Rect {
 					origin: lyon::math::point(
-						rect.top_left.x + rect.size.x / 2.0,
-						rect.top_left.y + rect.size.y / 2.0,
+						rect.top_left.x + rect.size().x / 2.0,
+						rect.top_left.y + rect.size().y / 2.0,
 					),
-					size: lyon::math::size(rect.size.x, rect.size.y),
+					size: lyon::math::size(rect.size().x, rect.size().y),
 				},
 				&StrokeOptions::default().with_line_width(width),
 				&mut BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex),

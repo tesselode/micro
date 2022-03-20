@@ -12,6 +12,7 @@ use glow::HasContext;
 use sdl2::{
 	event::{Event, WindowEvent},
 	keyboard::{Keycode, Scancode},
+	mouse::MouseButton,
 	video::{GLContext, GLProfile, SwapInterval, Window},
 	EventPump, Sdl, VideoSubsystem,
 };
@@ -129,6 +130,12 @@ impl Context {
 		self.event_pump
 			.keyboard_state()
 			.is_scancode_pressed(scancode)
+	}
+
+	pub fn is_mouse_button_down(&self, mouse_button: MouseButton) -> bool {
+		self.event_pump
+			.mouse_state()
+			.is_mouse_button_pressed(mouse_button)
 	}
 
 	pub fn quit(&mut self) {

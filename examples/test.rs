@@ -12,6 +12,7 @@ use micro::{
 use sdl2::{
 	event::Event,
 	keyboard::{Keycode, Scancode},
+	mouse::MouseButton,
 };
 
 struct MainState {
@@ -38,8 +39,11 @@ impl State<Box<dyn Error>> for MainState {
 	}
 
 	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		if ctx.is_key_down(Scancode::A) {
-			println!("a");
+		if ctx.is_mouse_button_down(MouseButton::Left) {
+			println!("left");
+		}
+		if ctx.is_mouse_button_down(MouseButton::Right) {
+			println!("right");
 		}
 		Ok(())
 	}

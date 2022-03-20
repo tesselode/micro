@@ -23,7 +23,7 @@ impl MeshBuilder {
 		}
 	}
 
-	pub fn rectangle(mut self, rect: Rect, style: ShapeStyle) -> Result<Self, TessellationError> {
+	pub fn rectangle(mut self, style: ShapeStyle, rect: Rect) -> Result<Self, TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
 				&lyon::math::Rect {
@@ -53,9 +53,9 @@ impl MeshBuilder {
 
 	pub fn circle(
 		mut self,
+		style: ShapeStyle,
 		center: Vec2,
 		radius: f32,
-		style: ShapeStyle,
 	) -> Result<Self, TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_circle(
@@ -76,10 +76,10 @@ impl MeshBuilder {
 
 	pub fn ellipse(
 		mut self,
+		style: ShapeStyle,
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
-		style: ShapeStyle,
 	) -> Result<Self, TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_ellipse(
@@ -104,8 +104,8 @@ impl MeshBuilder {
 
 	pub fn polygon(
 		mut self,
-		points: &[Vec2],
 		style: ShapeStyle,
+		points: &[Vec2],
 	) -> Result<Self, TessellationError> {
 		let polygon = lyon::path::Polygon {
 			points: &points
@@ -129,7 +129,7 @@ impl MeshBuilder {
 		Ok(self)
 	}
 
-	pub fn polyline(mut self, points: &[Vec2], line_width: f32) -> Result<Self, TessellationError> {
+	pub fn polyline(mut self, line_width: f32, points: &[Vec2]) -> Result<Self, TessellationError> {
 		if points.is_empty() {
 			panic!("Need at least one point to build a polyline");
 		}

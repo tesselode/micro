@@ -18,12 +18,12 @@ impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		let mesh = MeshBuilder::new()
 			.polyline(
+				4.0,
 				&[
 					Vec2::new(50.0, 50.0),
 					Vec2::new(100.0, 50.0),
 					Vec2::new(50.0, 100.0),
 				],
-				4.0,
 			)?
 			.build(ctx)?;
 		Ok(Self { mesh })

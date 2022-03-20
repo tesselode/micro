@@ -7,8 +7,6 @@ use std::rc::Rc;
 
 use bytemuck::{Pod, Zeroable};
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
-use lyon::lyon_tessellation::TessellationError;
-use thiserror::Error;
 
 use crate::{
 	context::Context,
@@ -177,12 +175,4 @@ impl Drop for Mesh {
 pub struct Vertex {
 	pub position: Vec2<f32>,
 	pub texture_coords: Vec2<f32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Error)]
-pub enum FromPathError {
-	#[error("An error occured while tessellating the path")]
-	TessellationError(TessellationError),
-	#[error("{0}")]
-	GlError(String),
 }

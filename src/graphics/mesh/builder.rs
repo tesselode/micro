@@ -1,9 +1,7 @@
-use lyon::{
-	lyon_tessellation::{
-		BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor,
-		StrokeOptions, StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
-	},
+use lyon_tessellation::{
 	path::{traits::PathBuilder, Winding},
+	BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor, StrokeOptions,
+	StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
 };
 use thiserror::Error;
 use vek::Vec2;
@@ -30,17 +28,17 @@ impl MeshBuilder {
 	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
-				&lyon::math::Rect {
-					origin: lyon::math::point(rect.top_left.x, rect.top_left.y),
-					size: lyon::math::size(rect.size().x, rect.size().y),
+				&lyon_tessellation::math::Rect {
+					origin: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+					size: lyon_tessellation::math::size(rect.size().x, rect.size().y),
 				},
 				&FillOptions::default(),
 				&mut BuffersBuilder::new(&mut self.buffers, FillVertexToVertex),
 			)?,
 			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_rectangle(
-				&lyon::math::Rect {
-					origin: lyon::math::point(rect.top_left.x, rect.top_left.y),
-					size: lyon::math::size(rect.size().x, rect.size().y),
+				&lyon_tessellation::math::Rect {
+					origin: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+					size: lyon_tessellation::math::size(rect.size().x, rect.size().y),
 				},
 				&StrokeOptions::default().with_line_width(width),
 				&mut BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex),
@@ -66,13 +64,13 @@ impl MeshBuilder {
 	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_circle(
-				lyon::math::point(center.x, center.y),
+				lyon_tessellation::math::point(center.x, center.y),
 				radius,
 				&FillOptions::default(),
 				&mut BuffersBuilder::new(&mut self.buffers, FillVertexToVertex),
 			)?,
 			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_circle(
-				lyon::math::point(center.x, center.y),
+				lyon_tessellation::math::point(center.x, center.y),
 				radius,
 				&StrokeOptions::default().with_line_width(width),
 				&mut BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex),
@@ -100,17 +98,17 @@ impl MeshBuilder {
 	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_ellipse(
-				lyon::math::point(center.x, center.y),
-				lyon::math::vector(radii.x, radii.y),
-				lyon::math::Angle::radians(rotation),
+				lyon_tessellation::math::point(center.x, center.y),
+				lyon_tessellation::math::vector(radii.x, radii.y),
+				lyon_tessellation::math::Angle::radians(rotation),
 				Winding::Positive,
 				&FillOptions::default(),
 				&mut BuffersBuilder::new(&mut self.buffers, FillVertexToVertex),
 			)?,
 			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_ellipse(
-				lyon::math::point(center.x, center.y),
-				lyon::math::vector(radii.x, radii.y),
-				lyon::math::Angle::radians(rotation),
+				lyon_tessellation::math::point(center.x, center.y),
+				lyon_tessellation::math::vector(radii.x, radii.y),
+				lyon_tessellation::math::Angle::radians(rotation),
 				Winding::Positive,
 				&StrokeOptions::default().with_line_width(width),
 				&mut BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex),
@@ -135,10 +133,10 @@ impl MeshBuilder {
 		style: ShapeStyle,
 		points: &[Vec2<f32>],
 	) -> Result<(), TessellationError> {
-		let polygon = lyon::path::Polygon {
+		let polygon = lyon_tessellation::path::Polygon {
 			points: &points
 				.iter()
-				.map(|point| lyon::math::point(point.x, point.y))
+				.map(|point| lyon_tessellation::math::point(point.x, point.y))
 				.collect::<Vec<_>>(),
 			closed: true,
 		};
@@ -178,9 +176,9 @@ impl MeshBuilder {
 		let options = StrokeOptions::default().with_line_width(line_width);
 		let mut buffers_builder = BuffersBuilder::new(&mut self.buffers, StrokeVertexToVertex);
 		let mut builder = stroke_tessellator.builder(&options, &mut buffers_builder);
-		builder.begin(lyon::math::point(points[0].x, points[0].y));
+		builder.begin(lyon_tessellation::math::point(points[0].x, points[0].y));
 		for point in &points[1..] {
-			builder.line_to(lyon::math::point(point.x, point.y));
+			builder.line_to(lyon_tessellation::math::point(point.x, point.y));
 		}
 		builder.end(false);
 		Ok(())
@@ -242,15 +240,15 @@ pub enum TessellationError {
 	Internal,
 }
 
-impl From<lyon::tessellation::TessellationError> for TessellationError {
-	fn from(error: lyon::tessellation::TessellationError) -> Self {
+impl From<lyon_tessellation::TessellationError> for TessellationError {
+	fn from(error: lyon_tessellation::TessellationError) -> Self {
 		match error {
-			lyon::lyon_tessellation::TessellationError::UnsupportedParamater => {
+			lyon_tessellation::TessellationError::UnsupportedParamater => {
 				panic!("unsupported parameter")
 			}
-			lyon::lyon_tessellation::TessellationError::InvalidVertex => panic!("invalid vertex"),
-			lyon::lyon_tessellation::TessellationError::TooManyVertices => Self::TooManyVertices,
-			lyon::lyon_tessellation::TessellationError::Internal(_) => Self::Internal,
+			lyon_tessellation::TessellationError::InvalidVertex => panic!("invalid vertex"),
+			lyon_tessellation::TessellationError::TooManyVertices => Self::TooManyVertices,
+			lyon_tessellation::TessellationError::Internal(_) => Self::Internal,
 		}
 	}
 }

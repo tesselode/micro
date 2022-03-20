@@ -154,17 +154,6 @@ impl Context {
 		Ok(())
 	}
 
-	pub fn with_transform<T>(
-		&mut self,
-		transform: impl Into<Mat4>,
-		mut f: impl FnMut(&mut Self) -> T,
-	) -> T {
-		self.transform_stack.push(transform.into());
-		let result = f(self);
-		self.transform_stack.pop();
-		result
-	}
-
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
 		self.event_pump
 			.keyboard_state()

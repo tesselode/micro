@@ -53,15 +53,8 @@ impl State<Box<dyn Error>> for MainState {
 		ctx.clear(Rgba::BLACK);
 		ctx.push_transform(Mat4::from_scale(Vec3::new(2.0, 2.0, 1.0)))?;
 		let size = Vec2::new(76.0, 95.0);
-		self.texture.draw_region(
-			ctx,
-			Rect::new(Vec2::ZERO, size),
-			DrawParams::new()
-				.origin(size / 2.0)
-				.scale(Vec2::splat(2.0))
-				.rotation(0.5)
-				.position(Vec2::splat(100.0)),
-		)?;
+		self.texture
+			.draw_region(ctx, Rect::new(Vec2::ZERO, size), Vec2::new(100.0, 100.0))?;
 		ctx.pop_transform()?;
 		Ok(())
 	}

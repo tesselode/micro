@@ -80,6 +80,12 @@ impl<'a> From<&'a Shader> for DrawParams<'a> {
 	}
 }
 
+impl<'a> From<Vec2> for DrawParams<'a> {
+	fn from(position: Vec2) -> Self {
+		Self::new().position(position)
+	}
+}
+
 impl<'a> From<Rgba> for DrawParams<'a> {
 	fn from(color: Rgba) -> Self {
 		Self::new().color(color)

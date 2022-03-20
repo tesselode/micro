@@ -40,7 +40,7 @@ impl Texture {
 	) -> Result<Self, GlError> {
 		Self::new_from_gl(
 			ctx.gl.clone(),
-			(image_data.width, image_data.height),
+			image_data.size,
 			Some(&image_data.pixels),
 			settings,
 		)
@@ -125,8 +125,8 @@ impl Texture {
 				0,
 				x,
 				y,
-				image_data.width.try_into().expect("Image data too wide"),
-				image_data.height.try_into().expect("Image data too tall"),
+				image_data.size.0.try_into().expect("Image data too wide"),
+				image_data.size.1.try_into().expect("Image data too tall"),
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
 				PixelUnpackData::Slice(&image_data.pixels),

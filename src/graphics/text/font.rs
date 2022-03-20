@@ -113,8 +113,10 @@ fn rasterize_chars(font: &fontdue::Font, settings: FontSettings) -> HashMap<char
 			(
 				char,
 				ImageData {
-					width: metrics.width.try_into().expect("Glyph too wide"),
-					height: metrics.height.try_into().expect("Glyph too tall"),
+					size: (
+						metrics.width.try_into().expect("Glyph too wide"),
+						metrics.height.try_into().expect("Glyph too tall"),
+					),
 					pixels,
 				},
 			)
@@ -126,8 +128,8 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 	let (width, height, packed_items) = pack_into_po2(
 		usize::MAX,
 		glyph_image_data.iter().map(|(char, image_data)| {
-			let base_width: usize = image_data.width.try_into().unwrap();
-			let base_height: usize = image_data.height.try_into().unwrap();
+			let base_width: usize = image_data.size.0.try_into().unwrap();
+			let base_height: usize = image_data.size.1.try_into().unwrap();
 			crunch::Item {
 				data: char,
 				w: base_width + GLYPH_PADDING * 2,

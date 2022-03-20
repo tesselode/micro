@@ -174,8 +174,7 @@ impl Context {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ContextSettings {
 	pub window_title: String,
-	pub window_width: u32,
-	pub window_height: u32,
+	pub window_size: (u32, u32),
 	pub resizable: bool,
 	pub vsync: bool,
 }
@@ -184,8 +183,7 @@ impl Default for ContextSettings {
 	fn default() -> Self {
 		Self {
 			window_title: "Game".into(),
-			window_width: 800,
-			window_height: 600,
+			window_size: (800, 600),
 			resizable: false,
 			vsync: true,
 		}
@@ -195,8 +193,8 @@ impl Default for ContextSettings {
 fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Result<Window, InitError> {
 	let mut window_builder = video.window(
 		&settings.window_title,
-		settings.window_width,
-		settings.window_height,
+		settings.window_size.0,
+		settings.window_size.1,
 	);
 	window_builder.opengl();
 	if settings.resizable {

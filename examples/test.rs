@@ -42,8 +42,7 @@ impl State<Box<dyn Error>> for MainState {
 
 fn main() -> Result<(), Box<dyn Error>> {
 	Context::new(ContextSettings {
-		window_width: 1280,
-		window_height: 720,
+		window_size: (1280, 720),
 		vsync: false,
 		..Default::default()
 	})?

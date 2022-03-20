@@ -22,6 +22,10 @@ impl Rgba {
 		}
 	}
 
+	pub const fn rgb(red: f32, green: f32, blue: f32) -> Self {
+		Self::new(red, green, blue, 1.0)
+	}
+
 	pub const fn with_alpha(self, alpha: f32) -> Self {
 		Self { alpha, ..self }
 	}

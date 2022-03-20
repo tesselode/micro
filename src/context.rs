@@ -127,6 +127,10 @@ impl Context {
 		)
 	}
 
+	pub fn window_size(&self) -> (u32, u32) {
+		self.window.size()
+	}
+
 	pub fn clear(&self, color: Rgba) {
 		unsafe {
 			self.gl

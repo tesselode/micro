@@ -127,8 +127,9 @@ impl Context {
 		)
 	}
 
-	pub fn window_size(&self) -> (u32, u32) {
-		self.window.size()
+	pub fn window_size(&self) -> Vec2<u32> {
+		let (width, height) = self.window.size();
+		Vec2::new(width, height)
 	}
 
 	pub fn clear(&self, color: Rgba) {
@@ -178,7 +179,7 @@ impl Context {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ContextSettings {
 	pub window_title: String,
-	pub window_size: (u32, u32),
+	pub window_size: Vec2<u32>,
 	pub resizable: bool,
 	pub vsync: bool,
 }
@@ -187,7 +188,7 @@ impl Default for ContextSettings {
 	fn default() -> Self {
 		Self {
 			window_title: "Game".into(),
-			window_size: (800, 600),
+			window_size: Vec2::new(800, 600),
 			resizable: false,
 			vsync: true,
 		}
@@ -197,8 +198,8 @@ impl Default for ContextSettings {
 fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Result<Window, InitError> {
 	let mut window_builder = video.window(
 		&settings.window_title,
-		settings.window_size.0,
-		settings.window_size.1,
+		settings.window_size.x,
+		settings.window_size.y,
 	);
 	window_builder.opengl();
 	if settings.resizable {

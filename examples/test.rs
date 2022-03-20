@@ -34,7 +34,7 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		self.mesh.draw(ctx, Rgba::WHITE.with_alpha(0.5));
+		self.mesh.draw(ctx, Rgba::rgb8(0, 165, 255));
 		self.text.draw(ctx, DrawParams::new());
 		Ok(())
 	}

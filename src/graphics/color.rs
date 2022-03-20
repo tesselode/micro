@@ -26,6 +26,19 @@ impl Rgba {
 		Self::new(red, green, blue, 1.0)
 	}
 
+	pub fn rgba8(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
+		Self::new(
+			red as f32 / 255.0,
+			green as f32 / 255.0,
+			blue as f32 / 255.0,
+			alpha as f32 / 255.0,
+		)
+	}
+
+	pub fn rgb8(red: u8, green: u8, blue: u8) -> Self {
+		Self::rgba8(red, green, blue, 255)
+	}
+
 	pub const fn with_alpha(self, alpha: f32) -> Self {
 		Self { alpha, ..self }
 	}

@@ -3,39 +3,34 @@ use std::error::Error;
 use micro::{
 	graphics::{
 		color::Rgba,
-		mesh::Mesh,
+		mesh::{Mesh, MeshBuilder, ShapeStyle},
 		text::{Font, FontSettings, Text},
 		DrawParams,
 	},
+	math::Rect,
 	Context, ContextSettings, State,
 };
 
 struct MainState {
-	text: Text,
 	mesh: Mesh,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let font = Font::from_file(
-			ctx,
-			"examples/Roboto-Regular.ttf",
-			FontSettings {
-				scale: 128.0,
-				..Default::default()
-			},
-		)?;
-		let text = Text::new(ctx, &font, "Hello world!")?;
-		let mesh = Mesh::rectangle(ctx, text.bounds().unwrap())?;
-		Ok(Self { text, mesh })
+		let mesh = MeshBuilder::new()
+			.rectangle(
+				ShapeStyle::Stroke(8.0),
+				Rect::xywh(50.0, 50.0, 200.0, 300.0),
+			)?
+			.build(ctx)?;
+		Ok(Self { mesh })
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		self.mesh.draw(ctx, Rgba::rgb8(0, 165, 255));
-		self.text.draw(ctx, DrawParams::new());
+		self.mesh.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

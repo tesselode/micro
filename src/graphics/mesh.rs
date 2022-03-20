@@ -1,15 +1,13 @@
+mod builder;
+
+pub use builder::*;
+
 use std::rc::Rc;
 
 use bytemuck::{Pod, Zeroable};
 use glam::Vec2;
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
-use lyon::{
-	lyon_tessellation::{
-		BuffersBuilder, FillOptions, FillTessellator, FillVertex, StrokeOptions, StrokeTessellator,
-		StrokeVertex, TessellationError, VertexBuffers,
-	},
-	path::Path,
-};
+use lyon::lyon_tessellation::TessellationError;
 use thiserror::Error;
 
 use crate::{
@@ -114,48 +112,6 @@ impl Mesh {
 			],
 			&[0, 1, 3, 1, 2, 3],
 		)
-	}
-
-	pub fn from_path_fill(
-		ctx: &Context,
-		path: Path,
-		options: &FillOptions,
-	) -> Result<Self, FromPathError> {
-		let mut geometry = VertexBuffers::<Vertex, u32>::new();
-		let mut tessellator = FillTessellator::new();
-		tessellator
-			.tessellate_path(
-				&path,
-				options,
-				&mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| Vertex {
-					position: Vec2::new(vertex.position().x, vertex.position().y),
-					texture_coords: Vec2::ZERO,
-				}),
-			)
-			.map_err(FromPathError::TessellationError)?;
-		Self::new(ctx, &geometry.vertices, &geometry.indices)
-			.map_err(|error| FromPathError::GlError(error.0))
-	}
-
-	pub fn from_path_stroke(
-		ctx: &Context,
-		path: Path,
-		options: &StrokeOptions,
-	) -> Result<Self, FromPathError> {
-		let mut geometry = VertexBuffers::<Vertex, u32>::new();
-		let mut tessellator = StrokeTessellator::new();
-		tessellator
-			.tessellate_path(
-				&path,
-				options,
-				&mut BuffersBuilder::new(&mut geometry, |vertex: StrokeVertex| Vertex {
-					position: Vec2::new(vertex.position().x, vertex.position().y),
-					texture_coords: Vec2::ZERO,
-				}),
-			)
-			.map_err(FromPathError::TessellationError)?;
-		Self::new(ctx, &geometry.vertices, &geometry.indices)
-			.map_err(|error| FromPathError::GlError(error.0))
 	}
 
 	pub fn set_vertex(&self, index: usize, vertex: Vertex) {

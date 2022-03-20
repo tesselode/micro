@@ -26,36 +26,27 @@ impl<'a> DrawParams<'a> {
 		}
 	}
 
-	pub fn shader(self, shader: impl Into<Option<&'a Shader>>) -> Self {
+	pub fn shader(self, shader: &'a Shader) -> Self {
 		Self {
-			shader: shader.into(),
+			shader: Some(shader),
 			..self
 		}
 	}
 
-	pub fn position(self, position: impl Into<Vec2>) -> Self {
-		Self {
-			position: position.into(),
-			..self
-		}
+	pub fn position(self, position: Vec2) -> Self {
+		Self { position, ..self }
 	}
 
 	pub fn rotation(self, rotation: f32) -> Self {
 		Self { rotation, ..self }
 	}
 
-	pub fn scale(self, scale: impl Into<Vec2>) -> Self {
-		Self {
-			scale: scale.into(),
-			..self
-		}
+	pub fn scale(self, scale: Vec2) -> Self {
+		Self { scale, ..self }
 	}
 
-	pub fn origin(self, origin: impl Into<Vec2>) -> Self {
-		Self {
-			origin: origin.into(),
-			..self
-		}
+	pub fn origin(self, origin: Vec2) -> Self {
+		Self { origin, ..self }
 	}
 
 	pub fn color(self, color: impl Into<Rgba>) -> Self {

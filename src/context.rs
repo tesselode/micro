@@ -137,12 +137,12 @@ impl Context {
 
 	pub fn push_transform(
 		&mut self,
-		transform: impl Into<Mat4>,
+		transform: Mat4,
 	) -> Result<(), MaximumTransformStackDepthReached> {
 		if self.transform_stack.len() == MAX_TRANSFORM_STACK_DEPTH {
 			return Err(MaximumTransformStackDepthReached);
 		}
-		self.transform_stack.push(transform.into());
+		self.transform_stack.push(transform);
 		Ok(())
 	}
 

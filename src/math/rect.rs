@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use vek::Vec2;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -82,7 +85,14 @@ impl Rect {
 		self.relative_point(Vec2::new(0.5, 0.5))
 	}
 
-	pub fn combine(&self, other: Self) -> Self {
+	pub fn padded(&self, padding: Vec2<f32>) -> Self {
+		Self {
+			top_left: self.top_left - padding,
+			bottom_right: self.bottom_right + padding,
+		}
+	}
+
+	pub fn combined_with(&self, other: Self) -> Self {
 		Self {
 			top_left: Vec2::new(
 				self.top_left.x.min(other.top_left.x),

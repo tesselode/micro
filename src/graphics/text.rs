@@ -41,7 +41,7 @@ impl Text {
 				Vec2::new(glyph.width as f32, glyph.height as f32),
 			);
 			if let Some(bounds) = &mut bounds {
-				*bounds = bounds.combine(display_rect);
+				*bounds = bounds.combined_with(display_rect);
 			} else {
 				bounds = Some(display_rect);
 			}

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test;
 
-use num_traits::{clamp_max, clamp_min, Float, Num};
+use num_traits::{Float, Num};
 use vek::Vec2;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -100,12 +100,12 @@ impl<T: Copy> Rect<T> {
 	{
 		Self {
 			top_left: Vec2::new(
-				clamp_min(self.top_left.x, other.top_left.x),
-				clamp_min(self.top_left.y, other.top_left.y),
+				min(self.top_left.x, other.top_left.x),
+				min(self.top_left.y, other.top_left.y),
 			),
 			bottom_right: Vec2::new(
-				clamp_max(self.bottom_right.x, other.bottom_right.x),
-				clamp_max(self.bottom_right.y, other.bottom_right.y),
+				max(self.bottom_right.x, other.bottom_right.x),
+				max(self.bottom_right.y, other.bottom_right.y),
 			),
 		}
 	}
@@ -146,5 +146,27 @@ impl Rect<f64> {
 
 	pub fn center(&self) -> Vec2<f64> {
 		self.fractional_point(Vec2::broadcast(0.5))
+	}
+}
+
+fn min<T>(a: T, b: T) -> T
+where
+	T: PartialOrd,
+{
+	if a < b {
+		a
+	} else {
+		b
+	}
+}
+
+fn max<T>(a: T, b: T) -> T
+where
+	T: PartialOrd,
+{
+	if a > b {
+		a
+	} else {
+		b
 	}
 }

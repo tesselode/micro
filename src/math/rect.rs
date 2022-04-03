@@ -94,4 +94,11 @@ impl Rect {
 			),
 		}
 	}
+
+	pub fn overlaps(&self, other: Self) -> bool {
+		self.left() < other.right()
+			&& other.left() < self.right()
+			&& self.top() < other.bottom()
+			&& other.top() < self.bottom()
+	}
 }

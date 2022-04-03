@@ -92,8 +92,8 @@ impl Mesh {
 			ctx,
 			&[
 				Vertex {
-					position: display_rect.bottom_right(),
-					texture_coords: texture_rect.bottom_right(),
+					position: display_rect.bottom_right,
+					texture_coords: texture_rect.bottom_right,
 				},
 				Vertex {
 					position: display_rect.top_right(),

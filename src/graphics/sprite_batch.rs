@@ -57,8 +57,8 @@ impl SpriteBatch {
 		self.mesh.set_vertex(
 			start_vertex_index,
 			Vertex {
-				position: sprite.display_rect.bottom_right(),
-				texture_coords: sprite.texture_rect.bottom_right(),
+				position: sprite.display_rect.bottom_right,
+				texture_coords: sprite.texture_rect.bottom_right,
 			},
 		);
 		self.mesh.set_vertex(

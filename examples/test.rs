@@ -6,31 +6,38 @@ use micro::{
 		mesh::{Mesh, MeshBuilder, ShapeStyle},
 		DrawParams,
 	},
+	input::GameController,
 	math::Rect,
 	Context, ContextSettings, State,
 };
 use vek::Vec2;
 
 struct MainState {
-	mesh: Mesh,
+	controller: Option<GameController>,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let mesh = MeshBuilder::new()
-			.with_rectangle(
-				ShapeStyle::Stroke(8.0),
-				Rect::xywh(50.0, 50.0, 200.0, 300.0),
-			)?
-			.build(ctx)?;
-		Ok(Self { mesh })
+		Ok(Self {
+			controller: ctx.controller(0),
+		})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
+	fn update(
+		&mut self,
+		ctx: &mut Context,
+		delta_time: std::time::Duration,
+	) -> Result<(), Box<dyn Error>> {
+		if let Some(controller) = &self.controller {
+			println!("{}", controller.axis_value(sdl2::controller::Axis::LeftX));
+		}
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		self.mesh.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

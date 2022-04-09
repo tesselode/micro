@@ -10,11 +10,12 @@ use std::{
 
 use glow::HasContext;
 use sdl2::{
+	controller::Button,
 	event::{Event, WindowEvent},
 	keyboard::Scancode,
 	mouse::MouseButton,
 	video::{GLContext, GLProfile, SwapInterval, Window},
-	EventPump, Sdl, VideoSubsystem,
+	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 };
 
 use crate::{
@@ -23,6 +24,7 @@ use crate::{
 		shader::Shader,
 		texture::{Texture, TextureSettings},
 	},
+	input::GameController,
 	State,
 };
 
@@ -32,6 +34,7 @@ pub struct Context {
 	_sdl: Sdl,
 	_video: VideoSubsystem,
 	window: Window,
+	controller: GameControllerSubsystem,
 	_sdl_gl_ctx: GLContext,
 	event_pump: EventPump,
 	should_quit: bool,
@@ -45,6 +48,7 @@ impl Context {
 	pub fn new(settings: ContextSettings) -> Result<Self, InitError> {
 		let sdl = sdl2::init()?;
 		let video = sdl.video()?;
+		let controller = sdl.game_controller()?;
 		let gl_attr = video.gl_attr();
 		gl_attr.set_context_profile(GLProfile::Core);
 		gl_attr.set_context_version(3, 3);
@@ -65,6 +69,7 @@ impl Context {
 			_sdl: sdl,
 			_video: video,
 			window,
+			controller,
 			_sdl_gl_ctx,
 			event_pump,
 			should_quit: false,
@@ -169,6 +174,23 @@ impl Context {
 		self.event_pump
 			.mouse_state()
 			.is_mouse_button_pressed(mouse_button)
+	}
+
+	pub fn controller(&self, index: u32) -> Option<GameController> {
+		match self.controller.open(index) {
+			Ok(controller) => Some(GameController(controller)),
+			Err(error) => match error {
+				IntegerOrSdlError::IntegerOverflows(_, _) => {
+					panic!("integer overflow when getting controller")
+				}
+				IntegerOrSdlError::SdlError(_) => None,
+			},
+		}
+	}
+
+	pub fn is_gamepad_button_down(&self, gamepad_index: u32, button: Button) -> bool {
+		let controller = self.controller.open(gamepad_index).unwrap();
+		controller.button(button)
 	}
 
 	pub fn quit(&mut self) {

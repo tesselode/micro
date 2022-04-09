@@ -48,6 +48,7 @@ impl MainState {
 						);
 						mapping
 					},
+					deadzone: 0.5,
 				},
 				ctx.game_controller(0),
 			),
@@ -61,7 +62,14 @@ impl State<Box<dyn Error>> for MainState {
 		ctx: &mut Context,
 		delta_time: std::time::Duration,
 	) -> Result<(), Box<dyn Error>> {
-		println!("{}", self.controller.control_value(ctx, Controls::Left));
+		self.controller.update(ctx);
+		let control = self.controller.control(Controls::Left);
+		if control.pressed {
+			println!("pressed");
+		}
+		if control.released {
+			println!("released");
+		}
 		Ok(())
 	}
 

@@ -8,7 +8,8 @@ use micro::{
 	},
 	input::{
 		virtual_controller::{
-			AxisDirection, RealControl, VirtualController, VirtualControllerConfig, VirtualControls,
+			AxisDirection, DeadzoneShape, RealControl, VirtualAnalogStickControls,
+			VirtualAnalogSticks, VirtualController, VirtualControllerConfig, VirtualControls,
 		},
 		Axis, Button, GameController, MouseButton, Scancode,
 	},
@@ -20,16 +21,41 @@ use vek::Vec2;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Controls {
 	Left,
+	Right,
+	Up,
+	Down,
 }
 
 impl VirtualControls for Controls {
 	fn all() -> &'static [Self] {
-		&[Self::Left]
+		&[Self::Left, Self::Right, Self::Up, Self::Down]
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Sticks {
+	Move,
+}
+
+impl VirtualAnalogSticks<Controls> for Sticks {
+	fn all() -> &'static [Self] {
+		&[Self::Move]
+	}
+
+	fn controls(&self) -> VirtualAnalogStickControls<Controls> {
+		match self {
+			Sticks::Move => VirtualAnalogStickControls {
+				left: Controls::Left,
+				right: Controls::Right,
+				up: Controls::Up,
+				down: Controls::Down,
+			},
+		}
 	}
 }
 
 struct MainState {
-	controller: VirtualController<Controls>,
+	controller: VirtualController<Controls, Sticks>,
 }
 
 impl MainState {
@@ -46,9 +72,31 @@ impl MainState {
 								RealControl::GamepadAxis(Axis::LeftX, AxisDirection::Negative),
 							],
 						);
+						mapping.insert(
+							Controls::Right,
+							vec![
+								RealControl::Key(Scancode::Right),
+								RealControl::GamepadAxis(Axis::LeftX, AxisDirection::Positive),
+							],
+						);
+						mapping.insert(
+							Controls::Up,
+							vec![
+								RealControl::Key(Scancode::Up),
+								RealControl::GamepadAxis(Axis::LeftY, AxisDirection::Negative),
+							],
+						);
+						mapping.insert(
+							Controls::Down,
+							vec![
+								RealControl::Key(Scancode::Down),
+								RealControl::GamepadAxis(Axis::LeftY, AxisDirection::Positive),
+							],
+						);
 						mapping
 					},
 					deadzone: 0.5,
+					deadzone_shape: DeadzoneShape::Square,
 				},
 				ctx.game_controller(0),
 			),
@@ -63,13 +111,8 @@ impl State<Box<dyn Error>> for MainState {
 		delta_time: std::time::Duration,
 	) -> Result<(), Box<dyn Error>> {
 		self.controller.update(ctx);
-		let control = self.controller.control(Controls::Left);
-		if control.pressed {
-			println!("pressed");
-		}
-		if control.released {
-			println!("released");
-		}
+		let stick = self.controller.stick(Sticks::Move);
+		println!("{}, {}", stick.raw_value, stick.value);
 		Ok(())
 	}
 

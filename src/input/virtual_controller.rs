@@ -5,6 +5,7 @@ use sdl2::{
 	keyboard::{Keycode, Scancode},
 	mouse::MouseButton,
 };
+use vek::Vec2;
 
 use crate::Context;
 
@@ -41,6 +42,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 		if let Some(active_input_kind) = self.active_input_kind {
 			self.update_control_state(ctx, active_input_kind);
 		}
+		self.update_stick_state();
 	}
 
 	pub fn control(&self, control: C) -> VirtualControlState {
@@ -48,7 +50,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 	}
 
 	pub fn stick(&self, stick: S) -> VirtualAnalogStickState {
-		todo!()
+		self.stick_state[&stick]
 	}
 
 	pub fn active_input_kind(&self) -> Option<InputKind> {
@@ -105,6 +107,28 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 		}
 	}
 
+	fn update_stick_state(&mut self) {
+		for (stick, VirtualAnalogStickState { value, raw_value }) in &mut self.stick_state {
+			let VirtualAnalogStickControls {
+				left,
+				right,
+				up,
+				down,
+			} = stick.controls();
+			*raw_value = Vec2 {
+				x: self.control_state[&right].raw_value - self.control_state[&left].raw_value,
+				y: self.control_state[&down].raw_value - self.control_state[&up].raw_value,
+			};
+			if raw_value.magnitude_squared() > 1.0 {
+				raw_value.normalize();
+			}
+			*value = self
+				.config
+				.deadzone_shape
+				.apply_deadzone(*raw_value, self.config.deadzone);
+		}
+	}
+
 	fn control_raw_value(
 		config: &VirtualControllerConfig<C>,
 		controller: Option<&GameController>,
@@ -138,12 +162,16 @@ pub struct VirtualControlState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct VirtualAnalogStickState;
+pub struct VirtualAnalogStickState {
+	pub value: Vec2<f32>,
+	pub raw_value: Vec2<f32>,
+}
 
 #[derive(Debug, Clone)]
 pub struct VirtualControllerConfig<C: VirtualControls> {
 	pub control_mapping: HashMap<C, Vec<RealControl>>,
 	pub deadzone: f32,
+	pub deadzone_shape: DeadzoneShape,
 }
 
 pub trait VirtualControls: Sized + Hash + Eq + Copy + 'static {
@@ -241,6 +269,38 @@ impl AxisDirection {
 		match self {
 			AxisDirection::Negative => -1.0,
 			AxisDirection::Positive => 1.0,
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DeadzoneShape {
+	Circle,
+	Square,
+}
+
+impl DeadzoneShape {
+	fn apply_deadzone(&self, input: Vec2<f32>, deadzone: f32) -> Vec2<f32> {
+		match self {
+			DeadzoneShape::Circle => {
+				if input.magnitude() >= deadzone {
+					input
+				} else {
+					Vec2::zero()
+				}
+			}
+			DeadzoneShape::Square => Vec2 {
+				x: if input.x.abs() >= deadzone {
+					input.x
+				} else {
+					0.0
+				},
+				y: if input.y.abs() >= deadzone {
+					input.y
+				} else {
+					0.0
+				},
+			},
 		}
 	}
 }

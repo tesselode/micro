@@ -1,10 +1,13 @@
+mod config;
+mod real_control;
+mod traits;
+
+pub use config::*;
+pub use real_control::*;
+pub use traits::*;
+
 use std::{collections::HashMap, hash::Hash};
 
-use sdl2::{
-	controller::{Axis, Button},
-	keyboard::Scancode,
-	mouse::MouseButton,
-};
 use vek::Vec2;
 
 use crate::Context;
@@ -165,150 +168,6 @@ pub struct VirtualControlState {
 pub struct VirtualAnalogStickState {
 	pub value: Vec2<f32>,
 	pub raw_value: Vec2<f32>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct VirtualControllerConfig<C: VirtualControls> {
-	pub control_mapping: HashMap<C, Vec<RealControl>>,
-	pub deadzone: f32,
-	pub deadzone_shape: DeadzoneShape,
-}
-
-pub trait VirtualControls: Sized + Hash + Eq + Copy + 'static {
-	fn all() -> &'static [Self];
-}
-
-pub trait VirtualAnalogSticks<C: VirtualControls>: Sized + Hash + Eq + Copy + 'static {
-	fn all() -> &'static [Self];
-
-	fn controls(&self) -> VirtualAnalogStickControls<C>;
-}
-
-impl<C: VirtualControls> VirtualAnalogSticks<C> for () {
-	fn all() -> &'static [Self] {
-		&[]
-	}
-
-	fn controls(&self) -> VirtualAnalogStickControls<C> {
-		unreachable!()
-	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct VirtualAnalogStickControls<C: VirtualControls> {
-	pub left: C,
-	pub right: C,
-	pub up: C,
-	pub down: C,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RealControl {
-	Key(Scancode),
-	MouseButton(MouseButton),
-	GamepadButton(Button),
-	GamepadAxis(Axis, AxisDirection),
-}
-
-impl RealControl {
-	fn kind(&self) -> InputKind {
-		match self {
-			RealControl::Key(_) => InputKind::KeyboardMouse,
-			RealControl::MouseButton(_) => InputKind::KeyboardMouse,
-			RealControl::GamepadButton(_) => InputKind::Gamepad,
-			RealControl::GamepadAxis(_, _) => InputKind::Gamepad,
-		}
-	}
-
-	fn value(&self, ctx: &Context, controller: Option<&GameController>) -> f32 {
-		match self {
-			RealControl::Key(scancode) => {
-				if ctx.is_key_down(*scancode) {
-					1.0
-				} else {
-					0.0
-				}
-			}
-			RealControl::MouseButton(mouse_button) => {
-				if ctx.is_mouse_button_down(*mouse_button) {
-					1.0
-				} else {
-					0.0
-				}
-			}
-			RealControl::GamepadButton(button) => {
-				let controller = match controller {
-					Some(controller) => controller,
-					None => return 0.0,
-				};
-				if controller.is_button_down(*button) {
-					1.0
-				} else {
-					0.0
-				}
-			}
-			RealControl::GamepadAxis(axis, direction) => {
-				let controller = match controller {
-					Some(controller) => controller,
-					None => return 0.0,
-				};
-				(controller.axis_value(*axis) * direction.as_f32()).max(0.0)
-			}
-		}
-	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AxisDirection {
-	Negative,
-	Positive,
-}
-
-impl AxisDirection {
-	fn as_f32(&self) -> f32 {
-		match self {
-			AxisDirection::Negative => -1.0,
-			AxisDirection::Positive => 1.0,
-		}
-	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DeadzoneShape {
-	Circle,
-	Square,
-}
-
-impl DeadzoneShape {
-	fn apply_deadzone(&self, input: Vec2<f32>, deadzone: f32) -> Vec2<f32> {
-		match self {
-			DeadzoneShape::Circle => {
-				if input.magnitude() >= deadzone {
-					input
-				} else {
-					Vec2::zero()
-				}
-			}
-			DeadzoneShape::Square => Vec2 {
-				x: if input.x.abs() >= deadzone {
-					input.x
-				} else {
-					0.0
-				},
-				y: if input.y.abs() >= deadzone {
-					input.y
-				} else {
-					0.0
-				},
-			},
-		}
-	}
-}
-
-impl Default for DeadzoneShape {
-	fn default() -> Self {
-		Self::Circle
-	}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

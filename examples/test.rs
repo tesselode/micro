@@ -6,7 +6,10 @@ use micro::{
 		mesh::{Mesh, MeshBuilder, ShapeStyle},
 		DrawParams,
 	},
-	input::GameController,
+	input::{
+		virtual_controller::{AxisDirection, RealControl},
+		Axis, Button, GameController, MouseButton, Scancode,
+	},
 	math::Rect,
 	Context, ContextSettings, State,
 };
@@ -30,9 +33,11 @@ impl State<Box<dyn Error>> for MainState {
 		ctx: &mut Context,
 		delta_time: std::time::Duration,
 	) -> Result<(), Box<dyn Error>> {
-		if let Some(controller) = &self.controller {
-			println!("{}", controller.axis_value(sdl2::controller::Axis::LeftX));
-		}
+		println!(
+			"{}",
+			RealControl::GamepadAxis(Axis::LeftX, AxisDirection::Positive)
+				.value(ctx, self.controller.as_ref())
+		);
 		Ok(())
 	}
 

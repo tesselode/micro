@@ -1,5 +1,9 @@
-use sdl2::controller::{Axis, Button};
+pub mod virtual_controller;
+
+use std::fmt::Debug;
+
 pub use sdl2::{
+	controller::{Axis, Button},
 	keyboard::{Keycode, Scancode},
 	mouse::{MouseButton, MouseWheelDirection},
 };
@@ -17,5 +21,11 @@ impl GameController {
 
 	pub fn axis_value(&self, axis: Axis) -> f32 {
 		self.0.axis(axis) as f32 / i16::MAX as f32
+	}
+}
+
+impl Debug for GameController {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_tuple("GameController").finish()
 	}
 }

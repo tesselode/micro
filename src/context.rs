@@ -1,6 +1,5 @@
-mod error;
+pub mod error;
 
-pub use error::*;
 use vek::{Mat4, Vec2, Vec3};
 
 use std::{
@@ -27,6 +26,8 @@ use crate::{
 	input::GameController,
 	State,
 };
+
+use self::error::{InitError, MaximumTransformStackDepthReached, NoTransformToPop};
 
 const MAX_TRANSFORM_STACK_DEPTH: usize = 256;
 

@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::Hash};
 
 use sdl2::{
 	controller::{Axis, Button},
-	keyboard::{Keycode, Scancode},
+	keyboard::Scancode,
 	mouse::MouseButton,
 };
 use vek::Vec2;
@@ -167,7 +167,7 @@ pub struct VirtualAnalogStickState {
 	pub raw_value: Vec2<f32>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct VirtualControllerConfig<C: VirtualControls> {
 	pub control_mapping: HashMap<C, Vec<RealControl>>,
 	pub deadzone: f32,
@@ -302,6 +302,12 @@ impl DeadzoneShape {
 				},
 			},
 		}
+	}
+}
+
+impl Default for DeadzoneShape {
+	fn default() -> Self {
+		Self::Circle
 	}
 }
 

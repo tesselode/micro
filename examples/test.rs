@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
 use micro::{
 	graphics::{
@@ -7,7 +7,9 @@ use micro::{
 		DrawParams,
 	},
 	input::{
-		virtual_controller::{AxisDirection, RealControl},
+		virtual_controller::{
+			AxisDirection, RealControl, VirtualController, VirtualControllerConfig, VirtualControls,
+		},
 		Axis, Button, GameController, MouseButton, Scancode,
 	},
 	math::Rect,
@@ -15,14 +17,40 @@ use micro::{
 };
 use vek::Vec2;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Controls {
+	Left,
+}
+
+impl VirtualControls for Controls {
+	fn all() -> &'static [Self] {
+		&[Self::Left]
+	}
+}
+
 struct MainState {
-	controller: Option<GameController>,
+	controller: VirtualController<Controls>,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			controller: ctx.controller(0),
+			controller: VirtualController::new(
+				VirtualControllerConfig {
+					control_mapping: {
+						let mut mapping = HashMap::new();
+						mapping.insert(
+							Controls::Left,
+							vec![
+								RealControl::Key(Scancode::Left),
+								RealControl::GamepadAxis(Axis::LeftX, AxisDirection::Negative),
+							],
+						);
+						mapping
+					},
+				},
+				ctx.game_controller(0),
+			),
 		})
 	}
 }
@@ -33,11 +61,7 @@ impl State<Box<dyn Error>> for MainState {
 		ctx: &mut Context,
 		delta_time: std::time::Duration,
 	) -> Result<(), Box<dyn Error>> {
-		println!(
-			"{}",
-			RealControl::GamepadAxis(Axis::LeftX, AxisDirection::Positive)
-				.value(ctx, self.controller.as_ref())
-		);
+		println!("{}", self.controller.control_value(ctx, Controls::Left));
 		Ok(())
 	}
 

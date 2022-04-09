@@ -176,7 +176,7 @@ impl Context {
 			.is_mouse_button_pressed(mouse_button)
 	}
 
-	pub fn controller(&self, index: u32) -> Option<GameController> {
+	pub fn game_controller(&self, index: u32) -> Option<GameController> {
 		match self.controller.open(index) {
 			Ok(controller) => Some(GameController(controller)),
 			Err(error) => match error {

@@ -11,7 +11,7 @@ use crate::Context;
 use super::GameController;
 
 #[derive(Debug)]
-pub struct VirtualController<C: VirtualControls, S: VirtualAnalogSticks<C>> {
+pub struct VirtualController<C: VirtualControls, S: VirtualAnalogSticks<C> = ()> {
 	pub config: VirtualControllerConfig<C>,
 	pub controller: Option<GameController>,
 	active_input_kind: InputKind,
@@ -45,6 +45,21 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 	pub fn stick(&self, stick: S) -> VirtualAnalogStickState {
 		todo!()
 	}
+
+	pub fn control_value(&self, ctx: &Context, control: C) -> f32 {
+		self.config
+			.control_mapping
+			.get(&control)
+			.map(|controls| {
+				controls
+					.iter()
+					.fold(0.0, |previous, control| {
+						previous + control.value(ctx, self.controller.as_ref())
+					})
+					.min(1.0)
+			})
+			.unwrap_or(0.0)
+	}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -55,7 +70,7 @@ pub struct VirtualAnalogStickState;
 
 #[derive(Debug, Clone)]
 pub struct VirtualControllerConfig<C: VirtualControls> {
-	pub controls: HashMap<C, RealControl>,
+	pub control_mapping: HashMap<C, Vec<RealControl>>,
 }
 
 pub trait VirtualControls: Sized + Hash + Eq + Copy + 'static {
@@ -66,6 +81,16 @@ pub trait VirtualAnalogSticks<C: VirtualControls>: Sized + Hash + Eq + Copy + 's
 	fn all() -> &'static [Self];
 
 	fn controls(&self) -> VirtualAnalogStickControls<C>;
+}
+
+impl<C: VirtualControls> VirtualAnalogSticks<C> for () {
+	fn all() -> &'static [Self] {
+		&[]
+	}
+
+	fn controls(&self) -> VirtualAnalogStickControls<C> {
+		unreachable!()
+	}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -85,7 +110,7 @@ pub enum RealControl {
 }
 
 impl RealControl {
-	pub fn value(&self, ctx: &Context, controller: Option<&GameController>) -> f32 {
+	fn value(&self, ctx: &Context, controller: Option<&GameController>) -> f32 {
 		match self {
 			RealControl::Key(scancode) => {
 				if ctx.is_key_down(*scancode) {

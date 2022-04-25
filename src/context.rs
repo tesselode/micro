@@ -27,9 +27,7 @@ use crate::{
 	State,
 };
 
-use self::error::{InitError, MaximumTransformStackDepthReached, NoTransformToPop};
-
-const MAX_TRANSFORM_STACK_DEPTH: usize = 256;
+use self::error::InitError;
 
 pub struct Context {
 	_sdl: Sdl,
@@ -146,23 +144,15 @@ impl Context {
 		}
 	}
 
-	pub fn push_transform(
+	pub fn with_transform<T>(
 		&mut self,
 		transform: Mat4<f32>,
-	) -> Result<(), MaximumTransformStackDepthReached> {
-		if self.transform_stack.len() == MAX_TRANSFORM_STACK_DEPTH {
-			return Err(MaximumTransformStackDepthReached);
-		}
+		f: impl FnOnce(&mut Context) -> T,
+	) -> T {
 		self.transform_stack.push(transform);
-		Ok(())
-	}
-
-	pub fn pop_transform(&mut self) -> Result<(), NoTransformToPop> {
-		if self.transform_stack.is_empty() {
-			return Err(NoTransformToPop);
-		}
+		let returned_value = f(self);
 		self.transform_stack.pop();
-		Ok(())
+		returned_value
 	}
 
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {

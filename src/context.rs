@@ -41,6 +41,7 @@ pub struct Context {
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
 	pub(crate) transform_stack: Vec<Mat4<f32>>,
+	pub(crate) render_target: RenderTarget,
 }
 
 impl Context {
@@ -53,6 +54,10 @@ impl Context {
 		gl_attr.set_context_version(3, 3);
 		let window = build_window(&video, &settings)?;
 		let (window_width, window_height) = window.size();
+		let window_size = Vec2::new(
+			window_width.try_into().expect("window is too wide"),
+			window_height.try_into().expect("window is too tall"),
+		);
 		let _sdl_gl_ctx = window.gl_create_context()?;
 		video
 			.gl_set_swap_interval(if settings.vsync {
@@ -62,8 +67,7 @@ impl Context {
 			})
 			.expect("Could not set vsync");
 		let event_pump = sdl.event_pump()?;
-		let (gl, default_texture, default_shader) =
-			create_gl_context(&video, window_width, window_height);
+		let (gl, default_texture, default_shader) = create_gl_context(&video, window_size);
 		Ok(Self {
 			_sdl: sdl,
 			_video: video,
@@ -76,6 +80,7 @@ impl Context {
 			default_texture,
 			default_shader,
 			transform_stack: vec![],
+			render_target: RenderTarget::Window,
 		})
 	}
 
@@ -99,7 +104,7 @@ impl Context {
 						win_event: WindowEvent::Resized(width, height),
 						..
 					} => {
-						self.resize(width as u32, height as u32);
+						self.resize(Vec2::new(width as u32, height as u32));
 					}
 					Event::Quit { .. } => {
 						self.should_quit = true;
@@ -116,19 +121,47 @@ impl Context {
 		Ok(())
 	}
 
-	pub(crate) fn resize(&mut self, window_width: u32, window_height: u32) {
+	pub(crate) fn set_render_target(&mut self, render_target: RenderTarget) {
+		self.render_target = render_target;
+		let viewport_size: Vec2<i32> = match render_target {
+			RenderTarget::Window => self.window_size(),
+			RenderTarget::Canvas { size } => size,
+		}
+		.numcast()
+		.expect("viewport is too large");
 		unsafe {
-			self.gl
-				.viewport(0, 0, window_width as i32, window_height as i32);
+			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
+		}
+	}
+
+	pub(crate) fn resize(&mut self, size: Vec2<u32>) {
+		let viewport_size = size.numcast().expect("window is too large");
+		unsafe {
+			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
 		}
 	}
 
 	pub(crate) fn global_transform(&self) -> Mat4<f32> {
-		let (window_width, window_height) = self.window.size();
-		self.transform_stack.iter().fold(
-			coordinate_system_transform(window_width, window_height),
-			|previous, transform| previous * *transform,
-		)
+		let coordinate_system_transform = match self.render_target {
+			RenderTarget::Window => {
+				let window_size = self.window_size();
+				Mat4::scaling_3d(Vec3::new(
+					2.0 / window_size.x as f32,
+					-2.0 / window_size.y as f32,
+					1.0,
+				))
+				.translated_2d(Vec2::new(-1.0, 1.0))
+			}
+			RenderTarget::Canvas { size } => {
+				Mat4::scaling_3d(Vec3::new(2.0 / size.x as f32, 2.0 / size.y as f32, 1.0))
+					.translated_2d(Vec2::new(-1.0, -1.0))
+			}
+		};
+		self.transform_stack
+			.iter()
+			.fold(coordinate_system_transform, |previous, transform| {
+				previous * *transform
+			})
 	}
 
 	pub fn window_size(&self) -> Vec2<u32> {
@@ -208,6 +241,12 @@ impl Default for ContextSettings {
 	}
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum RenderTarget {
+	Window,
+	Canvas { size: Vec2<u32> },
+}
+
 fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Result<Window, InitError> {
 	let mut window_builder = video.window(
 		&settings.window_title,
@@ -223,8 +262,7 @@ fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Result<Wi
 
 fn create_gl_context(
 	video: &VideoSubsystem,
-	window_width: u32,
-	window_height: u32,
+	window_size: Vec2<i32>,
 ) -> (Rc<glow::Context>, Texture, Shader) {
 	let gl = Rc::new(unsafe {
 		glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
@@ -232,7 +270,7 @@ fn create_gl_context(
 	unsafe {
 		gl.enable(glow::BLEND);
 		gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
-		gl.viewport(0, 0, window_width as i32, window_height as i32);
+		gl.viewport(0, 0, window_size.x, window_size.y);
 	}
 	let default_texture = Texture::new_from_gl(
 		gl.clone(),
@@ -248,13 +286,4 @@ fn create_gl_context(
 	)
 	.expect("Error compiling default shader");
 	(gl, default_texture, default_shader)
-}
-
-fn coordinate_system_transform(window_width: u32, window_height: u32) -> Mat4<f32> {
-	Mat4::scaling_3d(Vec3::new(
-		2.0 / window_width as f32,
-		-2.0 / window_height as f32,
-		1.0,
-	))
-	.translated_2d(Vec2::new(-1.0, 1.0))
 }

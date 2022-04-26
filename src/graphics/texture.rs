@@ -158,6 +158,19 @@ impl Texture {
 		.draw_textured(ctx, self, params);
 		Ok(())
 	}
+
+	pub(crate) fn attach_to_framebuffer(&mut self) {
+		unsafe {
+			self.gl.bind_texture(glow::TEXTURE_2D, Some(self.texture));
+			self.gl.framebuffer_texture_2d(
+				glow::FRAMEBUFFER,
+				glow::COLOR_ATTACHMENT0,
+				glow::TEXTURE_2D,
+				Some(self.texture),
+				0,
+			);
+		}
+	}
 }
 
 impl Drop for Texture {

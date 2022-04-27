@@ -7,16 +7,19 @@ Other:
 
 - [ ] `ContextSettings::fullscreen/borderless`
 - [ ] `Context::is_key_pressed/released`
-- [ ] `Context::is_mouse_button_down/pressed/released`
-- [ ] `Context::is_gamepad_button_down/pressed/released`
-- [ ] `Context::gamepad_axis_value`
-- [ ] Window size getters/setters
+- [x] `Context::is_mouse_button_down`
+- [ ] `Context::is_mouse_button_pressed/released`
+- [x] `Context::is_gamepad_button_down`
+- [ ] `Context::is_gamepad_button_pressed/released`
+- [x] `Context::gamepad_axis_value`
+- [x] Window size getter
+- [ ] Window size setters
 - [ ] Fullscreen/borderless getters/setters
-- [ ] Canvases
+- [x] Canvases
 - [ ] Scissors
 - [ ] Stencils
-- [ ] MSAA
+- [x] MSAA
 - [ ] HSLA/HSVA
-- [ ] Input abstraction
+- [x] Input abstraction
 - [ ] egui
 - [ ] More shader send functions

@@ -212,11 +212,6 @@ impl Context {
 		}
 	}
 
-	pub fn is_gamepad_button_down(&self, gamepad_index: u32, button: Button) -> bool {
-		let controller = self.controller.open(gamepad_index).unwrap();
-		controller.button(button)
-	}
-
 	pub fn quit(&mut self) {
 		self.should_quit = true;
 	}

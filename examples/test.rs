@@ -2,7 +2,7 @@ use std::error::Error;
 
 use micro::{
 	graphics::{
-		canvas::Canvas,
+		canvas::{Canvas, CanvasSettings, Msaa},
 		color::Rgba,
 		mesh::{Mesh, MeshBuilder, ShapeStyle},
 	},
@@ -21,7 +21,14 @@ impl MainState {
 			mesh: MeshBuilder::new()
 				.with_circle(ShapeStyle::Fill, Vec2::zero(), 64.0)?
 				.build(ctx)?,
-			canvas: Canvas::new(ctx, Vec2::new(200, 200), Default::default())?,
+			canvas: Canvas::new(
+				ctx,
+				Vec2::new(200, 200),
+				CanvasSettings {
+					msaa: Msaa::X16,
+					..Default::default()
+				},
+			)?,
 		})
 	}
 }

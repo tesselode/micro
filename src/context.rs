@@ -9,7 +9,6 @@ use std::{
 
 use glow::HasContext;
 use sdl2::{
-	controller::Button,
 	event::{Event, WindowEvent},
 	keyboard::Scancode,
 	mouse::MouseButton,

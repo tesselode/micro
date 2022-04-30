@@ -15,6 +15,8 @@ use crate::{
 	math::Rect,
 };
 
+use super::color::Rgba;
+
 #[derive(Debug)]
 pub struct Mesh {
 	gl: Rc<glow::Context>,
@@ -69,6 +71,15 @@ impl Mesh {
 				2 * std::mem::size_of::<f32>() as i32,
 			);
 			gl.enable_vertex_attrib_array(1);
+			gl.vertex_attrib_pointer_f32(
+				2,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<Vertex>() as i32,
+				4 * std::mem::size_of::<f32>() as i32,
+			);
+			gl.enable_vertex_attrib_array(2);
 		}
 		Ok(Self {
 			gl,
@@ -94,18 +105,22 @@ impl Mesh {
 				Vertex {
 					position: display_rect.bottom_right,
 					texture_coords: texture_rect.bottom_right,
+					color: Rgba::WHITE,
 				},
 				Vertex {
 					position: display_rect.top_right(),
 					texture_coords: texture_rect.top_right(),
+					color: Rgba::WHITE,
 				},
 				Vertex {
 					position: display_rect.top_left,
 					texture_coords: texture_rect.top_left,
+					color: Rgba::WHITE,
 				},
 				Vertex {
 					position: display_rect.bottom_left(),
 					texture_coords: texture_rect.bottom_left(),
+					color: Rgba::WHITE,
 				},
 			],
 			&[0, 1, 3, 1, 2, 3],
@@ -175,4 +190,5 @@ impl Drop for Mesh {
 pub struct Vertex {
 	pub position: Vec2<f32>,
 	pub texture_coords: Vec2<f32>,
+	pub color: Rgba,
 }

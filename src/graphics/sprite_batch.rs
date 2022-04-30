@@ -13,6 +13,8 @@ use crate::{
 	math::Rect,
 };
 
+use super::color::Rgba;
+
 #[derive(Debug)]
 pub struct SpriteBatch {
 	sprites: Arena<()>,
@@ -25,6 +27,7 @@ impl SpriteBatch {
 			Vertex {
 				position: Vec2::zero(),
 				texture_coords: Vec2::zero(),
+				color: Rgba::WHITE,
 			};
 			capacity * 4
 		];
@@ -59,6 +62,7 @@ impl SpriteBatch {
 			Vertex {
 				position: sprite.display_rect.bottom_right,
 				texture_coords: sprite.texture_rect.bottom_right,
+				color: Rgba::WHITE,
 			},
 		);
 		self.mesh.set_vertex(
@@ -66,6 +70,7 @@ impl SpriteBatch {
 			Vertex {
 				position: sprite.display_rect.top_right(),
 				texture_coords: sprite.texture_rect.top_right(),
+				color: Rgba::WHITE,
 			},
 		);
 		self.mesh.set_vertex(
@@ -73,6 +78,7 @@ impl SpriteBatch {
 			Vertex {
 				position: sprite.display_rect.top_left,
 				texture_coords: sprite.texture_rect.top_left,
+				color: Rgba::WHITE,
 			},
 		);
 		self.mesh.set_vertex(
@@ -80,6 +86,7 @@ impl SpriteBatch {
 			Vertex {
 				position: sprite.display_rect.bottom_left(),
 				texture_coords: sprite.texture_rect.bottom_left(),
+				color: Rgba::WHITE,
 			},
 		);
 		Ok(id)
@@ -97,6 +104,7 @@ impl SpriteBatch {
 				Vertex {
 					position: Vec2::zero(),
 					texture_coords: Vec2::zero(),
+					color: Rgba::WHITE,
 				},
 			);
 		}

@@ -1,4 +1,7 @@
-#[derive(Debug, Clone, Copy, PartialEq)]
+use bytemuck::{Pod, Zeroable};
+
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+#[repr(C)]
 pub struct Rgba {
 	pub red: f32,
 	pub green: f32,

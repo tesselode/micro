@@ -6,7 +6,7 @@ use lyon_tessellation::{
 use thiserror::Error;
 use vek::Vec2;
 
-use crate::{error::GlError, math::Rect, Context};
+use crate::{error::GlError, graphics::color::Rgba, math::Rect, Context};
 
 use super::{Mesh, Vertex};
 
@@ -217,6 +217,7 @@ impl FillVertexConstructor<Vertex> for FillVertexToVertex {
 		Vertex {
 			position: Vec2::new(vertex.position().x, vertex.position().y),
 			texture_coords: Vec2::zero(),
+			color: Rgba::WHITE,
 		}
 	}
 }
@@ -228,6 +229,7 @@ impl StrokeVertexConstructor<Vertex> for StrokeVertexToVertex {
 		Vertex {
 			position: Vec2::new(vertex.position().x, vertex.position().y),
 			texture_coords: Vec2::zero(),
+			color: Rgba::WHITE,
 		}
 	}
 }

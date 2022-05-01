@@ -21,7 +21,7 @@ pub struct Text {
 }
 
 impl Text {
-	pub fn new(ctx: &mut Context, font: &Font, text: &str) -> Result<Self, GlError> {
+	pub fn new(ctx: &Context, font: &Font, text: &str) -> Result<Self, GlError> {
 		let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
 		layout.append(
 			&[&font.font],

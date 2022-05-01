@@ -22,7 +22,7 @@ pub struct SpriteBatch {
 }
 
 impl SpriteBatch {
-	pub fn new(ctx: &mut Context, capacity: usize) -> Result<Self, GlError> {
+	pub fn new(ctx: &Context, capacity: usize) -> Result<Self, GlError> {
 		let vertices = vec![
 			Vertex {
 				position: Vec2::zero(),
@@ -111,12 +111,7 @@ impl SpriteBatch {
 		Ok(())
 	}
 
-	pub fn draw<'a>(
-		&self,
-		ctx: &mut Context,
-		texture: &Texture,
-		params: impl Into<DrawParams<'a>>,
-	) {
+	pub fn draw<'a>(&self, ctx: &Context, texture: &Texture, params: impl Into<DrawParams<'a>>) {
 		self.mesh.draw_textured(ctx, texture, params);
 	}
 }

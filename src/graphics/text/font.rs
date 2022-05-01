@@ -25,7 +25,7 @@ pub struct Font {
 
 impl Font {
 	pub fn from_file(
-		ctx: &mut Context,
+		ctx: &Context,
 		path: impl AsRef<Path>,
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
@@ -33,7 +33,7 @@ impl Font {
 	}
 
 	pub fn from_bytes(
-		ctx: &mut Context,
+		ctx: &Context,
 		data: &[u8],
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
@@ -164,7 +164,7 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 }
 
 fn create_texture(
-	ctx: &mut Context,
+	ctx: &Context,
 	size: Vec2<u32>,
 	glyph_image_data: &HashMap<char, ImageData>,
 	glyph_rects: &HashMap<char, Rect>,

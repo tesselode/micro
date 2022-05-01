@@ -158,13 +158,13 @@ impl Mesh {
 		unsafe {
 			let shader = params.shader.unwrap_or(&ctx.default_shader);
 			shader
-				.send_color(ctx, "blendColor", params.color)
+				.send_color("blendColor", params.color)
 				.expect("Shader does not have a blendColor uniform");
 			shader
-				.send_mat4(ctx, "globalTransform", ctx.global_transform())
+				.send_mat4("globalTransform", ctx.global_transform())
 				.expect("Shader does not have a globalTransform uniform");
 			shader
-				.send_mat4(ctx, "localTransform", params.transform())
+				.send_mat4("localTransform", params.transform())
 				.expect("Shader does not have a localTransform uniform");
 			gl.use_program(Some(shader.program));
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.texture));

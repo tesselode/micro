@@ -62,36 +62,27 @@ impl Shader {
 		Ok(Self { gl, program })
 	}
 
-	pub fn send_mat4(
-		&self,
-		ctx: &Context,
-		name: &str,
-		mat4: Mat4<f32>,
-	) -> Result<(), UniformNotFound> {
-		let gl = &ctx.gl;
+	pub fn send_mat4(&self, name: &str, mat4: Mat4<f32>) -> Result<(), UniformNotFound> {
 		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
+			self.gl.use_program(Some(self.program));
+			let location = self
+				.gl
 				.get_uniform_location(self.program, name)
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.into_col_array());
+			self.gl
+				.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.into_col_array());
 		}
 		Ok(())
 	}
 
-	pub fn send_color(
-		&self,
-		ctx: &Context,
-		name: &str,
-		color: Rgba,
-	) -> Result<(), UniformNotFound> {
-		let gl = &ctx.gl;
+	pub fn send_color(&self, name: &str, color: Rgba) -> Result<(), UniformNotFound> {
 		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
+			self.gl.use_program(Some(self.program));
+			let location = self
+				.gl
 				.get_uniform_location(self.program, name)
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_4_f32(
+			self.gl.uniform_4_f32(
 				Some(&location),
 				color.red,
 				color.green,

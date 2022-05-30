@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test;
 
-use num_traits::{Float, Num};
-use vek::Vec2;
+use num_traits::{AsPrimitive, Float, MulAdd, Num, NumCast};
+use vek::{Mat4, Vec2};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct Rect<T: Copy = f32> {
@@ -30,6 +30,25 @@ impl<T: Copy> Rect<T> {
 		T: Num,
 	{
 		Self::new(Vec2::new(x, y), Vec2::new(x + width, y + height))
+	}
+
+	pub fn as_<D>(&self) -> Rect<D>
+	where
+		D: Copy + 'static,
+		T: AsPrimitive<D>,
+	{
+		Rect::new(self.top_left.as_(), self.bottom_right.as_())
+	}
+
+	pub fn numcast<D>(&self) -> Option<Rect<D>>
+	where
+		T: NumCast,
+		D: Copy + NumCast,
+	{
+		self.top_left
+			.numcast()
+			.zip(self.bottom_right.numcast())
+			.map(|(top_left, bottom_right)| Rect::new(top_left, bottom_right))
 	}
 
 	pub fn size(&self) -> Vec2<T>
@@ -110,6 +129,16 @@ impl<T: Copy> Rect<T> {
 		}
 	}
 
+	pub fn contains_point(&self, point: Vec2<T>) -> bool
+	where
+		T: PartialOrd,
+	{
+		point.x >= self.left()
+			&& point.x <= self.right()
+			&& point.y >= self.top()
+			&& point.y <= self.bottom()
+	}
+
 	pub fn overlaps(&self, other: Self) -> bool
 	where
 		T: PartialOrd,
@@ -118,6 +147,16 @@ impl<T: Copy> Rect<T> {
 			&& other.left() < self.right()
 			&& self.top() < other.bottom()
 			&& other.top() < self.bottom()
+	}
+
+	pub fn transformed(&self, transform: Mat4<T>) -> Self
+	where
+		T: Float + MulAdd<Output = T>,
+	{
+		Self::new(
+			transform.mul_point(self.top_left),
+			transform.mul_point(self.bottom_right),
+		)
 	}
 }
 

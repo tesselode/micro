@@ -1,5 +1,3 @@
-pub mod error;
-
 use vek::{Mat4, Vec2, Vec3};
 
 use std::{
@@ -26,8 +24,6 @@ use crate::{
 	State,
 };
 
-use self::error::InitError;
-
 pub struct Context {
 	_sdl: Sdl,
 	_video: VideoSubsystem,
@@ -44,20 +40,20 @@ pub struct Context {
 }
 
 impl Context {
-	pub fn new(settings: ContextSettings) -> Result<Self, InitError> {
-		let sdl = sdl2::init()?;
-		let video = sdl.video()?;
-		let controller = sdl.game_controller()?;
+	pub fn new(settings: ContextSettings) -> Self {
+		let sdl = sdl2::init().unwrap();
+		let video = sdl.video().unwrap();
+		let controller = sdl.game_controller().unwrap();
 		let gl_attr = video.gl_attr();
 		gl_attr.set_context_profile(GLProfile::Core);
 		gl_attr.set_context_version(3, 3);
-		let window = build_window(&video, &settings)?;
+		let window = build_window(&video, &settings);
 		let (window_width, window_height) = window.size();
 		let window_size = Vec2::new(
 			window_width.try_into().expect("window is too wide"),
 			window_height.try_into().expect("window is too tall"),
 		);
-		let _sdl_gl_ctx = window.gl_create_context()?;
+		let _sdl_gl_ctx = window.gl_create_context().unwrap();
 		video
 			.gl_set_swap_interval(if settings.vsync {
 				SwapInterval::VSync
@@ -65,9 +61,9 @@ impl Context {
 				SwapInterval::Immediate
 			})
 			.expect("Could not set vsync");
-		let event_pump = sdl.event_pump()?;
+		let event_pump = sdl.event_pump().unwrap();
 		let (gl, default_texture, default_shader) = create_gl_context(&video, window_size);
-		Ok(Self {
+		Self {
 			_sdl: sdl,
 			_video: video,
 			window,
@@ -80,7 +76,7 @@ impl Context {
 			default_shader,
 			transform_stack: vec![],
 			render_target: RenderTarget::Window,
-		})
+		}
 	}
 
 	pub fn run<E, S, F>(&mut self, mut state_constructor: F) -> Result<(), E>
@@ -241,7 +237,7 @@ pub(crate) enum RenderTarget {
 	Canvas { size: Vec2<u32> },
 }
 
-fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Result<Window, InitError> {
+fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
 	let mut window_builder = video.window(
 		&settings.window_title,
 		settings.window_size.x,
@@ -251,7 +247,7 @@ fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Result<Wi
 	if settings.resizable {
 		window_builder.resizable();
 	}
-	Ok(window_builder.build()?)
+	window_builder.build().unwrap()
 }
 
 fn create_gl_context(

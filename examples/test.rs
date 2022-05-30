@@ -58,6 +58,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 	Context::new(ContextSettings {
 		resizable: true,
 		..Default::default()
-	})?
+	})
 	.run(MainState::new)
 }

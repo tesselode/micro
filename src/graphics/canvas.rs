@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use glow::{HasContext, NativeFramebuffer, NativeTexture};
+use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture};
 use vek::Vec2;
 
 use crate::{context::RenderTarget, math::Rect, Context};
@@ -15,6 +15,7 @@ pub struct Canvas {
 	gl: Rc<glow::Context>,
 	framebuffer: NativeFramebuffer,
 	texture: Texture,
+	depth_stencil_renderbuffer: NativeRenderbuffer,
 	multisample_framebuffer: Option<MultisampleFramebuffer>,
 }
 
@@ -27,9 +28,6 @@ impl Canvas {
 		}
 		let mut texture = Texture::empty(ctx, size, settings.texture_settings);
 		texture.attach_to_framebuffer();
-		unsafe {
-			gl.bind_framebuffer(glow::FRAMEBUFFER, None);
-		}
 		let multisample_framebuffer = match settings.msaa {
 			Msaa::None => None,
 			_ => Some(MultisampleFramebuffer::new(
@@ -38,10 +36,41 @@ impl Canvas {
 				settings.msaa.num_samples(),
 			)),
 		};
+		let depth_stencil_renderbuffer = unsafe { gl.create_renderbuffer().unwrap() };
+		unsafe {
+			gl.bind_renderbuffer(glow::RENDERBUFFER, Some(depth_stencil_renderbuffer));
+			if settings.msaa != Msaa::None {
+				gl.renderbuffer_storage_multisample(
+					glow::RENDERBUFFER,
+					settings.msaa.num_samples().into(),
+					glow::DEPTH24_STENCIL8,
+					size.x.try_into().expect("canvas is too wide"),
+					size.y.try_into().expect("canvas is too tall"),
+				);
+			} else {
+				gl.renderbuffer_storage(
+					glow::RENDERBUFFER,
+					glow::DEPTH24_STENCIL8,
+					size.x.try_into().expect("canvas is too wide"),
+					size.y.try_into().expect("canvas is too tall"),
+				);
+			}
+			// gl.bind_renderbuffer(glow::RENDERBUFFER, None);
+			gl.framebuffer_renderbuffer(
+				glow::FRAMEBUFFER,
+				glow::DEPTH_STENCIL_ATTACHMENT,
+				glow::RENDERBUFFER,
+				Some(depth_stencil_renderbuffer),
+			);
+		}
+		unsafe {
+			gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+		}
 		Self {
 			gl,
 			framebuffer,
 			texture,
+			depth_stencil_renderbuffer,
 			multisample_framebuffer,
 		}
 	}
@@ -121,6 +150,7 @@ impl Drop for Canvas {
 	fn drop(&mut self) {
 		unsafe {
 			self.gl.delete_framebuffer(self.framebuffer);
+			self.gl.delete_renderbuffer(self.depth_stencil_renderbuffer);
 			if let Some(MultisampleFramebuffer {
 				framebuffer,
 				texture,
@@ -196,8 +226,9 @@ impl MultisampleFramebuffer {
 				Some(texture),
 				0,
 			);
-			gl.bind_framebuffer(glow::FRAMEBUFFER, None);
 		};
+		// intentionally not unbinding this framebuffer because the
+		// depth/stencil buffer will need it bound
 		Self {
 			framebuffer,
 			texture,

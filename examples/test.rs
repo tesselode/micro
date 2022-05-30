@@ -55,9 +55,11 @@ impl State<Box<dyn Error>> for MainState {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-	Context::new(ContextSettings {
-		resizable: true,
-		..Default::default()
-	})
-	.run(MainState::new)
+	micro::run(
+		ContextSettings {
+			resizable: true,
+			..Default::default()
+		},
+		MainState::new,
+	)
 }

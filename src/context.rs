@@ -24,6 +24,44 @@ use crate::{
 	State,
 };
 
+pub fn run<E, S, F>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
+where
+	S: State<E>,
+	F: FnMut(&mut Context) -> Result<S, E>,
+{
+	let mut ctx = Context::new(settings);
+	let mut state = state_constructor(&mut ctx)?;
+	let mut last_update_time = Instant::now();
+	loop {
+		let now = Instant::now();
+		let delta_time = now - last_update_time;
+		last_update_time = now;
+		state.update(&mut ctx, delta_time)?;
+		state.draw(&mut ctx)?;
+		ctx.window.gl_swap_window();
+		while let Some(event) = ctx.event_pump.poll_event() {
+			match event {
+				Event::Window {
+					win_event: WindowEvent::Resized(width, height),
+					..
+				} => {
+					ctx.resize(Vec2::new(width as u32, height as u32));
+				}
+				Event::Quit { .. } => {
+					ctx.should_quit = true;
+				}
+				_ => {}
+			}
+			state.event(&mut ctx, event)?;
+		}
+		if ctx.should_quit {
+			break;
+		}
+		std::thread::sleep(Duration::from_millis(2));
+	}
+	Ok(())
+}
+
 pub struct Context {
 	_sdl: Sdl,
 	_video: VideoSubsystem,
@@ -40,7 +78,7 @@ pub struct Context {
 }
 
 impl Context {
-	pub fn new(settings: ContextSettings) -> Self {
+	fn new(settings: ContextSettings) -> Self {
 		let sdl = sdl2::init().unwrap();
 		let video = sdl.video().unwrap();
 		let controller = sdl.game_controller().unwrap();
@@ -77,43 +115,6 @@ impl Context {
 			transform_stack: vec![],
 			render_target: RenderTarget::Window,
 		}
-	}
-
-	pub fn run<E, S, F>(&mut self, mut state_constructor: F) -> Result<(), E>
-	where
-		S: State<E>,
-		F: FnMut(&mut Context) -> Result<S, E>,
-	{
-		let mut state = state_constructor(self)?;
-		let mut last_update_time = Instant::now();
-		loop {
-			let now = Instant::now();
-			let delta_time = now - last_update_time;
-			last_update_time = now;
-			state.update(self, delta_time)?;
-			state.draw(self)?;
-			self.window.gl_swap_window();
-			while let Some(event) = self.event_pump.poll_event() {
-				match event {
-					Event::Window {
-						win_event: WindowEvent::Resized(width, height),
-						..
-					} => {
-						self.resize(Vec2::new(width as u32, height as u32));
-					}
-					Event::Quit { .. } => {
-						self.should_quit = true;
-					}
-					_ => {}
-				}
-				state.event(self, event)?;
-			}
-			if self.should_quit {
-				break;
-			}
-			std::thread::sleep(Duration::from_millis(2));
-		}
-		Ok(())
 	}
 
 	pub(crate) fn set_render_target(&mut self, render_target: RenderTarget) {

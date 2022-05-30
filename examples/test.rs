@@ -19,7 +19,7 @@ impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
 			mesh: MeshBuilder::new()
-				.with_circle(ShapeStyle::Fill, Vec2::zero(), 64.0)?
+				.with_circle(ShapeStyle::Fill, Vec2::zero(), 64.0)
 				.build(ctx),
 			canvas: Canvas::new(
 				ctx,

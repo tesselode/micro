@@ -18,6 +18,7 @@ use crate::{
 	graphics::{
 		color::Rgba,
 		shader::Shader,
+		stencil::{StencilAction, StencilTest},
 		texture::{Texture, TextureSettings},
 	},
 	input::GameController,
@@ -85,6 +86,7 @@ impl Context {
 		let gl_attr = video.gl_attr();
 		gl_attr.set_context_profile(GLProfile::Core);
 		gl_attr.set_context_version(3, 3);
+		gl_attr.set_stencil_size(8);
 		let window = build_window(&video, &settings);
 		let (window_width, window_height) = window.size();
 		let window_size = Vec2::new(
@@ -169,7 +171,11 @@ impl Context {
 		unsafe {
 			self.gl
 				.clear_color(color.red, color.green, color.blue, color.alpha);
-			self.gl.clear(glow::COLOR_BUFFER_BIT);
+			self.gl.stencil_mask(0xFF);
+			self.gl.clear_stencil(0);
+			self.gl
+				.clear(glow::COLOR_BUFFER_BIT | glow::STENCIL_BUFFER_BIT);
+			self.gl.stencil_mask(0x00);
 		}
 	}
 
@@ -181,6 +187,51 @@ impl Context {
 		self.transform_stack.push(transform);
 		let returned_value = f(self);
 		self.transform_stack.pop();
+		returned_value
+	}
+
+	pub fn write_to_stencil<T>(
+		&mut self,
+		action: StencilAction,
+		f: impl FnOnce(&mut Context) -> T,
+	) -> T {
+		unsafe {
+			self.gl.color_mask(false, false, false, false);
+			self.gl.enable(glow::STENCIL_TEST);
+			let op = action.as_glow_stencil_op();
+			self.gl.stencil_op(op, op, op);
+			let reference = match action {
+				StencilAction::Replace(value) => value,
+				_ => 0,
+			};
+			self.gl.stencil_func(glow::ALWAYS, reference.into(), 0xFF);
+			self.gl.stencil_mask(0xFF);
+		}
+		let returned_value = f(self);
+		unsafe {
+			self.gl.color_mask(true, true, true, true);
+			self.gl.disable(glow::STENCIL_TEST);
+		}
+		returned_value
+	}
+
+	pub fn with_stencil<T>(
+		&mut self,
+		test: StencilTest,
+		reference: u8,
+		f: impl FnOnce(&mut Context) -> T,
+	) -> T {
+		unsafe {
+			self.gl.enable(glow::STENCIL_TEST);
+			self.gl.stencil_op(glow::KEEP, glow::KEEP, glow::KEEP);
+			self.gl
+				.stencil_func(test.as_glow_stencil_func(), reference.into(), 0xFF);
+			self.gl.stencil_mask(0x00);
+		}
+		let returned_value = f(self);
+		unsafe {
+			self.gl.disable(glow::STENCIL_TEST);
+		}
 		returned_value
 	}
 

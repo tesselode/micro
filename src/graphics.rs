@@ -6,6 +6,7 @@ pub mod image_data;
 pub mod mesh;
 pub mod shader;
 pub mod sprite_batch;
+pub mod stencil;
 pub mod text;
 pub mod texture;
 

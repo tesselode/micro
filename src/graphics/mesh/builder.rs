@@ -6,7 +6,7 @@ use lyon_tessellation::{
 use thiserror::Error;
 use vek::Vec2;
 
-use crate::{error::GlError, graphics::color::Rgba, math::Rect, Context};
+use crate::{graphics::color::Rgba, math::Rect, Context};
 
 use super::{Mesh, Vertex};
 
@@ -193,7 +193,7 @@ impl MeshBuilder {
 		Ok(self)
 	}
 
-	pub fn build(self, ctx: &mut Context) -> Result<Mesh, GlError> {
+	pub fn build(self, ctx: &mut Context) -> Mesh {
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
 	}
 }

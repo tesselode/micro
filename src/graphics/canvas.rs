@@ -3,7 +3,7 @@ use std::rc::Rc;
 use glow::{HasContext, NativeFramebuffer, NativeTexture};
 use vek::Vec2;
 
-use crate::{context::RenderTarget, error::GlError, math::Rect, Context};
+use crate::{context::RenderTarget, math::Rect, Context};
 
 use super::{
 	texture::{Texture, TextureSettings},
@@ -19,13 +19,13 @@ pub struct Canvas {
 }
 
 impl Canvas {
-	pub fn new(ctx: &Context, size: Vec2<u32>, settings: CanvasSettings) -> Result<Self, GlError> {
+	pub fn new(ctx: &Context, size: Vec2<u32>, settings: CanvasSettings) -> Self {
 		let gl = ctx.gl.clone();
-		let framebuffer = unsafe { gl.create_framebuffer() }.map_err(GlError)?;
+		let framebuffer = unsafe { gl.create_framebuffer().unwrap() };
 		unsafe {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
 		}
-		let mut texture = Texture::empty(ctx, size, settings.texture_settings)?;
+		let mut texture = Texture::empty(ctx, size, settings.texture_settings);
 		texture.attach_to_framebuffer();
 		unsafe {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, None);
@@ -36,14 +36,14 @@ impl Canvas {
 				gl.clone(),
 				size,
 				settings.msaa.num_samples(),
-			)?),
+			)),
 		};
-		Ok(Self {
+		Self {
 			gl,
 			framebuffer,
 			texture,
 			multisample_framebuffer,
-		})
+		}
 	}
 
 	pub fn size(&self) -> Vec2<u32> {
@@ -108,20 +108,11 @@ impl Canvas {
 		returned_value
 	}
 
-	pub fn draw<'a>(
-		&self,
-		ctx: &Context,
-		params: impl Into<DrawParams<'a>>,
-	) -> Result<(), GlError> {
+	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
 		self.texture.draw(ctx, params)
 	}
 
-	pub fn draw_region<'a>(
-		&self,
-		ctx: &Context,
-		region: Rect,
-		params: impl Into<DrawParams<'a>>,
-	) -> Result<(), GlError> {
+	pub fn draw_region<'a>(&self, ctx: &Context, region: Rect, params: impl Into<DrawParams<'a>>) {
 		self.texture.draw_region(ctx, region, params)
 	}
 }
@@ -182,12 +173,12 @@ struct MultisampleFramebuffer {
 }
 
 impl MultisampleFramebuffer {
-	fn new(gl: Rc<glow::Context>, size: Vec2<u32>, num_samples: u8) -> Result<Self, GlError> {
-		let framebuffer = unsafe { gl.create_framebuffer() }.map_err(GlError)?;
+	fn new(gl: Rc<glow::Context>, size: Vec2<u32>, num_samples: u8) -> Self {
+		let framebuffer = unsafe { gl.create_framebuffer().unwrap() };
 		unsafe {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
 		}
-		let texture = unsafe { gl.create_texture().map_err(GlError)? };
+		let texture = unsafe { gl.create_texture().unwrap() };
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D_MULTISAMPLE, Some(texture));
 			gl.tex_image_2d_multisample(
@@ -207,9 +198,9 @@ impl MultisampleFramebuffer {
 			);
 			gl.bind_framebuffer(glow::FRAMEBUFFER, None);
 		};
-		Ok(Self {
+		Self {
 			framebuffer,
 			texture,
-		})
+		}
 	}
 }

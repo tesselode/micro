@@ -6,7 +6,6 @@ use vek::Vec2;
 
 use crate::{
 	context::Context,
-	error::GlError,
 	graphics::{
 		draw_params::DrawParams,
 		image_data::{ImageData, LoadImageDataError},
@@ -25,11 +24,7 @@ pub struct Texture {
 }
 
 impl Texture {
-	pub fn empty(
-		ctx: &Context,
-		size: Vec2<u32>,
-		settings: TextureSettings,
-	) -> Result<Self, GlError> {
+	pub fn empty(ctx: &Context, size: Vec2<u32>, settings: TextureSettings) -> Self {
 		Self::new_from_gl(ctx.gl.clone(), size, None, settings)
 	}
 
@@ -37,7 +32,7 @@ impl Texture {
 		ctx: &Context,
 		image_data: &ImageData,
 		settings: TextureSettings,
-	) -> Result<Self, GlError> {
+	) -> Self {
 		Self::new_from_gl(
 			ctx.gl.clone(),
 			image_data.size,
@@ -51,8 +46,8 @@ impl Texture {
 		size: Vec2<u32>,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
-	) -> Result<Self, GlError> {
-		let texture = unsafe { gl.create_texture() }.map_err(GlError)?;
+	) -> Self {
+		let texture = unsafe { gl.create_texture().unwrap() };
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
 			gl.tex_parameter_i32(
@@ -92,17 +87,16 @@ impl Texture {
 			);
 			gl.generate_mipmap(glow::TEXTURE_2D);
 		}
-		Ok(Self { gl, texture, size })
+		Self { gl, texture, size }
 	}
 
 	pub fn from_file(
 		ctx: &Context,
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
-	) -> Result<Self, LoadTextureError> {
+	) -> Result<Self, LoadImageDataError> {
 		let image_data = ImageData::load(path)?;
-		Self::from_image_data(ctx, &image_data, settings)
-			.map_err(|error| LoadTextureError::GlError(error.0))
+		Ok(Self::from_image_data(ctx, &image_data, settings))
 	}
 
 	pub fn size(&self) -> Vec2<u32> {
@@ -134,29 +128,18 @@ impl Texture {
 		}
 	}
 
-	pub fn draw<'a>(
-		&self,
-		ctx: &Context,
-		params: impl Into<DrawParams<'a>>,
-	) -> Result<(), GlError> {
-		Mesh::rectangle(ctx, Rect::new(Vec2::zero(), self.size.as_::<f32>()))?
+	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
+		Mesh::rectangle(ctx, Rect::new(Vec2::zero(), self.size.as_::<f32>()))
 			.draw_textured(ctx, self, params);
-		Ok(())
 	}
 
-	pub fn draw_region<'a>(
-		&self,
-		ctx: &Context,
-		region: Rect,
-		params: impl Into<DrawParams<'a>>,
-	) -> Result<(), GlError> {
+	pub fn draw_region<'a>(&self, ctx: &Context, region: Rect, params: impl Into<DrawParams<'a>>) {
 		Mesh::rectangle_with_texture_region(
 			ctx,
 			Rect::new(Vec2::zero(), region.size()),
 			self.relative_rect(region),
-		)?
+		)
 		.draw_textured(ctx, self, params);
-		Ok(())
 	}
 
 	pub(crate) fn attach_to_framebuffer(&mut self) {

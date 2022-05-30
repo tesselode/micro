@@ -20,7 +20,7 @@ impl MainState {
 		Ok(Self {
 			mesh: MeshBuilder::new()
 				.with_circle(ShapeStyle::Fill, Vec2::zero(), 64.0)?
-				.build(ctx)?,
+				.build(ctx),
 			canvas: Canvas::new(
 				ctx,
 				Vec2::new(200, 200),
@@ -28,7 +28,7 @@ impl MainState {
 					msaa: Msaa::X16,
 					..Default::default()
 				},
-			)?,
+			),
 		})
 	}
 }
@@ -49,7 +49,7 @@ impl State<Box<dyn Error>> for MainState {
 				self.mesh.draw(ctx, Rgba::RED);
 				Ok(())
 			})?;
-		self.canvas.draw(ctx, Vec2::new(100.0, 100.0))?;
+		self.canvas.draw(ctx, Vec2::new(100.0, 100.0));
 		Ok(())
 	}
 }

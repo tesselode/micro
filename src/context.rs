@@ -271,8 +271,7 @@ fn create_gl_context(
 		Vec2::new(1, 1),
 		Some(&[255, 255, 255, 255]),
 		TextureSettings::default(),
-	)
-	.expect("Error creating default texture");
+	);
 	let default_shader = Shader::new_from_gl(
 		gl.clone(),
 		include_str!("vertex.glsl"),

@@ -6,7 +6,6 @@ use vek::Vec2;
 
 use crate::{
 	context::Context,
-	error::GlError,
 	graphics::{
 		image_data::ImageData,
 		texture::{Texture, TextureSettings},
@@ -58,8 +57,7 @@ impl Font {
 			&glyph_image_data,
 			&absolute_glyph_rects,
 			texture_settings,
-		)
-		.map_err(|error| LoadFontError::GlError(error.0))?;
+		);
 		let glyph_rects = absolute_glyph_rects
 			.iter()
 			.map(|(char, rect)| (*char, texture.relative_rect(*rect)))
@@ -96,8 +94,6 @@ pub enum LoadFontError {
 	IoError(#[from] std::io::Error),
 	#[error("{0}")]
 	FontError(&'static str),
-	#[error("{0}")]
-	GlError(String),
 }
 
 fn rasterize_chars(font: &fontdue::Font, settings: FontSettings) -> HashMap<char, ImageData> {
@@ -169,8 +165,8 @@ fn create_texture(
 	glyph_image_data: &HashMap<char, ImageData>,
 	glyph_rects: &HashMap<char, Rect>,
 	texture_settings: TextureSettings,
-) -> Result<Texture, GlError> {
-	let texture = Texture::empty(ctx, size, texture_settings)?;
+) -> Texture {
+	let texture = Texture::empty(ctx, size, texture_settings);
 	for (char, rect) in glyph_rects {
 		texture.replace(
 			rect.top_left.x as i32,
@@ -178,5 +174,5 @@ fn create_texture(
 			glyph_image_data.get(char).expect("No image data for glyph"),
 		);
 	}
-	Ok(texture)
+	texture
 }

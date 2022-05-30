@@ -4,7 +4,6 @@ use vek::Vec2;
 
 use crate::{
 	context::Context,
-	error::GlError,
 	graphics::{
 		draw_params::DrawParams,
 		mesh::{Mesh, Vertex},
@@ -22,7 +21,7 @@ pub struct SpriteBatch {
 }
 
 impl SpriteBatch {
-	pub fn new(ctx: &Context, capacity: usize) -> Result<Self, GlError> {
+	pub fn new(ctx: &Context, capacity: usize) -> Self {
 		let vertices = vec![
 			Vertex {
 				position: Vec2::zero(),
@@ -43,10 +42,10 @@ impl SpriteBatch {
 				(start_index + 3).try_into().expect("Too many vertices"),
 			]);
 		}
-		Ok(Self {
+		Self {
 			sprites: Arena::with_capacity(capacity),
-			mesh: Mesh::new(ctx, &vertices, &indices)?,
-		})
+			mesh: Mesh::new(ctx, &vertices, &indices),
+		}
 	}
 
 	pub fn add(&mut self, sprite: Sprite) -> Result<SpriteId, SpriteLimitReached> {

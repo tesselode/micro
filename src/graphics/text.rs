@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 
-use crate::{context::Context, error::GlError, graphics::texture::Texture, math::Rect};
+use crate::{context::Context, graphics::texture::Texture, math::Rect};
 
 use super::{
 	draw_params::DrawParams,
@@ -21,7 +21,7 @@ pub struct Text {
 }
 
 impl Text {
-	pub fn new(ctx: &Context, font: &Font, text: &str) -> Result<Self, GlError> {
+	pub fn new(ctx: &Context, font: &Font, text: &str) -> Self {
 		let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
 		layout.append(
 			&[&font.font],
@@ -33,7 +33,7 @@ impl Text {
 			},
 		);
 		let glyphs = layout.glyphs();
-		let mut sprite_batch = SpriteBatch::new(ctx, glyphs.len())?;
+		let mut sprite_batch = SpriteBatch::new(ctx, glyphs.len());
 		let mut bounds: Option<Rect> = None;
 		for glyph in glyphs {
 			let display_rect = Rect::from_top_left_and_size(
@@ -55,11 +55,11 @@ impl Text {
 				})
 				.expect("Not enough capacity in the sprite batch");
 		}
-		Ok(Self {
+		Self {
 			texture: font.texture.clone(),
 			sprite_batch,
 			bounds,
-		})
+		}
 	}
 
 	pub fn bounds(&self) -> Option<Rect> {

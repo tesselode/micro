@@ -10,7 +10,6 @@ use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
 use crate::{
 	context::Context,
-	error::GlError,
 	graphics::{draw_params::DrawParams, texture::Texture},
 	math::Rect,
 };
@@ -27,18 +26,14 @@ pub struct Mesh {
 }
 
 impl Mesh {
-	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Result<Self, GlError> {
+	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Self {
 		Self::new_from_gl(ctx.gl.clone(), vertices, indices)
 	}
 
-	pub(crate) fn new_from_gl(
-		gl: Rc<glow::Context>,
-		vertices: &[Vertex],
-		indices: &[u32],
-	) -> Result<Self, GlError> {
-		let vertex_array = unsafe { gl.create_vertex_array() }.map_err(GlError)?;
-		let vertex_buffer = unsafe { gl.create_buffer() }.map_err(GlError)?;
-		let index_buffer = unsafe { gl.create_buffer() }.map_err(GlError)?;
+	pub(crate) fn new_from_gl(gl: Rc<glow::Context>, vertices: &[Vertex], indices: &[u32]) -> Self {
+		let vertex_array = unsafe { gl.create_vertex_array().unwrap() };
+		let vertex_buffer = unsafe { gl.create_buffer().unwrap() };
+		let index_buffer = unsafe { gl.create_buffer().unwrap() };
 		unsafe {
 			gl.bind_vertex_array(Some(vertex_array));
 			gl.bind_buffer(glow::ARRAY_BUFFER, Some(vertex_buffer));
@@ -81,16 +76,16 @@ impl Mesh {
 			);
 			gl.enable_vertex_attrib_array(2);
 		}
-		Ok(Self {
+		Self {
 			gl,
 			vertex_array,
 			vertex_buffer,
 			index_buffer,
 			num_indices: indices.len().try_into().expect("Mesh has too many indices"),
-		})
+		}
 	}
 
-	pub fn rectangle(ctx: &Context, rect: Rect) -> Result<Self, GlError> {
+	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
 		Self::rectangle_with_texture_region(ctx, rect, Rect::xywh(0.0, 0.0, 1.0, 1.0))
 	}
 
@@ -98,7 +93,7 @@ impl Mesh {
 		ctx: &Context,
 		display_rect: Rect,
 		texture_rect: Rect,
-	) -> Result<Self, GlError> {
+	) -> Self {
 		Self::new(
 			ctx,
 			&[

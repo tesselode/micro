@@ -169,7 +169,7 @@ impl MeshBuilder {
 		self
 	}
 
-	pub fn build(self, ctx: &mut Context) -> Mesh {
+	pub fn build(self, ctx: &Context) -> Mesh {
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
 	}
 }

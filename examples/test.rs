@@ -12,47 +12,24 @@ use micro::{
 };
 use vek::Vec2;
 
-struct MainState {
-	canvas: Canvas,
-	mesh: Mesh,
-}
-
-impl MainState {
-	fn new(ctx: &Context) -> Self {
-		Self {
-			canvas: Canvas::new(
-				ctx,
-				ctx.window_size(),
-				CanvasSettings {
-					msaa: Msaa::X16,
-					..Default::default()
-				},
-			),
-			mesh: MeshBuilder::new()
-				.with_circle(ShapeStyle::Fill, Vec2::zero(), 200.0)
-				.build(ctx),
-		}
-	}
-}
+struct MainState;
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		self.canvas.render_to(ctx, |ctx| {
-			ctx.clear(Rgba::BLACK);
-			ctx.write_to_stencil(StencilAction::Increment, |ctx| {
-				self.mesh.draw(ctx, Vec2::new(300.0, 300.0));
-				self.mesh.draw(ctx, Vec2::new(400.0, 300.0));
-			});
-			ctx.with_stencil(StencilTest::NotEqual, 1, |ctx| {
-				self.mesh.draw(ctx, Vec2::new(500.0, 300.0));
-			});
-		});
-		self.canvas.draw(ctx, DrawParams::new());
+		MeshBuilder::new()
+			.with_color(Rgba::RED, |builder| {
+				builder.add_circle(ShapeStyle::Fill, Vec2::new(100.0, 100.0), 64.0);
+			})
+			.with_color(Rgba::GREEN, |builder| {
+				builder.add_circle(ShapeStyle::Fill, Vec2::new(200.0, 300.0), 32.0);
+			})
+			.build(ctx)
+			.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-	micro::run(ContextSettings::default(), |ctx| Ok(MainState::new(ctx)))
+	micro::run(ContextSettings::default(), |_| Ok(MainState))
 }

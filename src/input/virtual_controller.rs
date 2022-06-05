@@ -29,11 +29,11 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 			config,
 			controller,
 			active_input_kind: None,
-			control_state: C::all()
+			control_state: C::ALL
 				.iter()
 				.map(|control| (*control, VirtualControlState::default()))
 				.collect(),
-			stick_state: S::all()
+			stick_state: S::ALL
 				.iter()
 				.map(|stick| (*stick, VirtualAnalogStickState::default()))
 				.collect(),

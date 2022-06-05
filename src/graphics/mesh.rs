@@ -122,6 +122,36 @@ impl Mesh {
 		)
 	}
 
+	pub fn styled_rectangle(ctx: &Context, style: ShapeStyle, rect: Rect) -> Self {
+		MeshBuilder::new().with_rectangle(style, rect).build(ctx)
+	}
+
+	pub fn circle(ctx: &Context, style: ShapeStyle, center: Vec2<f32>, radius: f32) -> Self {
+		MeshBuilder::new()
+			.with_circle(style, center, radius)
+			.build(ctx)
+	}
+
+	pub fn ellipse(
+		ctx: &Context,
+		style: ShapeStyle,
+		center: Vec2<f32>,
+		radii: Vec2<f32>,
+		rotation: f32,
+	) -> Self {
+		MeshBuilder::new()
+			.with_ellipse(style, center, radii, rotation)
+			.build(ctx)
+	}
+
+	pub fn polygon(ctx: &Context, style: ShapeStyle, points: &[Vec2<f32>]) -> Self {
+		MeshBuilder::new().with_polygon(style, points).build(ctx)
+	}
+
+	pub fn polyline(ctx: &Context, line_width: f32, points: &[Vec2<f32>]) -> Self {
+		MeshBuilder::new().with_polyline(line_width, points).build(ctx)
+	}
+
 	pub fn set_vertex(&self, index: usize, vertex: Vertex) {
 		let gl = &self.gl;
 		unsafe {

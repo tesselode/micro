@@ -36,6 +36,9 @@ impl Text {
 		let mut sprite_batch = SpriteBatch::new(ctx, glyphs.len());
 		let mut bounds: Option<Rect> = None;
 		for glyph in glyphs {
+			if !glyph.char_data.rasterize() {
+				continue;
+			}
 			let display_rect = Rect::from_top_left_and_size(
 				Vec2::new(glyph.x, glyph.y),
 				Vec2::new(glyph.width as f32, glyph.height as f32),
@@ -51,7 +54,7 @@ impl Text {
 					texture_rect: *font
 						.glyph_rects
 						.get(&glyph.parent)
-						.expect("No glyph rect for this character"),
+						.expect(&format!("No glyph rect for the character {}", glyph.parent)),
 				})
 				.expect("Not enough capacity in the sprite batch");
 		}

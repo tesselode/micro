@@ -1,6 +1,22 @@
 use bytemuck::{Pod, Zeroable};
+use derive_more::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
-#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+#[derive(
+	Debug,
+	Clone,
+	Copy,
+	PartialEq,
+	Pod,
+	Zeroable,
+	Add,
+	AddAssign,
+	Sub,
+	SubAssign,
+	Mul,
+	MulAssign,
+	Div,
+	DivAssign,
+)]
 #[repr(C)]
 pub struct Rgba {
 	pub red: f32,

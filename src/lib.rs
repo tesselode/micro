@@ -3,6 +3,7 @@ pub mod graphics;
 pub mod input;
 pub mod math;
 mod state;
+pub mod tween;
 
 pub use context::{run, Context, ContextSettings};
 pub use sdl2::event::Event;

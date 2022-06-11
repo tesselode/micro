@@ -1,32 +1,22 @@
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
-use micro::{
-	graphics::{
-		color::Rgba,
-		mesh::{Mesh, ShapeStyle},
-		text::{Font, FontSettings, Text},
-		DrawParams,
-	},
-	Context, ContextSettings, State,
-};
-use vek::Vec2;
+use micro::{graphics::color::Rgba, Context, ContextSettings, State};
 
-struct MainState {
-	font: Font,
-}
+struct MainState {}
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {
-			font: Font::from_file(ctx, "examples/Roboto-Regular.ttf", FontSettings::default())?,
-		})
+		Ok(Self {})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
+	fn update(&mut self, _ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
-		Text::new(ctx, &self.font, "This is some\nmultiline text.").draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

@@ -1,3 +1,5 @@
+pub mod tween_sequence;
+
 use std::{
 	f32::consts::PI,
 	ops::{Add, Mul, Sub},

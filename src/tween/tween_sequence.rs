@@ -2,6 +2,7 @@ use std::{ops::Range, time::Duration};
 
 use super::{Easing, Tweenable};
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct TweenSequence<T: Tweenable + Copy> {
 	starting_value: T,
 	tweens: Vec<Tween<T>>,
@@ -80,6 +81,7 @@ impl<T: Tweenable + Copy> TweenSequence<T> {
 	}
 }
 
+#[derive(Debug, Clone, PartialEq)]
 struct Tween<T: Tweenable> {
 	times: Range<Duration>,
 	values: Range<T>,

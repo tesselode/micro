@@ -25,20 +25,20 @@ use crate::{
 	State,
 };
 
-pub fn run<E, S, F>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
+pub fn run<S, F>(settings: ContextSettings, mut state_constructor: F)
 where
-	S: State<E>,
-	F: FnMut(&mut Context) -> Result<S, E>,
+	S: State,
+	F: FnMut(&mut Context) -> S,
 {
 	let mut ctx = Context::new(settings);
-	let mut state = state_constructor(&mut ctx)?;
+	let mut state = state_constructor(&mut ctx);
 	let mut last_update_time = Instant::now();
 	loop {
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
 		last_update_time = now;
-		state.update(&mut ctx, delta_time)?;
-		state.draw(&mut ctx)?;
+		state.update(&mut ctx, delta_time);
+		state.draw(&mut ctx);
 		ctx.window.gl_swap_window();
 		while let Some(event) = ctx.event_pump.poll_event() {
 			match event {
@@ -53,14 +53,13 @@ where
 				}
 				_ => {}
 			}
-			state.event(&mut ctx, event)?;
+			state.event(&mut ctx, event);
 		}
 		if ctx.should_quit {
 			break;
 		}
 		std::thread::sleep(Duration::from_millis(2));
 	}
-	Ok(())
 }
 
 pub struct Context {

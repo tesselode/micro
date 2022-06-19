@@ -94,32 +94,18 @@ impl Mesh {
 		display_rect: Rect,
 		texture_rect: Rect,
 	) -> Self {
-		Self::new(
-			ctx,
-			&[
-				Vertex {
-					position: display_rect.bottom_right,
-					texture_coords: texture_rect.bottom_right,
-					color: Rgba::WHITE,
-				},
-				Vertex {
-					position: display_rect.top_right(),
-					texture_coords: texture_rect.top_right(),
-					color: Rgba::WHITE,
-				},
-				Vertex {
-					position: display_rect.top_left,
-					texture_coords: texture_rect.top_left,
-					color: Rgba::WHITE,
-				},
-				Vertex {
-					position: display_rect.bottom_left(),
-					texture_coords: texture_rect.bottom_left(),
-					color: Rgba::WHITE,
-				},
-			],
-			&[0, 1, 3, 1, 2, 3],
-		)
+		let vertices = display_rect
+			.corners()
+			.iter()
+			.copied()
+			.zip(texture_rect.corners())
+			.map(|(position, texture_coords)| Vertex {
+				position,
+				texture_coords,
+				color: Rgba::WHITE,
+			})
+			.collect::<Vec<_>>();
+		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
 	pub fn styled_rectangle(ctx: &Context, style: ShapeStyle, rect: Rect) -> Self {
@@ -149,7 +135,9 @@ impl Mesh {
 	}
 
 	pub fn polyline(ctx: &Context, line_width: f32, points: &[Vec2<f32>]) -> Self {
-		MeshBuilder::new().with_polyline(line_width, points).build(ctx)
+		MeshBuilder::new()
+			.with_polyline(line_width, points)
+			.build(ctx)
 	}
 
 	pub fn set_vertex(&self, index: usize, vertex: Vertex) {

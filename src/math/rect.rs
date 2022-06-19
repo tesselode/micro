@@ -103,6 +103,15 @@ impl<T: Copy> Rect<T> {
 		Vec2::new(self.fractional_x(fraction.x), self.fractional_y(fraction.y))
 	}
 
+	pub fn corners(&self) -> [Vec2<T>; 4] {
+		[
+			self.bottom_right,
+			self.top_right(),
+			self.top_left,
+			self.bottom_left(),
+		]
+	}
+
 	pub fn padded(&self, padding: Vec2<T>) -> Self
 	where
 		T: Num,

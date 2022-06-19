@@ -56,38 +56,20 @@ impl SpriteBatch {
 			.map_err(|_| SpriteLimitReached)?;
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
-		self.mesh.set_vertex(
-			start_vertex_index,
-			Vertex {
-				position: sprite.display_rect.bottom_right,
-				texture_coords: sprite.texture_rect.bottom_right,
+		let corners = sprite.display_rect.corners();
+		let vertices = corners
+			.iter()
+			.copied()
+			.zip(sprite.texture_rect.corners())
+			.map(|(position, texture_coords)| Vertex {
+				position,
+				texture_coords,
 				color: Rgba::WHITE,
-			},
-		);
-		self.mesh.set_vertex(
-			start_vertex_index + 1,
-			Vertex {
-				position: sprite.display_rect.top_right(),
-				texture_coords: sprite.texture_rect.top_right(),
-				color: Rgba::WHITE,
-			},
-		);
-		self.mesh.set_vertex(
-			start_vertex_index + 2,
-			Vertex {
-				position: sprite.display_rect.top_left,
-				texture_coords: sprite.texture_rect.top_left,
-				color: Rgba::WHITE,
-			},
-		);
-		self.mesh.set_vertex(
-			start_vertex_index + 3,
-			Vertex {
-				position: sprite.display_rect.bottom_left(),
-				texture_coords: sprite.texture_rect.bottom_left(),
-				color: Rgba::WHITE,
-			},
-		);
+			})
+			.enumerate();
+		for (i, vertex) in vertices {
+			self.mesh.set_vertex(start_vertex_index + i, vertex);
+		}
 		Ok(id)
 	}
 

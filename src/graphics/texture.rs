@@ -16,11 +16,16 @@ use crate::{
 
 use super::color::Rgba;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Texture {
+	pub(crate) inner: Rc<TextureInner>,
+}
+
+#[derive(Debug)]
+pub(crate) struct TextureInner {
 	gl: Rc<glow::Context>,
-	pub(crate) texture: NativeTexture,
-	pub(crate) size: Vec2<u32>,
+	pub texture: NativeTexture,
+	pub size: Vec2<u32>,
 }
 
 impl Texture {
@@ -87,7 +92,9 @@ impl Texture {
 			);
 			gl.generate_mipmap(glow::TEXTURE_2D);
 		}
-		Self { gl, texture, size }
+		Self {
+			inner: Rc::new(TextureInner { gl, texture, size }),
+		}
 	}
 
 	pub fn from_file(
@@ -100,11 +107,11 @@ impl Texture {
 	}
 
 	pub fn size(&self) -> Vec2<u32> {
-		self.size
+		self.inner.size
 	}
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
-		let size = self.size.as_::<f32>();
+		let size = self.inner.size.as_::<f32>();
 		Rect {
 			top_left: absolute_rect.top_left / size,
 			bottom_right: absolute_rect.bottom_right / size,
@@ -113,8 +120,10 @@ impl Texture {
 
 	pub fn replace(&self, x: i32, y: i32, image_data: &ImageData) {
 		unsafe {
-			self.gl.bind_texture(glow::TEXTURE_2D, Some(self.texture));
-			self.gl.tex_sub_image_2d(
+			self.inner
+				.gl
+				.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
+			self.inner.gl.tex_sub_image_2d(
 				glow::TEXTURE_2D,
 				0,
 				x,
@@ -129,7 +138,7 @@ impl Texture {
 	}
 
 	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
-		Mesh::rectangle(ctx, Rect::new(Vec2::zero(), self.size.as_::<f32>()))
+		Mesh::rectangle(ctx, Rect::new(Vec2::zero(), self.inner.size.as_::<f32>()))
 			.draw_textured(ctx, self, params);
 	}
 
@@ -144,19 +153,21 @@ impl Texture {
 
 	pub(crate) fn attach_to_framebuffer(&mut self) {
 		unsafe {
-			self.gl.bind_texture(glow::TEXTURE_2D, Some(self.texture));
-			self.gl.framebuffer_texture_2d(
+			self.inner
+				.gl
+				.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
+			self.inner.gl.framebuffer_texture_2d(
 				glow::FRAMEBUFFER,
 				glow::COLOR_ATTACHMENT0,
 				glow::TEXTURE_2D,
-				Some(self.texture),
+				Some(self.inner.texture),
 				0,
 			);
 		}
 	}
 }
 
-impl Drop for Texture {
+impl Drop for TextureInner {
 	fn drop(&mut self) {
 		unsafe {
 			self.gl.delete_texture(self.texture);

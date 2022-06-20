@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, rc::Rc};
+use std::{collections::HashMap, path::Path};
 
 use crunch::pack_into_po2;
 use thiserror::Error;
@@ -18,7 +18,7 @@ const GLYPH_PADDING: usize = 2;
 pub struct Font {
 	pub(crate) font: fontdue::Font,
 	pub(crate) scale: f32,
-	pub(crate) texture: Rc<Texture>,
+	pub(crate) texture: Texture,
 	pub(crate) glyph_rects: HashMap<char, Rect>,
 }
 
@@ -65,7 +65,7 @@ impl Font {
 		Ok(Self {
 			font,
 			scale,
-			texture: Rc::new(texture),
+			texture,
 			glyph_rects,
 		})
 	}

@@ -3,8 +3,6 @@ mod font;
 pub use font::*;
 use vek::Vec2;
 
-use std::rc::Rc;
-
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 
 use crate::{context::Context, graphics::texture::Texture, math::Rect};
@@ -15,7 +13,7 @@ use super::{
 };
 
 pub struct Text {
-	pub(crate) texture: Rc<Texture>,
+	pub(crate) texture: Texture,
 	pub(crate) sprite_batch: SpriteBatch,
 	pub(crate) bounds: Option<Rect>,
 }

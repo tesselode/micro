@@ -180,7 +180,7 @@ impl Mesh {
 				.send_mat4("localTransform", params.transform())
 				.expect("Shader does not have a localTransform uniform");
 			gl.use_program(Some(shader.program));
-			gl.bind_texture(glow::TEXTURE_2D, Some(texture.texture));
+			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
 			gl.bind_vertex_array(Some(self.vertex_array));
 			params.blend_mode.apply(gl);
 			gl.draw_elements(glow::TRIANGLES, self.num_indices, glow::UNSIGNED_INT, 0);

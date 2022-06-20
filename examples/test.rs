@@ -1,29 +1,30 @@
 use micro::{
 	graphics::{
 		color::Rgba,
-		texture::{Texture, TextureSettings},
+		text::{Font, FontSettings, Text},
 		DrawParams,
 	},
 	Context, ContextSettings, State,
 };
 
 struct MainState {
-	texture: Texture,
+	font: Font,
+	text: Text,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Self {
-		Self {
-			texture: Texture::from_file(ctx, "examples/player.png", TextureSettings::default())
-				.unwrap(),
-		}
+		let font =
+			Font::from_file(ctx, "examples/Roboto-Regular.ttf", FontSettings::default()).unwrap();
+		let text = Text::new(ctx, &font, "hello, world!");
+		Self { font, text }
 	}
 }
 
 impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
-		self.texture.draw(ctx, DrawParams::new());
+		self.text.draw(ctx, DrawParams::new());
 	}
 }
 

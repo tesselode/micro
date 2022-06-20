@@ -5,7 +5,7 @@ use vek::Vec2;
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 
-use crate::{context::Context, graphics::texture::Texture, math::Rect};
+use crate::{context::Context, math::Rect};
 
 use super::{
 	draw_params::DrawParams,
@@ -13,7 +13,6 @@ use super::{
 };
 
 pub struct Text {
-	pub(crate) texture: Texture,
 	pub(crate) sprite_batch: SpriteBatch,
 	pub(crate) bounds: Option<Rect>,
 }
@@ -31,7 +30,7 @@ impl Text {
 			},
 		);
 		let glyphs = layout.glyphs();
-		let mut sprite_batch = SpriteBatch::new(ctx, glyphs.len());
+		let mut sprite_batch = SpriteBatch::new(ctx, &font.texture, glyphs.len());
 		let mut bounds: Option<Rect> = None;
 		for glyph in glyphs {
 			if !glyph.char_data.rasterize() {
@@ -57,7 +56,6 @@ impl Text {
 				.expect("Not enough capacity in the sprite batch");
 		}
 		Self {
-			texture: font.texture.clone(),
 			sprite_batch,
 			bounds,
 		}
@@ -68,6 +66,6 @@ impl Text {
 	}
 
 	pub fn draw<'a>(&self, ctx: &mut Context, params: impl Into<DrawParams<'a>>) {
-		self.sprite_batch.draw(ctx, &self.texture, params);
+		self.sprite_batch.draw(ctx, params);
 	}
 }

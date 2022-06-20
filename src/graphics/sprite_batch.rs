@@ -16,12 +16,13 @@ use super::color::Rgba;
 
 #[derive(Debug)]
 pub struct SpriteBatch {
+	texture: Texture,
 	sprites: Arena<()>,
 	mesh: Mesh,
 }
 
 impl SpriteBatch {
-	pub fn new(ctx: &Context, capacity: usize) -> Self {
+	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
 		let vertices = vec![
 			Vertex {
 				position: Vec2::zero(),
@@ -43,6 +44,7 @@ impl SpriteBatch {
 			]);
 		}
 		Self {
+			texture: texture.clone(),
 			sprites: Arena::with_capacity(capacity),
 			mesh: Mesh::new(ctx, &vertices, &indices),
 		}
@@ -92,8 +94,8 @@ impl SpriteBatch {
 		Ok(())
 	}
 
-	pub fn draw<'a>(&self, ctx: &Context, texture: &Texture, params: impl Into<DrawParams<'a>>) {
-		self.mesh.draw_textured(ctx, texture, params);
+	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
+		self.mesh.draw_textured(ctx, &self.texture, params);
 	}
 }
 

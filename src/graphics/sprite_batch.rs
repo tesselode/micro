@@ -54,7 +54,7 @@ impl SpriteBatch {
 		}
 	}
 
-	pub fn add(&mut self, params: SpriteParams) -> Result<SpriteId, SpriteLimitReached> {
+	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
 		self.add_region(
 			Rect::from_top_left_and_size(Vec2::zero(), self.texture.size().as_()),
 			params,
@@ -64,13 +64,14 @@ impl SpriteBatch {
 	pub fn add_region(
 		&mut self,
 		texture_rect: Rect,
-		params: SpriteParams,
+		params: impl Into<SpriteParams>,
 	) -> Result<SpriteId, SpriteLimitReached> {
 		let id = self
 			.sprites
 			.try_insert(())
 			.map(SpriteId)
 			.map_err(|_| SpriteLimitReached)?;
+		let params = params.into();
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		let untransformed_display_rect =

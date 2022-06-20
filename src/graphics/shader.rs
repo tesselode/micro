@@ -23,7 +23,7 @@ impl Shader {
 			&std::fs::read_to_string(vertex)?,
 			&std::fs::read_to_string(fragment)?,
 		)
-		.map_err(|error| LoadShaderError::ShaderError(error))
+		.map_err(LoadShaderError::ShaderError)
 	}
 
 	pub(crate) fn new_from_gl(

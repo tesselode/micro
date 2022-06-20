@@ -48,10 +48,9 @@ impl Text {
 			sprite_batch
 				.add(Sprite {
 					display_rect,
-					texture_rect: *font
-						.glyph_rects
-						.get(&glyph.parent)
-						.expect(&format!("No glyph rect for the character {}", glyph.parent)),
+					texture_rect: *font.glyph_rects.get(&glyph.parent).unwrap_or_else(|| {
+						panic!("No glyph rect for the character {}", glyph.parent)
+					}),
 				})
 				.expect("Not enough capacity in the sprite batch");
 		}

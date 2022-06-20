@@ -1,3 +1,7 @@
+mod sprite_params;
+
+pub use sprite_params::SpriteParams;
+
 use generational_arena::{Arena, Index};
 use thiserror::Error;
 use vek::Vec2;
@@ -50,24 +54,38 @@ impl SpriteBatch {
 		}
 	}
 
-	pub fn add(&mut self, sprite: Sprite) -> Result<SpriteId, SpriteLimitReached> {
+	pub fn add(&mut self, params: SpriteParams) -> Result<SpriteId, SpriteLimitReached> {
+		self.add_region(
+			Rect::from_top_left_and_size(Vec2::zero(), self.texture.size().as_()),
+			params,
+		)
+	}
+
+	pub fn add_region(
+		&mut self,
+		texture_rect: Rect,
+		params: SpriteParams,
+	) -> Result<SpriteId, SpriteLimitReached> {
 		let id = self
 			.sprites
 			.try_insert(())
 			.map(SpriteId)
 			.map_err(|_| SpriteLimitReached)?;
-		let relative_texture_rect = self.texture.relative_rect(sprite.texture_rect);
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
-		let corners = sprite.display_rect.corners();
+		let untransformed_display_rect =
+			Rect::from_top_left_and_size(Vec2::zero(), texture_rect.size());
+		let relative_texture_rect = self.texture.relative_rect(texture_rect);
+		let transform = params.transform();
+		let corners = untransformed_display_rect.corners();
 		let vertices = corners
 			.iter()
 			.copied()
 			.zip(relative_texture_rect.corners())
 			.map(|(position, texture_coords)| Vertex {
-				position,
+				position: transform.mul_point(position),
 				texture_coords,
-				color: Rgba::WHITE,
+				color: params.color,
 			})
 			.enumerate();
 		for (i, vertex) in vertices {
@@ -98,12 +116,6 @@ impl SpriteBatch {
 	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
 		self.mesh.draw_textured(ctx, &self.texture, params);
 	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Sprite {
-	pub display_rect: Rect,
-	pub texture_rect: Rect,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

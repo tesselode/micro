@@ -9,7 +9,7 @@ use crate::{context::Context, math::Rect};
 
 use super::{
 	draw_params::DrawParams,
-	sprite_batch::{Sprite, SpriteBatch},
+	sprite_batch::{SpriteBatch, SpriteParams},
 };
 
 pub struct Text {
@@ -45,13 +45,15 @@ impl Text {
 			} else {
 				bounds = Some(display_rect);
 			}
+			let texture_rect = *font
+				.glyph_rects
+				.get(&glyph.parent)
+				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
 			sprite_batch
-				.add(Sprite {
-					display_rect,
-					texture_rect: *font.glyph_rects.get(&glyph.parent).unwrap_or_else(|| {
-						panic!("No glyph rect for the character {}", glyph.parent)
-					}),
-				})
+				.add_region(
+					texture_rect,
+					SpriteParams::new().position(Vec2::new(glyph.x, glyph.y)),
+				)
 				.expect("Not enough capacity in the sprite batch");
 		}
 		Self {

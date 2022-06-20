@@ -1,7 +1,7 @@
 use micro::{
 	graphics::{
 		color::Rgba,
-		sprite_batch::{Sprite, SpriteBatch},
+		sprite_batch::{SpriteBatch, SpriteParams},
 		texture::{Texture, TextureSettings},
 		DrawParams,
 	},
@@ -19,10 +19,10 @@ impl MainState {
 			Texture::from_file(ctx, "examples/player.png", TextureSettings::default()).unwrap();
 		let mut sprite_batch = SpriteBatch::new(ctx, &texture, 1);
 		sprite_batch
-			.add(Sprite {
-				display_rect: Rect::xywh(0.0, 0.0, 50.0, 50.0),
-				texture_rect: Rect::xywh(0.0, 0.0, 50.0, 50.0),
-			})
+			.add_region(
+				Rect::xywh(0.0, 0.0, 50.0, 50.0),
+				SpriteParams::new().rotation(0.5).color(Rgba::RED),
+			)
 			.unwrap();
 		Self { sprite_batch }
 	}

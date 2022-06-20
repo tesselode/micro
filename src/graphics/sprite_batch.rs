@@ -56,13 +56,14 @@ impl SpriteBatch {
 			.try_insert(())
 			.map(SpriteId)
 			.map_err(|_| SpriteLimitReached)?;
+		let relative_texture_rect = self.texture.relative_rect(sprite.texture_rect);
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		let corners = sprite.display_rect.corners();
 		let vertices = corners
 			.iter()
 			.copied()
-			.zip(sprite.texture_rect.corners())
+			.zip(relative_texture_rect.corners())
 			.map(|(position, texture_coords)| Vertex {
 				position,
 				texture_coords,

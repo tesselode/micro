@@ -47,7 +47,7 @@ impl Font {
 		)
 		.map_err(LoadFontError::FontError)?;
 		let glyph_image_data = rasterize_chars(&font, settings);
-		let (width, height, absolute_glyph_rects) = pack_glyphs(&glyph_image_data);
+		let (width, height, glyph_rects) = pack_glyphs(&glyph_image_data);
 		let texture = create_texture(
 			ctx,
 			Vec2::new(
@@ -55,13 +55,9 @@ impl Font {
 				height.try_into().expect("Packed glyphs are too tall"),
 			),
 			&glyph_image_data,
-			&absolute_glyph_rects,
+			&glyph_rects,
 			texture_settings,
 		);
-		let glyph_rects = absolute_glyph_rects
-			.iter()
-			.map(|(char, rect)| (*char, texture.relative_rect(*rect)))
-			.collect();
 		Ok(Self {
 			font,
 			scale,

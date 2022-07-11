@@ -37,9 +37,6 @@ where
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
 		last_update_time = now;
-		state.update(&mut ctx, delta_time);
-		state.draw(&mut ctx);
-		ctx.window.gl_swap_window();
 		while let Some(event) = ctx.event_pump.poll_event() {
 			match event {
 				Event::Window {
@@ -55,6 +52,9 @@ where
 			}
 			state.event(&mut ctx, event);
 		}
+		state.update(&mut ctx, delta_time);
+		state.draw(&mut ctx);
+		ctx.window.gl_swap_window();
 		if ctx.should_quit {
 			break;
 		}

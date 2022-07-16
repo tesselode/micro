@@ -1,7 +1,6 @@
 use lyon_tessellation::{
-	path::{traits::PathBuilder, Winding},
-	BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor, StrokeOptions,
-	StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
+	path::Winding, BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor,
+	StrokeOptions, StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
 };
 use vek::Vec2;
 
@@ -38,9 +37,12 @@ impl MeshBuilder {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_rectangle(
-					&lyon_tessellation::math::Rect {
-						origin: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-						size: lyon_tessellation::math::size(rect.size().x, rect.size().y),
+					&lyon_tessellation::math::Box2D {
+						min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+						max: lyon_tessellation::math::point(
+							rect.top_left.x + rect.size().x,
+							rect.top_left.y + rect.size().y,
+						),
 					},
 					&FillOptions::default(),
 					&mut BuffersBuilder::new(
@@ -51,9 +53,12 @@ impl MeshBuilder {
 				.unwrap(),
 			ShapeStyle::Stroke(width) => StrokeTessellator::new()
 				.tessellate_rectangle(
-					&lyon_tessellation::math::Rect {
-						origin: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-						size: lyon_tessellation::math::size(rect.size().x, rect.size().y),
+					&lyon_tessellation::math::Box2D {
+						min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+						max: lyon_tessellation::math::point(
+							rect.top_left.x + rect.size().x,
+							rect.top_left.y + rect.size().y,
+						),
 					},
 					&StrokeOptions::default().with_line_width(width),
 					&mut BuffersBuilder::new(

@@ -61,6 +61,18 @@ impl Shader {
 		Ok(Self { gl, program })
 	}
 
+	pub fn send_i32(&self, name: &str, value: i32) -> Result<(), UniformNotFound> {
+		unsafe {
+			self.gl.use_program(Some(self.program));
+			let location = self
+				.gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			self.gl.uniform_1_i32(Some(&location), value);
+		}
+		Ok(())
+	}
+
 	pub fn send_mat4(&self, name: &str, mat4: Mat4<f32>) -> Result<(), UniformNotFound> {
 		unsafe {
 			self.gl.use_program(Some(self.program));

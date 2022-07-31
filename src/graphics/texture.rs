@@ -165,16 +165,6 @@ impl Texture {
 			);
 		}
 	}
-
-	pub fn bind_to_slot(&self, slot: u32) {
-		unsafe {
-			self.inner.gl.active_texture(glow::TEXTURE0 + slot);
-			self.inner
-				.gl
-				.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
-			self.inner.gl.active_texture(glow::TEXTURE0);
-		}
-	}
 }
 
 impl Drop for TextureInner {

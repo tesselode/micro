@@ -179,6 +179,7 @@ impl Mesh {
 			shader
 				.send_mat4("localTransform", params.transform())
 				.expect("Shader does not have a localTransform uniform");
+			shader.bind_sent_textures();
 			gl.use_program(Some(shader.program));
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
 			gl.bind_vertex_array(Some(self.vertex_array));

@@ -62,6 +62,10 @@ impl Text {
 		}
 	}
 
+	pub fn num_glyphs(&self) -> usize {
+		self.sprite_batch.len()
+	}
+
 	pub fn bounds(&self) -> Option<Rect> {
 		self.bounds
 	}

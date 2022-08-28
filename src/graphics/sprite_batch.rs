@@ -55,6 +55,15 @@ impl SpriteBatch {
 		}
 	}
 
+	pub fn len(&self) -> usize {
+		self.sprites.len()
+	}
+
+	#[must_use]
+	pub fn is_empty(&self) -> bool {
+		self.len() == 0
+	}
+
 	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
 		self.add_region(
 			Rect::from_top_left_and_size(Vec2::zero(), self.texture.size().as_()),

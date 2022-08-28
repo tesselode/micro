@@ -16,9 +16,9 @@ impl MainState {
 	fn new(ctx: &mut Context) -> Self {
 		let font =
 			Font::from_file(ctx, "examples/Roboto-Regular.ttf", FontSettings::default()).unwrap();
-		Self {
-			text: Text::new(ctx, &font, "hello world!"),
-		}
+		let text = Text::new(ctx, &font, "hello world!");
+		println!("{}", text.num_glyphs());
+		Self { text }
 	}
 }
 

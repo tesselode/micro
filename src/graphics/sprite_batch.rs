@@ -14,6 +14,7 @@ use crate::{
 		texture::Texture,
 	},
 	math::Rect,
+	IntoOffsetAndCount, OffsetAndCount,
 };
 
 use super::color::Rgba;
@@ -116,6 +117,24 @@ impl SpriteBatch {
 
 	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
 		self.mesh.draw_textured(ctx, &self.texture, params);
+	}
+
+	pub fn draw_range<'a>(
+		&self,
+		ctx: &Context,
+		range: impl IntoOffsetAndCount,
+		params: impl Into<DrawParams<'a>>,
+	) {
+		let offset_and_count = range.into_offset_and_count(self.sprites.len());
+		self.mesh.draw_range_textured(
+			ctx,
+			&self.texture,
+			OffsetAndCount {
+				offset: offset_and_count.offset * 6,
+				count: offset_and_count.count * 6,
+			},
+			params,
+		);
 	}
 }
 

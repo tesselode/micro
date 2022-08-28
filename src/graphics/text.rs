@@ -5,7 +5,7 @@ use vek::Vec2;
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 
-use crate::{context::Context, math::Rect};
+use crate::{context::Context, math::Rect, IntoOffsetAndCount};
 
 use super::{
 	draw_params::DrawParams,
@@ -68,5 +68,14 @@ impl Text {
 
 	pub fn draw<'a>(&self, ctx: &mut Context, params: impl Into<DrawParams<'a>>) {
 		self.sprite_batch.draw(ctx, params);
+	}
+
+	pub fn draw_range<'a>(
+		&self,
+		ctx: &mut Context,
+		range: impl IntoOffsetAndCount,
+		params: impl Into<DrawParams<'a>>,
+	) {
+		self.sprite_batch.draw_range(ctx, range, params);
 	}
 }

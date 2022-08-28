@@ -12,6 +12,7 @@ use crate::{
 	context::Context,
 	graphics::{draw_params::DrawParams, texture::Texture},
 	math::Rect,
+	IntoOffsetAndCount, OffsetAndCount,
 };
 
 use super::color::Rgba;
@@ -154,7 +155,25 @@ impl Mesh {
 	}
 
 	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
-		self.draw_inner(ctx, &ctx.default_texture, params.into());
+		self.draw_range(ctx, .., params.into());
+	}
+
+	pub fn draw_range<'a>(
+		&self,
+		ctx: &Context,
+		range: impl IntoOffsetAndCount,
+		params: impl Into<DrawParams<'a>>,
+	) {
+		self.draw_inner(
+			ctx,
+			&ctx.default_texture,
+			range.into_offset_and_count(
+				self.num_indices
+					.try_into()
+					.expect("cannot convert usize into i32"),
+			),
+			params.into(),
+		);
 	}
 
 	pub fn draw_textured<'a>(
@@ -163,10 +182,35 @@ impl Mesh {
 		texture: &Texture,
 		params: impl Into<DrawParams<'a>>,
 	) {
-		self.draw_inner(ctx, texture, params.into());
+		self.draw_range_textured(ctx, texture, .., params.into());
 	}
 
-	fn draw_inner(&self, ctx: &Context, texture: &Texture, params: DrawParams) {
+	pub fn draw_range_textured<'a>(
+		&self,
+		ctx: &Context,
+		texture: &Texture,
+		range: impl IntoOffsetAndCount,
+		params: impl Into<DrawParams<'a>>,
+	) {
+		self.draw_inner(
+			ctx,
+			texture,
+			range.into_offset_and_count(
+				self.num_indices
+					.try_into()
+					.expect("cannot convert usize into i32"),
+			),
+			params.into(),
+		);
+	}
+
+	fn draw_inner(
+		&self,
+		ctx: &Context,
+		texture: &Texture,
+		range: OffsetAndCount,
+		params: DrawParams,
+	) {
 		let gl = &ctx.gl;
 		unsafe {
 			let shader = params.shader.unwrap_or(&ctx.default_shader);
@@ -184,7 +228,15 @@ impl Mesh {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
 			gl.bind_vertex_array(Some(self.vertex_array));
 			params.blend_mode.apply(gl);
-			gl.draw_elements(glow::TRIANGLES, self.num_indices, glow::UNSIGNED_INT, 0);
+			gl.draw_elements(
+				glow::TRIANGLES,
+				range
+					.count
+					.try_into()
+					.expect("cannot convert usize into i32"),
+				glow::UNSIGNED_INT,
+				i32::try_from(range.offset).expect("cannot convert usize into i32") * 4,
+			);
 		}
 	}
 }

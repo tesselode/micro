@@ -33,6 +33,9 @@ pub enum Easing {
 	InPowf(f32),
 	OutPowf(f32),
 	InOutPowf(f32),
+	InBack { overshoot: f32 },
+	OutBack { overshoot: f32 },
+	InOutBack,
 }
 
 impl Easing {
@@ -60,6 +63,31 @@ impl Easing {
 					1.0 - (-2.0 * x + 2.0).powf(n) / 2.0
 				}
 			}
+			Easing::InBack { overshoot } => {
+				let c3 = overshoot + 1.0;
+				c3 * x.powi(3) - overshoot * x.powi(2)
+			}
+			Easing::OutBack { overshoot } => {
+				let c3 = overshoot + 1.0;
+				1.0 + c3 * (x - 1.0).powi(3) + overshoot * (x - 1.0).powi(2)
+			}
+			Easing::InOutBack => {
+				const C1: f32 = 1.70158;
+				const C2: f32 = C1 * 1.525;
+				if x < 0.5 {
+					((2.0 * x).powi(2) * ((C2 + 1.0) * 2.0 * x - C2)) / 2.0
+				} else {
+					((2.0 * x - 2.0).powi(2) * ((C2 + 1.0) * (x * 2.0 - 2.0) + C2) + 2.0) / 2.0
+				}
+			}
 		}
+	}
+
+	pub fn in_back() -> Self {
+		Self::InBack { overshoot: 1.70158 }
+	}
+
+	pub fn out_back() -> Self {
+		Self::OutBack { overshoot: 1.70158 }
 	}
 }

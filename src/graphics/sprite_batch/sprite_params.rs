@@ -1,4 +1,4 @@
-use glam::{Mat4, Vec2};
+use glam::{Mat3, Vec2};
 
 use crate::graphics::color::Rgba;
 
@@ -45,11 +45,11 @@ impl SpriteParams {
 		}
 	}
 
-	pub fn transform(&self) -> Mat4 {
-		Mat4::from_translation(self.position.extend(0.0))
-			* Mat4::from_rotation_z(self.rotation)
-			* Mat4::from_scale(self.scale.extend(1.0))
-			* Mat4::from_translation((-self.origin).extend(0.0))
+	pub fn transform(&self) -> Mat3 {
+		Mat3::from_translation(self.position)
+			* Mat3::from_rotation_z(self.rotation)
+			* Mat3::from_scale(self.scale)
+			* Mat3::from_translation(-self.origin)
 	}
 }
 

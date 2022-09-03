@@ -94,7 +94,7 @@ impl SpriteBatch {
 			.copied()
 			.zip(relative_texture_rect.corners())
 			.map(|(position, texture_coords)| Vertex {
-				position: transform.transform_point3(position.extend(0.0)).truncate(),
+				position: transform.transform_point2(position),
 				texture_coords,
 				color: params.color,
 			})

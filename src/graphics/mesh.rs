@@ -1,7 +1,7 @@
 mod builder;
 
 pub use builder::*;
-use glam::Vec2;
+use glam::{Mat4, Vec2};
 
 use std::rc::Rc;
 
@@ -218,10 +218,10 @@ impl Mesh {
 				.send_color("blendColor", params.color)
 				.expect("Shader does not have a blendColor uniform");
 			shader
-				.send_mat4("globalTransform", ctx.global_transform())
+				.send_mat4("globalTransform", Mat4::from_mat3(ctx.global_transform()))
 				.expect("Shader does not have a globalTransform uniform");
 			shader
-				.send_mat4("localTransform", params.transform())
+				.send_mat4("localTransform", Mat4::from_mat3(params.transform()))
 				.expect("Shader does not have a localTransform uniform");
 			shader.bind_sent_textures();
 			gl.use_program(Some(shader.program));

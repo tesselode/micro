@@ -1,4 +1,4 @@
-use vek::Vec2;
+use glam::Vec2;
 
 use crate::math::Rect;
 

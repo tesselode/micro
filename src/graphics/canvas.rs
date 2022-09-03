@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
+use glam::UVec2;
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture};
-use vek::Vec2;
 
 use crate::{context::RenderTarget, math::Rect, Context};
 
@@ -20,7 +20,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-	pub fn new(ctx: &Context, size: Vec2<u32>, settings: CanvasSettings) -> Self {
+	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
 		let gl = ctx.gl.clone();
 		let framebuffer = unsafe { gl.create_framebuffer().unwrap() };
 		unsafe {
@@ -75,12 +75,12 @@ impl Canvas {
 		}
 	}
 
-	pub fn size(&self) -> Vec2<u32> {
+	pub fn size(&self) -> UVec2 {
 		self.texture.size()
 	}
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
-		let size = self.size().as_::<f32>();
+		let size = self.size().as_vec2();
 		Rect {
 			top_left: absolute_rect.top_left / size,
 			bottom_right: absolute_rect.bottom_right / size,
@@ -203,7 +203,7 @@ struct MultisampleFramebuffer {
 }
 
 impl MultisampleFramebuffer {
-	fn new(gl: Rc<glow::Context>, size: Vec2<u32>, num_samples: u8) -> Self {
+	fn new(gl: Rc<glow::Context>, size: UVec2, num_samples: u8) -> Self {
 		let framebuffer = unsafe { gl.create_framebuffer().unwrap() };
 		unsafe {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));

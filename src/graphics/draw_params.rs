@@ -1,14 +1,14 @@
-use vek::{Mat4, Vec2, Vec3};
+use glam::{Mat4, Vec2};
 
 use crate::graphics::{blend_mode::BlendMode, color::Rgba, shader::Shader};
 
 #[derive(Debug, Clone, Copy)]
 pub struct DrawParams<'a> {
 	pub shader: Option<&'a Shader>,
-	pub position: Vec2<f32>,
+	pub position: Vec2,
 	pub rotation: f32,
-	pub scale: Vec2<f32>,
-	pub origin: Vec2<f32>,
+	pub scale: Vec2,
+	pub origin: Vec2,
 	pub color: Rgba,
 	pub blend_mode: BlendMode,
 }
@@ -17,10 +17,10 @@ impl<'a> DrawParams<'a> {
 	pub fn new() -> Self {
 		Self {
 			shader: None,
-			position: Vec2::zero(),
+			position: Vec2::ZERO,
 			rotation: 0.0,
-			scale: Vec2::one(),
-			origin: Vec2::zero(),
+			scale: Vec2::ONE,
+			origin: Vec2::ZERO,
 			color: Rgba::WHITE,
 			blend_mode: BlendMode::default(),
 		}
@@ -33,7 +33,7 @@ impl<'a> DrawParams<'a> {
 		}
 	}
 
-	pub fn position(self, position: Vec2<f32>) -> Self {
+	pub fn position(self, position: Vec2) -> Self {
 		Self { position, ..self }
 	}
 
@@ -41,11 +41,11 @@ impl<'a> DrawParams<'a> {
 		Self { rotation, ..self }
 	}
 
-	pub fn scale(self, scale: Vec2<f32>) -> Self {
+	pub fn scale(self, scale: Vec2) -> Self {
 		Self { scale, ..self }
 	}
 
-	pub fn origin(self, origin: Vec2<f32>) -> Self {
+	pub fn origin(self, origin: Vec2) -> Self {
 		Self { origin, ..self }
 	}
 
@@ -60,11 +60,11 @@ impl<'a> DrawParams<'a> {
 		Self { blend_mode, ..self }
 	}
 
-	pub fn transform(&self) -> Mat4<f32> {
-		Mat4::translation_2d(-self.origin)
-			.scaled_3d(Vec3::new(self.scale.x, self.scale.y, 1.0))
-			.rotated_z(self.rotation)
-			.translated_2d(self.position)
+	pub fn transform(&self) -> Mat4 {
+		Mat4::from_translation(self.position.extend(0.0))
+			* Mat4::from_rotation_z(self.rotation)
+			* Mat4::from_scale(self.scale.extend(1.0))
+			* Mat4::from_translation((-self.origin).extend(0.0))
 	}
 }
 
@@ -80,8 +80,8 @@ impl<'a> From<&'a Shader> for DrawParams<'a> {
 	}
 }
 
-impl<'a> From<Vec2<f32>> for DrawParams<'a> {
-	fn from(position: Vec2<f32>) -> Self {
+impl<'a> From<Vec2> for DrawParams<'a> {
+	fn from(position: Vec2) -> Self {
 		Self::new().position(position)
 	}
 }

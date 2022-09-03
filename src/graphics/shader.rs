@@ -1,8 +1,8 @@
 use std::{collections::HashMap, path::Path, rc::Rc};
 
+use glam::Mat4;
 use glow::{HasContext, NativeProgram};
 use thiserror::Error;
-use vek::Mat4;
 
 use crate::{context::Context, graphics::color::Rgba};
 
@@ -82,7 +82,7 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_mat4(&self, name: &str, mat4: Mat4<f32>) -> Result<(), UniformNotFound> {
+	pub fn send_mat4(&self, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
 		unsafe {
 			self.gl.use_program(Some(self.program));
 			let location = self
@@ -90,7 +90,7 @@ impl Shader {
 				.get_uniform_location(self.program, name)
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			self.gl
-				.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.into_col_array());
+				.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
 		}
 		Ok(())
 	}

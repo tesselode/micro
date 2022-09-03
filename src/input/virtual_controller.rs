@@ -3,12 +3,11 @@ mod real_control;
 mod traits;
 
 pub use config::*;
+use glam::Vec2;
 pub use real_control::*;
 pub use traits::*;
 
 use std::{collections::HashMap, hash::Hash};
-
-use vek::Vec2;
 
 use crate::Context;
 
@@ -122,8 +121,8 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 				x: self.control_state[&right].raw_value - self.control_state[&left].raw_value,
 				y: self.control_state[&down].raw_value - self.control_state[&up].raw_value,
 			};
-			if raw_value.magnitude_squared() > 1.0 {
-				raw_value.normalize();
+			if raw_value.length_squared() > 1.0 {
+				*raw_value = raw_value.normalize();
 			}
 			*value = self
 				.config
@@ -166,8 +165,8 @@ pub struct VirtualControlState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct VirtualAnalogStickState {
-	pub value: Vec2<f32>,
-	pub raw_value: Vec2<f32>,
+	pub value: Vec2,
+	pub raw_value: Vec2,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

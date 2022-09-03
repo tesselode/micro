@@ -1,8 +1,8 @@
+use glam::Vec2;
 use lyon_tessellation::{
 	path::Winding, BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor,
 	StrokeOptions, StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
 };
-use vek::Vec2;
 
 use crate::{graphics::color::Rgba, math::Rect, Context};
 
@@ -75,7 +75,7 @@ impl MeshBuilder {
 		self
 	}
 
-	pub fn add_circle(&mut self, style: ShapeStyle, center: Vec2<f32>, radius: f32) {
+	pub fn add_circle(&mut self, style: ShapeStyle, center: Vec2, radius: f32) {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_circle(
@@ -102,18 +102,12 @@ impl MeshBuilder {
 		};
 	}
 
-	pub fn with_circle(mut self, style: ShapeStyle, center: Vec2<f32>, radius: f32) -> Self {
+	pub fn with_circle(mut self, style: ShapeStyle, center: Vec2, radius: f32) -> Self {
 		self.add_circle(style, center, radius);
 		self
 	}
 
-	pub fn add_ellipse(
-		&mut self,
-		style: ShapeStyle,
-		center: Vec2<f32>,
-		radii: Vec2<f32>,
-		rotation: f32,
-	) {
+	pub fn add_ellipse(&mut self, style: ShapeStyle, center: Vec2, radii: Vec2, rotation: f32) {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_ellipse(
@@ -147,15 +141,15 @@ impl MeshBuilder {
 	pub fn with_ellipse(
 		mut self,
 		style: ShapeStyle,
-		center: Vec2<f32>,
-		radii: Vec2<f32>,
+		center: Vec2,
+		radii: Vec2,
 		rotation: f32,
 	) -> Self {
 		self.add_ellipse(style, center, radii, rotation);
 		self
 	}
 
-	pub fn add_polygon(&mut self, style: ShapeStyle, points: &[Vec2<f32>]) {
+	pub fn add_polygon(&mut self, style: ShapeStyle, points: &[Vec2]) {
 		let polygon = lyon_tessellation::path::Polygon {
 			points: &points
 				.iter()
@@ -187,12 +181,12 @@ impl MeshBuilder {
 		};
 	}
 
-	pub fn with_polygon(mut self, style: ShapeStyle, points: &[Vec2<f32>]) -> Self {
+	pub fn with_polygon(mut self, style: ShapeStyle, points: &[Vec2]) -> Self {
 		self.add_polygon(style, points);
 		self
 	}
 
-	pub fn add_polyline(&mut self, line_width: f32, points: &[Vec2<f32>]) {
+	pub fn add_polyline(&mut self, line_width: f32, points: &[Vec2]) {
 		if points.is_empty() {
 			panic!("Need at least one point to build a polyline");
 		}
@@ -210,7 +204,7 @@ impl MeshBuilder {
 		builder.end(false);
 	}
 
-	pub fn with_polyline(mut self, line_width: f32, points: &[Vec2<f32>]) -> Self {
+	pub fn with_polyline(mut self, line_width: f32, points: &[Vec2]) -> Self {
 		self.add_polyline(line_width, points);
 		self
 	}
@@ -240,7 +234,7 @@ impl FillVertexConstructor<Vertex> for FillVertexToVertex {
 	fn new_vertex(&mut self, vertex: FillVertex) -> Vertex {
 		Vertex {
 			position: Vec2::new(vertex.position().x, vertex.position().y),
-			texture_coords: Vec2::zero(),
+			texture_coords: Vec2::ZERO,
 			color: self.color,
 		}
 	}
@@ -254,7 +248,7 @@ impl StrokeVertexConstructor<Vertex> for StrokeVertexToVertex {
 	fn new_vertex(&mut self, vertex: StrokeVertex) -> Vertex {
 		Vertex {
 			position: Vec2::new(vertex.position().x, vertex.position().y),
-			texture_coords: Vec2::zero(),
+			texture_coords: Vec2::ZERO,
 			color: self.color,
 		}
 	}

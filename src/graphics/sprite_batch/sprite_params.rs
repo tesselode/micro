@@ -1,28 +1,28 @@
-use vek::{Mat4, Vec2, Vec3};
+use glam::{Mat4, Vec2};
 
 use crate::graphics::color::Rgba;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpriteParams {
-	pub position: Vec2<f32>,
+	pub position: Vec2,
 	pub rotation: f32,
-	pub scale: Vec2<f32>,
-	pub origin: Vec2<f32>,
+	pub scale: Vec2,
+	pub origin: Vec2,
 	pub color: Rgba,
 }
 
 impl SpriteParams {
 	pub fn new() -> Self {
 		Self {
-			position: Vec2::zero(),
+			position: Vec2::ZERO,
 			rotation: 0.0,
-			scale: Vec2::one(),
-			origin: Vec2::zero(),
+			scale: Vec2::ONE,
+			origin: Vec2::ZERO,
 			color: Rgba::WHITE,
 		}
 	}
 
-	pub fn position(self, position: Vec2<f32>) -> Self {
+	pub fn position(self, position: Vec2) -> Self {
 		Self { position, ..self }
 	}
 
@@ -30,11 +30,11 @@ impl SpriteParams {
 		Self { rotation, ..self }
 	}
 
-	pub fn scale(self, scale: Vec2<f32>) -> Self {
+	pub fn scale(self, scale: Vec2) -> Self {
 		Self { scale, ..self }
 	}
 
-	pub fn origin(self, origin: Vec2<f32>) -> Self {
+	pub fn origin(self, origin: Vec2) -> Self {
 		Self { origin, ..self }
 	}
 
@@ -45,11 +45,11 @@ impl SpriteParams {
 		}
 	}
 
-	pub fn transform(&self) -> Mat4<f32> {
-		Mat4::translation_2d(-self.origin)
-			.scaled_3d(Vec3::new(self.scale.x, self.scale.y, 1.0))
-			.rotated_z(self.rotation)
-			.translated_2d(self.position)
+	pub fn transform(&self) -> Mat4 {
+		Mat4::from_translation(self.position.extend(0.0))
+			* Mat4::from_rotation_z(self.rotation)
+			* Mat4::from_scale(self.scale.extend(1.0))
+			* Mat4::from_translation((-self.origin).extend(0.0))
 	}
 }
 
@@ -59,8 +59,8 @@ impl Default for SpriteParams {
 	}
 }
 
-impl From<Vec2<f32>> for SpriteParams {
-	fn from(position: Vec2<f32>) -> Self {
+impl From<Vec2> for SpriteParams {
+	fn from(position: Vec2) -> Self {
 		Self::new().position(position)
 	}
 }

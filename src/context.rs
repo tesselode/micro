@@ -1,10 +1,9 @@
-use vek::{Mat4, Vec2, Vec3};
-
 use std::{
 	rc::Rc,
 	time::{Duration, Instant},
 };
 
+use glam::{IVec2, Mat4, UVec2, Vec3};
 use glow::HasContext;
 use sdl2::{
 	event::{Event, WindowEvent},
@@ -43,7 +42,7 @@ where
 					win_event: WindowEvent::Resized(width, height),
 					..
 				} => {
-					ctx.resize(Vec2::new(width as u32, height as u32));
+					ctx.resize(UVec2::new(width as u32, height as u32));
 				}
 				Event::Quit { .. } => {
 					ctx.should_quit = true;
@@ -73,7 +72,7 @@ pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
-	pub(crate) transform_stack: Vec<Mat4<f32>>,
+	pub(crate) transform_stack: Vec<Mat4>,
 	pub(crate) render_target: RenderTarget,
 }
 
@@ -88,7 +87,7 @@ impl Context {
 		gl_attr.set_stencil_size(8);
 		let window = build_window(&video, &settings);
 		let (window_width, window_height) = window.size();
-		let window_size = Vec2::new(
+		let window_size = IVec2::new(
 			window_width.try_into().expect("window is too wide"),
 			window_height.try_into().expect("window is too tall"),
 		);
@@ -120,38 +119,37 @@ impl Context {
 
 	pub(crate) fn set_render_target(&mut self, render_target: RenderTarget) {
 		self.render_target = render_target;
-		let viewport_size: Vec2<i32> = match render_target {
+		let viewport_size: IVec2 = match render_target {
 			RenderTarget::Window => self.window_size(),
 			RenderTarget::Canvas { size } => size,
 		}
-		.numcast()
-		.expect("viewport is too large");
+		.as_ivec2();
 		unsafe {
 			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
 		}
 	}
 
-	pub(crate) fn resize(&mut self, size: Vec2<u32>) {
-		let viewport_size = size.numcast().expect("window is too large");
+	pub(crate) fn resize(&mut self, size: UVec2) {
+		let viewport_size = size.as_ivec2();
 		unsafe {
 			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
 		}
 	}
 
-	pub(crate) fn global_transform(&self) -> Mat4<f32> {
+	pub(crate) fn global_transform(&self) -> Mat4 {
 		let coordinate_system_transform = match self.render_target {
 			RenderTarget::Window => {
 				let window_size = self.window_size();
-				Mat4::scaling_3d(Vec3::new(
-					2.0 / window_size.x as f32,
-					-2.0 / window_size.y as f32,
-					1.0,
-				))
-				.translated_2d(Vec2::new(-1.0, 1.0))
+				Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+					* Mat4::from_scale(Vec3::new(
+						2.0 / window_size.x as f32,
+						-2.0 / window_size.y as f32,
+						1.0,
+					))
 			}
 			RenderTarget::Canvas { size } => {
-				Mat4::scaling_3d(Vec3::new(2.0 / size.x as f32, 2.0 / size.y as f32, 1.0))
-					.translated_2d(Vec2::new(-1.0, -1.0))
+				Mat4::from_translation(Vec3::new(-1.0, -1.0, 0.0))
+					* Mat4::from_scale(Vec3::new(2.0 / size.x as f32, 2.0 / size.y as f32, 1.0))
 			}
 		};
 		self.transform_stack
@@ -161,9 +159,9 @@ impl Context {
 			})
 	}
 
-	pub fn window_size(&self) -> Vec2<u32> {
+	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.size();
-		Vec2::new(width, height)
+		UVec2::new(width, height)
 	}
 
 	pub fn clear(&self, color: Rgba) {
@@ -178,11 +176,7 @@ impl Context {
 		}
 	}
 
-	pub fn with_transform<T>(
-		&mut self,
-		transform: Mat4<f32>,
-		f: impl FnOnce(&mut Context) -> T,
-	) -> T {
+	pub fn with_transform<T>(&mut self, transform: Mat4, f: impl FnOnce(&mut Context) -> T) -> T {
 		self.transform_stack.push(transform);
 		let returned_value = f(self);
 		self.transform_stack.pop();
@@ -266,7 +260,7 @@ impl Context {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ContextSettings {
 	pub window_title: String,
-	pub window_size: Vec2<u32>,
+	pub window_size: UVec2,
 	pub resizable: bool,
 	pub vsync: bool,
 }
@@ -275,7 +269,7 @@ impl Default for ContextSettings {
 	fn default() -> Self {
 		Self {
 			window_title: "Game".into(),
-			window_size: Vec2::new(800, 600),
+			window_size: UVec2::new(800, 600),
 			resizable: false,
 			vsync: true,
 		}
@@ -285,7 +279,7 @@ impl Default for ContextSettings {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum RenderTarget {
 	Window,
-	Canvas { size: Vec2<u32> },
+	Canvas { size: UVec2 },
 }
 
 fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
@@ -303,7 +297,7 @@ fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
 
 fn create_gl_context(
 	video: &VideoSubsystem,
-	window_size: Vec2<i32>,
+	window_size: IVec2,
 ) -> (Rc<glow::Context>, Texture, Shader) {
 	let gl = Rc::new(unsafe {
 		glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
@@ -315,7 +309,7 @@ fn create_gl_context(
 	}
 	let default_texture = Texture::new_from_gl(
 		gl.clone(),
-		Vec2::new(1, 1),
+		UVec2::new(1, 1),
 		Some(&[255, 255, 255, 255]),
 		TextureSettings::default(),
 	);

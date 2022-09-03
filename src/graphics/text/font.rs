@@ -1,8 +1,8 @@
 use std::{collections::HashMap, path::Path};
 
 use crunch::pack_into_po2;
+use glam::{UVec2, Vec2};
 use thiserror::Error;
-use vek::Vec2;
 
 use crate::{
 	context::Context,
@@ -50,7 +50,7 @@ impl Font {
 		let (width, height, glyph_rects) = pack_glyphs(&glyph_image_data);
 		let texture = create_texture(
 			ctx,
-			Vec2::new(
+			UVec2::new(
 				width.try_into().expect("Packed glyphs are too wide"),
 				height.try_into().expect("Packed glyphs are too tall"),
 			),
@@ -105,7 +105,7 @@ fn rasterize_chars(font: &fontdue::Font, settings: FontSettings) -> HashMap<char
 			(
 				char,
 				ImageData {
-					size: Vec2::new(
+					size: UVec2::new(
 						metrics.width.try_into().expect("Glyph too wide"),
 						metrics.height.try_into().expect("Glyph too tall"),
 					),
@@ -157,7 +157,7 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 
 fn create_texture(
 	ctx: &Context,
-	size: Vec2<u32>,
+	size: UVec2,
 	glyph_image_data: &HashMap<char, ImageData>,
 	glyph_rects: &HashMap<char, Rect>,
 	texture_settings: TextureSettings,

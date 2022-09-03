@@ -1,8 +1,8 @@
 use std::{path::Path, rc::Rc};
 
+use glam::{UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
 use thiserror::Error;
-use vek::Vec2;
 
 use crate::{
 	context::Context,
@@ -25,11 +25,11 @@ pub struct Texture {
 pub(crate) struct TextureInner {
 	gl: Rc<glow::Context>,
 	pub texture: NativeTexture,
-	pub size: Vec2<u32>,
+	pub size: UVec2,
 }
 
 impl Texture {
-	pub fn empty(ctx: &Context, size: Vec2<u32>, settings: TextureSettings) -> Self {
+	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
 		Self::new_from_gl(ctx.gl.clone(), size, None, settings)
 	}
 
@@ -48,7 +48,7 @@ impl Texture {
 
 	pub(crate) fn new_from_gl(
 		gl: Rc<glow::Context>,
-		size: Vec2<u32>,
+		size: UVec2,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
 	) -> Self {
@@ -106,12 +106,12 @@ impl Texture {
 		Ok(Self::from_image_data(ctx, &image_data, settings))
 	}
 
-	pub fn size(&self) -> Vec2<u32> {
+	pub fn size(&self) -> UVec2 {
 		self.inner.size
 	}
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
-		let size = self.inner.size.as_::<f32>();
+		let size = self.inner.size.as_vec2();
 		Rect {
 			top_left: absolute_rect.top_left / size,
 			bottom_right: absolute_rect.bottom_right / size,
@@ -138,14 +138,14 @@ impl Texture {
 	}
 
 	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
-		Mesh::rectangle(ctx, Rect::new(Vec2::zero(), self.inner.size.as_::<f32>()))
+		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.inner.size.as_vec2()))
 			.draw_textured(ctx, self, params);
 	}
 
 	pub fn draw_region<'a>(&self, ctx: &Context, region: Rect, params: impl Into<DrawParams<'a>>) {
 		Mesh::rectangle_with_texture_region(
 			ctx,
-			Rect::new(Vec2::zero(), region.size()),
+			Rect::new(Vec2::ZERO, region.size()),
 			self.relative_rect(region),
 		)
 		.draw_textured(ctx, self, params);

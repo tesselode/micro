@@ -1,11 +1,11 @@
 use std::path::Path;
 
+use glam::UVec2;
 use image::ImageError;
 use thiserror::Error;
-use vek::Vec2;
 
 pub struct ImageData {
-	pub size: Vec2<u32>,
+	pub size: UVec2,
 	pub pixels: Vec<u8>,
 }
 
@@ -13,7 +13,7 @@ impl ImageData {
 	pub fn load(path: impl AsRef<Path>) -> Result<Self, LoadImageDataError> {
 		let image_buffer = image::io::Reader::open(path)?.decode()?.to_rgba8();
 		Ok(Self {
-			size: Vec2::new(image_buffer.width(), image_buffer.height()),
+			size: UVec2::new(image_buffer.width(), image_buffer.height()),
 			pixels: image_buffer.into_raw(),
 		})
 	}

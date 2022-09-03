@@ -1,7 +1,7 @@
 mod builder;
 
 pub use builder::*;
-use vek::Vec2;
+use glam::Vec2;
 
 use std::rc::Rc;
 
@@ -113,7 +113,7 @@ impl Mesh {
 		MeshBuilder::new().with_rectangle(style, rect).build(ctx)
 	}
 
-	pub fn circle(ctx: &Context, style: ShapeStyle, center: Vec2<f32>, radius: f32) -> Self {
+	pub fn circle(ctx: &Context, style: ShapeStyle, center: Vec2, radius: f32) -> Self {
 		MeshBuilder::new()
 			.with_circle(style, center, radius)
 			.build(ctx)
@@ -122,8 +122,8 @@ impl Mesh {
 	pub fn ellipse(
 		ctx: &Context,
 		style: ShapeStyle,
-		center: Vec2<f32>,
-		radii: Vec2<f32>,
+		center: Vec2,
+		radii: Vec2,
 		rotation: f32,
 	) -> Self {
 		MeshBuilder::new()
@@ -131,11 +131,11 @@ impl Mesh {
 			.build(ctx)
 	}
 
-	pub fn polygon(ctx: &Context, style: ShapeStyle, points: &[Vec2<f32>]) -> Self {
+	pub fn polygon(ctx: &Context, style: ShapeStyle, points: &[Vec2]) -> Self {
 		MeshBuilder::new().with_polygon(style, points).build(ctx)
 	}
 
-	pub fn polyline(ctx: &Context, line_width: f32, points: &[Vec2<f32>]) -> Self {
+	pub fn polyline(ctx: &Context, line_width: f32, points: &[Vec2]) -> Self {
 		MeshBuilder::new()
 			.with_polyline(line_width, points)
 			.build(ctx)
@@ -254,7 +254,7 @@ impl Drop for Mesh {
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct Vertex {
-	pub position: Vec2<f32>,
-	pub texture_coords: Vec2<f32>,
+	pub position: Vec2,
+	pub texture_coords: Vec2,
 	pub color: Rgba,
 }

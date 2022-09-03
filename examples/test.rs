@@ -1,44 +1,34 @@
+use glam::Vec2;
 use micro::{
 	graphics::{
 		color::Rgba,
-		text::{Font, FontSettings, Text},
+		mesh::{Mesh, ShapeStyle},
 		DrawParams,
 	},
-	input::Scancode,
-	Context, ContextSettings, Event, State,
+	math::Rect,
+	Context, ContextSettings, State,
 };
 
-struct MainState {
-	text: Text,
-}
-
-impl MainState {
-	fn new(ctx: &mut Context) -> Self {
-		let font =
-			Font::from_file(ctx, "examples/Roboto-Regular.ttf", FontSettings::default()).unwrap();
-		let text = Text::new(ctx, &font, "hello world!");
-		println!("{}", text.num_glyphs());
-		Self { text }
-	}
-}
+struct MainState;
 
 impl State for MainState {
-	fn event(&mut self, ctx: &mut Context, event: Event) {
-		if let Event::KeyDown {
-			scancode: Some(Scancode::Escape),
-			..
-		} = event
-		{
-			ctx.quit();
-		}
-	}
-
 	fn draw(&mut self, ctx: &mut Context) {
-		ctx.clear(Rgba::BLACK);
-		self.text.draw_range(ctx, 3.., DrawParams::new());
+		Mesh::styled_rectangle(
+			ctx,
+			ShapeStyle::Stroke(2.0),
+			Rect::new(Vec2::new(-50.0, -50.0), Vec2::new(50.0, 50.0)),
+		)
+		.draw(
+			ctx,
+			DrawParams::new()
+				.position(Vec2::splat(200.0))
+				.scale(Vec2::splat(2.0))
+				.rotation(1.0)
+				.color(Rgba::RED),
+		);
 	}
 }
 
 fn main() {
-	micro::run(ContextSettings::default(), MainState::new);
+	micro::run(ContextSettings::default(), |_| MainState)
 }

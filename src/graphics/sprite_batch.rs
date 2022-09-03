@@ -3,8 +3,8 @@ mod sprite_params;
 pub use sprite_params::SpriteParams;
 
 use generational_arena::{Arena, Index};
+use glam::Vec2;
 use thiserror::Error;
-use vek::Vec2;
 
 use crate::{
 	context::Context,
@@ -30,8 +30,8 @@ impl SpriteBatch {
 	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
 		let vertices = vec![
 			Vertex {
-				position: Vec2::zero(),
-				texture_coords: Vec2::zero(),
+				position: Vec2::ZERO,
+				texture_coords: Vec2::ZERO,
 				color: Rgba::WHITE,
 			};
 			capacity * 4
@@ -66,7 +66,7 @@ impl SpriteBatch {
 
 	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
 		self.add_region(
-			Rect::from_top_left_and_size(Vec2::zero(), self.texture.size().as_()),
+			Rect::from_top_left_and_size(Vec2::ZERO, self.texture.size().as_vec2()),
 			params,
 		)
 	}
@@ -81,11 +81,11 @@ impl SpriteBatch {
 			.try_insert(())
 			.map(SpriteId)
 			.map_err(|_| SpriteLimitReached)?;
-		let params = params.into();
+		let params: SpriteParams = params.into();
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		let untransformed_display_rect =
-			Rect::from_top_left_and_size(Vec2::zero(), texture_rect.size());
+			Rect::from_top_left_and_size(Vec2::ZERO, texture_rect.size());
 		let relative_texture_rect = self.texture.relative_rect(texture_rect);
 		let transform = params.transform();
 		let corners = untransformed_display_rect.corners();
@@ -94,7 +94,7 @@ impl SpriteBatch {
 			.copied()
 			.zip(relative_texture_rect.corners())
 			.map(|(position, texture_coords)| Vertex {
-				position: transform.mul_point(position),
+				position: transform.transform_point3(position.extend(0.0)).truncate(),
 				texture_coords,
 				color: params.color,
 			})
@@ -115,8 +115,8 @@ impl SpriteBatch {
 			self.mesh.set_vertex(
 				start_vertex_index + i,
 				Vertex {
-					position: Vec2::zero(),
-					texture_coords: Vec2::zero(),
+					position: Vec2::ZERO,
+					texture_coords: Vec2::ZERO,
 					color: Rgba::WHITE,
 				},
 			);

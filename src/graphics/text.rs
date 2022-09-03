@@ -1,9 +1,9 @@
 mod font;
 
 pub use font::*;
-use vek::Vec2;
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
+use glam::Vec2;
 
 use crate::{context::Context, math::Rect, IntoOffsetAndCount};
 

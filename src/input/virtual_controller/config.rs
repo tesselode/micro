@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use vek::Vec2;
+use glam::Vec2;
 
 use super::{RealControl, VirtualControls};
 
@@ -18,13 +18,13 @@ pub enum DeadzoneShape {
 }
 
 impl DeadzoneShape {
-	pub(super) fn apply_deadzone(&self, input: Vec2<f32>, deadzone: f32) -> Vec2<f32> {
+	pub(super) fn apply_deadzone(&self, input: Vec2, deadzone: f32) -> Vec2 {
 		match self {
 			DeadzoneShape::Circle => {
-				if input.magnitude() >= deadzone {
+				if input.length() >= deadzone {
 					input
 				} else {
-					Vec2::zero()
+					Vec2::ZERO
 				}
 			}
 			DeadzoneShape::Square => Vec2 {

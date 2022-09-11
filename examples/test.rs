@@ -1,34 +1,52 @@
-use glam::Vec2;
+use fontdue::layout::{HorizontalAlign, VerticalAlign};
 use micro::{
 	graphics::{
 		color::Rgba,
-		mesh::{Mesh, ShapeStyle},
+		text::{Font, FontSettings, LayoutSettings, Text},
 		DrawParams,
 	},
-	math::Rect,
 	Context, ContextSettings, State,
 };
 
-struct MainState;
+struct MainState {
+	text: Text,
+}
+
+impl MainState {
+	fn new(ctx: &mut Context) -> Self {
+		let font = Font::from_file(
+			ctx,
+			"examples/Roboto-Regular.ttf",
+			FontSettings {
+				scale: 20.0,
+				..Default::default()
+			},
+		)
+		.unwrap();
+		Self {
+			text: Text::new(
+				ctx,
+				&font,
+				"This is some test text.\nHopefully the layout looks good!\n\nExtra line break",
+				LayoutSettings {
+					max_width: Some(ctx.window_size().x as f32),
+					max_height: Some(ctx.window_size().y as f32),
+					horizontal_align: HorizontalAlign::Center,
+					vertical_align: VerticalAlign::Middle,
+					..Default::default()
+				},
+			),
+		}
+	}
+}
 
 impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
-		Mesh::styled_rectangle(
-			ctx,
-			ShapeStyle::Stroke(2.0),
-			Rect::new(Vec2::new(-50.0, -50.0), Vec2::new(50.0, 50.0)),
-		)
-		.draw(
-			ctx,
-			DrawParams::new()
-				.position(Vec2::splat(200.0))
-				.scale(Vec2::splat(2.0))
-				.rotation(1.0)
-				.color(Rgba::RED),
-		);
+		ctx.clear(Rgba::BLACK);
+		self.text.draw(ctx, DrawParams::new());
 	}
 }
 
 fn main() {
-	micro::run(ContextSettings::default(), |_| MainState)
+	micro::run(ContextSettings::default(), MainState::new);
 }

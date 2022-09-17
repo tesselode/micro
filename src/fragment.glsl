@@ -10,4 +10,7 @@ uniform vec4 blendColor;
 void main()
 {
     FragColor = texture(ourTexture, TexCoord) * Color * blendColor;
+    if (FragColor.a == 0.0) {
+        discard;
+    }
 }

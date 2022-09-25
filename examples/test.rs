@@ -1,37 +1,39 @@
 use glam::Vec2;
 use micro::{
-	graphics::{color::Rgba, mesh::ShapeStyle},
-	ui::{align::Align, circle::Circle, list::List, Constraints, Widget},
+	graphics::{
+		color::Rgba,
+		mesh::ShapeStyle,
+		texture::{Texture, TextureSettings},
+	},
+	ui::{align::Align, circle::Circle, image::Image, list::List, Constraints, Widget},
 	Context, ContextSettings, State,
 };
 
-struct MainState;
+struct MainState {
+	texture: Texture,
+}
 
 impl MainState {
-	fn new(_ctx: &mut Context) -> Self {
-		Self
+	fn new(ctx: &mut Context) -> Self {
+		Self {
+			texture: Texture::from_file(ctx, "examples/player.png", TextureSettings::default())
+				.unwrap(),
+		}
 	}
 }
 
 impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
-		Align::center(
-			List::horizontal()
-				.with_cross_axis_alignment(1.0)
-				.with_item_gap(50.0)
-				.with_child(Circle::new(50.0, ShapeStyle::Fill))
-				.with_child(Circle::new(25.0, ShapeStyle::Fill))
-				.with_child(Circle::new(75.0, ShapeStyle::Fill)),
-		)
-		.build(
-			ctx,
-			Constraints {
-				min_size: Vec2::ZERO,
-				max_size: ctx.window_size().as_vec2(),
-			},
-		)
-		.draw(ctx);
+		Align::center(Image::new(&self.texture))
+			.build(
+				ctx,
+				Constraints {
+					min_size: Vec2::ZERO,
+					max_size: ctx.window_size().as_vec2(),
+				},
+			)
+			.draw(ctx);
 	}
 }
 

@@ -1,5 +1,6 @@
 pub mod align;
 pub mod circle;
+pub mod image;
 pub mod list;
 
 use glam::Vec2;

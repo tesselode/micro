@@ -11,6 +11,7 @@ pub struct List {
 	pub main_axis: Axis,
 	pub children: Vec<Box<dyn Widget>>,
 	pub cross_axis_alignment: f32,
+	pub item_gap: f32,
 }
 
 impl List {
@@ -19,6 +20,7 @@ impl List {
 			main_axis,
 			children: vec![],
 			cross_axis_alignment: 0.0,
+			item_gap: 0.0,
 		}
 	}
 
@@ -40,6 +42,10 @@ impl List {
 			cross_axis_alignment,
 			..self
 		}
+	}
+
+	pub fn with_item_gap(self, item_gap: f32) -> Self {
+		Self { item_gap, ..self }
 	}
 
 	fn build_children(&self, ctx: &mut Context, max_size: MainCross) -> Vec<Box<dyn BuiltWidget>> {
@@ -67,14 +73,17 @@ impl List {
 		built_children: &[Box<dyn BuiltWidget>],
 		max_size: MainCross,
 	) -> MainCross {
+		let main_axis_size_without_gap = built_children.iter().fold(0.0, |main, child| {
+			let child_main_size = MainCross::from_vec2(self.main_axis, child.size()).main;
+			main + child_main_size
+		});
+		let item_gap_total_size = if built_children.is_empty() {
+			0.0
+		} else {
+			(built_children.len() - 1) as f32 * self.item_gap
+		};
 		MainCross {
-			main: built_children
-				.iter()
-				.fold(0.0, |main, child| {
-					let child_main_size = MainCross::from_vec2(self.main_axis, child.size()).main;
-					main + child_main_size
-				})
-				.min(max_size.main),
+			main: (main_axis_size_without_gap + item_gap_total_size).min(max_size.main),
 			cross: built_children
 				.iter()
 				.fold(0.0f32, |cross, child| {
@@ -101,7 +110,7 @@ impl List {
 				)
 				.into_vec2(self.main_axis);
 				next_child_main_axis_position +=
-					MainCross::from_vec2(self.main_axis, child.size()).main;
+					MainCross::from_vec2(self.main_axis, child.size()).main + self.item_gap;
 				(position, child)
 			})
 			.collect()

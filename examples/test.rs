@@ -17,8 +17,9 @@ impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
 		Align::center(
-			List::vertical()
-				.with_cross_axis_alignment(0.5)
+			List::horizontal()
+				.with_cross_axis_alignment(1.0)
+				.with_item_gap(50.0)
 				.with_child(Circle::new(50.0, ShapeStyle::Fill))
 				.with_child(Circle::new(25.0, ShapeStyle::Fill))
 				.with_child(Circle::new(75.0, ShapeStyle::Fill)),

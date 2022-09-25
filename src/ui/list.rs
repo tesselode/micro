@@ -10,6 +10,7 @@ use super::{BuiltWidget, Constraints, Widget};
 pub struct List {
 	pub main_axis: Axis,
 	pub children: Vec<Box<dyn Widget>>,
+	pub cross_axis_alignment: f32,
 }
 
 impl List {
@@ -17,6 +18,7 @@ impl List {
 		Self {
 			main_axis,
 			children: vec![],
+			cross_axis_alignment: 0.0,
 		}
 	}
 
@@ -31,6 +33,13 @@ impl List {
 	pub fn with_child(mut self, child: impl Widget + 'static) -> Self {
 		self.children.push(Box::new(child));
 		self
+	}
+
+	pub fn with_cross_axis_alignment(self, cross_axis_alignment: f32) -> Self {
+		Self {
+			cross_axis_alignment,
+			..self
+		}
 	}
 
 	fn build_children(&self, ctx: &mut Context, max_size: MainCross) -> Vec<Box<dyn BuiltWidget>> {
@@ -85,8 +94,12 @@ impl List {
 		built_children
 			.drain(..)
 			.map(|child| {
-				let position =
-					MainCross::new(next_child_main_axis_position, 0.0).into_vec2(self.main_axis);
+				let child_size = MainCross::from_vec2(self.main_axis, child.size());
+				let position = MainCross::new(
+					next_child_main_axis_position,
+					(cross_axis_size - child_size.cross) * self.cross_axis_alignment,
+				)
+				.into_vec2(self.main_axis);
 				next_child_main_axis_position +=
 					MainCross::from_vec2(self.main_axis, child.size()).main;
 				(position, child)

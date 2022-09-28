@@ -1,9 +1,13 @@
 pub mod align;
+pub mod constrained;
+mod constraints;
 pub mod ellipse;
 pub mod flex;
 pub mod image;
 pub mod list;
 pub mod rectangle;
+
+pub use constraints::*;
 
 use glam::Vec2;
 
@@ -17,10 +21,4 @@ pub trait BuiltWidget {
 	fn size(&self) -> Vec2;
 
 	fn draw(&self, ctx: &mut Context);
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Constraints {
-	pub min_size: Vec2,
-	pub max_size: Vec2,
 }

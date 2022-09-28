@@ -7,6 +7,7 @@ use micro::{
 	},
 	ui::{
 		align::Align,
+		constrained::Constrained,
 		ellipse::Ellipse,
 		flex::Flex,
 		image::Image,
@@ -36,7 +37,13 @@ impl State for MainState {
 		Align::center(
 			Flex::horizontal()
 				.with_child(1.0, Rectangle::new(ShapeStyle::Fill, Rgba::RED))
-				.with_child(2.0, Rectangle::new(ShapeStyle::Fill, Rgba::GREEN))
+				.with_child(
+					2.0,
+					Constrained::new(
+						Constraints::max_only(Vec2::new(50.0, 50.0)),
+						Rectangle::new(ShapeStyle::Fill, Rgba::GREEN),
+					),
+				)
 				.with_child(1.0, Rectangle::new(ShapeStyle::Fill, Rgba::BLUE)),
 		)
 		.build(

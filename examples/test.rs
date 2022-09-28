@@ -34,9 +34,9 @@ impl State for MainState {
 		ctx.clear(Rgba::BLACK);
 		Align::center(
 			Flex::horizontal()
-				.with_child(1.0, Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill))
-				.with_child(2.0, Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill))
-				.with_child(1.0, Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill)),
+				.with_child(1.0, Ellipse::new(ShapeStyle::Fill, Rgba::WHITE))
+				.with_child(2.0, Ellipse::new(ShapeStyle::Fill, Rgba::WHITE))
+				.with_child(1.0, Ellipse::new(ShapeStyle::Fill, Rgba::WHITE)),
 		)
 		.build(
 			ctx,

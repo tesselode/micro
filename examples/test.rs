@@ -11,6 +11,7 @@ use micro::{
 		flex::Flex,
 		image::Image,
 		list::{List, Mode},
+		rectangle::Rectangle,
 		Constraints, Widget,
 	},
 	Context, ContextSettings, State,
@@ -34,9 +35,9 @@ impl State for MainState {
 		ctx.clear(Rgba::BLACK);
 		Align::center(
 			Flex::horizontal()
-				.with_child(1.0, Ellipse::new(ShapeStyle::Fill, Rgba::WHITE))
-				.with_child(2.0, Ellipse::new(ShapeStyle::Fill, Rgba::WHITE))
-				.with_child(1.0, Ellipse::new(ShapeStyle::Fill, Rgba::WHITE)),
+				.with_child(1.0, Rectangle::new(ShapeStyle::Fill, Rgba::RED))
+				.with_child(2.0, Rectangle::new(ShapeStyle::Fill, Rgba::GREEN))
+				.with_child(1.0, Rectangle::new(ShapeStyle::Fill, Rgba::BLUE)),
 		)
 		.build(
 			ctx,

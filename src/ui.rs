@@ -3,6 +3,7 @@ pub mod ellipse;
 pub mod flex;
 pub mod image;
 pub mod list;
+pub mod rectangle;
 
 use glam::Vec2;
 

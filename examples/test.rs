@@ -7,7 +7,7 @@ use micro::{
 	},
 	ui::{
 		align::Align,
-		circle::Circle,
+		ellipse::Ellipse,
 		image::Image,
 		list::{List, Mode},
 		Constraints, Widget,
@@ -34,9 +34,9 @@ impl State for MainState {
 		Align::center(
 			List::horizontal()
 				.with_mode(Mode::SpaceEvenly)
-				.with_child(Circle::new(50.0, ShapeStyle::Fill))
-				.with_child(Circle::new(50.0, ShapeStyle::Fill))
-				.with_child(Circle::new(200.0, ShapeStyle::Fill)),
+				.with_child(Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill))
+				.with_child(Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill))
+				.with_child(Ellipse::new(Vec2::new(200.0, 25.0), ShapeStyle::Fill)),
 		)
 		.build(
 			ctx,

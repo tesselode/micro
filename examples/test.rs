@@ -8,6 +8,7 @@ use micro::{
 	ui::{
 		align::Align,
 		ellipse::Ellipse,
+		flex::Flex,
 		image::Image,
 		list::{List, Mode},
 		Constraints, Widget,
@@ -32,11 +33,10 @@ impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
 		Align::center(
-			List::horizontal()
-				.with_mode(Mode::SpaceEvenly)
-				.with_child(Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill))
-				.with_child(Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill))
-				.with_child(Ellipse::new(Vec2::new(200.0, 25.0), ShapeStyle::Fill)),
+			Flex::horizontal()
+				.with_child(1.0, Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill))
+				.with_child(2.0, Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill))
+				.with_child(1.0, Ellipse::new(Vec2::new(50.0, 25.0), ShapeStyle::Fill)),
 		)
 		.build(
 			ctx,

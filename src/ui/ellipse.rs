@@ -11,13 +11,36 @@ use crate::{
 use super::{BuiltWidget, Constraints, Widget};
 
 pub struct Ellipse {
-	pub style: ShapeStyle,
-	pub color: Rgba,
+	pub fill: Option<Rgba>,
+	pub stroke: Option<(f32, Rgba)>,
 }
 
 impl Ellipse {
-	pub fn new(style: ShapeStyle, color: Rgba) -> Self {
-		Self { style, color }
+	pub fn new() -> Self {
+		Self {
+			fill: None,
+			stroke: None,
+		}
+	}
+
+	pub fn with_fill(self, color: Rgba) -> Self {
+		Self {
+			fill: Some(color),
+			..self
+		}
+	}
+
+	pub fn with_stroke(self, width: f32, color: Rgba) -> Self {
+		Self {
+			stroke: Some((width, color)),
+			..self
+		}
+	}
+}
+
+impl Default for Ellipse {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
@@ -27,16 +50,22 @@ impl Widget for Ellipse {
 		let center = radii;
 		Box::new(BuiltEllipse {
 			size: constraints.max_size,
-			mesh: Mesh::ellipse(ctx, self.style, center, radii, 0.0),
-			color: self.color,
+			fill: self.fill.map(|color| ColoredMesh {
+				mesh: Mesh::ellipse(ctx, ShapeStyle::Fill, center, radii, 0.0),
+				color,
+			}),
+			stroke: self.stroke.map(|(width, color)| ColoredMesh {
+				mesh: Mesh::ellipse(ctx, ShapeStyle::Stroke(width), center, radii, 0.0),
+				color,
+			}),
 		})
 	}
 }
 
 struct BuiltEllipse {
 	size: Vec2,
-	mesh: Mesh,
-	color: Rgba,
+	fill: Option<ColoredMesh>,
+	stroke: Option<ColoredMesh>,
 }
 
 impl BuiltWidget for BuiltEllipse {
@@ -45,6 +74,16 @@ impl BuiltWidget for BuiltEllipse {
 	}
 
 	fn draw(&self, ctx: &mut Context) {
-		self.mesh.draw(ctx, self.color);
+		if let Some(ColoredMesh { mesh, color }) = &self.fill {
+			mesh.draw(ctx, *color);
+		}
+		if let Some(ColoredMesh { mesh, color }) = &self.stroke {
+			mesh.draw(ctx, *color);
+		}
 	}
+}
+
+struct ColoredMesh {
+	mesh: Mesh,
+	color: Rgba,
 }

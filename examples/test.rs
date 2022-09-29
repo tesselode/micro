@@ -39,15 +39,19 @@ impl State for MainState {
 			.with_child(
 				Vec2::new(100.0, 50.0),
 				Constrained::new(
-					Constraints::max_only(Vec2::new(100.0, 100.0)),
-					Rectangle::new(ShapeStyle::Fill, Rgba::RED),
+					Constraints::max_only(Vec2::splat(100.0)),
+					Rectangle::new()
+						.with_fill(Rgba::RED)
+						.with_stroke(5.0, Rgba::GREEN),
 				),
 			)
 			.with_child(
-				Vec2::new(150.0, 100.0),
+				Vec2::new(400.0, 50.0),
 				Constrained::new(
-					Constraints::max_only(Vec2::new(100.0, 100.0)),
-					Rectangle::new(ShapeStyle::Fill, Rgba::BLUE),
+					Constraints::max_only(Vec2::splat(100.0)),
+					Ellipse::new()
+						.with_fill(Rgba::RED)
+						.with_stroke(5.0, Rgba::GREEN),
 				),
 			)
 			.build(

@@ -12,34 +12,60 @@ use crate::{
 use super::{BuiltWidget, Constraints, Widget};
 
 pub struct Rectangle {
-	pub style: ShapeStyle,
-	pub color: Rgba,
+	pub fill: Option<Rgba>,
+	pub stroke: Option<(f32, Rgba)>,
 }
 
 impl Rectangle {
-	pub fn new(style: ShapeStyle, color: Rgba) -> Self {
-		Self { style, color }
+	pub fn new() -> Self {
+		Self {
+			fill: None,
+			stroke: None,
+		}
+	}
+
+	pub fn with_fill(self, color: Rgba) -> Self {
+		Self {
+			fill: Some(color),
+			..self
+		}
+	}
+
+	pub fn with_stroke(self, width: f32, color: Rgba) -> Self {
+		Self {
+			stroke: Some((width, color)),
+			..self
+		}
+	}
+}
+
+impl Default for Rectangle {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
 impl Widget for Rectangle {
 	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
+		let rect = Rect::from_top_left_and_size(Vec2::ZERO, constraints.max_size);
 		Box::new(BuiltRectangle {
 			size: constraints.max_size,
-			mesh: Mesh::styled_rectangle(
-				ctx,
-				self.style,
-				Rect::from_top_left_and_size(Vec2::ZERO, constraints.max_size),
-			),
-			color: self.color,
+			fill: self.fill.map(|color| ColoredMesh {
+				mesh: Mesh::styled_rectangle(ctx, ShapeStyle::Fill, rect),
+				color,
+			}),
+			stroke: self.stroke.map(|(width, color)| ColoredMesh {
+				mesh: Mesh::styled_rectangle(ctx, ShapeStyle::Stroke(width), rect),
+				color,
+			}),
 		})
 	}
 }
 
 struct BuiltRectangle {
 	size: Vec2,
-	mesh: Mesh,
-	color: Rgba,
+	fill: Option<ColoredMesh>,
+	stroke: Option<ColoredMesh>,
 }
 
 impl BuiltWidget for BuiltRectangle {
@@ -48,6 +74,16 @@ impl BuiltWidget for BuiltRectangle {
 	}
 
 	fn draw(&self, ctx: &mut Context) {
-		self.mesh.draw(ctx, self.color);
+		if let Some(ColoredMesh { mesh, color }) = &self.fill {
+			mesh.draw(ctx, *color);
+		}
+		if let Some(ColoredMesh { mesh, color }) = &self.stroke {
+			mesh.draw(ctx, *color);
+		}
 	}
+}
+
+struct ColoredMesh {
+	mesh: Mesh,
+	color: Rgba,
 }

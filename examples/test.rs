@@ -8,6 +8,7 @@ use micro::{
 	ui::{
 		align::Align,
 		constrained::Constrained,
+		container::Container,
 		ellipse::Ellipse,
 		flex::Flex,
 		image::Image,
@@ -34,26 +35,29 @@ impl MainState {
 impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
-		Align::center(
-			Flex::horizontal()
-				.with_child(1.0, Rectangle::new(ShapeStyle::Fill, Rgba::RED))
-				.with_child(
-					2.0,
-					Constrained::new(
-						Constraints::max_only(Vec2::new(50.0, 50.0)),
-						Rectangle::new(ShapeStyle::Fill, Rgba::GREEN),
-					),
-				)
-				.with_child(1.0, Rectangle::new(ShapeStyle::Fill, Rgba::BLUE)),
-		)
-		.build(
-			ctx,
-			Constraints {
-				min_size: Vec2::ZERO,
-				max_size: ctx.window_size().as_vec2(),
-			},
-		)
-		.draw(ctx);
+		Container::new()
+			.with_child(
+				Vec2::new(100.0, 50.0),
+				Constrained::new(
+					Constraints::max_only(Vec2::new(100.0, 100.0)),
+					Rectangle::new(ShapeStyle::Fill, Rgba::RED),
+				),
+			)
+			.with_child(
+				Vec2::new(150.0, 100.0),
+				Constrained::new(
+					Constraints::max_only(Vec2::new(100.0, 100.0)),
+					Rectangle::new(ShapeStyle::Fill, Rgba::BLUE),
+				),
+			)
+			.build(
+				ctx,
+				Constraints {
+					min_size: Vec2::ZERO,
+					max_size: ctx.window_size().as_vec2(),
+				},
+			)
+			.draw(ctx);
 	}
 }
 

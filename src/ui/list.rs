@@ -56,10 +56,7 @@ impl List {
 				let max_child_size = MainCross::new(remaining_main_axis_size, max_size.cross);
 				let built_child = child.build(
 					ctx,
-					Constraints {
-						min_size: Vec2::ZERO,
-						max_size: max_child_size.into_vec2(self.main_axis),
-					},
+					Constraints::max_only(max_child_size.into_vec2(self.main_axis)),
 				);
 				remaining_main_axis_size -=
 					MainCross::from_vec2(self.main_axis, built_child.size()).main;

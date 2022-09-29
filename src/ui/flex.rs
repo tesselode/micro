@@ -50,10 +50,7 @@ impl Flex {
 					*weight,
 					child.build(
 						ctx,
-						Constraints {
-							min_size: Vec2::ZERO,
-							max_size: max_child_size.into_vec2(self.main_axis),
-						},
+						Constraints::max_only(max_child_size.into_vec2(self.main_axis)),
 					),
 				)
 			})

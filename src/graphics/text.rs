@@ -23,16 +23,16 @@ impl Text {
 		let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
 		layout.reset(&layout_settings.into());
 		layout.append(
-			&[&font.font],
+			&[&font.inner.font],
 			&TextStyle {
 				text,
-				px: font.scale,
+				px: font.inner.scale,
 				font_index: 0,
 				user_data: (),
 			},
 		);
 		let glyphs = layout.glyphs();
-		let mut sprite_batch = SpriteBatch::new(ctx, &font.texture, glyphs.len());
+		let mut sprite_batch = SpriteBatch::new(ctx, &font.inner.texture, glyphs.len());
 		let mut bounds: Option<Rect> = None;
 		for glyph in glyphs {
 			if !glyph.char_data.rasterize() {
@@ -48,6 +48,7 @@ impl Text {
 				bounds = Some(display_rect);
 			}
 			let texture_rect = *font
+				.inner
 				.glyph_rects
 				.get(&glyph.parent)
 				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));

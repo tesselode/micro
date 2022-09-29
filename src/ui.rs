@@ -7,6 +7,7 @@ pub mod image;
 pub mod list;
 pub mod padded;
 pub mod rectangle;
+pub mod text;
 pub mod transformed;
 
 use glam::Vec2;

@@ -14,6 +14,7 @@ use micro::{
 		image::Image,
 		list::{List, Mode},
 		rectangle::Rectangle,
+		transformed::Transformed,
 		Constraints, Widget,
 	},
 	Context, ContextSettings, State,
@@ -35,25 +36,18 @@ impl MainState {
 impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
-		Container::new()
-			.with_child(
-				Vec2::new(100.0, 50.0),
+		List::vertical()
+			.with_child(Transformed::rotated(
+				0.25,
 				Constrained::new(
-					Constraints::max_only(Vec2::splat(100.0)),
-					Rectangle::new()
-						.with_fill(Rgba::RED)
-						.with_stroke(5.0, Rgba::GREEN),
+					Constraints::max_only(Vec2::new(100.0, 50.0)),
+					Rectangle::new().with_fill(Rgba::RED),
 				),
-			)
-			.with_child(
-				Vec2::new(400.0, 50.0),
-				Constrained::new(
-					Constraints::max_only(Vec2::splat(100.0)),
-					Ellipse::new()
-						.with_fill(Rgba::RED)
-						.with_stroke(5.0, Rgba::GREEN),
-				),
-			)
+			))
+			.with_child(Constrained::new(
+				Constraints::max_only(Vec2::new(100.0, 50.0)),
+				Rectangle::new().with_fill(Rgba::BLUE),
+			))
 			.build(
 				ctx,
 				Constraints {

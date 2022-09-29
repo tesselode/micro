@@ -7,6 +7,7 @@ pub mod flex;
 pub mod image;
 pub mod list;
 pub mod rectangle;
+pub mod transformed;
 
 pub use constraints::*;
 

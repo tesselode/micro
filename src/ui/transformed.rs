@@ -2,7 +2,7 @@ use glam::{Mat3, Vec2};
 
 use crate::Context;
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct Transformed {
 	pub transform: Mat3,
@@ -31,8 +31,8 @@ impl Transformed {
 }
 
 impl Widget for Transformed {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
-		let built_child = self.child.build(ctx, constraints);
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
+		let built_child = self.child.build(ctx, max_size);
 		let size = built_child.size();
 		Box::new(BuiltTransformed {
 			size,

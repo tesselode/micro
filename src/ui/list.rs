@@ -5,7 +5,7 @@ use crate::{
 	Context,
 };
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct List {
 	pub main_axis: Axis,
@@ -54,10 +54,7 @@ impl List {
 			.iter()
 			.map(|child| {
 				let max_child_size = MainCross::new(remaining_main_axis_size, max_size.cross);
-				let built_child = child.build(
-					ctx,
-					Constraints::max_only(max_child_size.into_vec2(self.main_axis)),
-				);
+				let built_child = child.build(ctx, max_child_size.into_vec2(self.main_axis));
 				remaining_main_axis_size -=
 					MainCross::from_vec2(self.main_axis, built_child.size()).main;
 				built_child
@@ -150,8 +147,8 @@ impl List {
 }
 
 impl Widget for List {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
-		let max_size = MainCross::from_vec2(self.main_axis, constraints.max_size);
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
+		let max_size = MainCross::from_vec2(self.main_axis, max_size);
 		let built_children = self.build_children(ctx, max_size);
 		let total_size = self.total_size(&built_children, max_size);
 		let positioned_children =

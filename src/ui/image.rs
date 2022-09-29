@@ -5,7 +5,7 @@ use crate::{
 	Context,
 };
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct Image {
 	pub texture: Texture,
@@ -26,10 +26,10 @@ impl Image {
 }
 
 impl Widget for Image {
-	fn build(&self, _ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
+	fn build(&self, _ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
 		Box::new(BuiltImage {
 			texture: self.texture.clone(),
-			size: self.texture.size().as_vec2().min(constraints.max_size),
+			size: self.texture.size().as_vec2().min(max_size),
 			color: self.color,
 		})
 	}

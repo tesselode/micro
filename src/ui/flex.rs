@@ -5,7 +5,7 @@ use crate::{
 	Context,
 };
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct Flex {
 	pub main_axis: Axis,
@@ -48,10 +48,7 @@ impl Flex {
 				);
 				(
 					*weight,
-					child.build(
-						ctx,
-						Constraints::max_only(max_child_size.into_vec2(self.main_axis)),
-					),
+					child.build(ctx, max_child_size.into_vec2(self.main_axis)),
 				)
 			})
 			.collect()
@@ -77,12 +74,12 @@ impl Flex {
 }
 
 impl Widget for Flex {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
-		let parent_size = MainCross::from_vec2(self.main_axis, constraints.max_size);
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
+		let parent_size = MainCross::from_vec2(self.main_axis, max_size);
 		let built_children = self.build_children(ctx, parent_size);
 		let positioned_children = self.position_children(built_children, parent_size);
 		Box::new(BuiltFlex {
-			size: constraints.max_size,
+			size: max_size,
 			children: positioned_children,
 		})
 	}

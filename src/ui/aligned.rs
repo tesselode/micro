@@ -2,7 +2,7 @@ use glam::{Mat3, Vec2};
 
 use crate::Context;
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct Aligned {
 	pub child: Box<dyn Widget>,
@@ -39,9 +39,9 @@ impl Aligned {
 }
 
 impl Widget for Aligned {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
-		let child = self.child.build(ctx, constraints);
-		let parent_size = constraints.max_size;
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
+		let child = self.child.build(ctx, max_size);
+		let parent_size = max_size;
 		let position = parent_size * self.alignment - child.size() * self.alignment;
 		Box::new(BuiltAligned {
 			size: parent_size,

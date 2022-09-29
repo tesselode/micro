@@ -8,7 +8,7 @@ use crate::{
 	Context,
 };
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct Ellipse {
 	pub fill: Option<Rgba>,
@@ -45,11 +45,11 @@ impl Default for Ellipse {
 }
 
 impl Widget for Ellipse {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
-		let radii = constraints.max_size / 2.0;
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
+		let radii = max_size / 2.0;
 		let center = radii;
 		Box::new(BuiltEllipse {
-			size: constraints.max_size,
+			size: max_size,
 			fill: self.fill.map(|color| ColoredMesh {
 				mesh: Mesh::ellipse(ctx, ShapeStyle::Fill, center, radii, 0.0),
 				color,

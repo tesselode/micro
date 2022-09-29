@@ -2,7 +2,7 @@ use glam::{Mat3, Vec2};
 
 use crate::Context;
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct Container {
 	pub children: Vec<(Vec2, Box<dyn Widget>)>,
@@ -26,18 +26,13 @@ impl Default for Container {
 }
 
 impl Widget for Container {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
 		Box::new(BuiltContainer {
-			size: constraints.max_size,
+			size: max_size,
 			children: self
 				.children
 				.iter()
-				.map(|(position, child)| {
-					(
-						*position,
-						child.build(ctx, Constraints::max_only(constraints.max_size - *position)),
-					)
-				})
+				.map(|(position, child)| (*position, child.build(ctx, max_size - *position)))
 				.collect(),
 		})
 	}

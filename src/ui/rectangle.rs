@@ -9,7 +9,7 @@ use crate::{
 	Context,
 };
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct Rectangle {
 	pub fill: Option<Rgba>,
@@ -46,10 +46,10 @@ impl Default for Rectangle {
 }
 
 impl Widget for Rectangle {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
-		let rect = Rect::from_top_left_and_size(Vec2::ZERO, constraints.max_size);
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
+		let rect = Rect::from_top_left_and_size(Vec2::ZERO, max_size);
 		Box::new(BuiltRectangle {
-			size: constraints.max_size,
+			size: max_size,
 			fill: self.fill.map(|color| ColoredMesh {
 				mesh: Mesh::styled_rectangle(ctx, ShapeStyle::Fill, rect),
 				color,

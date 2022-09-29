@@ -1,6 +1,5 @@
 pub mod aligned;
 pub mod constrained;
-mod constraints;
 pub mod container;
 pub mod ellipse;
 pub mod flex;
@@ -9,14 +8,12 @@ pub mod list;
 pub mod rectangle;
 pub mod transformed;
 
-pub use constraints::*;
-
 use glam::Vec2;
 
 use crate::Context;
 
 pub trait Widget {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget>;
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget>;
 }
 
 pub trait BuiltWidget {

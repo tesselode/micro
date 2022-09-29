@@ -15,7 +15,7 @@ use micro::{
 		list::{List, Mode},
 		rectangle::Rectangle,
 		transformed::Transformed,
-		Constraints, Widget,
+		Widget,
 	},
 	Context, ContextSettings, State,
 };
@@ -40,21 +40,15 @@ impl State for MainState {
 			.with_child(Transformed::rotated(
 				0.25,
 				Constrained::new(
-					Constraints::max_only(Vec2::new(100.0, 50.0)),
+					Vec2::new(100.0, 50.0),
 					Rectangle::new().with_fill(Rgba::RED),
 				),
 			))
 			.with_child(Constrained::new(
-				Constraints::max_only(Vec2::new(100.0, 50.0)),
+				Vec2::new(100.0, 50.0),
 				Rectangle::new().with_fill(Rgba::BLUE),
 			))
-			.build(
-				ctx,
-				Constraints {
-					min_size: Vec2::ZERO,
-					max_size: ctx.window_size().as_vec2(),
-				},
-			)
+			.build(ctx, ctx.window_size().as_vec2())
 			.draw(ctx);
 	}
 }

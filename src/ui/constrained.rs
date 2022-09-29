@@ -1,23 +1,25 @@
+use glam::Vec2;
+
 use crate::Context;
 
-use super::{BuiltWidget, Constraints, Widget};
+use super::{BuiltWidget, Widget};
 
 pub struct Constrained {
-	pub constraints: Constraints,
+	pub max_size: Vec2,
 	pub child: Box<dyn Widget>,
 }
 
 impl Constrained {
-	pub fn new(constraints: Constraints, child: impl Widget + 'static) -> Self {
+	pub fn new(max_size: Vec2, child: impl Widget + 'static) -> Self {
 		Self {
-			constraints,
+			max_size,
 			child: Box::new(child),
 		}
 	}
 }
 
 impl Widget for Constrained {
-	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
-		self.child.build(ctx, self.constraints.union(constraints))
+	fn build(&self, ctx: &mut Context, max_size: Vec2) -> Box<dyn BuiltWidget> {
+		self.child.build(ctx, self.max_size.min(max_size))
 	}
 }

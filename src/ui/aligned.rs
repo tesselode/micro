@@ -4,12 +4,12 @@ use crate::Context;
 
 use super::{BuiltWidget, Constraints, Widget};
 
-pub struct Align {
+pub struct Aligned {
 	pub child: Box<dyn Widget>,
 	pub alignment: Vec2,
 }
 
-impl Align {
+impl Aligned {
 	pub fn new(alignment: Vec2, child: impl Widget + 'static) -> Self {
 		Self {
 			child: Box::new(child),
@@ -38,12 +38,12 @@ impl Align {
 	}
 }
 
-impl Widget for Align {
+impl Widget for Aligned {
 	fn build(&self, ctx: &mut Context, constraints: Constraints) -> Box<dyn BuiltWidget> {
 		let child = self.child.build(ctx, constraints);
 		let parent_size = constraints.max_size;
 		let position = parent_size * self.alignment - child.size() * self.alignment;
-		Box::new(BuiltAlign {
+		Box::new(BuiltAligned {
 			size: parent_size,
 			child,
 			child_position: position,
@@ -51,13 +51,13 @@ impl Widget for Align {
 	}
 }
 
-struct BuiltAlign {
+struct BuiltAligned {
 	size: Vec2,
 	child: Box<dyn BuiltWidget>,
 	child_position: Vec2,
 }
 
-impl BuiltWidget for BuiltAlign {
+impl BuiltWidget for BuiltAligned {
 	fn size(&self) -> Vec2 {
 		self.size
 	}

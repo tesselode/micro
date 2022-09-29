@@ -1,4 +1,4 @@
-pub mod align;
+pub mod aligned;
 pub mod constrained;
 mod constraints;
 pub mod container;

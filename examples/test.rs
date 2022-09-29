@@ -6,7 +6,7 @@ use micro::{
 		texture::{Texture, TextureSettings},
 	},
 	ui::{
-		align::Align,
+		aligned::Aligned,
 		constrained::Constrained,
 		container::Container,
 		ellipse::Ellipse,

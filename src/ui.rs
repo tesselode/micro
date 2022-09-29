@@ -5,6 +5,7 @@ pub mod ellipse;
 pub mod flex;
 pub mod image;
 pub mod list;
+pub mod padded;
 pub mod rectangle;
 pub mod transformed;
 

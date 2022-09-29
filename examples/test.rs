@@ -13,6 +13,7 @@ use micro::{
 		flex::Flex,
 		image::Image,
 		list::{List, Mode},
+		padded::Padded,
 		rectangle::Rectangle,
 		transformed::Transformed,
 		Widget,
@@ -37,12 +38,9 @@ impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
 		List::vertical()
-			.with_child(Transformed::rotated(
-				0.25,
-				Constrained::new(
-					Vec2::new(100.0, 50.0),
-					Rectangle::new().with_fill(Rgba::RED),
-				),
+			.with_child(Constrained::new(
+				Vec2::new(100.0, 50.0),
+				Padded::left(10.0, Rectangle::new().with_fill(Rgba::RED)),
 			))
 			.with_child(Constrained::new(
 				Vec2::new(100.0, 50.0),

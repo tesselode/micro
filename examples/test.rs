@@ -35,10 +35,14 @@ impl State for MainState {
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
 		let window_size = ctx.window_size();
+		let monitor_resolution = ctx.monitor_resolution();
 		Text::new(
 			ctx,
 			&self.font,
-			&format!("{}x{}", window_size.x, window_size.y),
+			&format!(
+				"{}x{}\n{}x{}",
+				window_size.x, window_size.y, monitor_resolution.x, monitor_resolution.y
+			),
 			LayoutSettings::default(),
 		)
 		.draw(ctx, DrawParams::new());

@@ -94,6 +94,27 @@ impl Context {
 		self.video.gl_get_swap_interval()
 	}
 
+	pub fn monitor_resolution(&self) -> UVec2 {
+		let display_index = self
+			.window
+			.display_index()
+			.expect("could not get display index of window");
+		let display_mode = self
+			.video
+			.desktop_display_mode(display_index)
+			.expect("could not get display mode");
+		UVec2::new(
+			display_mode
+				.w
+				.try_into()
+				.expect("could not convert i32 into u32"),
+			display_mode
+				.h
+				.try_into()
+				.expect("could not convert i32 into u32"),
+		)
+	}
+
 	pub fn set_window_size(&mut self, window_size: UVec2) {
 		self.window
 			.set_size(window_size.x, window_size.y)

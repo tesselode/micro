@@ -9,7 +9,7 @@ use sdl2::{
 	event::{Event, WindowEvent},
 	keyboard::Scancode,
 	mouse::MouseButton,
-	video::{GLContext, GLProfile, SwapInterval, Window},
+	video::{FullscreenType, GLContext, GLProfile, SwapInterval, Window},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 };
 
@@ -39,7 +39,7 @@ where
 		while let Some(event) = ctx.event_pump.poll_event() {
 			match event {
 				Event::Window {
-					win_event: WindowEvent::Resized(width, height),
+					win_event: WindowEvent::SizeChanged(width, height),
 					..
 				} => {
 					ctx.resize(UVec2::new(width as u32, height as u32));
@@ -63,7 +63,7 @@ where
 
 pub struct Context {
 	_sdl: Sdl,
-	_video: VideoSubsystem,
+	video: VideoSubsystem,
 	window: Window,
 	controller: GameControllerSubsystem,
 	_sdl_gl_ctx: GLContext,
@@ -80,6 +80,41 @@ impl Context {
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.size();
 		UVec2::new(width, height)
+	}
+
+	pub fn fullscreen(&self) -> bool {
+		match self.window.fullscreen_state() {
+			FullscreenType::Off => false,
+			FullscreenType::True => true,
+			FullscreenType::Desktop => true,
+		}
+	}
+
+	pub fn swap_interval(&self) -> SwapInterval {
+		self.video.gl_get_swap_interval()
+	}
+
+	pub fn set_window_size(&mut self, window_size: UVec2) {
+		self.window
+			.set_size(window_size.x, window_size.y)
+			.expect("window size is too big");
+	}
+
+	pub fn set_fullscreen(&mut self, fullscreen: bool) {
+		let fullscreen_type = if fullscreen {
+			FullscreenType::Desktop
+		} else {
+			FullscreenType::Off
+		};
+		self.window
+			.set_fullscreen(fullscreen_type)
+			.expect("error setting fullscreen mode");
+	}
+
+	pub fn set_swap_interval(&mut self, swap_interval: SwapInterval) {
+		self.video
+			.gl_set_swap_interval(swap_interval)
+			.expect("could not set swap interval");
 	}
 
 	pub fn clear(&self, color: Rgba) {
@@ -190,17 +225,13 @@ impl Context {
 		);
 		let _sdl_gl_ctx = window.gl_create_context().unwrap();
 		video
-			.gl_set_swap_interval(if settings.vsync {
-				SwapInterval::VSync
-			} else {
-				SwapInterval::Immediate
-			})
-			.expect("Could not set vsync");
+			.gl_set_swap_interval(settings.swap_interval)
+			.expect("Could not set swap interval");
 		let event_pump = sdl.event_pump().unwrap();
 		let (gl, default_texture, default_shader) = create_gl_context(&video, window_size);
 		Self {
 			_sdl: sdl,
-			_video: video,
+			video,
 			window,
 			controller,
 			_sdl_gl_ctx,
@@ -261,7 +292,7 @@ pub struct ContextSettings {
 	pub window_title: String,
 	pub window_size: UVec2,
 	pub resizable: bool,
-	pub vsync: bool,
+	pub swap_interval: SwapInterval,
 }
 
 impl Default for ContextSettings {
@@ -270,7 +301,7 @@ impl Default for ContextSettings {
 			window_title: "Game".into(),
 			window_size: UVec2::new(800, 600),
 			resizable: false,
-			vsync: true,
+			swap_interval: SwapInterval::VSync,
 		}
 	}
 }

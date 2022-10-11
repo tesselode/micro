@@ -12,3 +12,5 @@ pub mod texture;
 
 pub use blend_mode::*;
 pub use draw_params::*;
+
+pub use sdl2::video::SwapInterval;

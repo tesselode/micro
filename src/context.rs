@@ -77,87 +77,6 @@ pub struct Context {
 }
 
 impl Context {
-	fn new(settings: ContextSettings) -> Self {
-		let sdl = sdl2::init().unwrap();
-		let video = sdl.video().unwrap();
-		let controller = sdl.game_controller().unwrap();
-		let gl_attr = video.gl_attr();
-		gl_attr.set_context_profile(GLProfile::Core);
-		gl_attr.set_context_version(3, 3);
-		gl_attr.set_stencil_size(8);
-		let window = build_window(&video, &settings);
-		let (window_width, window_height) = window.size();
-		let window_size = IVec2::new(
-			window_width.try_into().expect("window is too wide"),
-			window_height.try_into().expect("window is too tall"),
-		);
-		let _sdl_gl_ctx = window.gl_create_context().unwrap();
-		video
-			.gl_set_swap_interval(if settings.vsync {
-				SwapInterval::VSync
-			} else {
-				SwapInterval::Immediate
-			})
-			.expect("Could not set vsync");
-		let event_pump = sdl.event_pump().unwrap();
-		let (gl, default_texture, default_shader) = create_gl_context(&video, window_size);
-		Self {
-			_sdl: sdl,
-			_video: video,
-			window,
-			controller,
-			_sdl_gl_ctx,
-			event_pump,
-			should_quit: false,
-			gl,
-			default_texture,
-			default_shader,
-			transform_stack: vec![],
-			render_target: RenderTarget::Window,
-		}
-	}
-
-	pub(crate) fn set_render_target(&mut self, render_target: RenderTarget) {
-		self.render_target = render_target;
-		let viewport_size: IVec2 = match render_target {
-			RenderTarget::Window => self.window_size(),
-			RenderTarget::Canvas { size } => size,
-		}
-		.as_ivec2();
-		unsafe {
-			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
-		}
-	}
-
-	pub(crate) fn resize(&mut self, size: UVec2) {
-		let viewport_size = size.as_ivec2();
-		unsafe {
-			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
-		}
-	}
-
-	pub(crate) fn global_transform(&self) -> Mat3 {
-		let coordinate_system_transform = match self.render_target {
-			RenderTarget::Window => {
-				let window_size = self.window_size();
-				Mat3::from_translation(Vec2::new(-1.0, 1.0))
-					* Mat3::from_scale(Vec2::new(
-						2.0 / window_size.x as f32,
-						-2.0 / window_size.y as f32,
-					))
-			}
-			RenderTarget::Canvas { size } => {
-				Mat3::from_translation(Vec2::new(-1.0, -1.0))
-					* Mat3::from_scale(Vec2::new(2.0 / size.x as f32, 2.0 / size.y as f32))
-			}
-		};
-		self.transform_stack
-			.iter()
-			.fold(coordinate_system_transform, |previous, transform| {
-				previous * *transform
-			})
-	}
-
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.size();
 		UVec2::new(width, height)
@@ -253,6 +172,87 @@ impl Context {
 
 	pub fn quit(&mut self) {
 		self.should_quit = true;
+	}
+
+	fn new(settings: ContextSettings) -> Self {
+		let sdl = sdl2::init().unwrap();
+		let video = sdl.video().unwrap();
+		let controller = sdl.game_controller().unwrap();
+		let gl_attr = video.gl_attr();
+		gl_attr.set_context_profile(GLProfile::Core);
+		gl_attr.set_context_version(3, 3);
+		gl_attr.set_stencil_size(8);
+		let window = build_window(&video, &settings);
+		let (window_width, window_height) = window.size();
+		let window_size = IVec2::new(
+			window_width.try_into().expect("window is too wide"),
+			window_height.try_into().expect("window is too tall"),
+		);
+		let _sdl_gl_ctx = window.gl_create_context().unwrap();
+		video
+			.gl_set_swap_interval(if settings.vsync {
+				SwapInterval::VSync
+			} else {
+				SwapInterval::Immediate
+			})
+			.expect("Could not set vsync");
+		let event_pump = sdl.event_pump().unwrap();
+		let (gl, default_texture, default_shader) = create_gl_context(&video, window_size);
+		Self {
+			_sdl: sdl,
+			_video: video,
+			window,
+			controller,
+			_sdl_gl_ctx,
+			event_pump,
+			should_quit: false,
+			gl,
+			default_texture,
+			default_shader,
+			transform_stack: vec![],
+			render_target: RenderTarget::Window,
+		}
+	}
+
+	pub(crate) fn set_render_target(&mut self, render_target: RenderTarget) {
+		self.render_target = render_target;
+		let viewport_size: IVec2 = match render_target {
+			RenderTarget::Window => self.window_size(),
+			RenderTarget::Canvas { size } => size,
+		}
+		.as_ivec2();
+		unsafe {
+			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
+		}
+	}
+
+	pub(crate) fn resize(&mut self, size: UVec2) {
+		let viewport_size = size.as_ivec2();
+		unsafe {
+			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
+		}
+	}
+
+	pub(crate) fn global_transform(&self) -> Mat3 {
+		let coordinate_system_transform = match self.render_target {
+			RenderTarget::Window => {
+				let window_size = self.window_size();
+				Mat3::from_translation(Vec2::new(-1.0, 1.0))
+					* Mat3::from_scale(Vec2::new(
+						2.0 / window_size.x as f32,
+						-2.0 / window_size.y as f32,
+					))
+			}
+			RenderTarget::Canvas { size } => {
+				Mat3::from_translation(Vec2::new(-1.0, -1.0))
+					* Mat3::from_scale(Vec2::new(2.0 / size.x as f32, 2.0 / size.y as f32))
+			}
+		};
+		self.transform_stack
+			.iter()
+			.fold(coordinate_system_transform, |previous, transform| {
+				previous * *transform
+			})
 	}
 }
 

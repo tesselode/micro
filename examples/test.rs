@@ -39,10 +39,7 @@ impl State for MainState {
 		Text::new(
 			ctx,
 			&self.font,
-			&format!(
-				"{}x{}\n{}x{}",
-				window_size.x, window_size.y, monitor_resolution.x, monitor_resolution.y
-			),
+			&format!("{}x{}", ctx.mouse_position().x, ctx.mouse_position().y),
 			LayoutSettings::default(),
 		)
 		.draw(ctx, DrawParams::new());

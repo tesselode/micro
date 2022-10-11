@@ -214,6 +214,11 @@ impl Context {
 			.is_mouse_button_pressed(mouse_button)
 	}
 
+	pub fn mouse_position(&self) -> IVec2 {
+		let mouse_state = self.event_pump.mouse_state();
+		IVec2::new(mouse_state.x(), mouse_state.y())
+	}
+
 	pub fn game_controller(&self, index: u32) -> Option<GameController> {
 		match self.controller.open(index) {
 			Ok(controller) => Some(GameController(controller)),

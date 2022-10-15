@@ -26,7 +26,7 @@ impl MainState {
 impl State for MainState {
 	fn event(&mut self, ctx: &mut Context, event: Event) {
 		if let Event::KeyDown {
-			scancode: Some(Scancode::F4),
+			scancode: Some(Scancode::F1),
 			..
 		} = event
 		{
@@ -55,6 +55,9 @@ impl State for MainState {
 fn main() {
 	micro::run(
 		ContextSettings {
+			window_mode: WindowMode::Windowed {
+				size: UVec2::new(500, 500),
+			},
 			resizable: true,
 			..Default::default()
 		},

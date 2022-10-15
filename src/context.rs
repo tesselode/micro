@@ -320,7 +320,7 @@ impl Context {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ContextSettings {
 	pub window_title: String,
-	pub window_size: UVec2,
+	pub window_mode: WindowMode,
 	pub resizable: bool,
 	pub swap_interval: SwapInterval,
 }
@@ -329,7 +329,7 @@ impl Default for ContextSettings {
 	fn default() -> Self {
 		Self {
 			window_title: "Game".into(),
-			window_size: UVec2::new(800, 600),
+			window_mode: WindowMode::default(),
 			resizable: false,
 			swap_interval: SwapInterval::VSync,
 		}
@@ -343,11 +343,15 @@ pub(crate) enum RenderTarget {
 }
 
 fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
-	let mut window_builder = video.window(
-		&settings.window_title,
-		settings.window_size.x,
-		settings.window_size.y,
-	);
+	let window_size = match settings.window_mode {
+		// doesn't matter because we're going to set the window to fullscreen
+		WindowMode::Fullscreen => UVec2::new(800, 600),
+		WindowMode::Windowed { size } => size,
+	};
+	let mut window_builder = video.window(&settings.window_title, window_size.x, window_size.y);
+	if settings.window_mode == WindowMode::Fullscreen {
+		window_builder.fullscreen_desktop();
+	}
 	window_builder.opengl();
 	if settings.resizable {
 		window_builder.resizable();

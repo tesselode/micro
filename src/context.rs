@@ -21,6 +21,7 @@ use crate::{
 		texture::{Texture, TextureSettings},
 	},
 	input::GameController,
+	window::WindowMode,
 	State,
 };
 
@@ -82,11 +83,13 @@ impl Context {
 		UVec2::new(width, height)
 	}
 
-	pub fn fullscreen(&self) -> bool {
+	pub fn window_mode(&self) -> WindowMode {
 		match self.window.fullscreen_state() {
-			FullscreenType::Off => false,
-			FullscreenType::True => true,
-			FullscreenType::Desktop => true,
+			FullscreenType::Off => WindowMode::Windowed {
+				size: self.window_size(),
+			},
+			FullscreenType::True => WindowMode::Fullscreen,
+			FullscreenType::Desktop => WindowMode::Fullscreen,
 		}
 	}
 
@@ -115,21 +118,22 @@ impl Context {
 		)
 	}
 
-	pub fn set_window_size(&mut self, window_size: UVec2) {
-		self.window
-			.set_size(window_size.x, window_size.y)
-			.expect("window size is too big");
-	}
-
-	pub fn set_fullscreen(&mut self, fullscreen: bool) {
-		let fullscreen_type = if fullscreen {
-			FullscreenType::Desktop
-		} else {
-			FullscreenType::Off
-		};
-		self.window
-			.set_fullscreen(fullscreen_type)
-			.expect("error setting fullscreen mode");
+	pub fn set_window_mode(&mut self, window_mode: WindowMode) {
+		match window_mode {
+			WindowMode::Fullscreen => {
+				self.window
+					.set_fullscreen(FullscreenType::Desktop)
+					.expect("error setting fullscreen mode");
+			}
+			WindowMode::Windowed { size } => {
+				self.window
+					.set_fullscreen(FullscreenType::Off)
+					.expect("error setting fullscreen mode");
+				self.window
+					.set_size(size.x, size.y)
+					.expect("error setting window size");
+			}
+		}
 	}
 
 	pub fn set_swap_interval(&mut self, swap_interval: SwapInterval) {

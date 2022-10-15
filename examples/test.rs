@@ -1,3 +1,4 @@
+use glam::UVec2;
 use micro::{
 	graphics::{
 		color::Rgba,
@@ -5,6 +6,7 @@ use micro::{
 		DrawParams,
 	},
 	input::Scancode,
+	window::WindowMode,
 	Context, ContextSettings, Event, State,
 };
 
@@ -28,18 +30,22 @@ impl State for MainState {
 			..
 		} = event
 		{
-			ctx.set_fullscreen(!ctx.fullscreen());
+			ctx.set_window_mode(match ctx.window_mode() {
+				WindowMode::Fullscreen => WindowMode::Windowed {
+					size: UVec2::new(500, 500),
+				},
+				WindowMode::Windowed { .. } => WindowMode::Fullscreen,
+			})
 		}
 	}
 
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
 		let window_size = ctx.window_size();
-		let monitor_resolution = ctx.monitor_resolution();
 		Text::new(
 			ctx,
 			&self.font,
-			&format!("{}x{}", ctx.mouse_position().x, ctx.mouse_position().y),
+			&format!("{}x{}", window_size.x, window_size.y),
 			LayoutSettings::default(),
 		)
 		.draw(ctx, DrawParams::new());

@@ -11,19 +11,19 @@ use std::{collections::HashMap, hash::Hash};
 
 use crate::Context;
 
-use super::GameController;
+use super::Gamepad;
 
 #[derive(Debug)]
 pub struct VirtualController<C: VirtualControls, S: VirtualAnalogSticks<C> = ()> {
 	pub config: VirtualControllerConfig<C>,
-	pub controller: Option<GameController>,
+	pub controller: Option<Gamepad>,
 	active_input_kind: Option<InputKind>,
 	control_state: HashMap<C, VirtualControlState>,
 	stick_state: HashMap<S, VirtualAnalogStickState>,
 }
 
 impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
-	pub fn new(config: VirtualControllerConfig<C>, controller: Option<GameController>) -> Self {
+	pub fn new(config: VirtualControllerConfig<C>, controller: Option<Gamepad>) -> Self {
 		Self {
 			config,
 			controller,
@@ -133,7 +133,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 
 	fn control_raw_value(
 		config: &VirtualControllerConfig<C>,
-		controller: Option<&GameController>,
+		controller: Option<&Gamepad>,
 		ctx: &Context,
 		control: C,
 		active_input_kind: InputKind,

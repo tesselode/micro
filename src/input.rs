@@ -8,9 +8,9 @@ pub use sdl2::{
 	mouse::{MouseButton, MouseWheelDirection},
 };
 
-pub struct GameController(pub(crate) sdl2::controller::GameController);
+pub struct Gamepad(pub(crate) sdl2::controller::GameController);
 
-impl GameController {
+impl Gamepad {
 	pub fn is_attached(&self) -> bool {
 		self.0.attached()
 	}
@@ -24,7 +24,7 @@ impl GameController {
 	}
 }
 
-impl Debug for GameController {
+impl Debug for Gamepad {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_tuple("GameController").finish()
 	}

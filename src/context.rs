@@ -6,7 +6,6 @@ use std::{
 use glam::{IVec2, Mat3, UVec2, Vec2};
 use glow::HasContext;
 use sdl2::{
-	event::{Event, WindowEvent},
 	keyboard::Scancode,
 	mouse::MouseButton,
 	video::{FullscreenType, GLContext, GLProfile, SwapInterval, Window},
@@ -20,9 +19,9 @@ use crate::{
 		stencil::{StencilAction, StencilTest},
 		texture::{Texture, TextureSettings},
 	},
-	input::GameController,
+	input::Gamepad,
 	window::WindowMode,
-	State,
+	Event, State,
 };
 
 pub fn run<S, F>(settings: ContextSettings, mut state_constructor: F)
@@ -38,14 +37,13 @@ where
 		let delta_time = now - last_update_time;
 		last_update_time = now;
 		while let Some(event) = ctx.event_pump.poll_event() {
+			let event = match Event::from_sdl2_event(event) {
+				Some(event) => event,
+				None => continue,
+			};
 			match event {
-				Event::Window {
-					win_event: WindowEvent::SizeChanged(width, height),
-					..
-				} => {
-					ctx.resize(UVec2::new(width as u32, height as u32));
-				}
-				Event::Quit { .. } => {
+				Event::WindowSizeChanged(size) => ctx.resize(size),
+				Event::Exited => {
 					ctx.should_quit = true;
 				}
 				_ => {}
@@ -223,9 +221,9 @@ impl Context {
 		IVec2::new(mouse_state.x(), mouse_state.y())
 	}
 
-	pub fn game_controller(&self, index: u32) -> Option<GameController> {
+	pub fn game_controller(&self, index: u32) -> Option<Gamepad> {
 		match self.controller.open(index) {
-			Ok(controller) => Some(GameController(controller)),
+			Ok(controller) => Some(Gamepad(controller)),
 			Err(error) => match error {
 				IntegerOrSdlError::IntegerOverflows(_, _) => {
 					panic!("integer overflow when getting controller")

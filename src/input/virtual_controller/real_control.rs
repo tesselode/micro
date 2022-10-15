@@ -4,7 +4,7 @@ use sdl2::{
 	mouse::MouseButton,
 };
 
-use crate::{input::GameController, Context};
+use crate::{input::Gamepad, Context};
 
 use super::InputKind;
 
@@ -26,7 +26,7 @@ impl RealControl {
 		}
 	}
 
-	pub(super) fn value(&self, ctx: &Context, controller: Option<&GameController>) -> f32 {
+	pub(super) fn value(&self, ctx: &Context, controller: Option<&Gamepad>) -> f32 {
 		match self {
 			RealControl::Key(scancode) => {
 				if ctx.is_key_down(*scancode) {

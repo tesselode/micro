@@ -1,17 +1,12 @@
 use std::time::Duration;
 
-use sdl2::event::Event;
-
-use crate::Context;
+use crate::{event::Event, Context};
 
 #[allow(unused_variables)]
 pub trait State {
-	fn event(&mut self, ctx: &mut Context, event: Event) {
-	}
+	fn event(&mut self, ctx: &mut Context, event: Event) {}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {
-	}
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {}
 
-	fn draw(&mut self, ctx: &mut Context) {
-	}
+	fn draw(&mut self, ctx: &mut Context) {}
 }

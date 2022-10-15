@@ -25,11 +25,7 @@ impl MainState {
 
 impl State for MainState {
 	fn event(&mut self, ctx: &mut Context, event: Event) {
-		if let Event::KeyDown {
-			scancode: Some(Scancode::F1),
-			..
-		} = event
-		{
+		if let Event::KeyPressed(Scancode::F1) = event {
 			ctx.set_window_mode(match ctx.window_mode() {
 				WindowMode::Fullscreen => WindowMode::Windowed {
 					size: UVec2::new(500, 500),

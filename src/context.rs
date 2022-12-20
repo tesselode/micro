@@ -8,7 +8,7 @@ use glow::HasContext;
 use sdl2::{
 	keyboard::Scancode,
 	mouse::MouseButton,
-	video::{FullscreenType, GLContext, GLProfile, SwapInterval, Window},
+	video::{FullscreenType, GLContext, GLProfile, SwapInterval, Window, WindowPos},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 };
 
@@ -130,6 +130,8 @@ impl Context {
 				self.window
 					.set_size(size.x, size.y)
 					.expect("error setting window size");
+				self.window
+					.set_position(WindowPos::Centered, WindowPos::Centered);
 			}
 		}
 	}

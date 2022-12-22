@@ -1,14 +1,12 @@
-use sdl2::{
-	controller::{Axis, Button},
-	keyboard::Scancode,
-	mouse::MouseButton,
+use crate::{
+	input::{Axis, Button, Gamepad, MouseButton, Scancode},
+	Context,
 };
-
-use crate::{input::Gamepad, Context};
 
 use super::InputKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum RealControl {
 	Key(Scancode),
 	MouseButton(MouseButton),
@@ -65,6 +63,7 @@ impl RealControl {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum AxisDirection {
 	Negative,
 	Positive,

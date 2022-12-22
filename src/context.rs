@@ -6,8 +6,6 @@ use std::{
 use glam::{IVec2, Mat3, UVec2, Vec2};
 use glow::HasContext;
 use sdl2::{
-	keyboard::Scancode,
-	mouse::MouseButton,
 	video::{FullscreenType, GLContext, GLProfile, SwapInterval, Window, WindowPos},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 };
@@ -19,7 +17,7 @@ use crate::{
 		stencil::{StencilAction, StencilTest},
 		texture::{Texture, TextureSettings},
 	},
-	input::Gamepad,
+	input::{Gamepad, MouseButton, Scancode},
 	window::WindowMode,
 	Event, State,
 };
@@ -209,13 +207,13 @@ impl Context {
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
 		self.event_pump
 			.keyboard_state()
-			.is_scancode_pressed(scancode)
+			.is_scancode_pressed(scancode.into())
 	}
 
 	pub fn is_mouse_button_down(&self, mouse_button: MouseButton) -> bool {
 		self.event_pump
 			.mouse_state()
-			.is_mouse_button_pressed(mouse_button)
+			.is_mouse_button_pressed(mouse_button.into())
 	}
 
 	pub fn mouse_position(&self) -> IVec2 {

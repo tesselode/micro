@@ -1,9 +1,6 @@
 use glam::{IVec2, UVec2};
-use sdl2::{
-	controller::{Axis, Button},
-	keyboard::Scancode,
-	mouse::MouseButton,
-};
+
+use crate::input::{Axis, Button, MouseButton, Scancode};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
@@ -55,11 +52,11 @@ impl Event {
 			sdl2::event::Event::KeyDown {
 				scancode: Some(scancode),
 				..
-			} => Some(Self::KeyPressed(scancode)),
+			} => Some(Self::KeyPressed(scancode.into())),
 			sdl2::event::Event::KeyUp {
 				scancode: Some(scancode),
 				..
-			} => Some(Self::KeyReleased(scancode)),
+			} => Some(Self::KeyReleased(scancode.into())),
 			sdl2::event::Event::MouseMotion {
 				x, y, xrel, yrel, ..
 			} => Some(Self::MouseMoved {
@@ -69,13 +66,13 @@ impl Event {
 			sdl2::event::Event::MouseButtonDown {
 				mouse_btn, x, y, ..
 			} => Some(Self::MouseButtonPressed {
-				button: mouse_btn,
+				button: mouse_btn.into(),
 				mouse_position: IVec2::new(x, y),
 			}),
 			sdl2::event::Event::MouseButtonUp {
 				mouse_btn, x, y, ..
 			} => Some(Self::MouseButtonReleased {
-				button: mouse_btn,
+				button: mouse_btn.into(),
 				mouse_position: IVec2::new(x, y),
 			}),
 			sdl2::event::Event::MouseWheel { x, y, .. } => {
@@ -85,19 +82,19 @@ impl Event {
 				which, axis, value, ..
 			} => Some(Self::GamepadAxisMoved {
 				gamepad_id: which,
-				axis,
+				axis: axis.into(),
 				value: value as f32 / i16::MAX as f32,
 			}),
 			sdl2::event::Event::ControllerButtonDown { which, button, .. } => {
 				Some(Self::GamepadButtonPressed {
 					gamepad_id: which,
-					button,
+					button: button.into(),
 				})
 			}
 			sdl2::event::Event::ControllerButtonUp { which, button, .. } => {
 				Some(Self::GamepadButtonReleased {
 					gamepad_id: which,
-					button,
+					button: button.into(),
 				})
 			}
 			sdl2::event::Event::ControllerDeviceAdded { which, .. } => {

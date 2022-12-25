@@ -36,3 +36,9 @@ impl From<Axis> for Sdl2Axis {
 		}
 	}
 }
+
+impl Axis {
+	pub fn string(self) -> String {
+		Sdl2Axis::from(self).string()
+	}
+}

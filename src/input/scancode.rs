@@ -748,4 +748,8 @@ impl Scancode {
 	pub fn from_keycode(keycode: Keycode) -> Option<Scancode> {
 		Sdl2Scancode::from_keycode(keycode.into()).map(|keycode| keycode.into())
 	}
+
+	pub fn name(self) -> &'static str {
+		Sdl2Scancode::from(self).name()
+	}
 }

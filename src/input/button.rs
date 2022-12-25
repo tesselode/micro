@@ -81,3 +81,9 @@ impl From<Button> for Sdl2Button {
 		}
 	}
 }
+
+impl Button {
+	pub fn string(self) -> String {
+		Sdl2Button::from(self).string()
+	}
+}

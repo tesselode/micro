@@ -14,25 +14,89 @@ use super::{
 };
 
 pub struct Text {
-	pub(crate) sprite_batch: SpriteBatch,
+	pub(crate) sprite_batches: Vec<SpriteBatch>,
 	pub(crate) bounds: Option<Rect>,
 }
 
 impl Text {
 	pub fn new(ctx: &Context, font: &Font, text: &str, layout_settings: LayoutSettings) -> Self {
+		Self::with_multiple_fonts(
+			ctx,
+			&[font],
+			&[TextFragment {
+				font_index: 0,
+				text,
+			}],
+			layout_settings,
+		)
+	}
+
+	pub fn with_multiple_fonts<'a>(
+		ctx: &Context,
+		fonts: &[&Font],
+		text_fragments: impl IntoIterator<Item = &'a TextFragment<'a>>,
+		layout_settings: LayoutSettings,
+	) -> Self {
+		let fontdue_fonts = fonts.iter().map(|font| &font.font).collect::<Vec<_>>();
 		let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
 		layout.reset(&layout_settings.into());
-		layout.append(
-			&[&font.font],
-			&TextStyle {
-				text,
-				px: font.scale,
-				font_index: 0,
-				user_data: (),
-			},
-		);
+		for TextFragment { font_index, text } in text_fragments {
+			layout.append(
+				&fontdue_fonts,
+				&TextStyle {
+					text,
+					px: fonts[*font_index].scale,
+					font_index: *font_index,
+					user_data: (),
+				},
+			);
+		}
+		Self::from_layout(layout, fonts, ctx)
+	}
+
+	pub fn num_glyphs(&self) -> usize {
+		self.sprite_batches
+			.iter()
+			.map(|sprite_batch| sprite_batch.len())
+			.sum()
+	}
+
+	pub fn bounds(&self) -> Option<Rect> {
+		self.bounds
+	}
+
+	pub fn draw<'a>(&self, ctx: &mut Context, params: impl Into<DrawParams<'a>>) {
+		let params = params.into();
+		for sprite_batch in &self.sprite_batches {
+			sprite_batch.draw(ctx, params);
+		}
+	}
+
+	pub fn draw_range<'a>(
+		&self,
+		ctx: &mut Context,
+		range: impl IntoOffsetAndCount,
+		params: impl Into<DrawParams<'a>>,
+	) {
+		if self.sprite_batches.len() != 1 {
+			unimplemented!("draw_range is only implemented for text with exactly 1 font");
+		}
+		self.sprite_batches[0].draw_range(ctx, range, params);
+	}
+
+	fn from_layout(layout: Layout, fonts: &[&Font], ctx: &Context) -> Text {
 		let glyphs = layout.glyphs();
-		let mut sprite_batch = SpriteBatch::new(ctx, &font.texture, glyphs.len());
+		let mut sprite_batches = fonts
+			.iter()
+			.enumerate()
+			.map(|(i, font)| {
+				SpriteBatch::new(
+					ctx,
+					&font.texture,
+					glyphs.iter().filter(|glyph| glyph.font_index == i).count(),
+				)
+			})
+			.collect::<Vec<_>>();
 		let mut bounds: Option<Rect> = None;
 		for glyph in glyphs {
 			if !glyph.char_data.rasterize() {
@@ -47,11 +111,11 @@ impl Text {
 			} else {
 				bounds = Some(display_rect);
 			}
-			let texture_rect = *font
+			let texture_rect = *fonts[glyph.font_index]
 				.glyph_rects
 				.get(&glyph.parent)
 				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
-			sprite_batch
+			sprite_batches[glyph.font_index]
 				.add_region(
 					texture_rect,
 					SpriteParams::new().position(Vec2::new(glyph.x, glyph.y)),
@@ -59,30 +123,9 @@ impl Text {
 				.expect("Not enough capacity in the sprite batch");
 		}
 		Self {
-			sprite_batch,
+			sprite_batches,
 			bounds,
 		}
-	}
-
-	pub fn num_glyphs(&self) -> usize {
-		self.sprite_batch.len()
-	}
-
-	pub fn bounds(&self) -> Option<Rect> {
-		self.bounds
-	}
-
-	pub fn draw<'a>(&self, ctx: &mut Context, params: impl Into<DrawParams<'a>>) {
-		self.sprite_batch.draw(ctx, params);
-	}
-
-	pub fn draw_range<'a>(
-		&self,
-		ctx: &mut Context,
-		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		self.sprite_batch.draw_range(ctx, range, params);
 	}
 }
 
@@ -138,4 +181,9 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 			wrap_hard_breaks: settings.wrap_hard_breaks,
 		}
 	}
+}
+
+pub struct TextFragment<'a> {
+	pub font_index: usize,
+	pub text: &'a str,
 }

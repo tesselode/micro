@@ -1,48 +1,58 @@
+use fontdue::layout::{HorizontalAlign, VerticalAlign};
 use glam::UVec2;
 use micro::{
 	graphics::{
 		color::Rgba,
-		text::{Font, FontSettings, LayoutSettings, Text},
+		text::{Font, FontSettings, LayoutSettings, Text, TextFragment},
 		DrawParams,
 	},
-	input::Scancode,
 	window::WindowMode,
-	Context, ContextSettings, Event, State,
+	Context, ContextSettings, State,
 };
 
 struct MainState {
-	font: Font,
+	normal_font: Font,
+	bold_font: Font,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Self {
 		Self {
-			font: Font::from_file(ctx, "examples/Roboto-Regular.ttf", FontSettings::default())
+			normal_font: Font::from_file(
+				ctx,
+				"examples/Roboto-Regular.ttf",
+				FontSettings::default(),
+			)
+			.unwrap(),
+			bold_font: Font::from_file(ctx, "examples/Roboto-Bold.ttf", FontSettings::default())
 				.unwrap(),
 		}
 	}
 }
 
 impl State for MainState {
-	fn event(&mut self, ctx: &mut Context, event: Event) {
-		if let Event::KeyPressed(Scancode::F1) = event {
-			ctx.set_window_mode(match ctx.window_mode() {
-				WindowMode::Fullscreen => WindowMode::Windowed {
-					size: UVec2::new(500, 500),
-				},
-				WindowMode::Windowed { .. } => WindowMode::Fullscreen,
-			})
-		}
-	}
-
 	fn draw(&mut self, ctx: &mut Context) {
 		ctx.clear(Rgba::BLACK);
-		let window_size = ctx.window_size();
-		Text::new(
+		Text::with_multiple_fonts(
 			ctx,
-			&self.font,
-			&format!("{}x{}", window_size.x, window_size.y),
-			LayoutSettings::default(),
+			&[&self.normal_font, &self.bold_font],
+			&[
+				TextFragment {
+					font_index: 0,
+					text: "This is some cool text,",
+				},
+				TextFragment {
+					font_index: 1,
+					text: "\nand some of it has emphasis.",
+				},
+			],
+			LayoutSettings {
+				max_width: Some(ctx.window_size().x as f32),
+				max_height: Some(ctx.window_size().y as f32),
+				horizontal_align: HorizontalAlign::Center,
+				vertical_align: VerticalAlign::Middle,
+				..Default::default()
+			},
 		)
 		.draw(ctx, DrawParams::new());
 	}

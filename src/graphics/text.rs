@@ -146,6 +146,7 @@ pub struct LayoutSettings {
 	pub horizontal_align: HorizontalAlign,
 	/// The default is Top. This option does nothing if the max_height isn't set.
 	pub vertical_align: VerticalAlign,
+	pub line_height: f32,
 	/// The default is Word. Wrap style is a hint for how strings of text should be wrapped to the
 	/// next line. Line wrapping can happen when the max width/height is reached.
 	pub wrap_style: WrapStyle,
@@ -162,6 +163,7 @@ impl Default for LayoutSettings {
 			max_height: None,
 			horizontal_align: HorizontalAlign::Left,
 			vertical_align: VerticalAlign::Top,
+			line_height: 1.0,
 			wrap_style: WrapStyle::Word,
 			wrap_hard_breaks: true,
 		}
@@ -177,6 +179,7 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 			max_height: settings.max_height,
 			horizontal_align: settings.horizontal_align,
 			vertical_align: settings.vertical_align,
+			line_height: settings.line_height,
 			wrap_style: settings.wrap_style,
 			wrap_hard_breaks: settings.wrap_hard_breaks,
 		}

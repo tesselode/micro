@@ -45,12 +45,21 @@ impl State for MainState {
 					font_index: 1,
 					text: "\nand some of it has emphasis.",
 				},
+				TextFragment {
+					font_index: 0,
+					text: "\nand some of it has emphasis.",
+				},
+				TextFragment {
+					font_index: 0,
+					text: "\nand some of it has emphasis.",
+				},
 			],
 			LayoutSettings {
 				max_width: Some(ctx.window_size().x as f32),
 				max_height: Some(ctx.window_size().y as f32),
 				horizontal_align: HorizontalAlign::Center,
 				vertical_align: VerticalAlign::Middle,
+				line_height: 4.0,
 				..Default::default()
 			},
 		)

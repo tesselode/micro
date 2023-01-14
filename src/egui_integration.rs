@@ -22,10 +22,11 @@ pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput 
 		mac_cmd: ctx.is_key_down(Scancode::LGui) || ctx.is_key_down(Scancode::RGui),
 		command: ctx.is_key_down(Scancode::LGui) || ctx.is_key_down(Scancode::RGui),
 	};
+	let scaling_factor = egui_scaling_factor(ctx);
 	RawInput {
 		screen_rect: Some(egui::Rect::from_min_size(
 			Default::default(),
-			glam_vec2_to_egui_vec2(ctx.window_size().as_vec2()),
+			glam_vec2_to_egui_vec2(ctx.window_size().as_vec2()) / scaling_factor,
 		)),
 		modifiers,
 		events: events
@@ -33,6 +34,7 @@ pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput 
 			.cloned()
 			.filter_map(|event| sdl2_event_to_egui_event(event, modifiers))
 			.collect(),
+		pixels_per_point: Some(scaling_factor),
 		..Default::default()
 	}
 }
@@ -58,19 +60,24 @@ pub fn draw_egui_output(
 			),
 		);
 	}
+	let scaling_factor = egui_scaling_factor(ctx);
 	for clipped_primitive in egui_ctx.tessellate(output.shapes) {
 		match clipped_primitive.primitive {
 			egui::epaint::Primitive::Mesh(mesh) => {
 				ctx.write_to_stencil(StencilAction::Replace(1), |ctx| {
-					Mesh::rectangle(ctx, egui_rect_to_micro_rect(clipped_primitive.clip_rect))
-						.draw(ctx, DrawParams::new());
+					let clip_rect_points = egui_rect_to_micro_rect(clipped_primitive.clip_rect);
+					let clip_rect_pixels = crate::math::Rect::new(
+						clip_rect_points.top_left * scaling_factor,
+						clip_rect_points.bottom_right * scaling_factor,
+					);
+					Mesh::rectangle(ctx, clip_rect_pixels).draw(ctx, DrawParams::new());
 				});
 				ctx.with_stencil(StencilTest::Equal, 1, |ctx| {
 					let texture_id = mesh.texture_id;
 					egui_mesh_to_micro_mesh(ctx, mesh).draw_textured(
 						ctx,
 						textures.get(&texture_id).expect("missing egui texture"),
-						DrawParams::new(),
+						DrawParams::new().scale(glam::Vec2::splat(scaling_factor)),
 					);
 				});
 				ctx.write_to_stencil(StencilAction::Replace(0), |ctx| {
@@ -308,4 +315,8 @@ fn egui_image_data_to_micro_image_data(
 		}
 	}
 	crate::graphics::image_data::ImageData { size, pixels }
+}
+
+fn egui_scaling_factor(ctx: &Context) -> f32 {
+	(ctx.monitor_resolution().y as f32 / 1080.0).max(1.0)
 }

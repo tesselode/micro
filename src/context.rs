@@ -1,4 +1,5 @@
 use std::{
+	collections::HashMap,
 	rc::Rc,
 	time::{Duration, Instant},
 };
@@ -11,7 +12,7 @@ use sdl2::{
 };
 
 use crate::{
-	egui_integration::{egui_raw_input, egui_took_sdl2_event},
+	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	graphics::{
 		color::Rgba,
 		shader::Shader,
@@ -30,6 +31,7 @@ where
 {
 	let mut ctx = Context::new(settings);
 	let egui_ctx = egui::Context::default();
+	let mut egui_textures = HashMap::new();
 	let mut state = state_constructor(&mut ctx);
 	let mut last_update_time = Instant::now();
 	loop {
@@ -57,6 +59,7 @@ where
 		}
 		state.update(&mut ctx, delta_time);
 		state.draw(&mut ctx);
+		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		ctx.window.gl_swap_window();
 		if ctx.should_quit {
 			break;

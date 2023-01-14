@@ -1,6 +1,18 @@
+use std::collections::HashMap;
+
 use egui::{FullOutput, RawInput};
 
-use crate::{input::Scancode, Context};
+use crate::{
+	graphics::{
+		color::Rgba,
+		mesh::{Mesh, Vertex},
+		stencil::{StencilAction, StencilTest},
+		texture::{Texture, TextureSettings},
+		DrawParams,
+	},
+	input::Scancode,
+	Context,
+};
 
 pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput {
 	let modifiers = egui::Modifiers {
@@ -25,8 +37,56 @@ pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput 
 	}
 }
 
-fn glam_vec2_to_egui_vec2(v: glam::Vec2) -> egui::Vec2 {
-	egui::vec2(v.x, v.y)
+pub fn draw_egui_output(
+	ctx: &mut Context,
+	egui_ctx: &egui::Context,
+	output: FullOutput,
+	textures: &mut HashMap<egui::TextureId, Texture>,
+) {
+	for (texture_id, delta) in output.textures_delta.set {
+		if textures.contains_key(&texture_id) {
+			unimplemented!(
+				"micro's egui integration does not currently support patching existing textures"
+			)
+		}
+		textures.insert(
+			texture_id,
+			Texture::from_image_data(
+				ctx,
+				&egui_image_data_to_micro_image_data(delta.image),
+				TextureSettings::default(),
+			),
+		);
+	}
+	for clipped_primitive in egui_ctx.tessellate(output.shapes) {
+		match clipped_primitive.primitive {
+			egui::epaint::Primitive::Mesh(mesh) => {
+				ctx.write_to_stencil(StencilAction::Replace(1), |ctx| {
+					Mesh::rectangle(ctx, egui_rect_to_micro_rect(clipped_primitive.clip_rect))
+						.draw(ctx, DrawParams::new());
+				});
+				ctx.with_stencil(StencilTest::Equal, 1, |ctx| {
+					let texture_id = mesh.texture_id;
+					egui_mesh_to_micro_mesh(ctx, mesh).draw_textured(
+						ctx,
+						textures.get(&texture_id).expect("missing egui texture"),
+						DrawParams::new(),
+					);
+				});
+				ctx.write_to_stencil(StencilAction::Replace(0), |ctx| {
+					Mesh::rectangle(
+						ctx,
+						crate::math::Rect::from_top_left_and_size(
+							glam::Vec2::ZERO,
+							ctx.window_size().as_vec2(),
+						),
+					)
+					.draw(ctx, DrawParams::new());
+				});
+			}
+			egui::epaint::Primitive::Callback(_) => unimplemented!(),
+		}
+	}
 }
 
 fn sdl2_event_to_egui_event(
@@ -188,4 +248,64 @@ pub fn egui_took_sdl2_event(egui_ctx: &egui::Context, event: &sdl2::event::Event
 		| sdl2::event::Event::MouseWheel { .. } => egui_ctx.wants_pointer_input(),
 		_ => false,
 	}
+}
+
+fn glam_vec2_to_egui_vec2(v: glam::Vec2) -> egui::Vec2 {
+	egui::vec2(v.x, v.y)
+}
+
+fn egui_pos2_to_glam_vec2(v: egui::Pos2) -> glam::Vec2 {
+	glam::Vec2::new(v.x, v.y)
+}
+
+fn egui_color32_to_micro_rgba(v: egui::epaint::Color32) -> Rgba {
+	Rgba::rgba8(v.r(), v.g(), v.b(), v.a())
+}
+
+fn egui_rect_to_micro_rect(v: egui::Rect) -> crate::math::Rect {
+	crate::math::Rect::new(egui_pos2_to_glam_vec2(v.min), egui_pos2_to_glam_vec2(v.max))
+}
+
+fn egui_mesh_to_micro_mesh(ctx: &Context, egui_mesh: egui::Mesh) -> Mesh {
+	let vertices = egui_mesh
+		.vertices
+		.iter()
+		.copied()
+		.map(egui_vertex_to_micro_vertex)
+		.collect::<Vec<_>>();
+	Mesh::new(ctx, &vertices, &egui_mesh.indices)
+}
+
+fn egui_vertex_to_micro_vertex(vertex: egui::epaint::Vertex) -> Vertex {
+	Vertex {
+		position: egui_pos2_to_glam_vec2(vertex.pos),
+		texture_coords: egui_pos2_to_glam_vec2(vertex.uv),
+		color: egui_color32_to_micro_rgba(vertex.color),
+	}
+}
+
+fn egui_image_data_to_micro_image_data(
+	image_data: egui::ImageData,
+) -> crate::graphics::image_data::ImageData {
+	let size = glam::UVec2::new(image_data.width() as u32, image_data.height() as u32);
+	let mut pixels = vec![];
+	match image_data {
+		egui::ImageData::Color(color_image) => {
+			for pixel in color_image.pixels {
+				pixels.push(pixel.r());
+				pixels.push(pixel.g());
+				pixels.push(pixel.b());
+				pixels.push(pixel.a());
+			}
+		}
+		egui::ImageData::Font(font_image) => {
+			for pixel in font_image.srgba_pixels(None) {
+				pixels.push(pixel.r());
+				pixels.push(pixel.g());
+				pixels.push(pixel.b());
+				pixels.push(pixel.a());
+			}
+		}
+	}
+	crate::graphics::image_data::ImageData { size, pixels }
 }

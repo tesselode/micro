@@ -9,6 +9,7 @@ edition = "2021"
 bytemuck = { version = "1.10.0", features = ["derive"] }
 crunch = "0.3.3"
 derive_more = "0.99.17"
+egui = "0.20.1"
 fontdue = { git = "https://github.com/mooman219/fontdue", rev = "ee59ba1" }
 generational-arena = "0.2.8"
 glam = { version = "0.22.0", features = ["bytemuck"] }

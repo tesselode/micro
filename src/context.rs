@@ -11,6 +11,7 @@ use sdl2::{
 };
 
 use crate::{
+	egui_integration::{egui_raw_input, egui_took_sdl2_event},
 	graphics::{
 		color::Rgba,
 		shader::Shader,
@@ -28,17 +29,23 @@ where
 	F: FnMut(&mut Context) -> S,
 {
 	let mut ctx = Context::new(settings);
+	let egui_ctx = egui::Context::default();
 	let mut state = state_constructor(&mut ctx);
 	let mut last_update_time = Instant::now();
 	loop {
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
 		last_update_time = now;
-		while let Some(event) = ctx.event_pump.poll_event() {
-			let event = match Event::from_sdl2_event(event) {
-				Some(event) => event,
-				None => continue,
-			};
+		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
+		let egui_input = egui_raw_input(&ctx, &events);
+		let egui_output = egui_ctx.run(egui_input, |egui_ctx| {
+			state.ui(&mut ctx, egui_ctx);
+		});
+		for event in events
+			.drain(..)
+			.filter(|event| !egui_took_sdl2_event(&egui_ctx, event))
+			.filter_map(Event::from_sdl2_event)
+		{
 			match event {
 				Event::WindowSizeChanged(size) => ctx.resize(size),
 				Event::Exited => {

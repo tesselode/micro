@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use egui::{FullOutput, RawInput};
+use sdl2::keyboard::Scancode as Sdl2Scancode;
 
 use crate::{
 	graphics::{
@@ -32,7 +33,7 @@ pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput 
 		events: events
 			.iter()
 			.cloned()
-			.filter_map(|event| sdl2_event_to_egui_event(event, modifiers))
+			.filter_map(|event| sdl2_event_to_egui_event(ctx, event, modifiers))
 			.collect(),
 		pixels_per_point: Some(scaling_factor),
 		..Default::default()
@@ -61,6 +62,7 @@ pub fn draw_egui_output(
 		);
 	}
 	let scaling_factor = egui_scaling_factor(ctx);
+	ctx.clear_stencil();
 	for clipped_primitive in egui_ctx.tessellate(output.shapes) {
 		match clipped_primitive.primitive {
 			egui::epaint::Primitive::Mesh(mesh) => {
@@ -80,16 +82,7 @@ pub fn draw_egui_output(
 						DrawParams::new().scale(glam::Vec2::splat(scaling_factor)),
 					);
 				});
-				ctx.write_to_stencil(StencilAction::Replace(0), |ctx| {
-					Mesh::rectangle(
-						ctx,
-						crate::math::Rect::from_top_left_and_size(
-							glam::Vec2::ZERO,
-							ctx.window_size().as_vec2(),
-						),
-					)
-					.draw(ctx, DrawParams::new());
-				});
+				ctx.clear_stencil();
 			}
 			egui::epaint::Primitive::Callback(_) => unimplemented!(),
 		}
@@ -97,9 +90,11 @@ pub fn draw_egui_output(
 }
 
 fn sdl2_event_to_egui_event(
+	ctx: &Context,
 	event: sdl2::event::Event,
 	modifiers: egui::Modifiers,
 ) -> Option<egui::Event> {
+	let scaling_factor = egui_scaling_factor(ctx);
 	match event {
 		sdl2::event::Event::KeyDown { scancode, .. } => Some(egui::Event::Key {
 			key: sdl2_scancode_to_egui_key(scancode?)?,
@@ -112,13 +107,13 @@ fn sdl2_event_to_egui_event(
 			modifiers,
 		}),
 		sdl2::event::Event::TextInput { text, .. } => Some(egui::Event::Text(text)),
-		sdl2::event::Event::MouseMotion { x, y, .. } => {
-			Some(egui::Event::PointerMoved(egui::pos2(x as f32, y as f32)))
-		}
+		sdl2::event::Event::MouseMotion { x, y, .. } => Some(egui::Event::PointerMoved(
+			egui::pos2(x as f32 / scaling_factor, y as f32 / scaling_factor),
+		)),
 		sdl2::event::Event::MouseButtonDown {
 			mouse_btn, x, y, ..
 		} => Some(egui::Event::PointerButton {
-			pos: egui::pos2(x as f32, y as f32),
+			pos: egui::pos2(x as f32 / scaling_factor, y as f32 / scaling_factor),
 			button: sdl2_mouse_button_to_egui_pointer_button(mouse_btn)?,
 			pressed: true,
 			modifiers,
@@ -126,7 +121,7 @@ fn sdl2_event_to_egui_event(
 		sdl2::event::Event::MouseButtonUp {
 			mouse_btn, x, y, ..
 		} => Some(egui::Event::PointerButton {
-			pos: egui::pos2(x as f32, y as f32),
+			pos: egui::pos2(x as f32 / scaling_factor, y as f32 / scaling_factor),
 			button: sdl2_mouse_button_to_egui_pointer_button(mouse_btn)?,
 			pressed: false,
 			modifiers,

@@ -162,6 +162,15 @@ impl Context {
 		}
 	}
 
+	pub fn clear_stencil(&self) {
+		unsafe {
+			self.gl.stencil_mask(0xFF);
+			self.gl.clear_stencil(0);
+			self.gl.clear(glow::STENCIL_BUFFER_BIT);
+			self.gl.stencil_mask(0x00);
+		}
+	}
+
 	pub fn with_transform<T>(&mut self, transform: Mat3, f: impl FnOnce(&mut Context) -> T) -> T {
 		self.transform_stack.push(transform);
 		let returned_value = f(self);

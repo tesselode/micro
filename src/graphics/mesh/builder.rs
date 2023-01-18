@@ -212,6 +212,10 @@ impl MeshBuilder {
 	pub fn build(self, ctx: &Context) -> Mesh {
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
 	}
+
+	pub(crate) fn buffers(&self) -> &VertexBuffers<Vertex, u32> {
+		&self.buffers
+	}
 }
 
 impl Default for MeshBuilder {

@@ -1,17 +1,59 @@
-use glam::UVec2;
-use micro::{window::WindowMode, Context, ContextSettings, State};
+use glam::{UVec2, Vec2};
+use micro::{
+	graphics::{
+		color::Rgba,
+		mesh::{Mesh, ShapeStyle},
+		DrawParams,
+	},
+	input::Scancode,
+	math::triangulate_polygon,
+	window::WindowMode,
+	Context, ContextSettings, Event, State,
+};
 
-struct MainState;
+const VERTICES: &[Vec2] = &[
+	Vec2::new(10.0, 10.0),
+	Vec2::new(100.0, 10.0),
+	Vec2::new(150.0, 100.0),
+	Vec2::new(100.0, 150.0),
+	Vec2::new(50.0, 100.0),
+];
+
+enum MainState {
+	Polygon { mesh: Mesh },
+	Triangles { meshes: Vec<Mesh> },
+}
+
+impl MainState {
+	fn new(ctx: &mut Context) -> Self {
+		Self::Polygon {
+			mesh: Mesh::polygon(ctx, ShapeStyle::Stroke(4.0), VERTICES),
+		}
+	}
+}
 
 impl State for MainState {
-	fn ui(&mut self, _ctx: &mut Context, egui_ctx: &egui::Context) {
-		egui::CentralPanel::default().show(egui_ctx, |ui| {
-			ui.add(egui::Label::new("Hello World!"));
-			ui.label("A shorter and more convenient way to add a label.");
-			if ui.button("Click me").clicked() {
-				// take some action here
+	fn event(&mut self, ctx: &mut Context, event: Event) {
+		if let Event::KeyPressed(Scancode::Space) = event {
+			*self = Self::Triangles {
+				meshes: triangulate_polygon(VERTICES)
+					.iter()
+					.map(|triangle| Mesh::polygon(ctx, ShapeStyle::Stroke(4.0), triangle))
+					.collect(),
 			}
-		});
+		}
+	}
+
+	fn draw(&mut self, ctx: &mut Context) {
+		ctx.clear(Rgba::BLACK);
+		match self {
+			MainState::Polygon { mesh } => mesh.draw(ctx, DrawParams::new()),
+			MainState::Triangles { meshes } => {
+				for mesh in meshes {
+					mesh.draw(ctx, DrawParams::new());
+				}
+			}
+		}
 	}
 }
 
@@ -24,6 +66,6 @@ fn main() {
 			resizable: true,
 			..Default::default()
 		},
-		|_| MainState,
+		MainState::new,
 	)
 }

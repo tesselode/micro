@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use egui::{FullOutput, RawInput};
-use sdl2::keyboard::Scancode as Sdl2Scancode;
+use glam::IVec2;
 
 use crate::{
 	graphics::{
@@ -46,21 +46,7 @@ pub fn draw_egui_output(
 	output: FullOutput,
 	textures: &mut HashMap<egui::TextureId, Texture>,
 ) {
-	for (texture_id, delta) in output.textures_delta.set {
-		if textures.contains_key(&texture_id) {
-			unimplemented!(
-				"micro's egui integration does not currently support patching existing textures"
-			)
-		}
-		textures.insert(
-			texture_id,
-			Texture::from_image_data(
-				ctx,
-				&egui_image_data_to_micro_image_data(delta.image),
-				TextureSettings::default(),
-			),
-		);
-	}
+	patch_textures(&output, textures, ctx);
 	let scaling_factor = egui_scaling_factor(ctx);
 	ctx.clear_stencil();
 	for clipped_primitive in egui_ctx.tessellate(output.shapes) {
@@ -85,6 +71,39 @@ pub fn draw_egui_output(
 				ctx.clear_stencil();
 			}
 			egui::epaint::Primitive::Callback(_) => unimplemented!(),
+		}
+	}
+	for texture_id in output.textures_delta.free {
+		textures.remove(&texture_id);
+	}
+}
+
+fn patch_textures(
+	output: &FullOutput,
+	textures: &mut HashMap<egui::TextureId, Texture>,
+	ctx: &mut Context,
+) {
+	for (texture_id, delta) in &output.textures_delta.set {
+		if let Some(texture) = textures.get(texture_id) {
+			let top_left = delta
+				.pos
+				.map(|[x, y]| {
+					IVec2::new(
+						x.try_into().expect("cannot convert usize into i32"),
+						y.try_into().expect("cannot convert usize into i32"),
+					)
+				})
+				.unwrap_or_default();
+			texture.replace(top_left, &egui_image_data_to_micro_image_data(&delta.image))
+		} else {
+			textures.insert(
+				*texture_id,
+				Texture::from_image_data(
+					ctx,
+					&egui_image_data_to_micro_image_data(&delta.image),
+					TextureSettings::default(),
+				),
+			);
 		}
 	}
 }
@@ -287,13 +306,13 @@ fn egui_vertex_to_micro_vertex(vertex: egui::epaint::Vertex) -> Vertex {
 }
 
 fn egui_image_data_to_micro_image_data(
-	image_data: egui::ImageData,
+	image_data: &egui::ImageData,
 ) -> crate::graphics::image_data::ImageData {
 	let size = glam::UVec2::new(image_data.width() as u32, image_data.height() as u32);
 	let mut pixels = vec![];
 	match image_data {
 		egui::ImageData::Color(color_image) => {
-			for pixel in color_image.pixels {
+			for pixel in &color_image.pixels {
 				pixels.push(pixel.r());
 				pixels.push(pixel.g());
 				pixels.push(pixel.b());

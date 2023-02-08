@@ -165,8 +165,7 @@ fn create_texture(
 	let texture = Texture::empty(ctx, size, texture_settings);
 	for (char, rect) in glyph_rects {
 		texture.replace(
-			rect.top_left.x as i32,
-			rect.top_left.y as i32,
+			rect.top_left.as_ivec2(),
 			glyph_image_data.get(char).expect("No image data for glyph"),
 		);
 	}

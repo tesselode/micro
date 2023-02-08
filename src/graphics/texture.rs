@@ -1,6 +1,6 @@
 use std::{path::Path, rc::Rc};
 
-use glam::{UVec2, Vec2};
+use glam::{IVec2, UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
 use thiserror::Error;
 
@@ -118,7 +118,7 @@ impl Texture {
 		}
 	}
 
-	pub fn replace(&self, x: i32, y: i32, image_data: &ImageData) {
+	pub fn replace(&self, top_left: IVec2, image_data: &ImageData) {
 		unsafe {
 			self.inner
 				.gl
@@ -126,8 +126,8 @@ impl Texture {
 			self.inner.gl.tex_sub_image_2d(
 				glow::TEXTURE_2D,
 				0,
-				x,
-				y,
+				top_left.x,
+				top_left.y,
 				image_data.size.x.try_into().expect("Image data too wide"),
 				image_data.size.y.try_into().expect("Image data too tall"),
 				glow::RGBA,

@@ -25,12 +25,12 @@ impl MeshBuilder {
 		self.color = color;
 	}
 
-	pub fn with_color(mut self, color: Rgba, mut f: impl FnMut(&mut Self)) -> Self {
+	pub fn with_color(mut self, color: Rgba, mut f: impl FnMut(Self) -> Self) -> Self {
 		let previous_color = self.color;
 		self.set_color(color);
-		f(&mut self);
-		self.set_color(previous_color);
-		self
+		let mut this = f(self);
+		this.set_color(previous_color);
+		this
 	}
 
 	pub fn add_rectangle(&mut self, style: ShapeStyle, rect: Rect) {

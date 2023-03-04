@@ -115,15 +115,21 @@ fn sdl2_event_to_egui_event(
 ) -> Option<egui::Event> {
 	let scaling_factor = egui_scaling_factor(ctx);
 	match event {
-		sdl2::event::Event::KeyDown { scancode, .. } => Some(egui::Event::Key {
+		sdl2::event::Event::KeyDown {
+			scancode, repeat, ..
+		} => Some(egui::Event::Key {
 			key: sdl2_scancode_to_egui_key(scancode?)?,
 			pressed: true,
 			modifiers,
+			repeat,
 		}),
-		sdl2::event::Event::KeyUp { scancode, .. } => Some(egui::Event::Key {
+		sdl2::event::Event::KeyUp {
+			scancode, repeat, ..
+		} => Some(egui::Event::Key {
 			key: sdl2_scancode_to_egui_key(scancode?)?,
 			pressed: false,
 			modifiers,
+			repeat,
 		}),
 		sdl2::event::Event::TextInput { text, .. } => Some(egui::Event::Text(text)),
 		sdl2::event::Event::MouseMotion { x, y, .. } => Some(egui::Event::PointerMoved(

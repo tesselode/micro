@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use glam::{UVec2, Vec2};
 use micro::{
 	graphics::{
@@ -25,15 +27,15 @@ enum MainState {
 }
 
 impl MainState {
-	fn new(ctx: &mut Context) -> Self {
-		Self::Polygon {
+	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		Ok(Self::Polygon {
 			mesh: Mesh::polygon(ctx, ShapeStyle::Stroke(4.0), VERTICES),
-		}
+		})
 	}
 }
 
-impl State for MainState {
-	fn event(&mut self, ctx: &mut Context, event: Event) {
+impl State<Box<dyn Error>> for MainState {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Box<dyn Error>> {
 		if let Event::KeyPressed(Scancode::Space) = event {
 			*self = Self::Triangles {
 				meshes: triangulate_polygon(VERTICES)
@@ -42,9 +44,10 @@ impl State for MainState {
 					.collect(),
 			}
 		}
+		Ok(())
 	}
 
-	fn draw(&mut self, ctx: &mut Context) {
+	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(Rgba::BLACK);
 		match self {
 			MainState::Polygon { mesh } => mesh.draw(ctx, DrawParams::new()),
@@ -54,10 +57,11 @@ impl State for MainState {
 				}
 			}
 		}
+		Ok(())
 	}
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
 	micro::run(
 		ContextSettings {
 			window_mode: WindowMode::Windowed {

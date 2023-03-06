@@ -24,15 +24,15 @@ use crate::{
 	Event, State,
 };
 
-pub fn run<S, F>(settings: ContextSettings, mut state_constructor: F)
+pub fn run<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
 where
-	S: State,
-	F: FnMut(&mut Context) -> S,
+	S: State<E>,
+	F: FnMut(&mut Context) -> Result<S, E>,
 {
 	let mut ctx = Context::new(settings);
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
-	let mut state = state_constructor(&mut ctx);
+	let mut state = state_constructor(&mut ctx)?;
 	let mut last_update_time = Instant::now();
 	loop {
 		let now = Instant::now();
@@ -40,9 +40,9 @@ where
 		last_update_time = now;
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
 		let egui_input = egui_raw_input(&ctx, &events);
-		let egui_output = egui_ctx.run(egui_input, |egui_ctx| {
-			state.ui(&mut ctx, egui_ctx);
-		});
+		egui_ctx.begin_frame(egui_input);
+		state.ui(&mut ctx, &egui_ctx)?;
+		let egui_output = egui_ctx.end_frame();
 		for event in events
 			.drain(..)
 			.filter(|event| !egui_took_sdl2_event(&egui_ctx, event))
@@ -55,10 +55,10 @@ where
 				}
 				_ => {}
 			}
-			state.event(&mut ctx, event);
+			state.event(&mut ctx, event)?;
 		}
-		state.update(&mut ctx, delta_time);
-		state.draw(&mut ctx);
+		state.update(&mut ctx, delta_time)?;
+		state.draw(&mut ctx)?;
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		ctx.window.gl_swap_window();
 		if ctx.should_quit {
@@ -66,6 +66,7 @@ where
 		}
 		std::thread::sleep(Duration::from_millis(2));
 	}
+	Ok(())
 }
 
 pub struct Context {

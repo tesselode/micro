@@ -15,7 +15,7 @@ use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	graphics::{
 		color::Rgba,
-		shader::Shader,
+		shader::{Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
 		stencil::{StencilAction, StencilTest},
 		texture::{Texture, TextureSettings},
 	},
@@ -395,11 +395,8 @@ fn create_gl_context(
 		Some(&[255, 255, 255, 255]),
 		TextureSettings::default(),
 	);
-	let default_shader = Shader::new_from_gl(
-		gl.clone(),
-		include_str!("vertex.glsl"),
-		include_str!("fragment.glsl"),
-	)
-	.expect("Error compiling default shader");
+	let default_shader =
+		Shader::new_from_gl(gl.clone(), DEFAULT_VERTEX_SHADER, DEFAULT_FRAGMENT_SHADER)
+			.expect("Error compiling default shader");
 	(gl, default_texture, default_shader)
 }

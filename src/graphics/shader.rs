@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path, rc::Rc};
 
-use glam::Mat4;
+use glam::{Mat4, Vec2};
 use glow::{HasContext, NativeProgram};
 use thiserror::Error;
 
@@ -9,6 +9,8 @@ use crate::{context::Context, graphics::color::Rgba};
 use super::texture::Texture;
 
 const TEXTURE_UNITS: u32 = 32;
+pub(crate) const DEFAULT_FRAGMENT_SHADER: &str = include_str!("shader/fragment.glsl");
+pub(crate) const DEFAULT_VERTEX_SHADER: &str = include_str!("shader/vertex.glsl");
 
 #[derive(Debug)]
 pub struct Shader {
@@ -18,17 +20,42 @@ pub struct Shader {
 }
 
 impl Shader {
-	pub fn new(
+	pub fn from_file(
 		ctx: &Context,
 		vertex: impl AsRef<Path>,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Self::new_from_gl(
-			ctx.gl.clone(),
+		Self::from_str(
+			ctx,
 			&std::fs::read_to_string(vertex)?,
 			&std::fs::read_to_string(fragment)?,
 		)
-		.map_err(LoadShaderError::ShaderError)
+	}
+
+	pub fn from_vertex_file(
+		ctx: &Context,
+		vertex: impl AsRef<Path>,
+	) -> Result<Self, LoadShaderError> {
+		Self::from_vertex_str(ctx, &std::fs::read_to_string(vertex)?)
+	}
+
+	pub fn from_fragment_file(
+		ctx: &Context,
+		fragment: impl AsRef<Path>,
+	) -> Result<Self, LoadShaderError> {
+		Self::from_fragment_str(ctx, &std::fs::read_to_string(fragment)?)
+	}
+
+	pub fn from_str(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
+		Self::new_from_gl(ctx.gl.clone(), vertex, fragment).map_err(LoadShaderError::ShaderError)
+	}
+
+	pub fn from_vertex_str(ctx: &Context, vertex: &str) -> Result<Self, LoadShaderError> {
+		Self::from_str(ctx, vertex, DEFAULT_FRAGMENT_SHADER)
+	}
+
+	pub fn from_fragment_str(ctx: &Context, fragment: &str) -> Result<Self, LoadShaderError> {
+		Self::from_str(ctx, DEFAULT_VERTEX_SHADER, fragment)
 	}
 
 	pub(crate) fn new_from_gl(
@@ -70,6 +97,18 @@ impl Shader {
 		})
 	}
 
+	pub fn send_bool(&self, name: &str, value: bool) -> Result<(), UniformNotFound> {
+		unsafe {
+			self.gl.use_program(Some(self.program));
+			let location = self
+				.gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			self.gl.uniform_1_i32(Some(&location), value.into());
+		}
+		Ok(())
+	}
+
 	pub fn send_i32(&self, name: &str, value: i32) -> Result<(), UniformNotFound> {
 		unsafe {
 			self.gl.use_program(Some(self.program));
@@ -78,6 +117,18 @@ impl Shader {
 				.get_uniform_location(self.program, name)
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			self.gl.uniform_1_i32(Some(&location), value);
+		}
+		Ok(())
+	}
+
+	pub fn send_vec2(&self, name: &str, vec2: Vec2) -> Result<(), UniformNotFound> {
+		unsafe {
+			self.gl.use_program(Some(self.program));
+			let location = self
+				.gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			self.gl.uniform_2_f32(Some(&location), vec2.x, vec2.y);
 		}
 		Ok(())
 	}

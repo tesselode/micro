@@ -11,7 +11,7 @@ use wgpu::{
 };
 
 use crate::{
-	graphics::{mesh::Mesh, texture::Texture, Vertex},
+	graphics::{image_data::ImageData, mesh::Mesh, texture::Texture, Vertex},
 	InitGraphicsError,
 };
 
@@ -23,6 +23,7 @@ pub struct GraphicsContext {
 	pub(crate) texture_bind_group_layout: BindGroupLayout,
 	render_pipeline: RenderPipeline,
 	draw_instructions: Vec<DrawInstruction>,
+	pub(crate) default_texture: Texture,
 }
 
 impl GraphicsContext {
@@ -167,6 +168,15 @@ impl GraphicsContext {
 			multisample: MultisampleState::default(),
 			multiview: None,
 		});
+		let default_texture = Texture::from_image_data_internal(
+			&ImageData {
+				size: UVec2::ONE,
+				pixels: vec![255, 255, 255, 255],
+			},
+			&device,
+			&queue,
+			&texture_bind_group_layout,
+		);
 		Ok(Self {
 			surface,
 			device,
@@ -175,6 +185,7 @@ impl GraphicsContext {
 			texture_bind_group_layout,
 			render_pipeline,
 			draw_instructions: vec![],
+			default_texture,
 		})
 	}
 }

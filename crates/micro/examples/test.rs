@@ -84,7 +84,7 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		self.mesh.draw_textured(ctx, &self.texture);
-		self.mesh_2.draw_textured(ctx, &self.texture);
+		self.mesh_2.draw(ctx);
 		Ok(())
 	}
 }

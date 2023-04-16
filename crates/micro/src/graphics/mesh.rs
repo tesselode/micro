@@ -17,6 +17,10 @@ impl Mesh {
 		Self::new_internal(vertices, indices, &ctx.graphics_ctx.device)
 	}
 
+	pub fn draw(&self, ctx: &mut Context) {
+		self.draw_textured(ctx, &ctx.graphics_ctx.default_texture.clone());
+	}
+
 	pub fn draw_textured(&self, ctx: &mut Context, texture: &Texture) {
 		ctx.graphics_ctx
 			.push_instruction(self.clone(), texture.clone());

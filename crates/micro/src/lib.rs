@@ -1,14 +1,9 @@
-pub fn add(left: usize, right: usize) -> usize {
-	left + right
-}
+mod context;
+mod event;
+mod state;
+pub mod window;
+pub mod input;
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn it_works() {
-		let result = add(2, 2);
-		assert_eq!(result, 4);
-	}
-}
+pub use context::*;
+pub use event::*;
+pub use state::*;

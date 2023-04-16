@@ -1,4 +1,4 @@
-use std::{num::NonZeroU32, rc::Rc};
+use std::{num::NonZeroU32, path::Path, rc::Rc};
 
 use wgpu::{
 	AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource,
@@ -7,11 +7,27 @@ use wgpu::{
 	TextureUsages,
 };
 
-use super::image_data::ImageData;
+use crate::Context;
 
+use super::image_data::{ImageData, LoadImageDataError};
+
+#[derive(Clone)]
 pub struct Texture(pub(crate) Rc<TextureInner>);
 
 impl Texture {
+	pub fn from_file(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadImageDataError> {
+		Ok(Self::from_image_data(ctx, &ImageData::load(path)?))
+	}
+
+	pub fn from_image_data(ctx: &Context, image_data: &ImageData) -> Self {
+		Self::from_image_data_internal(
+			image_data,
+			&ctx.graphics_ctx.device,
+			&ctx.graphics_ctx.queue,
+			&ctx.graphics_ctx.texture_bind_group_layout,
+		)
+	}
+
 	pub(crate) fn from_image_data_internal(
 		image_data: &ImageData,
 		device: &Device,

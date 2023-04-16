@@ -70,7 +70,7 @@ pub struct Context {
 	video: VideoSubsystem,
 	window: Window,
 	event_pump: EventPump,
-	graphics_ctx: GraphicsContext,
+	pub(crate) graphics_ctx: GraphicsContext,
 	should_quit: bool,
 }
 

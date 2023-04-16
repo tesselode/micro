@@ -1,11 +1,93 @@
 use std::error::Error;
 
-use glam::UVec2;
-use micro::{window::WindowMode, ContextSettings, State};
+use glam::{UVec2, Vec2};
+use micro::{
+	graphics::{color::Rgba, mesh::Mesh, texture::Texture, Vertex},
+	window::WindowMode,
+	Context, ContextSettings, State,
+};
 
-struct MainState;
+const VERTICES: &[Vertex] = &[
+	Vertex {
+		position: Vec2::new(-0.0868241, 0.49240386),
+		texture_coords: Vec2::new(0.4131759, 0.99240386),
+		color: Rgba::WHITE,
+	},
+	Vertex {
+		position: Vec2::new(-0.49513406, 0.06958647),
+		texture_coords: Vec2::new(0.0048659444, 0.56958647),
+		color: Rgba::WHITE,
+	},
+	Vertex {
+		position: Vec2::new(-0.21918549, -0.44939706),
+		texture_coords: Vec2::new(0.28081453, 0.05060294),
+		color: Rgba::WHITE,
+	},
+	Vertex {
+		position: Vec2::new(0.35966998, -0.3473291),
+		texture_coords: Vec2::new(0.85967, 0.1526709),
+		color: Rgba::WHITE,
+	},
+	Vertex {
+		position: Vec2::new(0.44147372, 0.2347359),
+		texture_coords: Vec2::new(0.9414737, 0.7347359),
+		color: Rgba::WHITE,
+	},
+];
 
-impl State<Box<dyn Error>> for MainState {}
+const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
+
+struct MainState {
+	mesh: Mesh,
+	mesh_2: Mesh,
+	texture: Texture,
+}
+
+impl MainState {
+	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		let vertices_2 = &[
+			Vertex {
+				position: Vec2::new(0.5, 0.5) + Vec2::new(-0.0868241, 0.49240386),
+				texture_coords: Vec2::new(0.4131759, 0.99240386),
+				color: Rgba::WHITE,
+			},
+			Vertex {
+				position: Vec2::new(0.5, 0.5) + Vec2::new(-0.49513406, 0.06958647),
+				texture_coords: Vec2::new(0.0048659444, 0.56958647),
+				color: Rgba::WHITE,
+			},
+			Vertex {
+				position: Vec2::new(0.5, 0.5) + Vec2::new(-0.21918549, -0.44939706),
+				texture_coords: Vec2::new(0.28081453, 0.05060294),
+				color: Rgba::WHITE,
+			},
+			Vertex {
+				position: Vec2::new(0.5, 0.5) + Vec2::new(0.35966998, -0.3473291),
+				texture_coords: Vec2::new(0.85967, 0.1526709),
+				color: Rgba::WHITE,
+			},
+			Vertex {
+				position: Vec2::new(0.5, 0.5) + Vec2::new(0.44147372, 0.2347359),
+				texture_coords: Vec2::new(0.9414737, 0.7347359),
+				color: Rgba::WHITE,
+			},
+		];
+
+		Ok(Self {
+			mesh: Mesh::new(ctx, VERTICES, INDICES),
+			mesh_2: Mesh::new(ctx, vertices_2, INDICES),
+			texture: Texture::from_file(ctx, "crates/micro/examples/tree.png")?,
+		})
+	}
+}
+
+impl State<Box<dyn Error>> for MainState {
+	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
+		self.mesh.draw_textured(ctx, &self.texture);
+		self.mesh_2.draw_textured(ctx, &self.texture);
+		Ok(())
+	}
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro::run(
@@ -15,6 +97,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 			},
 			..Default::default()
 		},
-		|_| Ok(MainState),
+		MainState::new,
 	)
 }

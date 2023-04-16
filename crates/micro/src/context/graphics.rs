@@ -1,8 +1,7 @@
-use glam::{UVec2, Vec2};
+use glam::UVec2;
 use sdl2::video::Window;
 use wgpu::{
-	util::{BufferInitDescriptor, DeviceExt},
-	BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState, Buffer, BufferUsages,
+	BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
 	ColorTargetState, ColorWrites, CommandEncoderDescriptor, Device, DeviceDescriptor,
 	FragmentState, IndexFormat, Instance, InstanceDescriptor, LoadOp, MultisampleState, Operations,
 	PipelineLayoutDescriptor, PrimitiveState, Queue, RenderPassColorAttachment,
@@ -12,49 +11,18 @@ use wgpu::{
 };
 
 use crate::{
-	graphics::{color::Rgba, image_data::ImageData, texture::Texture, Vertex},
+	graphics::{mesh::Mesh, texture::Texture, Vertex},
 	InitGraphicsError,
 };
 
-const VERTICES: &[Vertex] = &[
-	Vertex {
-		position: Vec2::new(-0.0868241, 0.49240386),
-		texture_coords: Vec2::new(0.4131759, 0.99240386),
-		color: Rgba::WHITE,
-	},
-	Vertex {
-		position: Vec2::new(-0.49513406, 0.06958647),
-		texture_coords: Vec2::new(0.0048659444, 0.56958647),
-		color: Rgba::WHITE,
-	},
-	Vertex {
-		position: Vec2::new(-0.21918549, -0.44939706),
-		texture_coords: Vec2::new(0.28081453, 0.05060294),
-		color: Rgba::WHITE,
-	},
-	Vertex {
-		position: Vec2::new(0.35966998, -0.3473291),
-		texture_coords: Vec2::new(0.85967, 0.1526709),
-		color: Rgba::WHITE,
-	},
-	Vertex {
-		position: Vec2::new(0.44147372, 0.2347359),
-		texture_coords: Vec2::new(0.9414737, 0.7347359),
-		color: Rgba::WHITE,
-	},
-];
-
-const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
-
 pub struct GraphicsContext {
 	surface: Surface,
-	device: Device,
-	queue: Queue,
+	pub(crate) device: Device,
+	pub(crate) queue: Queue,
 	config: SurfaceConfiguration,
+	pub(crate) texture_bind_group_layout: BindGroupLayout,
 	render_pipeline: RenderPipeline,
-	vertex_buffer: Buffer,
-	index_buffer: Buffer,
-	texture: Texture,
+	draw_instructions: Vec<DrawInstruction>,
 }
 
 impl GraphicsContext {
@@ -97,14 +65,22 @@ impl GraphicsContext {
 				depth_stencil_attachment: None,
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
-			render_pass.set_bind_group(0, &self.texture.0.bind_group, &[]);
-			render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-			render_pass.set_index_buffer(self.index_buffer.slice(..), IndexFormat::Uint16);
-			render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
+			for DrawInstruction { mesh, texture } in &self.draw_instructions {
+				render_pass.set_bind_group(0, &texture.0.bind_group, &[]);
+				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
+				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint16);
+				render_pass.draw_indexed(0..mesh.0.num_indices, 0, 0..1);
+			}
 		}
 		self.queue.submit(std::iter::once(encoder.finish()));
 		output.present();
+		self.draw_instructions.clear();
 		Ok(())
+	}
+
+	pub(crate) fn push_instruction(&mut self, mesh: Mesh, texture: Texture) {
+		self.draw_instructions
+			.push(DrawInstruction { mesh, texture });
 	}
 
 	async fn new_inner(window: &Window) -> Result<Self, InitGraphicsError> {
@@ -191,32 +167,19 @@ impl GraphicsContext {
 			multisample: MultisampleState::default(),
 			multiview: None,
 		});
-		let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
-			label: Some("Vertex Buffer"),
-			contents: bytemuck::cast_slice(VERTICES),
-			usage: BufferUsages::VERTEX,
-		});
-		let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
-			label: Some("Index Buffer"),
-			contents: bytemuck::cast_slice(INDICES),
-			usage: BufferUsages::INDEX,
-		});
-		let image_data = ImageData::load("crates/micro/examples/tree.png").unwrap();
-		let texture = Texture::from_image_data_internal(
-			&image_data,
-			&device,
-			&queue,
-			&texture_bind_group_layout,
-		);
 		Ok(Self {
 			surface,
 			device,
 			queue,
 			config,
+			texture_bind_group_layout,
 			render_pipeline,
-			vertex_buffer,
-			index_buffer,
-			texture,
+			draw_instructions: vec![],
 		})
 	}
+}
+
+struct DrawInstruction {
+	mesh: Mesh,
+	texture: Texture,
 }

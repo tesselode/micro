@@ -3,7 +3,7 @@ use sdl2::video::Window;
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 	BlendState, Buffer, BufferUsages, ColorTargetState, ColorWrites, CommandEncoderDescriptor,
-	Device, DeviceDescriptor, FragmentState, Instance, InstanceDescriptor, LoadOp,
+	Device, DeviceDescriptor, FragmentState, IndexFormat, Instance, InstanceDescriptor, LoadOp,
 	MultisampleState, Operations, PipelineLayoutDescriptor, PrimitiveState, Queue,
 	RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
 	RequestAdapterOptions, Surface, SurfaceConfiguration, SurfaceError, TextureViewDescriptor,
@@ -17,18 +17,28 @@ use crate::{
 
 const VERTICES: &[Vertex] = &[
 	Vertex {
-		position: Vec2::new(0.0, 0.5),
-		color: Rgba::RED,
+		position: Vec2::new(-0.0868241, 0.49240386),
+		color: Rgba::rgb(0.5, 0.0, 0.5),
 	},
 	Vertex {
-		position: Vec2::new(-0.5, -0.5),
-		color: Rgba::GREEN,
+		position: Vec2::new(-0.49513406, 0.06958647),
+		color: Rgba::rgb(0.5, 0.0, 0.5),
 	},
 	Vertex {
-		position: Vec2::new(0.5, -0.5),
-		color: Rgba::BLUE,
+		position: Vec2::new(-0.21918549, -0.44939706),
+		color: Rgba::rgb(0.5, 0.0, 0.5),
+	},
+	Vertex {
+		position: Vec2::new(0.35966998, -0.3473291),
+		color: Rgba::rgb(0.5, 0.0, 0.5),
+	},
+	Vertex {
+		position: Vec2::new(0.44147372, 0.2347359),
+		color: Rgba::rgb(0.5, 0.0, 0.5),
 	},
 ];
+
+const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
 
 pub struct GraphicsContext {
 	surface: Surface,
@@ -37,6 +47,7 @@ pub struct GraphicsContext {
 	config: SurfaceConfiguration,
 	render_pipeline: RenderPipeline,
 	vertex_buffer: Buffer,
+	index_buffer: Buffer,
 }
 
 impl GraphicsContext {
@@ -80,7 +91,8 @@ impl GraphicsContext {
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
 			render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-			render_pass.draw(0..VERTICES.len() as u32, 0..1);
+			render_pass.set_index_buffer(self.index_buffer.slice(..), IndexFormat::Uint16);
+			render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
 		}
 		self.queue.submit(std::iter::once(encoder.finish()));
 		output.present();
@@ -154,6 +166,11 @@ impl GraphicsContext {
 			contents: bytemuck::cast_slice(VERTICES),
 			usage: BufferUsages::VERTEX,
 		});
+		let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
+			label: Some("Index Buffer"),
+			contents: bytemuck::cast_slice(INDICES),
+			usage: BufferUsages::INDEX,
+		});
 		Ok(Self {
 			surface,
 			device,
@@ -161,6 +178,7 @@ impl GraphicsContext {
 			config,
 			render_pipeline,
 			vertex_buffer,
+			index_buffer,
 		})
 	}
 }

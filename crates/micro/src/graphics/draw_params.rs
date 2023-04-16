@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use glam::{Mat3, Mat4, Vec2};
+use glam::{Mat4, Vec2};
 
 use crate::graphics::color::Rgba;
 

@@ -1,4 +1,4 @@
-use glam::UVec2;
+use glam::{Mat4, UVec2, Vec2, Vec3};
 use sdl2::video::Window;
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
@@ -13,10 +13,7 @@ use wgpu::{
 };
 
 use crate::{
-	graphics::{
-		draw_params::DrawParamsUniform, image_data::ImageData, texture::Texture, DrawParams, Mesh,
-		Vertex,
-	},
+	graphics::{image_data::ImageData, texture::Texture, DrawParams, Mesh, Vertex},
 	InitGraphicsError,
 };
 
@@ -97,9 +94,11 @@ impl GraphicsContext {
 		texture: Texture,
 		draw_params: DrawParams,
 	) {
+		let mut draw_params_uniform = draw_params.as_uniform();
+		draw_params_uniform.transform = self.global_transform() * draw_params_uniform.transform;
 		let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
 			label: Some("Draw Params Buffer"),
-			contents: bytemuck::cast_slice(&[draw_params.as_uniform()]),
+			contents: bytemuck::cast_slice(&[draw_params_uniform]),
 			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
 		});
 		let draw_params_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
@@ -235,6 +234,12 @@ impl GraphicsContext {
 			draw_instructions: vec![],
 			default_texture,
 		})
+	}
+
+	fn global_transform(&self) -> Mat4 {
+		let screen_size = Vec2::new(self.config.width as f32, self.config.height as f32);
+		Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+			* Mat4::from_scale(Vec3::new(2.0 / screen_size.x, -2.0 / screen_size.y, 1.0))
 	}
 }
 

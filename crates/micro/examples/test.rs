@@ -2,13 +2,18 @@ use std::error::Error;
 
 use glam::{UVec2, Vec2};
 use micro::{
-	graphics::{color::Rgba, texture::Texture, Mesh, Vertex},
+	graphics::{
+		color::Rgba,
+		mesh::{Mesh, ShapeStyle, Vertex},
+		texture::Texture,
+		DrawParams,
+	},
 	input::Scancode,
 	window::WindowMode,
 	Context, ContextSettings, Event, State,
 };
 
-const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
+const INDICES: &[u32] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
 
 struct MainState {
 	mesh: Mesh,
@@ -69,6 +74,7 @@ impl State<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
+		Mesh::circle(ctx, ShapeStyle::Fill, Vec2::new(300.0, 300.0), 100.0).draw(ctx, Rgba::RED);
 		self.mesh
 			.draw_textured(ctx, &self.texture, Vec2::new(100.0, 100.0));
 		self.mesh.draw(ctx, Rgba::RED);

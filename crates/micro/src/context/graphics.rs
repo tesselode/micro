@@ -13,7 +13,12 @@ use wgpu::{
 };
 
 use crate::{
-	graphics::{image_data::ImageData, texture::Texture, DrawParams, Mesh, Vertex},
+	graphics::{
+		image_data::ImageData,
+		mesh::{Mesh, Vertex},
+		texture::Texture,
+		DrawParams,
+	},
 	InitGraphicsError,
 };
 
@@ -78,7 +83,7 @@ impl GraphicsContext {
 				render_pass.set_bind_group(0, &texture.0.bind_group, &[]);
 				render_pass.set_bind_group(1, draw_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
-				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint16);
+				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint32);
 				render_pass.draw_indexed(0..mesh.0.num_indices, 0, 0..1);
 			}
 		}

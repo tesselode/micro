@@ -1,20 +1,82 @@
+mod builder;
+
+pub use builder::*;
+use bytemuck::{Pod, Zeroable};
+use glam::Vec2;
+
 use std::rc::Rc;
 
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
-	Buffer, BufferUsages, Device,
+	Buffer, BufferAddress, BufferUsages, Device, VertexAttribute, VertexBufferLayout,
+	VertexStepMode,
 };
 
-use crate::Context;
+use crate::{math::Rect, Context};
 
-use super::{texture::Texture, DrawParams, Vertex};
+use super::{color::Rgba, texture::Texture, DrawParams};
 
 #[derive(Clone)]
 pub struct Mesh(pub(crate) Rc<MeshInner>);
 
 impl Mesh {
-	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u16]) -> Self {
+	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Self {
 		Self::new_internal(vertices, indices, &ctx.graphics_ctx.device)
+	}
+
+	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
+		Self::rectangle_with_texture_region(ctx, rect, Rect::xywh(0.0, 0.0, 1.0, 1.0))
+	}
+
+	pub fn rectangle_with_texture_region(
+		ctx: &Context,
+		display_rect: Rect,
+		texture_rect: Rect,
+	) -> Self {
+		let vertices = display_rect
+			.corners()
+			.iter()
+			.copied()
+			.zip(texture_rect.corners())
+			.map(|(position, texture_coords)| Vertex {
+				position,
+				texture_coords,
+				color: Rgba::WHITE,
+			})
+			.collect::<Vec<_>>();
+		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
+	}
+
+	pub fn styled_rectangle(ctx: &Context, style: ShapeStyle, rect: Rect) -> Self {
+		MeshBuilder::new().with_rectangle(style, rect).build(ctx)
+	}
+
+	pub fn circle(ctx: &Context, style: ShapeStyle, center: Vec2, radius: f32) -> Self {
+		MeshBuilder::new()
+			.with_circle(style, center, radius)
+			.build(ctx)
+	}
+
+	pub fn ellipse(
+		ctx: &Context,
+		style: ShapeStyle,
+		center: Vec2,
+		radii: Vec2,
+		rotation: f32,
+	) -> Self {
+		MeshBuilder::new()
+			.with_ellipse(style, center, radii, rotation)
+			.build(ctx)
+	}
+
+	pub fn polygon(ctx: &Context, style: ShapeStyle, points: &[Vec2]) -> Self {
+		MeshBuilder::new().with_polygon(style, points).build(ctx)
+	}
+
+	pub fn polyline(ctx: &Context, line_width: f32, points: &[Vec2]) -> Self {
+		MeshBuilder::new()
+			.with_polyline(line_width, points)
+			.build(ctx)
 	}
 
 	pub fn set_vertex(&self, ctx: &Context, index: usize, vertex: Vertex) {
@@ -39,7 +101,7 @@ impl Mesh {
 			.push_instruction(self.clone(), texture.clone(), params.into());
 	}
 
-	pub(crate) fn new_internal(vertices: &[Vertex], indices: &[u16], device: &Device) -> Self {
+	pub(crate) fn new_internal(vertices: &[Vertex], indices: &[u32], device: &Device) -> Self {
 		let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
 			label: Some("Vertex Buffer"),
 			contents: bytemuck::cast_slice(vertices),
@@ -62,4 +124,27 @@ pub(crate) struct MeshInner {
 	pub(crate) vertex_buffer: Buffer,
 	pub(crate) index_buffer: Buffer,
 	pub(crate) num_indices: u32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+pub struct Vertex {
+	pub position: Vec2,
+	pub texture_coords: Vec2,
+	pub color: Rgba,
+}
+
+impl Vertex {
+	const ATTRIBUTES: [VertexAttribute; 3] =
+		wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2, 2 => Float32x4];
+
+	pub(crate) fn buffer_layout<'a>() -> VertexBufferLayout<'a> {
+		use std::mem;
+
+		VertexBufferLayout {
+			array_stride: mem::size_of::<Self>() as BufferAddress,
+			step_mode: VertexStepMode::Vertex,
+			attributes: &Self::ATTRIBUTES,
+		}
+	}
 }

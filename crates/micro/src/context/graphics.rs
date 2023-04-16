@@ -1,23 +1,18 @@
-use std::num::NonZeroU32;
-
 use glam::{UVec2, Vec2};
 use sdl2::video::Window;
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
-	AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
-	BindGroupLayoutEntry, BindingResource, BindingType, BlendState, Buffer, BufferUsages,
-	ColorTargetState, ColorWrites, CommandEncoderDescriptor, Device, DeviceDescriptor, Extent3d,
-	FilterMode, FragmentState, ImageCopyTexture, ImageDataLayout, IndexFormat, Instance,
-	InstanceDescriptor, LoadOp, MultisampleState, Operations, Origin3d, PipelineLayoutDescriptor,
-	PrimitiveState, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
-	RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType, SamplerDescriptor,
-	ShaderStages, Surface, SurfaceConfiguration, SurfaceError, TextureAspect, TextureDescriptor,
-	TextureDimension, TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor,
-	TextureViewDimension, VertexState,
+	BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState, Buffer, BufferUsages,
+	ColorTargetState, ColorWrites, CommandEncoderDescriptor, Device, DeviceDescriptor,
+	FragmentState, IndexFormat, Instance, InstanceDescriptor, LoadOp, MultisampleState, Operations,
+	PipelineLayoutDescriptor, PrimitiveState, Queue, RenderPassColorAttachment,
+	RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions,
+	SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration, SurfaceError,
+	TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension, VertexState,
 };
 
 use crate::{
-	graphics::{color::Rgba, image_data::ImageData, Vertex},
+	graphics::{color::Rgba, image_data::ImageData, texture::Texture, Vertex},
 	InitGraphicsError,
 };
 
@@ -59,7 +54,7 @@ pub struct GraphicsContext {
 	render_pipeline: RenderPipeline,
 	vertex_buffer: Buffer,
 	index_buffer: Buffer,
-	texture_bind_group: BindGroup,
+	texture: Texture,
 }
 
 impl GraphicsContext {
@@ -102,7 +97,7 @@ impl GraphicsContext {
 				depth_stencil_attachment: None,
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
-			render_pass.set_bind_group(0, &self.texture_bind_group, &[]);
+			render_pass.set_bind_group(0, &self.texture.0.bind_group, &[]);
 			render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 			render_pass.set_index_buffer(self.index_buffer.slice(..), IndexFormat::Uint16);
 			render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
@@ -207,60 +202,12 @@ impl GraphicsContext {
 			usage: BufferUsages::INDEX,
 		});
 		let image_data = ImageData::load("crates/micro/examples/tree.png").unwrap();
-		let texture_size = Extent3d {
-			width: image_data.size.x,
-			height: image_data.size.y,
-			depth_or_array_layers: 1,
-		};
-		let texture = device.create_texture(&TextureDescriptor {
-			size: texture_size,
-			mip_level_count: 1,
-			sample_count: 1,
-			dimension: TextureDimension::D2,
-			format: TextureFormat::Rgba8UnormSrgb,
-			usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-			label: Some("Texture"),
-			view_formats: &[],
-		});
-		queue.write_texture(
-			ImageCopyTexture {
-				texture: &texture,
-				mip_level: 0,
-				origin: Origin3d::ZERO,
-				aspect: TextureAspect::All,
-			},
-			&image_data.pixels,
-			ImageDataLayout {
-				offset: 0,
-				bytes_per_row: NonZeroU32::new(4 * image_data.size.x),
-				rows_per_image: NonZeroU32::new(image_data.size.y),
-			},
-			texture_size,
+		let texture = Texture::from_image_data_internal(
+			&image_data,
+			&device,
+			&queue,
+			&texture_bind_group_layout,
 		);
-		let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-		let sampler = device.create_sampler(&SamplerDescriptor {
-			address_mode_u: AddressMode::ClampToEdge,
-			address_mode_v: AddressMode::ClampToEdge,
-			address_mode_w: AddressMode::ClampToEdge,
-			mag_filter: FilterMode::Linear,
-			min_filter: FilterMode::Nearest,
-			mipmap_filter: FilterMode::Nearest,
-			..Default::default()
-		});
-		let texture_bind_group = device.create_bind_group(&BindGroupDescriptor {
-			layout: &texture_bind_group_layout,
-			entries: &[
-				BindGroupEntry {
-					binding: 0,
-					resource: BindingResource::TextureView(&texture_view),
-				},
-				BindGroupEntry {
-					binding: 1,
-					resource: BindingResource::Sampler(&sampler),
-				},
-			],
-			label: Some("texture_bind_group"),
-		});
 		Ok(Self {
 			surface,
 			device,
@@ -269,7 +216,7 @@ impl GraphicsContext {
 			render_pipeline,
 			vertex_buffer,
 			index_buffer,
-			texture_bind_group,
+			texture,
 		})
 	}
 }

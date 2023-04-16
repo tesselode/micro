@@ -1,9 +1,11 @@
 use glam::UVec2;
 use sdl2::video::Window;
 use wgpu::{
-	CommandEncoderDescriptor, Device, DeviceDescriptor, Instance, InstanceDescriptor, LoadOp,
-	Operations, Queue, RenderPassColorAttachment, RenderPassDescriptor, RequestAdapterOptions,
-	Surface, SurfaceConfiguration, SurfaceError, TextureViewDescriptor,
+	BlendState, ColorTargetState, ColorWrites, CommandEncoderDescriptor, Device, DeviceDescriptor,
+	FragmentState, Instance, InstanceDescriptor, LoadOp, MultisampleState, Operations,
+	PipelineLayoutDescriptor, PrimitiveState, Queue, RenderPassColorAttachment,
+	RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Surface,
+	SurfaceConfiguration, SurfaceError, TextureViewDescriptor, VertexState,
 };
 
 use crate::InitGraphicsError;
@@ -13,6 +15,7 @@ pub struct GraphicsContext {
 	device: Device,
 	queue: Queue,
 	config: SurfaceConfiguration,
+	render_pipeline: RenderPipeline,
 }
 
 impl GraphicsContext {
@@ -37,7 +40,7 @@ impl GraphicsContext {
 				label: Some("Render Encoder"),
 			});
 		{
-			let _render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+			let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
 				label: Some("Render Pass"),
 				color_attachments: &[Some(RenderPassColorAttachment {
 					view: &view,
@@ -54,6 +57,8 @@ impl GraphicsContext {
 				})],
 				depth_stencil_attachment: None,
 			});
+			render_pass.set_pipeline(&self.render_pipeline);
+			render_pass.draw(0..3, 0..1);
 		}
 		self.queue.submit(std::iter::once(encoder.finish()));
 		output.present();
@@ -94,11 +99,40 @@ impl GraphicsContext {
 			view_formats: vec![],
 		};
 		surface.configure(&device, &config);
+		let shader = device.create_shader_module(wgpu::include_wgsl!("../graphics/shader.wgsl"));
+		let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+			label: Some("Render Pipeline Layout"),
+			bind_group_layouts: &[],
+			push_constant_ranges: &[],
+		});
+		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+			label: Some("Render Pipeline"),
+			layout: Some(&render_pipeline_layout),
+			vertex: VertexState {
+				module: &shader,
+				entry_point: "vs_main",
+				buffers: &[],
+			},
+			fragment: Some(FragmentState {
+				module: &shader,
+				entry_point: "fs_main",
+				targets: &[Some(ColorTargetState {
+					format: config.format,
+					blend: Some(BlendState::REPLACE),
+					write_mask: ColorWrites::ALL,
+				})],
+			}),
+			primitive: PrimitiveState::default(),
+			depth_stencil: None,
+			multisample: MultisampleState::default(),
+			multiview: None,
+		});
 		Ok(Self {
 			surface,
 			device,
 			queue,
 			config,
+			render_pipeline,
 		})
 	}
 }

@@ -12,7 +12,7 @@ use wgpu::{
 	VertexStepMode,
 };
 
-use crate::{math::Rect, Context};
+use crate::{math::Rect, Context, IntoOffsetAndCount};
 
 use super::{color::Rgba, texture::Texture, DrawParams};
 
@@ -88,7 +88,7 @@ impl Mesh {
 	}
 
 	pub fn draw(&self, ctx: &mut Context, params: impl Into<DrawParams>) {
-		self.draw_textured(ctx, &ctx.graphics_ctx.default_texture.clone(), params);
+		self.draw_range(ctx, .., params);
 	}
 
 	pub fn draw_textured(
@@ -97,8 +97,36 @@ impl Mesh {
 		texture: &Texture,
 		params: impl Into<DrawParams>,
 	) {
-		ctx.graphics_ctx
-			.push_instruction(self.clone(), texture.clone(), params.into());
+		self.draw_range_textured(ctx, texture, .., params);
+	}
+
+	pub fn draw_range(
+		&self,
+		ctx: &mut Context,
+		range: impl IntoOffsetAndCount,
+		params: impl Into<DrawParams>,
+	) {
+		self.draw_range_textured(
+			ctx,
+			&ctx.graphics_ctx.default_texture.clone(),
+			range,
+			params,
+		);
+	}
+
+	pub fn draw_range_textured(
+		&self,
+		ctx: &mut Context,
+		texture: &Texture,
+		range: impl IntoOffsetAndCount,
+		params: impl Into<DrawParams>,
+	) {
+		ctx.graphics_ctx.push_instruction(
+			self.clone(),
+			texture.clone(),
+			range.into_offset_and_count(self.0.num_indices),
+			params.into(),
+		);
 	}
 
 	pub(crate) fn new_internal(vertices: &[Vertex], indices: &[u32], device: &Device) -> Self {

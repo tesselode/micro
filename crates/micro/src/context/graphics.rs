@@ -19,7 +19,7 @@ use crate::{
 		texture::Texture,
 		DrawParams,
 	},
-	InitGraphicsError,
+	InitGraphicsError, OffsetAndCount,
 };
 
 pub struct GraphicsContext {
@@ -77,6 +77,7 @@ impl GraphicsContext {
 			for DrawInstruction {
 				mesh,
 				texture,
+				range,
 				draw_params_bind_group,
 			} in &self.draw_instructions
 			{
@@ -84,7 +85,7 @@ impl GraphicsContext {
 				render_pass.set_bind_group(1, draw_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
 				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint32);
-				render_pass.draw_indexed(0..mesh.0.num_indices, 0, 0..1);
+				render_pass.draw_indexed(range.offset..(range.offset + range.count), 0, 0..1);
 			}
 		}
 		self.queue.submit(std::iter::once(encoder.finish()));
@@ -97,6 +98,7 @@ impl GraphicsContext {
 		&mut self,
 		mesh: Mesh,
 		texture: Texture,
+		range: OffsetAndCount,
 		draw_params: DrawParams,
 	) {
 		let mut draw_params_uniform = draw_params.as_uniform();
@@ -117,6 +119,7 @@ impl GraphicsContext {
 		self.draw_instructions.push(DrawInstruction {
 			mesh,
 			texture,
+			range,
 			draw_params_bind_group,
 		});
 	}
@@ -251,5 +254,6 @@ impl GraphicsContext {
 struct DrawInstruction {
 	mesh: Mesh,
 	texture: Texture,
+	range: OffsetAndCount,
 	draw_params_bind_group: BindGroup,
 }

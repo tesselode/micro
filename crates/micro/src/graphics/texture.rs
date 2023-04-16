@@ -1,5 +1,6 @@
 use std::{num::NonZeroU32, path::Path, rc::Rc};
 
+use glam::UVec2;
 use wgpu::{
 	AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource,
 	Device, Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Queue,
@@ -7,7 +8,7 @@ use wgpu::{
 	TextureUsages,
 };
 
-use crate::Context;
+use crate::{math::Rect, Context};
 
 use super::image_data::{ImageData, LoadImageDataError};
 
@@ -26,6 +27,18 @@ impl Texture {
 			&ctx.graphics_ctx.queue,
 			&ctx.graphics_ctx.texture_bind_group_layout,
 		)
+	}
+
+	pub fn size(&self) -> UVec2 {
+		self.0.size
+	}
+
+	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
+		let size = self.0.size.as_vec2();
+		Rect {
+			top_left: absolute_rect.top_left / size,
+			bottom_right: absolute_rect.bottom_right / size,
+		}
 	}
 
 	pub(crate) fn from_image_data_internal(
@@ -88,10 +101,14 @@ impl Texture {
 			],
 			label: Some("texture_bind_group"),
 		});
-		Self(Rc::new(TextureInner { bind_group }))
+		Self(Rc::new(TextureInner {
+			bind_group,
+			size: image_data.size,
+		}))
 	}
 }
 
 pub(crate) struct TextureInner {
 	pub(crate) bind_group: BindGroup,
+	pub(crate) size: UVec2,
 }

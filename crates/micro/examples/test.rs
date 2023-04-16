@@ -5,10 +5,12 @@ use micro::{
 	graphics::{
 		color::Rgba,
 		mesh::{Mesh, ShapeStyle, Vertex},
+		sprite_batch::{SpriteBatch, SpriteId},
 		texture::Texture,
 		DrawParams,
 	},
 	input::Scancode,
+	math::Rect,
 	window::WindowMode,
 	Context, ContextSettings, Event, State,
 };
@@ -16,43 +18,24 @@ use micro::{
 const INDICES: &[u32] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
 
 struct MainState {
-	mesh: Mesh,
 	texture: Texture,
+	sprite_batch: SpriteBatch,
+	sprite_id: SpriteId,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let vertices: &[Vertex] = &[
-			Vertex {
-				position: Vec2::splat(500.0) + 100.0 * Vec2::new(-0.0868241, 0.49240386),
-				texture_coords: Vec2::new(0.4131759, 0.99240386),
-				color: Rgba::WHITE,
-			},
-			Vertex {
-				position: Vec2::splat(500.0) + 100.0 * Vec2::new(-0.49513406, 0.06958647),
-				texture_coords: Vec2::new(0.0048659444, 0.56958647),
-				color: Rgba::WHITE,
-			},
-			Vertex {
-				position: Vec2::splat(500.0) + 100.0 * Vec2::new(-0.21918549, -0.44939706),
-				texture_coords: Vec2::new(0.28081453, 0.05060294),
-				color: Rgba::WHITE,
-			},
-			Vertex {
-				position: Vec2::splat(500.0) + 100.0 * Vec2::new(0.35966998, -0.3473291),
-				texture_coords: Vec2::new(0.85967, 0.1526709),
-				color: Rgba::WHITE,
-			},
-			Vertex {
-				position: Vec2::splat(500.0) + 100.0 * Vec2::new(0.44147372, 0.2347359),
-				texture_coords: Vec2::new(0.9414737, 0.7347359),
-				color: Rgba::WHITE,
-			},
-		];
-
+		let texture = Texture::from_file(ctx, "crates/micro/examples/tree.png")?;
+		let mut sprite_batch = SpriteBatch::new(ctx, &texture, 3);
+		let sprite_id = sprite_batch.add_region(
+			ctx,
+			Rect::xywh(10.0, 10.0, 40.0, 60.0),
+			Vec2::new(50.0, 100.0),
+		)?;
 		Ok(Self {
-			mesh: Mesh::new(ctx, vertices, INDICES),
-			texture: Texture::from_file(ctx, "crates/micro/examples/tree.png")?,
+			texture,
+			sprite_batch,
+			sprite_id,
 		})
 	}
 }
@@ -60,24 +43,18 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Box<dyn Error>> {
 		if let Event::KeyPressed(Scancode::Space) = event {
-			self.mesh.set_vertex(
+			self.sprite_batch.remove(ctx, self.sprite_id)?;
+			self.sprite_batch.add_region(
 				ctx,
-				0,
-				Vertex {
-					position: Vec2::ZERO,
-					texture_coords: Vec2::ZERO,
-					color: Rgba::BLUE,
-				},
-			);
+				Rect::xywh(10.0, 10.0, 40.0, 60.0),
+				Vec2::new(200.0, 300.0),
+			)?;
 		}
 		Ok(())
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		Mesh::circle(ctx, ShapeStyle::Fill, Vec2::new(300.0, 300.0), 100.0).draw(ctx, Rgba::RED);
-		self.mesh
-			.draw_textured(ctx, &self.texture, Vec2::new(100.0, 100.0));
-		self.mesh.draw(ctx, Rgba::RED);
+		self.sprite_batch.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

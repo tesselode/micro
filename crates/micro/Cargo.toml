@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { version = "1.13.1", features = ["derive"] }
+crunch = "0.5.3"
 derive_more = "0.99.17"
+fontdue = "0.7.3"
 generational-arena = "0.2.8"
 glam = { version = "0.23.0", features = ["bytemuck"] }
 image = { version = "0.24.6", default-features = false, features = ["png"] }

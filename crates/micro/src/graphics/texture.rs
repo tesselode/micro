@@ -1,6 +1,6 @@
 use std::{num::NonZeroU32, path::Path, rc::Rc};
 
-use glam::UVec2;
+use glam::{IVec2, UVec2};
 use wgpu::{
 	AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource,
 	Device, Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Queue,
@@ -16,13 +16,24 @@ use super::image_data::{ImageData, LoadImageDataError};
 pub struct Texture(pub(crate) Rc<TextureInner>);
 
 impl Texture {
+	pub fn empty(ctx: &Context, size: UVec2) -> Self {
+		Self::new_internal(
+			None,
+			size,
+			&ctx.graphics_ctx.device,
+			&ctx.graphics_ctx.queue,
+			&ctx.graphics_ctx.texture_bind_group_layout,
+		)
+	}
+
 	pub fn from_file(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadImageDataError> {
 		Ok(Self::from_image_data(ctx, &ImageData::load(path)?))
 	}
 
 	pub fn from_image_data(ctx: &Context, image_data: &ImageData) -> Self {
-		Self::from_image_data_internal(
-			image_data,
+		Self::new_internal(
+			Some(image_data),
+			image_data.size,
 			&ctx.graphics_ctx.device,
 			&ctx.graphics_ctx.queue,
 			&ctx.graphics_ctx.texture_bind_group_layout,
@@ -41,15 +52,42 @@ impl Texture {
 		}
 	}
 
-	pub(crate) fn from_image_data_internal(
-		image_data: &ImageData,
+	pub fn replace(&self, ctx: &Context, top_left: IVec2, image_data: &ImageData) {
+		ctx.graphics_ctx.queue.write_texture(
+			ImageCopyTexture {
+				texture: &self.0.texture,
+				mip_level: 0,
+				origin: Origin3d {
+					x: top_left.x.try_into().expect("cannot convert u32 to i32"),
+					y: top_left.y.try_into().expect("cannot convert u32 to i32"),
+					z: 0,
+				},
+				aspect: TextureAspect::All,
+			},
+			&image_data.pixels,
+			ImageDataLayout {
+				offset: 0,
+				bytes_per_row: NonZeroU32::new(4 * image_data.size.x),
+				rows_per_image: NonZeroU32::new(image_data.size.y),
+			},
+			Extent3d {
+				width: image_data.size.x,
+				height: image_data.size.y,
+				depth_or_array_layers: 1,
+			},
+		)
+	}
+
+	pub(crate) fn new_internal(
+		image_data: Option<&ImageData>,
+		size: UVec2,
 		device: &Device,
 		queue: &Queue,
 		texture_bind_group_layout: &BindGroupLayout,
 	) -> Self {
 		let texture_size = Extent3d {
-			width: image_data.size.x,
-			height: image_data.size.y,
+			width: size.x,
+			height: size.y,
 			depth_or_array_layers: 1,
 		};
 		let texture = device.create_texture(&TextureDescriptor {
@@ -62,21 +100,23 @@ impl Texture {
 			label: Some("Texture"),
 			view_formats: &[],
 		});
-		queue.write_texture(
-			ImageCopyTexture {
-				texture: &texture,
-				mip_level: 0,
-				origin: Origin3d::ZERO,
-				aspect: TextureAspect::All,
-			},
-			&image_data.pixels,
-			ImageDataLayout {
-				offset: 0,
-				bytes_per_row: NonZeroU32::new(4 * image_data.size.x),
-				rows_per_image: NonZeroU32::new(image_data.size.y),
-			},
-			texture_size,
-		);
+		if let Some(image_data) = image_data {
+			queue.write_texture(
+				ImageCopyTexture {
+					texture: &texture,
+					mip_level: 0,
+					origin: Origin3d::ZERO,
+					aspect: TextureAspect::All,
+				},
+				&image_data.pixels,
+				ImageDataLayout {
+					offset: 0,
+					bytes_per_row: NonZeroU32::new(4 * image_data.size.x),
+					rows_per_image: NonZeroU32::new(image_data.size.y),
+				},
+				texture_size,
+			);
+		}
 		let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 		let sampler = device.create_sampler(&SamplerDescriptor {
 			address_mode_u: AddressMode::ClampToEdge,
@@ -102,13 +142,15 @@ impl Texture {
 			label: Some("texture_bind_group"),
 		});
 		Self(Rc::new(TextureInner {
+			texture,
 			bind_group,
-			size: image_data.size,
+			size,
 		}))
 	}
 }
 
 pub(crate) struct TextureInner {
+	pub(crate) texture: wgpu::Texture,
 	pub(crate) bind_group: BindGroup,
 	pub(crate) size: UVec2,
 }

@@ -213,7 +213,7 @@ impl GraphicsContext {
 				entry_point: "fs_main",
 				targets: &[Some(ColorTargetState {
 					format: config.format,
-					blend: Some(BlendState::REPLACE),
+					blend: Some(BlendState::ALPHA_BLENDING),
 					write_mask: ColorWrites::ALL,
 				})],
 			}),
@@ -222,11 +222,12 @@ impl GraphicsContext {
 			multisample: MultisampleState::default(),
 			multiview: None,
 		});
-		let default_texture = Texture::from_image_data_internal(
-			&ImageData {
+		let default_texture = Texture::new_internal(
+			Some(&ImageData {
 				size: UVec2::ONE,
 				pixels: vec![255, 255, 255, 255],
-			},
+			}),
+			UVec2::ONE,
 			&device,
 			&queue,
 			&texture_bind_group_layout,

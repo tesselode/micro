@@ -7,7 +7,7 @@ use wgpu::{
 
 use crate::Context;
 
-use super::{texture::Texture, Vertex};
+use super::{texture::Texture, DrawParams, Vertex};
 
 #[derive(Clone)]
 pub struct Mesh(pub(crate) Rc<MeshInner>);
@@ -17,13 +17,18 @@ impl Mesh {
 		Self::new_internal(vertices, indices, &ctx.graphics_ctx.device)
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
-		self.draw_textured(ctx, &ctx.graphics_ctx.default_texture.clone());
+	pub fn draw(&self, ctx: &mut Context, params: impl Into<DrawParams>) {
+		self.draw_textured(ctx, &ctx.graphics_ctx.default_texture.clone(), params);
 	}
 
-	pub fn draw_textured(&self, ctx: &mut Context, texture: &Texture) {
+	pub fn draw_textured(
+		&self,
+		ctx: &mut Context,
+		texture: &Texture,
+		params: impl Into<DrawParams>,
+	) {
 		ctx.graphics_ctx
-			.push_instruction(self.clone(), texture.clone());
+			.push_instruction(self.clone(), texture.clone(), params.into());
 	}
 
 	pub(crate) fn new_internal(vertices: &[Vertex], indices: &[u16], device: &Device) -> Self {

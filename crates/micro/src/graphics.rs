@@ -1,7 +1,10 @@
 pub mod color;
+pub(crate) mod draw_params;
 pub mod image_data;
-pub mod mesh;
+mod mesh;
 pub mod texture;
 mod vertex;
 
+pub use draw_params::DrawParams;
+pub use mesh::*;
 pub use vertex::*;

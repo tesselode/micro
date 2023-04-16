@@ -1,5 +1,10 @@
 // Vertex shader
 
+struct DrawParamsUniform {
+    transform: mat4x4<f32>,
+    color: vec4<f32>,
+}
+
 struct VertexInput {
     @location(0) position: vec2<f32>,
     @location(1) texture_coords: vec2<f32>,
@@ -12,14 +17,17 @@ struct VertexOutput {
     @location(1) color: vec4<f32>,
 };
 
+@group(1) @binding(0)
+var<uniform> params: DrawParamsUniform;
+
 @vertex
 fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
     var out: VertexOutput;
     out.texture_coords = model.texture_coords;
-    out.color = model.color;
-    out.clip_position = vec4<f32>(model.position, 0.0, 1.0);
+    out.color = model.color * params.color;
+    out.clip_position = params.transform * vec4<f32>(model.position, 0.0, 1.0);
     return out;
 }
 

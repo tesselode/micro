@@ -1,7 +1,9 @@
 use glam::UVec2;
 use sdl2::video::Window;
 use wgpu::{
-	BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState,
+	util::{BufferInitDescriptor, DeviceExt},
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+	BindGroupLayoutEntry, BindingType, BlendState, BufferBindingType, BufferUsages,
 	ColorTargetState, ColorWrites, CommandEncoderDescriptor, Device, DeviceDescriptor,
 	FragmentState, IndexFormat, Instance, InstanceDescriptor, LoadOp, MultisampleState, Operations,
 	PipelineLayoutDescriptor, PrimitiveState, Queue, RenderPassColorAttachment,
@@ -11,7 +13,10 @@ use wgpu::{
 };
 
 use crate::{
-	graphics::{image_data::ImageData, mesh::Mesh, texture::Texture, Vertex},
+	graphics::{
+		draw_params::DrawParamsUniform, image_data::ImageData, texture::Texture, DrawParams, Mesh,
+		Vertex,
+	},
 	InitGraphicsError,
 };
 
@@ -21,6 +26,7 @@ pub struct GraphicsContext {
 	pub(crate) queue: Queue,
 	config: SurfaceConfiguration,
 	pub(crate) texture_bind_group_layout: BindGroupLayout,
+	pub(crate) draw_params_bind_group_layout: BindGroupLayout,
 	render_pipeline: RenderPipeline,
 	draw_instructions: Vec<DrawInstruction>,
 	pub(crate) default_texture: Texture,
@@ -66,8 +72,14 @@ impl GraphicsContext {
 				depth_stencil_attachment: None,
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
-			for DrawInstruction { mesh, texture } in &self.draw_instructions {
+			for DrawInstruction {
+				mesh,
+				texture,
+				draw_params_bind_group,
+			} in &self.draw_instructions
+			{
 				render_pass.set_bind_group(0, &texture.0.bind_group, &[]);
+				render_pass.set_bind_group(1, draw_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
 				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint16);
 				render_pass.draw_indexed(0..mesh.0.num_indices, 0, 0..1);
@@ -79,9 +91,30 @@ impl GraphicsContext {
 		Ok(())
 	}
 
-	pub(crate) fn push_instruction(&mut self, mesh: Mesh, texture: Texture) {
-		self.draw_instructions
-			.push(DrawInstruction { mesh, texture });
+	pub(crate) fn push_instruction(
+		&mut self,
+		mesh: Mesh,
+		texture: Texture,
+		draw_params: DrawParams,
+	) {
+		let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
+			label: Some("Draw Params Buffer"),
+			contents: bytemuck::cast_slice(&[draw_params.as_uniform()]),
+			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+		});
+		let draw_params_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
+			label: Some("Draw Params Bind Group"),
+			entries: &[BindGroupEntry {
+				binding: 0,
+				resource: draw_params_buffer.as_entire_binding(),
+			}],
+			layout: &self.draw_params_bind_group_layout,
+		});
+		self.draw_instructions.push(DrawInstruction {
+			mesh,
+			texture,
+			draw_params_bind_group,
+		});
 	}
 
 	async fn new_inner(window: &Window) -> Result<Self, InitGraphicsError> {
@@ -141,9 +174,23 @@ impl GraphicsContext {
 				],
 				label: Some("texture_bind_group_layout"),
 			});
+		let draw_params_bind_group_layout =
+			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+				label: Some("Draw Params Bind Group Layout"),
+				entries: &[BindGroupLayoutEntry {
+					binding: 0,
+					visibility: ShaderStages::VERTEX,
+					ty: BindingType::Buffer {
+						ty: BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+			});
 		let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[&texture_bind_group_layout],
+			bind_group_layouts: &[&texture_bind_group_layout, &draw_params_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
@@ -183,6 +230,7 @@ impl GraphicsContext {
 			queue,
 			config,
 			texture_bind_group_layout,
+			draw_params_bind_group_layout,
 			render_pipeline,
 			draw_instructions: vec![],
 			default_texture,
@@ -193,4 +241,5 @@ impl GraphicsContext {
 struct DrawInstruction {
 	mesh: Mesh,
 	texture: Texture,
+	draw_params_bind_group: BindGroup,
 }

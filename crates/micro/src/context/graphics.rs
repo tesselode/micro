@@ -1,14 +1,34 @@
-use glam::UVec2;
+use glam::{UVec2, Vec2};
 use sdl2::video::Window;
 use wgpu::{
-	BlendState, ColorTargetState, ColorWrites, CommandEncoderDescriptor, Device, DeviceDescriptor,
-	FragmentState, Instance, InstanceDescriptor, LoadOp, MultisampleState, Operations,
-	PipelineLayoutDescriptor, PrimitiveState, Queue, RenderPassColorAttachment,
-	RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, Surface,
-	SurfaceConfiguration, SurfaceError, TextureViewDescriptor, VertexState,
+	util::{BufferInitDescriptor, DeviceExt},
+	BlendState, Buffer, BufferUsages, ColorTargetState, ColorWrites, CommandEncoderDescriptor,
+	Device, DeviceDescriptor, FragmentState, Instance, InstanceDescriptor, LoadOp,
+	MultisampleState, Operations, PipelineLayoutDescriptor, PrimitiveState, Queue,
+	RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
+	RequestAdapterOptions, Surface, SurfaceConfiguration, SurfaceError, TextureViewDescriptor,
+	VertexState,
 };
 
-use crate::InitGraphicsError;
+use crate::{
+	graphics::{color::Rgba, Vertex},
+	InitGraphicsError,
+};
+
+const VERTICES: &[Vertex] = &[
+	Vertex {
+		position: Vec2::new(0.0, 0.5),
+		color: Rgba::RED,
+	},
+	Vertex {
+		position: Vec2::new(-0.5, -0.5),
+		color: Rgba::GREEN,
+	},
+	Vertex {
+		position: Vec2::new(0.5, -0.5),
+		color: Rgba::BLUE,
+	},
+];
 
 pub struct GraphicsContext {
 	surface: Surface,
@@ -16,6 +36,7 @@ pub struct GraphicsContext {
 	queue: Queue,
 	config: SurfaceConfiguration,
 	render_pipeline: RenderPipeline,
+	vertex_buffer: Buffer,
 }
 
 impl GraphicsContext {
@@ -58,7 +79,8 @@ impl GraphicsContext {
 				depth_stencil_attachment: None,
 			});
 			render_pass.set_pipeline(&self.render_pipeline);
-			render_pass.draw(0..3, 0..1);
+			render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+			render_pass.draw(0..VERTICES.len() as u32, 0..1);
 		}
 		self.queue.submit(std::iter::once(encoder.finish()));
 		output.present();
@@ -111,7 +133,7 @@ impl GraphicsContext {
 			vertex: VertexState {
 				module: &shader,
 				entry_point: "vs_main",
-				buffers: &[],
+				buffers: &[Vertex::buffer_layout()],
 			},
 			fragment: Some(FragmentState {
 				module: &shader,
@@ -127,12 +149,18 @@ impl GraphicsContext {
 			multisample: MultisampleState::default(),
 			multiview: None,
 		});
+		let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+			label: Some("Vertex Buffer"),
+			contents: bytemuck::cast_slice(VERTICES),
+			usage: BufferUsages::VERTEX,
+		});
 		Ok(Self {
 			surface,
 			device,
 			queue,
 			config,
 			render_pipeline,
+			vertex_buffer,
 		})
 	}
 }

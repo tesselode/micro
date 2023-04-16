@@ -7,7 +7,8 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { version = "1.13.1", features = ["derive"] }
-glam = "0.23.0"
+derive_more = "0.99.17"
+glam = { version = "0.23.0", features = ["bytemuck"] }
 pollster = "0.3.0"
 sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2", rev = "b7d75c5", features = ["raw-window-handle"] }
 thiserror = "1.0.40"

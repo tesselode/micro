@@ -3,8 +3,9 @@ use std::error::Error;
 use glam::{UVec2, Vec2};
 use micro::{
 	graphics::{color::Rgba, texture::Texture, Mesh, Vertex},
+	input::Scancode,
 	window::WindowMode,
-	Context, ContextSettings, State,
+	Context, ContextSettings, Event, State,
 };
 
 const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
@@ -52,6 +53,21 @@ impl MainState {
 }
 
 impl State<Box<dyn Error>> for MainState {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Box<dyn Error>> {
+		if let Event::KeyPressed(Scancode::Space) = event {
+			self.mesh.set_vertex(
+				ctx,
+				0,
+				Vertex {
+					position: Vec2::ZERO,
+					texture_coords: Vec2::ZERO,
+					color: Rgba::BLUE,
+				},
+			);
+		}
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		self.mesh
 			.draw_textured(ctx, &self.texture, Vec2::new(100.0, 100.0));

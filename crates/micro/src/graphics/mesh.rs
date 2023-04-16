@@ -17,6 +17,14 @@ impl Mesh {
 		Self::new_internal(vertices, indices, &ctx.graphics_ctx.device)
 	}
 
+	pub fn set_vertex(&self, ctx: &Context, index: usize, vertex: Vertex) {
+		ctx.graphics_ctx.queue.write_buffer(
+			&self.0.vertex_buffer,
+			(index * std::mem::size_of::<Vertex>()) as u64,
+			bytemuck::cast_slice(&[vertex]),
+		);
+	}
+
 	pub fn draw(&self, ctx: &mut Context, params: impl Into<DrawParams>) {
 		self.draw_textured(ctx, &ctx.graphics_ctx.default_texture.clone(), params);
 	}
@@ -35,7 +43,7 @@ impl Mesh {
 		let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
 			label: Some("Vertex Buffer"),
 			contents: bytemuck::cast_slice(vertices),
-			usage: BufferUsages::VERTEX,
+			usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
 		});
 		let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
 			label: Some("Index Buffer"),

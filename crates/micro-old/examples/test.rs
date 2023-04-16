@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use glam::{UVec2, Vec2};
-use micro::{
+use micro_old::{
 	graphics::{
 		color::Rgba,
 		mesh::{Mesh, ShapeStyle},
@@ -62,7 +62,7 @@ impl State<Box<dyn Error>> for MainState {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-	micro::run(
+	micro_old::run(
 		ContextSettings {
 			window_mode: WindowMode::Windowed {
 				size: UVec2::new(500, 500),

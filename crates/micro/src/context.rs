@@ -1,3 +1,5 @@
+pub(crate) mod graphics;
+
 use std::time::{Duration, Instant};
 
 use glam::{IVec2, UVec2};
@@ -6,6 +8,7 @@ use sdl2::{
 	EventPump, Sdl, VideoSubsystem,
 };
 use thiserror::Error;
+use wgpu::{CreateSurfaceError, RequestDeviceError, SurfaceError};
 
 use crate::{
 	input::{MouseButton, Scancode},
@@ -13,11 +16,14 @@ use crate::{
 	Event, State,
 };
 
+use self::graphics::GraphicsContext;
+
 pub fn run<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
 where
 	S: State<E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 	E: From<InitError>,
+	E: From<SurfaceError>,
 {
 	let mut ctx = Context::new(settings)?;
 	/* let egui_ctx = egui::Context::default();
@@ -49,6 +55,7 @@ where
 		}
 		state.update(&mut ctx, delta_time)?;
 		state.draw(&mut ctx)?;
+		ctx.graphics_ctx.render()?;
 		/* draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures); */
 		if ctx.should_quit {
 			break;
@@ -63,6 +70,7 @@ pub struct Context {
 	video: VideoSubsystem,
 	window: Window,
 	event_pump: EventPump,
+	graphics_ctx: GraphicsContext,
 	should_quit: bool,
 }
 
@@ -72,17 +80,19 @@ impl Context {
 		let video = sdl.video().map_err(InitError::Sdl2Error)?;
 		let window = build_window(&video, &settings)?;
 		let event_pump = sdl.event_pump().map_err(InitError::Sdl2Error)?;
+		let graphics_ctx = GraphicsContext::new(&window)?;
 		Ok(Self {
 			_sdl: sdl,
 			video,
 			window,
 			event_pump,
+			graphics_ctx,
 			should_quit: false,
 		})
 	}
 
 	pub(crate) fn resize(&mut self, size: UVec2) {
-		todo!()
+		self.graphics_ctx.resize(size);
 	}
 
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
@@ -128,6 +138,18 @@ pub enum InitError {
 	Sdl2Error(String),
 	#[error("{0}")]
 	WindowBuildError(#[from] WindowBuildError),
+	#[error("{0}")]
+	InitGraphicsError(#[from] InitGraphicsError),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum InitGraphicsError {
+	#[error("{0}")]
+	CreateSurfaceError(#[from] CreateSurfaceError),
+	#[error("{0}")]
+	RequestDeviceError(#[from] RequestDeviceError),
+	#[error("Could not find a graphics adapter")]
+	NoAdapterFound,
 }
 
 fn build_window(

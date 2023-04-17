@@ -3,19 +3,20 @@ use sdl2::video::Window;
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-	BindGroupLayoutEntry, BindingType, BlendState, BufferBindingType, BufferUsages,
-	ColorTargetState, ColorWrites, CommandEncoderDescriptor, Device, DeviceDescriptor,
-	FragmentState, IndexFormat, Instance, InstanceDescriptor, LoadOp, MultisampleState, Operations,
-	PipelineLayoutDescriptor, PrimitiveState, Queue, RenderPassColorAttachment,
-	RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions,
-	SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration, SurfaceError,
-	TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension, VertexState,
+	BindGroupLayoutEntry, BindingType, BufferBindingType, BufferUsages, CommandEncoderDescriptor,
+	Device, DeviceDescriptor, IndexFormat, Instance, InstanceDescriptor, LoadOp, Operations,
+	PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
+	RenderPassDescriptor, RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface,
+	SurfaceConfiguration, SurfaceError, TextureSampleType, TextureUsages, TextureViewDescriptor,
+	TextureViewDimension,
 };
 
 use crate::{
 	graphics::{
+		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		image_data::ImageData,
-		mesh::{Mesh, Vertex},
+		mesh::Mesh,
+		shader::DefaultShader,
 		texture::Texture,
 		DrawParams,
 	},
@@ -26,10 +27,12 @@ pub struct GraphicsContext {
 	surface: Surface,
 	pub(crate) device: Device,
 	pub(crate) queue: Queue,
-	config: SurfaceConfiguration,
+	pub(crate) config: SurfaceConfiguration,
 	pub(crate) texture_bind_group_layout: BindGroupLayout,
 	pub(crate) draw_params_bind_group_layout: BindGroupLayout,
-	render_pipeline: RenderPipeline,
+	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
+	pub(crate) render_pipeline_layout: PipelineLayout,
+	default_graphics_pipeline: GraphicsPipeline,
 	draw_instructions: Vec<DrawInstruction>,
 	pub(crate) default_texture: Texture,
 }
@@ -73,16 +76,18 @@ impl GraphicsContext {
 				})],
 				depth_stencil_attachment: None,
 			});
-			render_pass.set_pipeline(&self.render_pipeline);
 			for DrawInstruction {
 				mesh,
 				texture,
 				range,
 				draw_params_bind_group,
+				graphics_pipeline,
 			} in &self.draw_instructions
 			{
+				render_pass.set_pipeline(&graphics_pipeline.0.render_pipeline);
 				render_pass.set_bind_group(0, &texture.0.bind_group, &[]);
 				render_pass.set_bind_group(1, draw_params_bind_group, &[]);
+				render_pass.set_bind_group(2, &graphics_pipeline.0.shader_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
 				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint32);
 				render_pass.draw_indexed(range.offset..(range.offset + range.count), 0, 0..1);
@@ -121,6 +126,9 @@ impl GraphicsContext {
 			texture,
 			range,
 			draw_params_bind_group,
+			graphics_pipeline: draw_params
+				.graphics_pipeline
+				.unwrap_or(self.default_graphics_pipeline.clone()),
 		});
 	}
 
@@ -158,7 +166,6 @@ impl GraphicsContext {
 			view_formats: vec![],
 		};
 		surface.configure(&device, &config);
-		let shader = device.create_shader_module(wgpu::include_wgsl!("../graphics/shader.wgsl"));
 		let texture_bind_group_layout =
 			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 				entries: &[
@@ -195,33 +202,36 @@ impl GraphicsContext {
 					count: None,
 				}],
 			});
+		let shader_params_bind_group_layout =
+			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+				label: Some("Shader Params Bind Group Layout"),
+				entries: &[BindGroupLayoutEntry {
+					binding: 0,
+					visibility: ShaderStages::VERTEX | ShaderStages::FRAGMENT,
+					ty: BindingType::Buffer {
+						ty: BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+			});
 		let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[&texture_bind_group_layout, &draw_params_bind_group_layout],
+			bind_group_layouts: &[
+				&texture_bind_group_layout,
+				&draw_params_bind_group_layout,
+				&shader_params_bind_group_layout,
+			],
 			push_constant_ranges: &[],
 		});
-		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
-			label: Some("Render Pipeline"),
-			layout: Some(&render_pipeline_layout),
-			vertex: VertexState {
-				module: &shader,
-				entry_point: "vs_main",
-				buffers: &[Vertex::buffer_layout()],
-			},
-			fragment: Some(FragmentState {
-				module: &shader,
-				entry_point: "fs_main",
-				targets: &[Some(ColorTargetState {
-					format: config.format,
-					blend: Some(BlendState::ALPHA_BLENDING),
-					write_mask: ColorWrites::ALL,
-				})],
-			}),
-			primitive: PrimitiveState::default(),
-			depth_stencil: None,
-			multisample: MultisampleState::default(),
-			multiview: None,
-		});
+		let default_graphics_pipeline = GraphicsPipeline::new_internal(
+			GraphicsPipelineSettings::<DefaultShader> { shader_params: 0 },
+			&device,
+			&render_pipeline_layout,
+			&shader_params_bind_group_layout,
+			&config,
+		);
 		let default_texture = Texture::new_internal(
 			Some(&ImageData {
 				size: UVec2::ONE,
@@ -239,7 +249,9 @@ impl GraphicsContext {
 			config,
 			texture_bind_group_layout,
 			draw_params_bind_group_layout,
-			render_pipeline,
+			shader_params_bind_group_layout,
+			render_pipeline_layout,
+			default_graphics_pipeline,
 			draw_instructions: vec![],
 			default_texture,
 		})
@@ -257,4 +269,5 @@ struct DrawInstruction {
 	texture: Texture,
 	range: OffsetAndCount,
 	draw_params_bind_group: BindGroup,
+	graphics_pipeline: GraphicsPipeline,
 }

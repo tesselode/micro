@@ -68,7 +68,7 @@ impl Text {
 	pub fn draw(&self, ctx: &mut Context, params: impl Into<DrawParams>) {
 		let params = params.into();
 		for sprite_batch in &self.sprite_batches {
-			sprite_batch.draw(ctx, params);
+			sprite_batch.draw(ctx, params.clone());
 		}
 	}
 

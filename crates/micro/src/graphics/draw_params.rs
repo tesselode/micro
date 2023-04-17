@@ -3,13 +3,16 @@ use glam::{Mat4, Vec2};
 
 use crate::graphics::color::Rgba;
 
-#[derive(Debug, Clone, Copy)]
+use super::graphics_pipeline::GraphicsPipeline;
+
+#[derive(Clone)]
 pub struct DrawParams {
 	pub position: Vec2,
 	pub rotation: f32,
 	pub scale: Vec2,
 	pub origin: Vec2,
 	pub color: Rgba,
+	pub graphics_pipeline: Option<GraphicsPipeline>,
 }
 
 impl DrawParams {
@@ -20,6 +23,7 @@ impl DrawParams {
 			scale: Vec2::ONE,
 			origin: Vec2::ZERO,
 			color: Rgba::WHITE,
+			graphics_pipeline: None,
 		}
 	}
 
@@ -42,6 +46,13 @@ impl DrawParams {
 	pub fn color(self, color: impl Into<Rgba>) -> Self {
 		Self {
 			color: color.into(),
+			..self
+		}
+	}
+
+	pub fn graphics_pipeline(self, graphics_pipeline: impl Into<Option<GraphicsPipeline>>) -> Self {
+		Self {
+			graphics_pipeline: graphics_pipeline.into(),
 			..self
 		}
 	}

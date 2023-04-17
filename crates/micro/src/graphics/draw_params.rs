@@ -3,19 +3,19 @@ use glam::{Mat4, Vec2};
 
 use crate::graphics::color::Rgba;
 
-use super::graphics_pipeline::GraphicsPipeline;
+use super::{graphics_pipeline::GraphicsPipeline, shader::Shader};
 
 #[derive(Clone)]
-pub struct DrawParams {
+pub struct DrawParams<S: Shader> {
 	pub position: Vec2,
 	pub rotation: f32,
 	pub scale: Vec2,
 	pub origin: Vec2,
 	pub color: Rgba,
-	pub graphics_pipeline: Option<GraphicsPipeline>,
+	pub graphics_pipeline: Option<GraphicsPipeline<S>>,
 }
 
-impl DrawParams {
+impl<S: Shader> DrawParams<S> {
 	pub fn new() -> Self {
 		Self {
 			position: Vec2::ZERO,
@@ -50,7 +50,10 @@ impl DrawParams {
 		}
 	}
 
-	pub fn graphics_pipeline(self, graphics_pipeline: impl Into<Option<GraphicsPipeline>>) -> Self {
+	pub fn graphics_pipeline(
+		self,
+		graphics_pipeline: impl Into<Option<GraphicsPipeline<S>>>,
+	) -> Self {
 		Self {
 			graphics_pipeline: graphics_pipeline.into(),
 			..self
@@ -72,19 +75,19 @@ impl DrawParams {
 	}
 }
 
-impl Default for DrawParams {
+impl<S: Shader> Default for DrawParams<S> {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
-impl From<Vec2> for DrawParams {
+impl<S: Shader> From<Vec2> for DrawParams<S> {
 	fn from(position: Vec2) -> Self {
 		Self::new().position(position)
 	}
 }
 
-impl From<Rgba> for DrawParams {
+impl<S: Shader> From<Rgba> for DrawParams<S> {
 	fn from(color: Rgba) -> Self {
 		Self::new().color(color)
 	}

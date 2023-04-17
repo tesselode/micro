@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use glam::{Mat4, UVec2, Vec2, Vec3};
 use sdl2::video::Window;
 use wgpu::{
@@ -13,10 +15,11 @@ use wgpu::{
 
 use crate::{
 	graphics::{
-		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
+		draw_params::DrawParamsUniform,
+		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineInner, GraphicsPipelineSettings},
 		image_data::ImageData,
 		mesh::Mesh,
-		shader::DefaultShader,
+		shader::{DefaultShader, Shader},
 		texture::Texture,
 		DrawParams,
 	},
@@ -32,7 +35,7 @@ pub struct GraphicsContext {
 	pub(crate) draw_params_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
 	pub(crate) render_pipeline_layout: PipelineLayout,
-	default_graphics_pipeline: GraphicsPipeline,
+	default_graphics_pipeline: Rc<GraphicsPipelineInner>,
 	draw_instructions: Vec<DrawInstruction>,
 	pub(crate) default_texture: Texture,
 }
@@ -84,10 +87,10 @@ impl GraphicsContext {
 				graphics_pipeline,
 			} in &self.draw_instructions
 			{
-				render_pass.set_pipeline(&graphics_pipeline.0.render_pipeline);
+				render_pass.set_pipeline(&graphics_pipeline.render_pipeline);
 				render_pass.set_bind_group(0, &texture.0.bind_group, &[]);
 				render_pass.set_bind_group(1, draw_params_bind_group, &[]);
-				render_pass.set_bind_group(2, &graphics_pipeline.0.shader_params_bind_group, &[]);
+				render_pass.set_bind_group(2, &graphics_pipeline.shader_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
 				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint32);
 				render_pass.draw_indexed(range.offset..(range.offset + range.count), 0, 0..1);
@@ -99,37 +102,19 @@ impl GraphicsContext {
 		Ok(())
 	}
 
-	pub(crate) fn push_instruction(
+	pub(crate) fn push_instruction<S: Shader>(
 		&mut self,
 		mesh: Mesh,
 		texture: Texture,
 		range: OffsetAndCount,
-		draw_params: DrawParams,
+		draw_params: DrawParams<S>,
 	) {
-		let mut draw_params_uniform = draw_params.as_uniform();
-		draw_params_uniform.transform = self.global_transform() * draw_params_uniform.transform;
-		let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
-			label: Some("Draw Params Buffer"),
-			contents: bytemuck::cast_slice(&[draw_params_uniform]),
-			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-		});
-		let draw_params_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
-			label: Some("Draw Params Bind Group"),
-			entries: &[BindGroupEntry {
-				binding: 0,
-				resource: draw_params_buffer.as_entire_binding(),
-			}],
-			layout: &self.draw_params_bind_group_layout,
-		});
-		self.draw_instructions.push(DrawInstruction {
-			mesh,
-			texture,
-			range,
-			draw_params_bind_group,
-			graphics_pipeline: draw_params
-				.graphics_pipeline
-				.unwrap_or(self.default_graphics_pipeline.clone()),
-		});
+		let draw_params_uniform = draw_params.as_uniform();
+		let graphics_pipeline = draw_params
+			.graphics_pipeline
+			.map(|pipeline| pipeline.inner)
+			.unwrap_or(self.default_graphics_pipeline.clone());
+		self.push_instruction_inner(mesh, texture, range, draw_params_uniform, graphics_pipeline);
 	}
 
 	async fn new_inner(window: &Window) -> Result<Self, InitGraphicsError> {
@@ -231,7 +216,8 @@ impl GraphicsContext {
 			&render_pipeline_layout,
 			&shader_params_bind_group_layout,
 			&config,
-		);
+		)
+		.inner;
 		let default_texture = Texture::new_internal(
 			Some(&ImageData {
 				size: UVec2::ONE,
@@ -257,6 +243,37 @@ impl GraphicsContext {
 		})
 	}
 
+	fn push_instruction_inner(
+		&mut self,
+		mesh: Mesh,
+		texture: Texture,
+		range: OffsetAndCount,
+		mut draw_params_uniform: DrawParamsUniform,
+		graphics_pipeline: Rc<GraphicsPipelineInner>,
+	) {
+		draw_params_uniform.transform = self.global_transform() * draw_params_uniform.transform;
+		let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
+			label: Some("Draw Params Buffer"),
+			contents: bytemuck::cast_slice(&[draw_params_uniform]),
+			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+		});
+		let draw_params_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
+			label: Some("Draw Params Bind Group"),
+			entries: &[BindGroupEntry {
+				binding: 0,
+				resource: draw_params_buffer.as_entire_binding(),
+			}],
+			layout: &self.draw_params_bind_group_layout,
+		});
+		self.draw_instructions.push(DrawInstruction {
+			mesh,
+			texture,
+			range,
+			draw_params_bind_group,
+			graphics_pipeline,
+		});
+	}
+
 	fn global_transform(&self) -> Mat4 {
 		let screen_size = Vec2::new(self.config.width as f32, self.config.height as f32);
 		Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
@@ -269,5 +286,5 @@ struct DrawInstruction {
 	texture: Texture,
 	range: OffsetAndCount,
 	draw_params_bind_group: BindGroup,
-	graphics_pipeline: GraphicsPipeline,
+	graphics_pipeline: Rc<GraphicsPipelineInner>,
 }

@@ -10,6 +10,7 @@ use crate::{context::Context, math::Rect, IntoOffsetAndCount};
 
 use super::{
 	draw_params::DrawParams,
+	shader::Shader,
 	sprite_batch::{SpriteBatch, SpriteParams},
 };
 
@@ -65,18 +66,18 @@ impl Text {
 		self.bounds
 	}
 
-	pub fn draw(&self, ctx: &mut Context, params: impl Into<DrawParams>) {
+	pub fn draw<S: Shader>(&self, ctx: &mut Context, params: impl Into<DrawParams<S>>) {
 		let params = params.into();
 		for sprite_batch in &self.sprite_batches {
 			sprite_batch.draw(ctx, params.clone());
 		}
 	}
 
-	pub fn draw_range(
+	pub fn draw_range<S: Shader>(
 		&self,
 		ctx: &mut Context,
 		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams>,
+		params: impl Into<DrawParams<S>>,
 	) {
 		if self.sprite_batches.len() != 1 {
 			unimplemented!("draw_range is only implemented for text with exactly 1 font");

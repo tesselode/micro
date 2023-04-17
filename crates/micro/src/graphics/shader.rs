@@ -1,11 +1,12 @@
 use bytemuck::{Pod, Zeroable};
 
-pub trait Shader {
+pub trait Shader: Clone {
 	const SOURCE: &'static str;
 
 	type Params: Pod + Zeroable;
 }
 
+#[derive(Clone)]
 pub(crate) struct DefaultShader;
 
 impl Shader for DefaultShader {

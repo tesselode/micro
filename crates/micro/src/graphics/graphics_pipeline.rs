@@ -1,10 +1,10 @@
-use std::rc::Rc;
+use std::{marker::PhantomData, rc::Rc};
 
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BlendState, Buffer,
 	BufferUsages, ColorTargetState, ColorWrites, Device, FragmentState, MultisampleState,
-	PipelineLayout, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule,
+	PipelineLayout, PrimitiveState, RenderPipeline, RenderPipelineDescriptor,
 	ShaderModuleDescriptor, ShaderSource, SurfaceConfiguration, VertexState,
 };
 
@@ -13,10 +13,13 @@ use crate::Context;
 use super::{mesh::Vertex, shader::Shader};
 
 #[derive(Clone)]
-pub struct GraphicsPipeline(pub(crate) Rc<GraphicsPipelineInner>);
+pub struct GraphicsPipeline<S: Shader> {
+	_phantom_data: PhantomData<S>,
+	pub(crate) inner: Rc<GraphicsPipelineInner>,
+}
 
-impl GraphicsPipeline {
-	pub fn new<S: Shader>(ctx: &Context, settings: GraphicsPipelineSettings<S>) -> Self {
+impl<S: Shader> GraphicsPipeline<S> {
+	pub fn new(ctx: &Context, settings: GraphicsPipelineSettings<S>) -> Self {
 		Self::new_internal(
 			settings,
 			&ctx.graphics_ctx.device,
@@ -26,15 +29,15 @@ impl GraphicsPipeline {
 		)
 	}
 
-	pub fn set_shader_params<S: Shader>(&self, ctx: &Context, shader_params: S::Params) {
+	pub fn set_shader_params(&self, ctx: &Context, shader_params: S::Params) {
 		ctx.graphics_ctx.queue.write_buffer(
-			&self.0.shader_params_buffer,
+			&self.inner.shader_params_buffer,
 			0,
 			bytemuck::cast_slice(&[shader_params]),
 		);
 	}
 
-	pub fn new_internal<S: Shader>(
+	pub fn new_internal(
 		settings: GraphicsPipelineSettings<S>,
 		device: &Device,
 		render_pipeline_layout: &PipelineLayout,
@@ -80,12 +83,14 @@ impl GraphicsPipeline {
 				resource: shader_params_buffer.as_entire_binding(),
 			}],
 		});
-		Self(Rc::new(GraphicsPipelineInner {
-			shader_module,
-			shader_params_buffer,
-			shader_params_bind_group,
-			render_pipeline,
-		}))
+		Self {
+			_phantom_data: PhantomData,
+			inner: Rc::new(GraphicsPipelineInner {
+				shader_params_buffer,
+				shader_params_bind_group,
+				render_pipeline,
+			}),
+		}
 	}
 }
 
@@ -95,7 +100,6 @@ pub struct GraphicsPipelineSettings<S: Shader> {
 }
 
 pub(crate) struct GraphicsPipelineInner {
-	pub(crate) shader_module: ShaderModule,
 	pub(crate) shader_params_buffer: Buffer,
 	pub(crate) shader_params_bind_group: BindGroup,
 	pub(crate) render_pipeline: RenderPipeline,

@@ -14,7 +14,7 @@ use wgpu::{
 
 use crate::{math::Rect, Context, IntoOffsetAndCount};
 
-use super::{color::Rgba, texture::Texture, DrawParams};
+use super::{color::Rgba, shader::Shader, texture::Texture, DrawParams};
 
 #[derive(Clone)]
 pub struct Mesh(pub(crate) Rc<MeshInner>);
@@ -87,24 +87,24 @@ impl Mesh {
 		);
 	}
 
-	pub fn draw(&self, ctx: &mut Context, params: impl Into<DrawParams>) {
+	pub fn draw<S: Shader>(&self, ctx: &mut Context, params: impl Into<DrawParams<S>>) {
 		self.draw_range(ctx, .., params);
 	}
 
-	pub fn draw_textured(
+	pub fn draw_textured<S: Shader>(
 		&self,
 		ctx: &mut Context,
 		texture: &Texture,
-		params: impl Into<DrawParams>,
+		params: impl Into<DrawParams<S>>,
 	) {
 		self.draw_range_textured(ctx, texture, .., params);
 	}
 
-	pub fn draw_range(
+	pub fn draw_range<S: Shader>(
 		&self,
 		ctx: &mut Context,
 		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams>,
+		params: impl Into<DrawParams<S>>,
 	) {
 		self.draw_range_textured(
 			ctx,
@@ -114,12 +114,12 @@ impl Mesh {
 		);
 	}
 
-	pub fn draw_range_textured(
+	pub fn draw_range_textured<S: Shader>(
 		&self,
 		ctx: &mut Context,
 		texture: &Texture,
 		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams>,
+		params: impl Into<DrawParams<S>>,
 	) {
 		ctx.graphics_ctx.push_instruction(
 			self.clone(),

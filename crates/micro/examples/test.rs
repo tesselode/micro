@@ -13,6 +13,7 @@ use micro::{
 	Context, ContextSettings, State,
 };
 
+#[derive(Clone)]
 struct WavyShader;
 
 #[repr(C)]
@@ -31,7 +32,7 @@ impl Shader for WavyShader {
 struct MainState {
 	font: Font,
 	text: Text,
-	graphics_pipeline: GraphicsPipeline,
+	graphics_pipeline: GraphicsPipeline<WavyShader>,
 }
 
 impl MainState {
@@ -47,7 +48,7 @@ impl MainState {
 		let text = Text::new(ctx, &font, "Hello, world!", LayoutSettings::default());
 		let graphics_pipeline = GraphicsPipeline::new(
 			ctx,
-			GraphicsPipelineSettings::<WavyShader> {
+			GraphicsPipelineSettings {
 				shader_params: WavyShaderParams {
 					amplitude: 0.005,
 					frequency: 100.0,

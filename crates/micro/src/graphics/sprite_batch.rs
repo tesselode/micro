@@ -17,7 +17,7 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::color::Rgba;
+use super::{color::Rgba, shader::Shader};
 
 pub struct SpriteBatch {
 	texture: Texture,
@@ -130,15 +130,15 @@ impl SpriteBatch {
 		Ok(())
 	}
 
-	pub fn draw(&self, ctx: &mut Context, params: impl Into<DrawParams>) {
+	pub fn draw<S: Shader>(&self, ctx: &mut Context, params: impl Into<DrawParams<S>>) {
 		self.mesh.draw_textured(ctx, &self.texture, params);
 	}
 
-	pub fn draw_range(
+	pub fn draw_range<S: Shader>(
 		&self,
 		ctx: &mut Context,
 		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams>,
+		params: impl Into<DrawParams<S>>,
 	) {
 		let offset_and_count = range.into_offset_and_count(
 			self.sprites

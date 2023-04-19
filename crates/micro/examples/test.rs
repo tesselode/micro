@@ -4,14 +4,19 @@ use bytemuck::{Pod, Zeroable};
 use glam::{UVec2, Vec2};
 use micro::{
 	graphics::{
+		color::Rgba,
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
+		mesh::Mesh,
 		shader::Shader,
+		stencil::StencilState,
 		text::{Font, FontSettings, LayoutSettings, Text},
 		DrawParams,
 	},
+	math::Rect,
 	window::WindowMode,
 	Context, ContextSettings, State,
 };
+use wgpu::{CompareFunction, StencilOperation};
 
 #[derive(Clone)]
 struct WavyShader;
@@ -30,9 +35,10 @@ impl Shader for WavyShader {
 }
 
 struct MainState {
-	font: Font,
 	text: Text,
-	graphics_pipeline: GraphicsPipeline<WavyShader>,
+	mesh: Mesh,
+	write_pipeline: GraphicsPipeline,
+	read_pipeline: GraphicsPipeline,
 }
 
 impl MainState {
@@ -46,30 +52,51 @@ impl MainState {
 			},
 		)?;
 		let text = Text::new(ctx, &font, "Hello, world!", LayoutSettings::default());
-		let graphics_pipeline = GraphicsPipeline::new(
+		let write_pipeline = GraphicsPipeline::new(
 			ctx,
 			GraphicsPipelineSettings {
-				shader_params: WavyShaderParams {
-					amplitude: 0.005,
-					frequency: 100.0,
+				stencil_state: StencilState {
+					compare: CompareFunction::Always,
+					fail_op: StencilOperation::IncrementClamp,
+					pass_op: StencilOperation::IncrementClamp,
+					read_mask: 0xff,
+					write_mask: 0xff,
 				},
+				enable_color_writes: false,
+				..Default::default()
+			},
+		);
+		let read_pipeline = GraphicsPipeline::new(
+			ctx,
+			GraphicsPipelineSettings {
+				stencil_state: StencilState {
+					compare: CompareFunction::Equal,
+					fail_op: StencilOperation::Keep,
+					pass_op: StencilOperation::Keep,
+					read_mask: 0xff,
+					write_mask: 0xff,
+				},
+				..Default::default()
 			},
 		);
 		Ok(Self {
-			font,
 			text,
-			graphics_pipeline,
+			mesh: Mesh::rectangle(ctx, Rect::xywh(50.0, 50.0, 100.0, 150.0)),
+			write_pipeline,
+			read_pipeline,
 		})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
+		self.mesh.draw(ctx, &self.write_pipeline);
 		self.text.draw(
 			ctx,
 			DrawParams::new()
-				.graphics_pipeline(self.graphics_pipeline.clone())
-				.position(Vec2::new(50.0, 50.0)),
+				.position(Vec2::new(50.0, 50.0))
+				.graphics_pipeline(self.read_pipeline.clone())
+				.stencil_reference(1),
 		);
 		Ok(())
 	}

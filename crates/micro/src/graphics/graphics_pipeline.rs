@@ -3,17 +3,22 @@ use std::{marker::PhantomData, rc::Rc};
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BlendState, Buffer,
-	BufferUsages, ColorTargetState, ColorWrites, Device, FragmentState, MultisampleState,
-	PipelineLayout, PrimitiveState, RenderPipeline, RenderPipelineDescriptor,
-	ShaderModuleDescriptor, ShaderSource, SurfaceConfiguration, VertexState,
+	BufferUsages, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
+	DepthStencilState, Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState,
+	RenderPipeline, RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource,
+	SurfaceConfiguration, TextureFormat, VertexState,
 };
 
 use crate::Context;
 
-use super::{mesh::Vertex, shader::Shader};
+use super::{
+	mesh::Vertex,
+	shader::{DefaultShader, Shader},
+	stencil::StencilState,
+};
 
 #[derive(Clone)]
-pub struct GraphicsPipeline<S: Shader> {
+pub struct GraphicsPipeline<S: Shader = DefaultShader> {
 	_phantom_data: PhantomData<S>,
 	pub(crate) inner: Rc<GraphicsPipelineInner>,
 }
@@ -62,11 +67,21 @@ impl<S: Shader> GraphicsPipeline<S> {
 				targets: &[Some(ColorTargetState {
 					format: config.format,
 					blend: Some(BlendState::ALPHA_BLENDING),
-					write_mask: ColorWrites::ALL,
+					write_mask: if settings.enable_color_writes {
+						ColorWrites::ALL
+					} else {
+						ColorWrites::empty()
+					},
 				})],
 			}),
 			primitive: PrimitiveState::default(),
-			depth_stencil: None,
+			depth_stencil: Some(DepthStencilState {
+				format: TextureFormat::Depth24PlusStencil8,
+				depth_write_enabled: false,
+				depth_compare: CompareFunction::Always,
+				stencil: settings.stencil_state.to_wgpu_stencil_state(),
+				bias: DepthBiasState::default(),
+			}),
 			multisample: MultisampleState::default(),
 			multiview: None,
 		});
@@ -94,9 +109,23 @@ impl<S: Shader> GraphicsPipeline<S> {
 	}
 }
 
-#[derive(Default)]
 pub struct GraphicsPipelineSettings<S: Shader> {
 	pub shader_params: S::Params,
+	pub stencil_state: StencilState,
+	pub enable_color_writes: bool,
+}
+
+impl<S: Shader> Default for GraphicsPipelineSettings<S>
+where
+	S::Params: Default,
+{
+	fn default() -> Self {
+		Self {
+			shader_params: Default::default(),
+			stencil_state: Default::default(),
+			enable_color_writes: true,
+		}
+	}
 }
 
 pub(crate) struct GraphicsPipelineInner {

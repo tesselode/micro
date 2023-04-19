@@ -117,7 +117,7 @@ impl Texture {
 				texture_size,
 			);
 		}
-		let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+		let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 		let sampler = device.create_sampler(&SamplerDescriptor {
 			address_mode_u: AddressMode::ClampToEdge,
 			address_mode_v: AddressMode::ClampToEdge,
@@ -132,7 +132,7 @@ impl Texture {
 			entries: &[
 				BindGroupEntry {
 					binding: 0,
-					resource: BindingResource::TextureView(&texture_view),
+					resource: BindingResource::TextureView(&view),
 				},
 				BindGroupEntry {
 					binding: 1,

@@ -6,11 +6,12 @@ use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingType, BufferBindingType, BufferUsages, CommandEncoderDescriptor,
-	Device, DeviceDescriptor, IndexFormat, Instance, InstanceDescriptor, LoadOp, Operations,
-	PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
-	RenderPassDescriptor, RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface,
-	SurfaceConfiguration, SurfaceError, TextureSampleType, TextureUsages, TextureViewDescriptor,
-	TextureViewDimension,
+	Device, DeviceDescriptor, Extent3d, IndexFormat, Instance, InstanceDescriptor, LoadOp,
+	Operations, PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
+	RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
+	SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration, SurfaceError,
+	TextureDescriptor, TextureDimension, TextureFormat, TextureSampleType, TextureUsages,
+	TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
 use crate::{
@@ -38,6 +39,7 @@ pub struct GraphicsContext {
 	default_graphics_pipeline: Rc<GraphicsPipelineInner>,
 	draw_instructions: Vec<DrawInstruction>,
 	pub(crate) default_texture: Texture,
+	depth_stencil_texture_view: TextureView,
 }
 
 impl GraphicsContext {
@@ -49,6 +51,7 @@ impl GraphicsContext {
 		self.config.width = size.x;
 		self.config.height = size.y;
 		self.surface.configure(&self.device, &self.config);
+		self.depth_stencil_texture_view = create_depth_stencil_texture_view(size, &self.device);
 	}
 
 	pub fn render(&mut self) -> Result<(), SurfaceError> {
@@ -77,7 +80,14 @@ impl GraphicsContext {
 						store: true,
 					},
 				})],
-				depth_stencil_attachment: None,
+				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+					view: &self.depth_stencil_texture_view,
+					depth_ops: None,
+					stencil_ops: Some(Operations {
+						load: LoadOp::Clear(0),
+						store: true,
+					}),
+				}),
 			});
 			for DrawInstruction {
 				mesh,
@@ -85,6 +95,7 @@ impl GraphicsContext {
 				range,
 				draw_params_bind_group,
 				graphics_pipeline,
+				stencil_reference,
 			} in &self.draw_instructions
 			{
 				render_pass.set_pipeline(&graphics_pipeline.render_pipeline);
@@ -93,6 +104,7 @@ impl GraphicsContext {
 				render_pass.set_bind_group(2, &graphics_pipeline.shader_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
 				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint32);
+				render_pass.set_stencil_reference(*stencil_reference);
 				render_pass.draw_indexed(range.offset..(range.offset + range.count), 0, 0..1);
 			}
 		}
@@ -114,7 +126,14 @@ impl GraphicsContext {
 			.graphics_pipeline
 			.map(|pipeline| pipeline.inner)
 			.unwrap_or(self.default_graphics_pipeline.clone());
-		self.push_instruction_inner(mesh, texture, range, draw_params_uniform, graphics_pipeline);
+		self.push_instruction_inner(
+			mesh,
+			texture,
+			range,
+			draw_params_uniform,
+			graphics_pipeline,
+			draw_params.stencil_reference,
+		);
 	}
 
 	async fn new_inner(window: &Window) -> Result<Self, InitGraphicsError> {
@@ -211,7 +230,10 @@ impl GraphicsContext {
 			push_constant_ranges: &[],
 		});
 		let default_graphics_pipeline = GraphicsPipeline::new_internal(
-			GraphicsPipelineSettings::<DefaultShader> { shader_params: 0 },
+			GraphicsPipelineSettings::<DefaultShader> {
+				shader_params: 0,
+				..Default::default()
+			},
 			&device,
 			&render_pipeline_layout,
 			&shader_params_bind_group_layout,
@@ -228,6 +250,7 @@ impl GraphicsContext {
 			&queue,
 			&texture_bind_group_layout,
 		);
+		let depth_stencil_texture_view = create_depth_stencil_texture_view(size.into(), &device);
 		Ok(Self {
 			surface,
 			device,
@@ -240,6 +263,7 @@ impl GraphicsContext {
 			default_graphics_pipeline,
 			draw_instructions: vec![],
 			default_texture,
+			depth_stencil_texture_view,
 		})
 	}
 
@@ -250,6 +274,7 @@ impl GraphicsContext {
 		range: OffsetAndCount,
 		mut draw_params_uniform: DrawParamsUniform,
 		graphics_pipeline: Rc<GraphicsPipelineInner>,
+		stencil_reference: u32,
 	) {
 		draw_params_uniform.transform = self.global_transform() * draw_params_uniform.transform;
 		let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
@@ -271,6 +296,7 @@ impl GraphicsContext {
 			range,
 			draw_params_bind_group,
 			graphics_pipeline,
+			stencil_reference: stencil_reference,
 		});
 	}
 
@@ -287,4 +313,24 @@ struct DrawInstruction {
 	range: OffsetAndCount,
 	draw_params_bind_group: BindGroup,
 	graphics_pipeline: Rc<GraphicsPipelineInner>,
+	stencil_reference: u32,
+}
+
+fn create_depth_stencil_texture_view(size: UVec2, device: &Device) -> TextureView {
+	let texture_size = Extent3d {
+		width: size.x,
+		height: size.y,
+		depth_or_array_layers: 1,
+	};
+	let texture = device.create_texture(&TextureDescriptor {
+		size: texture_size,
+		mip_level_count: 1,
+		sample_count: 1,
+		dimension: TextureDimension::D2,
+		format: TextureFormat::Depth24PlusStencil8,
+		usage: TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT,
+		label: Some("Texture"),
+		view_formats: &[],
+	});
+	texture.create_view(&wgpu::TextureViewDescriptor::default())
 }

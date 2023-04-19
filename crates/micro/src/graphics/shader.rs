@@ -7,7 +7,7 @@ pub trait Shader: Clone {
 }
 
 #[derive(Clone)]
-pub(crate) struct DefaultShader;
+pub struct DefaultShader;
 
 impl Shader for DefaultShader {
 	const SOURCE: &'static str = include_str!("shader.wgsl");

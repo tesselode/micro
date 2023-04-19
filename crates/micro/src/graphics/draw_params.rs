@@ -3,16 +3,20 @@ use glam::{Mat4, Vec2};
 
 use crate::graphics::color::Rgba;
 
-use super::{graphics_pipeline::GraphicsPipeline, shader::Shader};
+use super::{
+	graphics_pipeline::GraphicsPipeline,
+	shader::{DefaultShader, Shader},
+};
 
 #[derive(Clone)]
-pub struct DrawParams<S: Shader> {
+pub struct DrawParams<S: Shader = DefaultShader> {
 	pub position: Vec2,
 	pub rotation: f32,
 	pub scale: Vec2,
 	pub origin: Vec2,
 	pub color: Rgba,
 	pub graphics_pipeline: Option<GraphicsPipeline<S>>,
+	pub stencil_reference: u32,
 }
 
 impl<S: Shader> DrawParams<S> {
@@ -24,6 +28,7 @@ impl<S: Shader> DrawParams<S> {
 			origin: Vec2::ZERO,
 			color: Rgba::WHITE,
 			graphics_pipeline: None,
+			stencil_reference: 0,
 		}
 	}
 
@@ -60,6 +65,13 @@ impl<S: Shader> DrawParams<S> {
 		}
 	}
 
+	pub fn stencil_reference(self, stencil_reference: u32) -> Self {
+		Self {
+			stencil_reference,
+			..self
+		}
+	}
+
 	pub fn as_mat4(&self) -> Mat4 {
 		Mat4::from_translation(self.position.extend(0.0))
 			* Mat4::from_rotation_z(self.rotation)
@@ -81,15 +93,27 @@ impl<S: Shader> Default for DrawParams<S> {
 	}
 }
 
-impl<S: Shader> From<Vec2> for DrawParams<S> {
+impl From<Vec2> for DrawParams<DefaultShader> {
 	fn from(position: Vec2) -> Self {
 		Self::new().position(position)
 	}
 }
 
-impl<S: Shader> From<Rgba> for DrawParams<S> {
+impl From<Rgba> for DrawParams<DefaultShader> {
 	fn from(color: Rgba) -> Self {
 		Self::new().color(color)
+	}
+}
+
+impl<S: Shader> From<GraphicsPipeline<S>> for DrawParams<S> {
+	fn from(graphics_pipeline: GraphicsPipeline<S>) -> Self {
+		Self::new().graphics_pipeline(graphics_pipeline)
+	}
+}
+
+impl<S: Shader> From<&GraphicsPipeline<S>> for DrawParams<S> {
+	fn from(graphics_pipeline: &GraphicsPipeline<S>) -> Self {
+		Self::new().graphics_pipeline(graphics_pipeline.clone())
 	}
 }
 

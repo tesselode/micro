@@ -6,7 +6,6 @@ use micro::{
 		color::Rgba,
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		mesh::Mesh,
-		shader::DefaultShader,
 		BlendAlphaMode, BlendMode, DrawParams,
 	},
 	math::Rect,
@@ -35,18 +34,14 @@ impl MainState {
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
+		self.mesh
+			.draw(ctx, DrawParams::new().color(Rgba::rgb(0.5, 0.0, 0.0)));
 		self.mesh.draw(
 			ctx,
 			DrawParams::new()
-				.color(Rgba::rgb(0.5, 0.0, 0.0))
-				.graphics_pipeline(Some(self.graphics_pipeline.clone())),
-		);
-		self.mesh.draw(
-			ctx,
-			DrawParams::<DefaultShader>::new()
 				.position(Vec2::new(25.0, 25.0))
 				.color(Rgba::rgb(0.5, 0.0, 0.0))
-				.graphics_pipeline(Some(self.graphics_pipeline.clone())),
+				.graphics_pipeline(&self.graphics_pipeline),
 		);
 		Ok(())
 	}

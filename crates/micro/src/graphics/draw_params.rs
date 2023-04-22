@@ -19,7 +19,7 @@ pub struct DrawParams<S: Shader = DefaultShader> {
 	pub stencil_reference: u32,
 }
 
-impl<S: Shader> DrawParams<S> {
+impl DrawParams<DefaultShader> {
 	pub fn new() -> Self {
 		Self {
 			position: Vec2::ZERO,
@@ -31,7 +31,9 @@ impl<S: Shader> DrawParams<S> {
 			stencil_reference: 0,
 		}
 	}
+}
 
+impl<S: Shader> DrawParams<S> {
 	pub fn position(self, position: Vec2) -> Self {
 		Self { position, ..self }
 	}
@@ -55,13 +57,18 @@ impl<S: Shader> DrawParams<S> {
 		}
 	}
 
-	pub fn graphics_pipeline(
+	pub fn graphics_pipeline<S2: Shader>(
 		self,
-		graphics_pipeline: impl Into<Option<GraphicsPipeline<S>>>,
-	) -> Self {
-		Self {
-			graphics_pipeline: graphics_pipeline.into(),
-			..self
+		graphics_pipeline: impl IntoOptionalGraphicsPipeline<S2>,
+	) -> DrawParams<S2> {
+		DrawParams {
+			graphics_pipeline: graphics_pipeline.into_optional_graphics_pipeline(),
+			position: self.position,
+			rotation: self.rotation,
+			scale: self.scale,
+			origin: self.origin,
+			color: self.color,
+			stencil_reference: self.stencil_reference,
 		}
 	}
 
@@ -89,7 +96,15 @@ impl<S: Shader> DrawParams<S> {
 
 impl<S: Shader> Default for DrawParams<S> {
 	fn default() -> Self {
-		Self::new()
+		Self {
+			position: Default::default(),
+			rotation: Default::default(),
+			scale: Default::default(),
+			origin: Default::default(),
+			color: Default::default(),
+			graphics_pipeline: Default::default(),
+			stencil_reference: Default::default(),
+		}
 	}
 }
 
@@ -107,13 +122,35 @@ impl From<Rgba> for DrawParams<DefaultShader> {
 
 impl<S: Shader> From<GraphicsPipeline<S>> for DrawParams<S> {
 	fn from(graphics_pipeline: GraphicsPipeline<S>) -> Self {
-		Self::new().graphics_pipeline(graphics_pipeline)
+		DrawParams::new().graphics_pipeline(graphics_pipeline)
 	}
 }
 
 impl<S: Shader> From<&GraphicsPipeline<S>> for DrawParams<S> {
 	fn from(graphics_pipeline: &GraphicsPipeline<S>) -> Self {
-		Self::new().graphics_pipeline(graphics_pipeline.clone())
+		DrawParams::new().graphics_pipeline(graphics_pipeline.clone())
+	}
+}
+
+pub trait IntoOptionalGraphicsPipeline<S: Shader> {
+	fn into_optional_graphics_pipeline(self) -> Option<GraphicsPipeline<S>>;
+}
+
+impl<S: Shader> IntoOptionalGraphicsPipeline<S> for Option<GraphicsPipeline<S>> {
+	fn into_optional_graphics_pipeline(self) -> Option<GraphicsPipeline<S>> {
+		self
+	}
+}
+
+impl<S: Shader> IntoOptionalGraphicsPipeline<S> for GraphicsPipeline<S> {
+	fn into_optional_graphics_pipeline(self) -> Option<GraphicsPipeline<S>> {
+		Some(self)
+	}
+}
+
+impl<S: Shader> IntoOptionalGraphicsPipeline<S> for &GraphicsPipeline<S> {
+	fn into_optional_graphics_pipeline(self) -> Option<GraphicsPipeline<S>> {
+		Some(self.clone())
 	}
 }
 

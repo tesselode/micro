@@ -2,11 +2,11 @@ use std::{marker::PhantomData, rc::Rc};
 
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
-	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BlendState, Buffer,
-	BufferUsages, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
-	DepthStencilState, Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState,
-	RenderPipeline, RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource,
-	SurfaceConfiguration, TextureFormat, VertexState,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, Buffer, BufferUsages,
+	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
+	FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipeline,
+	RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, SurfaceConfiguration,
+	TextureFormat, VertexState,
 };
 
 use crate::Context;
@@ -15,6 +15,7 @@ use super::{
 	mesh::Vertex,
 	shader::{DefaultShader, Shader},
 	stencil::StencilState,
+	BlendMode,
 };
 
 #[derive(Clone)]
@@ -66,7 +67,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 				entry_point: "fs_main",
 				targets: &[Some(ColorTargetState {
 					format: config.format,
-					blend: Some(BlendState::ALPHA_BLENDING),
+					blend: Some(settings.blend_mode.to_blend_state()),
 					write_mask: if settings.enable_color_writes {
 						ColorWrites::ALL
 					} else {
@@ -110,6 +111,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 }
 
 pub struct GraphicsPipelineSettings<S: Shader> {
+	pub blend_mode: BlendMode,
 	pub shader_params: S::Params,
 	pub stencil_state: StencilState,
 	pub enable_color_writes: bool,
@@ -121,6 +123,7 @@ where
 {
 	fn default() -> Self {
 		Self {
+			blend_mode: Default::default(),
 			shader_params: Default::default(),
 			stencil_state: Default::default(),
 			enable_color_writes: true,

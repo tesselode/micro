@@ -296,7 +296,7 @@ impl GraphicsContext {
 			range,
 			draw_params_bind_group,
 			graphics_pipeline,
-			stencil_reference: stencil_reference,
+			stencil_reference,
 		});
 	}
 

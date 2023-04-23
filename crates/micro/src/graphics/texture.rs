@@ -1,16 +1,21 @@
 use std::{num::NonZeroU32, path::Path, rc::Rc};
 
-use glam::{IVec2, UVec2};
+use glam::{IVec2, UVec2, Vec2};
 use wgpu::{
 	AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource,
 	Device, Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Queue,
-	SamplerDescriptor, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
-	TextureUsages,
+	SamplerDescriptor, SurfaceConfiguration, TextureAspect, TextureDescriptor, TextureDimension,
+	TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
 };
 
 use crate::{math::Rect, Context};
 
-use super::image_data::{ImageData, LoadImageDataError};
+use super::{
+	image_data::{ImageData, LoadImageDataError},
+	mesh::Mesh,
+	shader::Shader,
+	DrawParams,
+};
 
 #[derive(Clone)]
 pub struct Texture(pub(crate) Rc<TextureInner>);
@@ -78,6 +83,25 @@ impl Texture {
 		)
 	}
 
+	pub fn draw<S: Shader>(&self, ctx: &mut Context, params: impl Into<DrawParams<S>>) {
+		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.0.size.as_vec2()))
+			.draw_textured(ctx, self, params);
+	}
+
+	pub fn draw_region<S: Shader>(
+		&self,
+		ctx: &mut Context,
+		region: Rect,
+		params: impl Into<DrawParams<S>>,
+	) {
+		Mesh::rectangle_with_texture_region(
+			ctx,
+			Rect::new(Vec2::ZERO, region.size()),
+			self.relative_rect(region),
+		)
+		.draw_textured(ctx, self, params);
+	}
+
 	pub(crate) fn new_internal(
 		image_data: Option<&ImageData>,
 		size: UVec2,
@@ -117,7 +141,7 @@ impl Texture {
 				texture_size,
 			);
 		}
-		let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+		let view = texture.create_view(&TextureViewDescriptor::default());
 		let sampler = device.create_sampler(&SamplerDescriptor {
 			address_mode_u: AddressMode::ClampToEdge,
 			address_mode_v: AddressMode::ClampToEdge,
@@ -143,6 +167,63 @@ impl Texture {
 		});
 		Self(Rc::new(TextureInner {
 			texture,
+			view,
+			bind_group,
+			size,
+		}))
+	}
+
+	pub(crate) fn new_render_attachment(
+		size: UVec2,
+		device: &Device,
+		queue: &Queue,
+		config: &SurfaceConfiguration,
+		texture_bind_group_layout: &BindGroupLayout,
+	) -> Self {
+		let texture_size = Extent3d {
+			width: size.x,
+			height: size.y,
+			depth_or_array_layers: 1,
+		};
+		let texture = device.create_texture(&TextureDescriptor {
+			size: texture_size,
+			mip_level_count: 1,
+			sample_count: 1,
+			dimension: TextureDimension::D2,
+			format: config.format,
+			usage: TextureUsages::TEXTURE_BINDING
+				| TextureUsages::COPY_DST
+				| TextureUsages::RENDER_ATTACHMENT,
+			label: Some("Texture"),
+			view_formats: &[],
+		});
+		let view = texture.create_view(&TextureViewDescriptor::default());
+		let sampler = device.create_sampler(&SamplerDescriptor {
+			address_mode_u: AddressMode::ClampToEdge,
+			address_mode_v: AddressMode::ClampToEdge,
+			address_mode_w: AddressMode::ClampToEdge,
+			mag_filter: FilterMode::Linear,
+			min_filter: FilterMode::Nearest,
+			mipmap_filter: FilterMode::Nearest,
+			..Default::default()
+		});
+		let bind_group = device.create_bind_group(&BindGroupDescriptor {
+			layout: texture_bind_group_layout,
+			entries: &[
+				BindGroupEntry {
+					binding: 0,
+					resource: BindingResource::TextureView(&view),
+				},
+				BindGroupEntry {
+					binding: 1,
+					resource: BindingResource::Sampler(&sampler),
+				},
+			],
+			label: Some("texture_bind_group"),
+		});
+		Self(Rc::new(TextureInner {
+			texture,
+			view,
 			bind_group,
 			size,
 		}))
@@ -151,6 +232,7 @@ impl Texture {
 
 pub(crate) struct TextureInner {
 	pub(crate) texture: wgpu::Texture,
+	pub(crate) view: TextureView,
 	pub(crate) bind_group: BindGroup,
 	pub(crate) size: UVec2,
 }

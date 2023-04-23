@@ -6,22 +6,24 @@ use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingType, BufferBindingType, BufferUsages, CommandEncoderDescriptor,
-	Device, DeviceDescriptor, Extent3d, IndexFormat, Instance, InstanceDescriptor, LoadOp,
-	Operations, PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
+	Device, DeviceDescriptor, IndexFormat, Instance, InstanceDescriptor, LoadOp, Operations,
+	PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
 	RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
 	SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration, SurfaceError,
-	TextureDescriptor, TextureDimension, TextureFormat, TextureSampleType, TextureUsages,
-	TextureView, TextureViewDescriptor, TextureViewDimension,
+	TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
 use crate::{
 	graphics::{
+		canvas::Canvas,
+		color::Rgba,
 		draw_params::DrawParamsUniform,
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineInner, GraphicsPipelineSettings},
 		image_data::ImageData,
 		mesh::Mesh,
 		shader::{DefaultShader, Shader},
 		texture::Texture,
+		util::create_depth_stencil_texture_view,
 		DrawParams,
 	},
 	InitGraphicsError, OffsetAndCount,
@@ -37,7 +39,7 @@ pub struct GraphicsContext {
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
 	pub(crate) render_pipeline_layout: PipelineLayout,
 	default_graphics_pipeline: Rc<GraphicsPipelineInner>,
-	draw_instructions: Vec<DrawInstruction>,
+	draw_instruction_sets: Vec<DrawInstructionSet>,
 	pub(crate) default_texture: Texture,
 	depth_stencil_texture_view: TextureView,
 }
@@ -64,27 +66,42 @@ impl GraphicsContext {
 			.create_command_encoder(&CommandEncoderDescriptor {
 				label: Some("Render Encoder"),
 			});
+		for DrawInstructionSet {
+			kind,
+			clear_color,
+			clear_stencil_value,
+			instructions,
+		} in self.draw_instruction_sets.drain(..)
 		{
 			let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
 				label: Some("Render Pass"),
 				color_attachments: &[Some(RenderPassColorAttachment {
-					view: &view,
+					view: match &kind {
+						DrawInstructionSetKind::Surface => &view,
+						DrawInstructionSetKind::Canvas(canvas) => &canvas.0.texture.0.view,
+					},
 					resolve_target: None,
 					ops: Operations {
-						load: LoadOp::Clear(wgpu::Color {
-							r: 0.1,
-							g: 0.2,
-							b: 0.3,
-							a: 1.0,
-						}),
+						load: match clear_color {
+							Some(color) => LoadOp::Clear(color.to_wgpu_color()),
+							None => LoadOp::Load,
+						},
 						store: true,
 					},
 				})],
 				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-					view: &self.depth_stencil_texture_view,
+					view: match &kind {
+						DrawInstructionSetKind::Surface => &self.depth_stencil_texture_view,
+						DrawInstructionSetKind::Canvas(canvas) => {
+							&canvas.0.depth_stencil_texture_view
+						}
+					},
 					depth_ops: None,
 					stencil_ops: Some(Operations {
-						load: LoadOp::Clear(0),
+						load: match clear_stencil_value {
+							Some(clear_stencil_value) => LoadOp::Clear(clear_stencil_value),
+							None => LoadOp::Load,
+						},
 						store: true,
 					}),
 				}),
@@ -96,7 +113,7 @@ impl GraphicsContext {
 				draw_params_bind_group,
 				graphics_pipeline,
 				stencil_reference,
-			} in &self.draw_instructions
+			} in &instructions
 			{
 				render_pass.set_pipeline(&graphics_pipeline.render_pipeline);
 				render_pass.set_bind_group(0, &texture.0.bind_group, &[]);
@@ -110,8 +127,36 @@ impl GraphicsContext {
 		}
 		self.queue.submit(std::iter::once(encoder.finish()));
 		output.present();
-		self.draw_instructions.clear();
+		self.draw_instruction_sets.push(DrawInstructionSet {
+			kind: DrawInstructionSetKind::Surface,
+			clear_color: Some(Rgba::BLACK),
+			clear_stencil_value: Some(0),
+			instructions: vec![],
+		});
 		Ok(())
+	}
+
+	pub(crate) fn set_render_target_to_surface(&mut self) {
+		self.draw_instruction_sets.push(DrawInstructionSet {
+			kind: DrawInstructionSetKind::Surface,
+			clear_color: None,
+			clear_stencil_value: None,
+			instructions: vec![],
+		});
+	}
+
+	pub(crate) fn set_render_target_to_canvas(
+		&mut self,
+		canvas: Canvas,
+		clear_color: Option<Rgba>,
+		clear_stencil_value: Option<u32>,
+	) {
+		self.draw_instruction_sets.push(DrawInstructionSet {
+			kind: DrawInstructionSetKind::Canvas(canvas),
+			clear_color,
+			clear_stencil_value,
+			instructions: vec![],
+		});
 	}
 
 	pub(crate) fn push_instruction<S: Shader>(
@@ -261,7 +306,12 @@ impl GraphicsContext {
 			shader_params_bind_group_layout,
 			render_pipeline_layout,
 			default_graphics_pipeline,
-			draw_instructions: vec![],
+			draw_instruction_sets: vec![DrawInstructionSet {
+				kind: DrawInstructionSetKind::Surface,
+				clear_color: Some(Rgba::BLACK),
+				clear_stencil_value: Some(0),
+				instructions: vec![],
+			}],
 			default_texture,
 			depth_stencil_texture_view,
 		})
@@ -276,7 +326,12 @@ impl GraphicsContext {
 		graphics_pipeline: Rc<GraphicsPipelineInner>,
 		stencil_reference: u32,
 	) {
-		draw_params_uniform.transform = self.global_transform() * draw_params_uniform.transform;
+		let set = self.draw_instruction_sets.last_mut().unwrap();
+		let coordinate_system_transform = coordinate_system_transform(match &set.kind {
+			DrawInstructionSetKind::Surface => UVec2::new(self.config.width, self.config.height),
+			DrawInstructionSetKind::Canvas(canvas) => canvas.0.texture.size(),
+		});
+		draw_params_uniform.transform = coordinate_system_transform * draw_params_uniform.transform;
 		let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
 			label: Some("Draw Params Buffer"),
 			contents: bytemuck::cast_slice(&[draw_params_uniform]),
@@ -290,7 +345,7 @@ impl GraphicsContext {
 			}],
 			layout: &self.draw_params_bind_group_layout,
 		});
-		self.draw_instructions.push(DrawInstruction {
+		set.instructions.push(DrawInstruction {
 			mesh,
 			texture,
 			range,
@@ -298,12 +353,6 @@ impl GraphicsContext {
 			graphics_pipeline,
 			stencil_reference,
 		});
-	}
-
-	fn global_transform(&self) -> Mat4 {
-		let screen_size = Vec2::new(self.config.width as f32, self.config.height as f32);
-		Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
-			* Mat4::from_scale(Vec3::new(2.0 / screen_size.x, -2.0 / screen_size.y, 1.0))
 	}
 }
 
@@ -316,21 +365,19 @@ struct DrawInstruction {
 	stencil_reference: u32,
 }
 
-fn create_depth_stencil_texture_view(size: UVec2, device: &Device) -> TextureView {
-	let texture_size = Extent3d {
-		width: size.x,
-		height: size.y,
-		depth_or_array_layers: 1,
-	};
-	let texture = device.create_texture(&TextureDescriptor {
-		size: texture_size,
-		mip_level_count: 1,
-		sample_count: 1,
-		dimension: TextureDimension::D2,
-		format: TextureFormat::Depth24PlusStencil8,
-		usage: TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT,
-		label: Some("Texture"),
-		view_formats: &[],
-	});
-	texture.create_view(&wgpu::TextureViewDescriptor::default())
+struct DrawInstructionSet {
+	kind: DrawInstructionSetKind,
+	clear_color: Option<Rgba>,
+	clear_stencil_value: Option<u32>,
+	instructions: Vec<DrawInstruction>,
+}
+
+enum DrawInstructionSetKind {
+	Surface,
+	Canvas(Canvas),
+}
+
+fn coordinate_system_transform(size: UVec2) -> Mat4 {
+	Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+		* Mat4::from_scale(Vec3::new(2.0 / size.x as f32, -2.0 / size.y as f32, 1.0))
 }

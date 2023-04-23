@@ -61,6 +61,15 @@ impl Rgba {
 	pub const fn with_alpha(self, alpha: f32) -> Self {
 		Self { alpha, ..self }
 	}
+
+	pub(crate) fn to_wgpu_color(self) -> wgpu::Color {
+		wgpu::Color {
+			r: self.red as f64,
+			g: self.green as f64,
+			b: self.blue as f64,
+			a: self.alpha as f64,
+		}
+	}
 }
 
 impl Default for Rgba {

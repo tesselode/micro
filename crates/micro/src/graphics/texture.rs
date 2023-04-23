@@ -176,7 +176,6 @@ impl Texture {
 	pub(crate) fn new_render_attachment(
 		size: UVec2,
 		device: &Device,
-		queue: &Queue,
 		config: &SurfaceConfiguration,
 		texture_bind_group_layout: &BindGroupLayout,
 	) -> Self {

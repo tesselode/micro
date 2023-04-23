@@ -19,7 +19,6 @@ impl Canvas {
 			texture: Texture::new_render_attachment(
 				size,
 				&ctx.graphics_ctx.device,
-				&ctx.graphics_ctx.queue,
 				&ctx.graphics_ctx.config,
 				&ctx.graphics_ctx.texture_bind_group_layout,
 			),

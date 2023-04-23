@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use glam::{Mat4, UVec2, Vec2, Vec3};
+use glam::{Mat4, UVec2, Vec3};
 use sdl2::video::Window;
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},

@@ -83,7 +83,11 @@ impl<S: Shader> GraphicsPipeline<S> {
 				stencil: settings.stencil_state.to_wgpu_stencil_state(),
 				bias: DepthBiasState::default(),
 			}),
-			multisample: MultisampleState::default(),
+			multisample: MultisampleState {
+				count: settings.sample_count,
+				mask: !0,
+				alpha_to_coverage_enabled: true,
+			},
 			multiview: None,
 		});
 		let shader_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -115,6 +119,7 @@ pub struct GraphicsPipelineSettings<S: Shader> {
 	pub shader_params: S::Params,
 	pub stencil_state: StencilState,
 	pub enable_color_writes: bool,
+	pub sample_count: u32,
 }
 
 impl<S: Shader> Default for GraphicsPipelineSettings<S>
@@ -127,6 +132,7 @@ where
 			shader_params: Default::default(),
 			stencil_state: Default::default(),
 			enable_color_writes: true,
+			sample_count: 1,
 		}
 	}
 }

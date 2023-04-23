@@ -4,7 +4,11 @@ use wgpu::{
 	TextureView,
 };
 
-pub fn create_depth_stencil_texture_view(size: UVec2, device: &Device) -> TextureView {
+pub fn create_depth_stencil_texture_view(
+	size: UVec2,
+	device: &Device,
+	sample_count: u32,
+) -> TextureView {
 	let texture_size = Extent3d {
 		width: size.x,
 		height: size.y,
@@ -13,7 +17,7 @@ pub fn create_depth_stencil_texture_view(size: UVec2, device: &Device) -> Textur
 	let texture = device.create_texture(&TextureDescriptor {
 		size: texture_size,
 		mip_level_count: 1,
-		sample_count: 1,
+		sample_count,
 		dimension: TextureDimension::D2,
 		format: TextureFormat::Depth24PlusStencil8,
 		usage: TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT,

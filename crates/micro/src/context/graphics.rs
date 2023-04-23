@@ -6,8 +6,8 @@ use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingType, BufferBindingType, BufferUsages, CommandEncoderDescriptor,
-	Device, DeviceDescriptor, IndexFormat, Instance, InstanceDescriptor, LoadOp, Operations,
-	PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
+	Device, DeviceDescriptor, Features, IndexFormat, Instance, InstanceDescriptor, LoadOp,
+	Operations, PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
 	RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
 	SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration, SurfaceError,
 	TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor, TextureViewDimension,
@@ -53,7 +53,7 @@ impl GraphicsContext {
 		self.config.width = size.x;
 		self.config.height = size.y;
 		self.surface.configure(&self.device, &self.config);
-		self.depth_stencil_texture_view = create_depth_stencil_texture_view(size, &self.device);
+		self.depth_stencil_texture_view = create_depth_stencil_texture_view(size, &self.device, 1);
 	}
 
 	pub fn render(&mut self) -> Result<(), SurfaceError> {
@@ -80,7 +80,12 @@ impl GraphicsContext {
 						DrawInstructionSetKind::Surface => &view,
 						DrawInstructionSetKind::Canvas(canvas) => &canvas.0.view,
 					},
-					resolve_target: None,
+					resolve_target: match &kind {
+						DrawInstructionSetKind::Surface => None,
+						DrawInstructionSetKind::Canvas(canvas) => {
+							canvas.0.multisample_resolve_texture_view.as_ref()
+						}
+					},
 					ops: Operations {
 						load: match clear_color {
 							Some(color) => LoadOp::Clear(color.to_wgpu_color()),
@@ -198,7 +203,10 @@ impl GraphicsContext {
 			.ok_or(InitGraphicsError::NoAdapterFound)?;
 		let (device, queue) = adapter
 			.request_device(
-				&DeviceDescriptor::default(),
+				&DeviceDescriptor {
+					features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+					..Default::default()
+				},
 				None, // Trace path
 			)
 			.await?;
@@ -299,7 +307,7 @@ impl GraphicsContext {
 			&queue,
 			&texture_bind_group_layout,
 		);
-		let depth_stencil_texture_view = create_depth_stencil_texture_view(size.into(), &device);
+		let depth_stencil_texture_view = create_depth_stencil_texture_view(size.into(), &device, 1);
 		Ok(Self {
 			surface,
 			device,

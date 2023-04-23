@@ -17,7 +17,7 @@ use super::{
 pub struct Canvas(pub(crate) Rc<CanvasInner>);
 
 impl Canvas {
-	pub fn new(ctx: &Context, size: UVec2) -> Self {
+	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
 		let texture_size = Extent3d {
 			width: size.x,
 			height: size.y,
@@ -26,7 +26,7 @@ impl Canvas {
 		let texture = ctx.graphics_ctx.device.create_texture(&TextureDescriptor {
 			size: texture_size,
 			mip_level_count: 1,
-			sample_count: 1,
+			sample_count: settings.sample_count,
 			dimension: TextureDimension::D2,
 			format: ctx.graphics_ctx.config.format,
 			usage: TextureUsages::TEXTURE_BINDING
@@ -45,30 +45,39 @@ impl Canvas {
 			mipmap_filter: FilterMode::Nearest,
 			..Default::default()
 		});
-		let bind_group = ctx
-			.graphics_ctx
-			.device
-			.create_bind_group(&BindGroupDescriptor {
-				layout: &ctx.graphics_ctx.texture_bind_group_layout,
-				entries: &[
-					BindGroupEntry {
-						binding: 0,
-						resource: BindingResource::TextureView(&view),
-					},
-					BindGroupEntry {
-						binding: 1,
-						resource: BindingResource::Sampler(&sampler),
-					},
-				],
-				label: Some("texture_bind_group"),
-			});
+		let (bind_group, multisample_resolve_texture_view) = if settings.sample_count > 1 {
+			let (bind_group, multisample_resolve_texture_view) =
+				create_multisample_resolve_texture(size, ctx);
+			(bind_group, Some(multisample_resolve_texture_view))
+		} else {
+			let bind_group = ctx
+				.graphics_ctx
+				.device
+				.create_bind_group(&BindGroupDescriptor {
+					layout: &ctx.graphics_ctx.texture_bind_group_layout,
+					entries: &[
+						BindGroupEntry {
+							binding: 0,
+							resource: BindingResource::TextureView(&view),
+						},
+						BindGroupEntry {
+							binding: 1,
+							resource: BindingResource::Sampler(&sampler),
+						},
+					],
+					label: Some("texture_bind_group"),
+				});
+			(bind_group, None)
+		};
 		Self(Rc::new(CanvasInner {
 			view,
 			bind_group,
+			multisample_resolve_texture_view,
 			size,
 			depth_stencil_texture_view: create_depth_stencil_texture_view(
 				size,
 				&ctx.graphics_ctx.device,
+				settings.sample_count,
 			),
 		}))
 	}
@@ -121,6 +130,17 @@ impl Canvas {
 	}
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CanvasSettings {
+	pub sample_count: u32,
+}
+
+impl Default for CanvasSettings {
+	fn default() -> Self {
+		Self { sample_count: 1 }
+	}
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderToCanvasSettings {
 	pub clear_color: Option<Rgba>,
@@ -130,6 +150,55 @@ pub struct RenderToCanvasSettings {
 pub(crate) struct CanvasInner {
 	pub(crate) view: TextureView,
 	pub(crate) bind_group: BindGroup,
+	pub(crate) multisample_resolve_texture_view: Option<TextureView>,
 	pub(crate) size: UVec2,
 	pub(crate) depth_stencil_texture_view: TextureView,
+}
+
+fn create_multisample_resolve_texture(size: UVec2, ctx: &Context) -> (BindGroup, TextureView) {
+	let texture_size = Extent3d {
+		width: size.x,
+		height: size.y,
+		depth_or_array_layers: 1,
+	};
+	let texture = ctx.graphics_ctx.device.create_texture(&TextureDescriptor {
+		size: texture_size,
+		mip_level_count: 1,
+		sample_count: 1,
+		dimension: TextureDimension::D2,
+		format: ctx.graphics_ctx.config.format,
+		usage: TextureUsages::TEXTURE_BINDING
+			| TextureUsages::COPY_DST
+			| TextureUsages::RENDER_ATTACHMENT,
+		label: Some("Texture"),
+		view_formats: &[],
+	});
+	let view = texture.create_view(&TextureViewDescriptor::default());
+	let sampler = ctx.graphics_ctx.device.create_sampler(&SamplerDescriptor {
+		address_mode_u: AddressMode::ClampToEdge,
+		address_mode_v: AddressMode::ClampToEdge,
+		address_mode_w: AddressMode::ClampToEdge,
+		mag_filter: FilterMode::Linear,
+		min_filter: FilterMode::Nearest,
+		mipmap_filter: FilterMode::Nearest,
+		..Default::default()
+	});
+	let bind_group = ctx
+		.graphics_ctx
+		.device
+		.create_bind_group(&BindGroupDescriptor {
+			layout: &ctx.graphics_ctx.texture_bind_group_layout,
+			entries: &[
+				BindGroupEntry {
+					binding: 0,
+					resource: BindingResource::TextureView(&view),
+				},
+				BindGroupEntry {
+					binding: 1,
+					resource: BindingResource::Sampler(&sampler),
+				},
+			],
+			label: Some("texture_bind_group"),
+		});
+	(bind_group, view)
 }

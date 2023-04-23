@@ -14,7 +14,7 @@ use wgpu::{
 
 use crate::{math::Rect, Context, IntoOffsetAndCount};
 
-use super::{color::Rgba, shader::Shader, texture::Texture, DrawParams};
+use super::{canvas::Canvas, color::Rgba, shader::Shader, texture::Texture, DrawParams};
 
 #[derive(Clone)]
 pub struct Mesh(pub(crate) Rc<MeshInner>);
@@ -94,7 +94,7 @@ impl Mesh {
 	pub fn draw_textured<S: Shader>(
 		&self,
 		ctx: &mut Context,
-		texture: &Texture,
+		texture: impl Into<MeshTexture>,
 		params: impl Into<DrawParams<S>>,
 	) {
 		self.draw_range_textured(ctx, texture, .., params);
@@ -117,13 +117,13 @@ impl Mesh {
 	pub fn draw_range_textured<S: Shader>(
 		&self,
 		ctx: &mut Context,
-		texture: &Texture,
+		texture: impl Into<MeshTexture>,
 		range: impl IntoOffsetAndCount,
 		params: impl Into<DrawParams<S>>,
 	) {
 		ctx.graphics_ctx.push_instruction(
 			self.clone(),
-			texture.clone(),
+			texture.into(),
 			range.into_offset_and_count(self.0.num_indices),
 			params.into(),
 		);
@@ -148,10 +148,34 @@ impl Mesh {
 	}
 }
 
-pub(crate) struct MeshInner {
-	pub(crate) vertex_buffer: Buffer,
-	pub(crate) index_buffer: Buffer,
-	pub(crate) num_indices: u32,
+#[derive(Clone)]
+pub enum MeshTexture {
+	Texture(Texture),
+	Canvas(Canvas),
+}
+
+impl From<Texture> for MeshTexture {
+	fn from(v: Texture) -> Self {
+		Self::Texture(v)
+	}
+}
+
+impl From<Canvas> for MeshTexture {
+	fn from(v: Canvas) -> Self {
+		Self::Canvas(v)
+	}
+}
+
+impl From<&Texture> for MeshTexture {
+	fn from(v: &Texture) -> Self {
+		Self::Texture(v.clone())
+	}
+}
+
+impl From<&Canvas> for MeshTexture {
+	fn from(v: &Canvas) -> Self {
+		Self::Canvas(v.clone())
+	}
 }
 
 #[repr(C)]
@@ -175,4 +199,10 @@ impl Vertex {
 			attributes: &Self::ATTRIBUTES,
 		}
 	}
+}
+
+pub(crate) struct MeshInner {
+	pub(crate) vertex_buffer: Buffer,
+	pub(crate) index_buffer: Buffer,
+	pub(crate) num_indices: u32,
 }

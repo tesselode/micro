@@ -20,7 +20,7 @@ use crate::{
 		draw_params::DrawParamsUniform,
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineInner, GraphicsPipelineSettings},
 		image_data::ImageData,
-		mesh::Mesh,
+		mesh::{Mesh, MeshTexture},
 		shader::{DefaultShader, Shader},
 		texture::Texture,
 		util::create_depth_stencil_texture_view,
@@ -78,7 +78,7 @@ impl GraphicsContext {
 				color_attachments: &[Some(RenderPassColorAttachment {
 					view: match &kind {
 						DrawInstructionSetKind::Surface => &view,
-						DrawInstructionSetKind::Canvas(canvas) => &canvas.0.texture.0.view,
+						DrawInstructionSetKind::Canvas(canvas) => &canvas.0.view,
 					},
 					resolve_target: None,
 					ops: Operations {
@@ -115,8 +115,12 @@ impl GraphicsContext {
 				stencil_reference,
 			} in &instructions
 			{
+				let texture_bind_group = match texture {
+					MeshTexture::Texture(texture) => &texture.0.bind_group,
+					MeshTexture::Canvas(canvas) => &canvas.0.bind_group,
+				};
 				render_pass.set_pipeline(&graphics_pipeline.render_pipeline);
-				render_pass.set_bind_group(0, &texture.0.bind_group, &[]);
+				render_pass.set_bind_group(0, texture_bind_group, &[]);
 				render_pass.set_bind_group(1, draw_params_bind_group, &[]);
 				render_pass.set_bind_group(2, &graphics_pipeline.shader_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
@@ -162,7 +166,7 @@ impl GraphicsContext {
 	pub(crate) fn push_instruction<S: Shader>(
 		&mut self,
 		mesh: Mesh,
-		texture: Texture,
+		texture: MeshTexture,
 		range: OffsetAndCount,
 		draw_params: DrawParams<S>,
 	) {
@@ -320,7 +324,7 @@ impl GraphicsContext {
 	fn push_instruction_inner(
 		&mut self,
 		mesh: Mesh,
-		texture: Texture,
+		texture: MeshTexture,
 		range: OffsetAndCount,
 		mut draw_params_uniform: DrawParamsUniform,
 		graphics_pipeline: Rc<GraphicsPipelineInner>,
@@ -329,7 +333,7 @@ impl GraphicsContext {
 		let set = self.draw_instruction_sets.last_mut().unwrap();
 		let coordinate_system_transform = coordinate_system_transform(match &set.kind {
 			DrawInstructionSetKind::Surface => UVec2::new(self.config.width, self.config.height),
-			DrawInstructionSetKind::Canvas(canvas) => canvas.0.texture.size(),
+			DrawInstructionSetKind::Canvas(canvas) => canvas.size(),
 		});
 		draw_params_uniform.transform = coordinate_system_transform * draw_params_uniform.transform;
 		let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
@@ -358,7 +362,7 @@ impl GraphicsContext {
 
 struct DrawInstruction {
 	mesh: Mesh,
-	texture: Texture,
+	texture: MeshTexture,
 	range: OffsetAndCount,
 	draw_params_bind_group: BindGroup,
 	graphics_pipeline: Rc<GraphicsPipelineInner>,

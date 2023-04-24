@@ -7,10 +7,11 @@ use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingType, BufferBindingType, BufferUsages, CommandEncoderDescriptor,
 	Device, DeviceDescriptor, Features, IndexFormat, Instance, InstanceDescriptor, LoadOp,
-	Operations, PipelineLayout, PipelineLayoutDescriptor, Queue, RenderPassColorAttachment,
-	RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
-	SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration, SurfaceError,
-	TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor, TextureViewDimension,
+	Operations, PipelineLayout, PipelineLayoutDescriptor, PresentMode, Queue,
+	RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
+	RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration,
+	SurfaceError, TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor,
+	TextureViewDimension,
 };
 
 use crate::{
@@ -54,6 +55,11 @@ impl GraphicsContext {
 		self.config.height = size.y;
 		self.surface.configure(&self.device, &self.config);
 		self.depth_stencil_texture_view = create_depth_stencil_texture_view(size, &self.device, 1);
+	}
+
+	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
+		self.config.present_mode = present_mode;
+		self.surface.configure(&self.device, &self.config);
 	}
 
 	pub fn render(&mut self) -> Result<(), SurfaceError> {

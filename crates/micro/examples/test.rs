@@ -8,8 +8,10 @@ use micro::{
 		mesh::{Mesh, ShapeStyle},
 		AddressMode, DrawParams,
 	},
+	input::Scancode,
 	math::Rect,
-	Context, ContextSettings, State,
+	window::WindowMode,
+	Context, ContextSettings, Event, State,
 };
 use wgpu::FilterMode;
 
@@ -48,13 +50,20 @@ impl MainState {
 }
 
 impl State<Box<dyn Error>> for MainState {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Box<dyn Error>> {
+		if let Event::KeyPressed(Scancode::Space) = event {
+			ctx.set_window_mode(WindowMode::Windowed {
+				size: UVec2::new(1280, 720),
+			});
+		}
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		self.canvas.draw_region(
 			ctx,
-			Rect::xywh(-100.0, -100.0, 300.0, 300.0),
-			DrawParams::new()
-				.position(Vec2::splat(100.0))
-				.scale(Vec2::splat(3.0)),
+			Rect::xywh(-100.0, -100.0, 2000.0, 2000.0),
+			DrawParams::new().position(Vec2::splat(100.0)),
 		);
 		Ok(())
 	}

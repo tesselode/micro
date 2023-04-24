@@ -16,3 +16,4 @@ pub(crate) mod util;
 pub use address_mode::*;
 pub use blend_mode::*;
 pub use draw_params::DrawParams;
+pub use wgpu::PresentMode;

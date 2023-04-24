@@ -4,14 +4,14 @@ use std::time::{Duration, Instant};
 
 use glam::{IVec2, UVec2};
 use sdl2::{
-	video::{SwapInterval, Window, WindowBuildError},
-	EventPump, Sdl, VideoSubsystem,
+	video::{FullscreenType, Window, WindowBuildError, WindowPos},
+	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 };
 use thiserror::Error;
-use wgpu::{CreateSurfaceError, RequestDeviceError, SurfaceError};
+use wgpu::{CreateSurfaceError, PresentMode, RequestDeviceError, SurfaceError};
 
 use crate::{
-	input::{MouseButton, Scancode},
+	input::{Gamepad, MouseButton, Scancode},
 	window::WindowMode,
 	Event, State,
 };
@@ -69,26 +69,75 @@ pub struct Context {
 	_sdl: Sdl,
 	video: VideoSubsystem,
 	window: Window,
+	controller: GameControllerSubsystem,
 	event_pump: EventPump,
 	pub(crate) graphics_ctx: GraphicsContext,
 	should_quit: bool,
 }
 
 impl Context {
-	pub fn new(settings: ContextSettings) -> Result<Self, InitError> {
-		let sdl = sdl2::init().map_err(InitError::Sdl2Error)?;
-		let video = sdl.video().map_err(InitError::Sdl2Error)?;
-		let window = build_window(&video, &settings)?;
-		let event_pump = sdl.event_pump().map_err(InitError::Sdl2Error)?;
-		let graphics_ctx = GraphicsContext::new(&window)?;
-		Ok(Self {
-			_sdl: sdl,
-			video,
-			window,
-			event_pump,
-			graphics_ctx,
-			should_quit: false,
-		})
+	pub fn window_size(&self) -> UVec2 {
+		let (width, height) = self.window.size();
+		UVec2::new(width, height)
+	}
+
+	pub fn window_mode(&self) -> WindowMode {
+		match self.window.fullscreen_state() {
+			FullscreenType::Off => WindowMode::Windowed {
+				size: self.window_size(),
+			},
+			FullscreenType::True => WindowMode::Fullscreen,
+			FullscreenType::Desktop => WindowMode::Fullscreen,
+		}
+	}
+
+	pub fn present_mode(&self) -> PresentMode {
+		self.graphics_ctx.config.present_mode
+	}
+
+	pub fn monitor_resolution(&self) -> UVec2 {
+		let display_index = self
+			.window
+			.display_index()
+			.expect("could not get display index of window");
+		let display_mode = self
+			.video
+			.desktop_display_mode(display_index)
+			.expect("could not get display mode");
+		UVec2::new(
+			display_mode
+				.w
+				.try_into()
+				.expect("could not convert i32 into u32"),
+			display_mode
+				.h
+				.try_into()
+				.expect("could not convert i32 into u32"),
+		)
+	}
+
+	pub fn set_window_mode(&mut self, window_mode: WindowMode) {
+		match window_mode {
+			WindowMode::Fullscreen => {
+				self.window
+					.set_fullscreen(FullscreenType::Desktop)
+					.expect("error setting fullscreen mode");
+			}
+			WindowMode::Windowed { size } => {
+				self.window
+					.set_fullscreen(FullscreenType::Off)
+					.expect("error setting fullscreen mode");
+				self.window
+					.set_size(size.x, size.y)
+					.expect("error setting window size");
+				self.window
+					.set_position(WindowPos::Centered, WindowPos::Centered);
+			}
+		}
+	}
+
+	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
+		self.graphics_ctx.set_present_mode(present_mode);
 	}
 
 	pub(crate) fn resize(&mut self, size: UVec2) {
@@ -111,6 +160,40 @@ impl Context {
 		let mouse_state = self.event_pump.mouse_state();
 		IVec2::new(mouse_state.x(), mouse_state.y())
 	}
+
+	pub fn game_controller(&self, index: u32) -> Option<Gamepad> {
+		match self.controller.open(index) {
+			Ok(controller) => Some(Gamepad(controller)),
+			Err(error) => match error {
+				IntegerOrSdlError::IntegerOverflows(_, _) => {
+					panic!("integer overflow when getting controller")
+				}
+				IntegerOrSdlError::SdlError(_) => None,
+			},
+		}
+	}
+
+	pub fn quit(&mut self) {
+		self.should_quit = true;
+	}
+
+	fn new(settings: ContextSettings) -> Result<Self, InitError> {
+		let sdl = sdl2::init().map_err(InitError::Sdl2Error)?;
+		let video = sdl.video().map_err(InitError::Sdl2Error)?;
+		let controller = sdl.game_controller().unwrap();
+		let window = build_window(&video, &settings)?;
+		let event_pump = sdl.event_pump().map_err(InitError::Sdl2Error)?;
+		let graphics_ctx = GraphicsContext::new(&window)?;
+		Ok(Self {
+			_sdl: sdl,
+			video,
+			window,
+			controller,
+			event_pump,
+			graphics_ctx,
+			should_quit: false,
+		})
+	}
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -118,7 +201,7 @@ pub struct ContextSettings {
 	pub window_title: String,
 	pub window_mode: WindowMode,
 	pub resizable: bool,
-	pub swap_interval: SwapInterval,
+	pub present_mode: PresentMode,
 }
 
 impl Default for ContextSettings {
@@ -127,7 +210,7 @@ impl Default for ContextSettings {
 			window_title: "Game".into(),
 			window_mode: WindowMode::default(),
 			resizable: false,
-			swap_interval: SwapInterval::VSync,
+			present_mode: PresentMode::default(),
 		}
 	}
 }

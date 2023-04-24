@@ -22,7 +22,7 @@ use crate::{
 		image_data::ImageData,
 		mesh::{Mesh, MeshTexture},
 		shader::{DefaultShader, Shader},
-		texture::Texture,
+		texture::{Texture, TextureSettings},
 		util::create_depth_stencil_texture_view,
 		DrawParams,
 	},
@@ -204,7 +204,9 @@ impl GraphicsContext {
 		let (device, queue) = adapter
 			.request_device(
 				&DeviceDescriptor {
-					features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+					features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
+						| Features::ADDRESS_MODE_CLAMP_TO_BORDER
+						| Features::ADDRESS_MODE_CLAMP_TO_ZERO,
 					..Default::default()
 				},
 				None, // Trace path
@@ -306,6 +308,7 @@ impl GraphicsContext {
 			&device,
 			&queue,
 			&texture_bind_group_layout,
+			TextureSettings::default(),
 		);
 		let depth_stencil_texture_view = create_depth_stencil_texture_view(size.into(), &device, 1);
 		Ok(Self {

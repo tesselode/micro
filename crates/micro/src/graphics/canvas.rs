@@ -2,15 +2,16 @@ use std::rc::Rc;
 
 use glam::{UVec2, Vec2};
 use wgpu::{
-	AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d,
-	FilterMode, SamplerDescriptor, TextureDescriptor, TextureDimension, TextureUsages, TextureView,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d, FilterMode,
+	SamplerDescriptor, TextureDescriptor, TextureDimension, TextureUsages, TextureView,
 	TextureViewDescriptor,
 };
 
 use crate::{math::Rect, Context};
 
 use super::{
-	color::Rgba, mesh::Mesh, shader::Shader, util::create_depth_stencil_texture_view, DrawParams,
+	color::Rgba, mesh::Mesh, shader::Shader, util::create_depth_stencil_texture_view, AddressMode,
+	DrawParams,
 };
 
 #[derive(Clone)]
@@ -36,18 +37,20 @@ impl Canvas {
 			view_formats: &[],
 		});
 		let view = texture.create_view(&TextureViewDescriptor::default());
+		let address_mode = settings.address_mode.to_wgpu_address_mode();
 		let sampler = ctx.graphics_ctx.device.create_sampler(&SamplerDescriptor {
-			address_mode_u: AddressMode::ClampToEdge,
-			address_mode_v: AddressMode::ClampToEdge,
-			address_mode_w: AddressMode::ClampToEdge,
-			mag_filter: FilterMode::Linear,
-			min_filter: FilterMode::Nearest,
+			address_mode_u: address_mode,
+			address_mode_v: address_mode,
+			address_mode_w: address_mode,
+			mag_filter: settings.magnifying_filter,
+			min_filter: settings.minifying_filter,
 			mipmap_filter: FilterMode::Nearest,
+			border_color: settings.address_mode.border_color(),
 			..Default::default()
 		});
 		let (bind_group, multisample_resolve_texture_view) = if settings.sample_count > 1 {
 			let (bind_group, multisample_resolve_texture_view) =
-				create_multisample_resolve_texture(size, ctx);
+				create_multisample_resolve_texture(size, ctx, settings);
 			(bind_group, Some(multisample_resolve_texture_view))
 		} else {
 			let bind_group = ctx
@@ -133,11 +136,19 @@ impl Canvas {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CanvasSettings {
 	pub sample_count: u32,
+	pub address_mode: AddressMode,
+	pub minifying_filter: FilterMode,
+	pub magnifying_filter: FilterMode,
 }
 
 impl Default for CanvasSettings {
 	fn default() -> Self {
-		Self { sample_count: 1 }
+		Self {
+			sample_count: 1,
+			address_mode: AddressMode::default(),
+			minifying_filter: FilterMode::default(),
+			magnifying_filter: FilterMode::default(),
+		}
 	}
 }
 
@@ -155,7 +166,11 @@ pub(crate) struct CanvasInner {
 	pub(crate) depth_stencil_texture_view: TextureView,
 }
 
-fn create_multisample_resolve_texture(size: UVec2, ctx: &Context) -> (BindGroup, TextureView) {
+fn create_multisample_resolve_texture(
+	size: UVec2,
+	ctx: &Context,
+	settings: CanvasSettings,
+) -> (BindGroup, TextureView) {
 	let texture_size = Extent3d {
 		width: size.x,
 		height: size.y,
@@ -174,13 +189,15 @@ fn create_multisample_resolve_texture(size: UVec2, ctx: &Context) -> (BindGroup,
 		view_formats: &[],
 	});
 	let view = texture.create_view(&TextureViewDescriptor::default());
+	let address_mode = settings.address_mode.to_wgpu_address_mode();
 	let sampler = ctx.graphics_ctx.device.create_sampler(&SamplerDescriptor {
-		address_mode_u: AddressMode::ClampToEdge,
-		address_mode_v: AddressMode::ClampToEdge,
-		address_mode_w: AddressMode::ClampToEdge,
-		mag_filter: FilterMode::Linear,
-		min_filter: FilterMode::Nearest,
+		address_mode_u: address_mode,
+		address_mode_v: address_mode,
+		address_mode_w: address_mode,
+		mag_filter: settings.magnifying_filter,
+		min_filter: settings.minifying_filter,
 		mipmap_filter: FilterMode::Nearest,
+		border_color: settings.address_mode.border_color(),
 		..Default::default()
 	});
 	let bind_group = ctx

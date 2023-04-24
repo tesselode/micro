@@ -1,11 +1,12 @@
+pub use wgpu::FilterMode;
+
 use std::{num::NonZeroU32, path::Path, rc::Rc};
 
 use glam::{IVec2, UVec2, Vec2};
 use wgpu::{
-	AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource,
-	Device, Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Queue,
-	SamplerDescriptor, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
-	TextureUsages, TextureViewDescriptor,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource, Device,
+	Extent3d, ImageCopyTexture, ImageDataLayout, Origin3d, Queue, SamplerDescriptor, TextureAspect,
+	TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
 };
 
 use crate::{math::Rect, Context};
@@ -14,34 +15,48 @@ use super::{
 	image_data::{ImageData, LoadImageDataError},
 	mesh::Mesh,
 	shader::Shader,
-	DrawParams,
+	AddressMode, DrawParams,
 };
 
 #[derive(Clone)]
 pub struct Texture(pub(crate) Rc<TextureInner>);
 
 impl Texture {
-	pub fn empty(ctx: &Context, size: UVec2) -> Self {
+	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
 		Self::new_internal(
 			None,
 			size,
 			&ctx.graphics_ctx.device,
 			&ctx.graphics_ctx.queue,
 			&ctx.graphics_ctx.texture_bind_group_layout,
+			settings,
 		)
 	}
 
-	pub fn from_file(ctx: &Context, path: impl AsRef<Path>) -> Result<Self, LoadImageDataError> {
-		Ok(Self::from_image_data(ctx, &ImageData::load(path)?))
+	pub fn from_file(
+		ctx: &Context,
+		path: impl AsRef<Path>,
+		settings: TextureSettings,
+	) -> Result<Self, LoadImageDataError> {
+		Ok(Self::from_image_data(
+			ctx,
+			&ImageData::load(path)?,
+			settings,
+		))
 	}
 
-	pub fn from_image_data(ctx: &Context, image_data: &ImageData) -> Self {
+	pub fn from_image_data(
+		ctx: &Context,
+		image_data: &ImageData,
+		settings: TextureSettings,
+	) -> Self {
 		Self::new_internal(
 			Some(image_data),
 			image_data.size,
 			&ctx.graphics_ctx.device,
 			&ctx.graphics_ctx.queue,
 			&ctx.graphics_ctx.texture_bind_group_layout,
+			settings,
 		)
 	}
 
@@ -108,6 +123,7 @@ impl Texture {
 		device: &Device,
 		queue: &Queue,
 		texture_bind_group_layout: &BindGroupLayout,
+		settings: TextureSettings,
 	) -> Self {
 		let texture_size = Extent3d {
 			width: size.x,
@@ -142,13 +158,15 @@ impl Texture {
 			);
 		}
 		let view = texture.create_view(&TextureViewDescriptor::default());
+		let address_mode = settings.address_mode.to_wgpu_address_mode();
 		let sampler = device.create_sampler(&SamplerDescriptor {
-			address_mode_u: AddressMode::ClampToEdge,
-			address_mode_v: AddressMode::ClampToEdge,
-			address_mode_w: AddressMode::ClampToEdge,
-			mag_filter: FilterMode::Linear,
-			min_filter: FilterMode::Nearest,
+			address_mode_u: address_mode,
+			address_mode_v: address_mode,
+			address_mode_w: address_mode,
+			mag_filter: settings.magnifying_filter,
+			min_filter: settings.minifying_filter,
 			mipmap_filter: FilterMode::Nearest,
+			border_color: settings.address_mode.border_color(),
 			..Default::default()
 		});
 		let bind_group = device.create_bind_group(&BindGroupDescriptor {
@@ -171,6 +189,13 @@ impl Texture {
 			size,
 		}))
 	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct TextureSettings {
+	pub address_mode: AddressMode,
+	pub minifying_filter: FilterMode,
+	pub magnifying_filter: FilterMode,
 }
 
 pub(crate) struct TextureInner {

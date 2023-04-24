@@ -6,7 +6,10 @@ use thiserror::Error;
 
 use crate::{
 	context::Context,
-	graphics::{image_data::ImageData, texture::Texture},
+	graphics::{
+		image_data::ImageData,
+		texture::{Texture, TextureSettings},
+	},
 	math::Rect,
 };
 
@@ -34,7 +37,7 @@ impl Font {
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
 		let scale = settings.scale;
-		/* let texture_settings = settings.texture_settings; */
+		let texture_settings = settings.texture_settings;
 		let font = fontdue::Font::from_bytes(
 			data,
 			fontdue::FontSettings {
@@ -53,7 +56,7 @@ impl Font {
 			),
 			&glyph_image_data,
 			&glyph_rects,
-			/* texture_settings, */
+			texture_settings,
 		);
 		Ok(Self {
 			font,
@@ -68,7 +71,7 @@ impl Font {
 pub struct FontSettings {
 	pub scale: f32,
 	pub chars: String,
-	/* pub texture_settings: TextureSettings, */
+	pub texture_settings: TextureSettings,
 }
 
 impl Default for FontSettings {
@@ -76,7 +79,7 @@ impl Default for FontSettings {
 		Self {
 			scale: 16.0,
 			chars: (32u8..127u8).map(|code| code as char).collect(),
-			/* texture_settings: TextureSettings::default(), */
+			texture_settings: TextureSettings::default(),
 		}
 	}
 }
@@ -157,9 +160,9 @@ fn create_texture(
 	size: UVec2,
 	glyph_image_data: &HashMap<char, ImageData>,
 	glyph_rects: &HashMap<char, Rect>,
-	/* texture_settings: TextureSettings, */
+	texture_settings: TextureSettings,
 ) -> Texture {
-	let texture = Texture::empty(ctx, size /* , texture_settings */);
+	let texture = Texture::empty(ctx, size, texture_settings);
 	for (char, rect) in glyph_rects {
 		texture.replace(
 			ctx,

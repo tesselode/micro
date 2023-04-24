@@ -1,3 +1,4 @@
+mod address_mode;
 mod blend_mode;
 pub mod canvas;
 pub mod color;
@@ -12,5 +13,6 @@ pub mod text;
 pub mod texture;
 pub(crate) mod util;
 
+pub use address_mode::*;
 pub use blend_mode::*;
 pub use draw_params::DrawParams;

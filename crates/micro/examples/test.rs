@@ -5,57 +5,57 @@ use micro::{
 	graphics::{
 		canvas::{Canvas, CanvasSettings, RenderToCanvasSettings},
 		color::Rgba,
-		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		mesh::{Mesh, ShapeStyle},
-		DrawParams,
+		AddressMode, DrawParams,
 	},
+	math::Rect,
 	Context, ContextSettings, State,
 };
+use wgpu::FilterMode;
 
 struct MainState {
 	canvas: Canvas,
-	mesh: Mesh,
-	graphics_pipeline: GraphicsPipeline,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			canvas: Canvas::new(
-				ctx,
-				UVec2::new(200, 200),
-				CanvasSettings { sample_count: 8 },
-			),
-			mesh: Mesh::circle(ctx, ShapeStyle::Fill, Vec2::ZERO, 200.0),
-			graphics_pipeline: GraphicsPipeline::new(
-				ctx,
-				GraphicsPipelineSettings {
-					sample_count: 8,
-					..Default::default()
-				},
-			),
+			canvas: {
+				let canvas = Canvas::new(
+					ctx,
+					UVec2::splat(200),
+					CanvasSettings {
+						address_mode: AddressMode::MirrorRepeat,
+						magnifying_filter: FilterMode::Nearest,
+						..Default::default()
+					},
+				);
+				canvas.render_to(
+					ctx,
+					RenderToCanvasSettings {
+						clear_color: Some(Rgba::BLACK),
+						clear_stencil_value: None,
+					},
+					|ctx| {
+						Mesh::circle(ctx, ShapeStyle::Fill, Vec2::ZERO, 100.0)
+							.draw(ctx, Vec2::ZERO);
+					},
+				);
+				canvas
+			},
 		})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		self.canvas.render_to(
+		self.canvas.draw_region(
 			ctx,
-			RenderToCanvasSettings {
-				clear_color: Some(Rgba::RED),
-				clear_stencil_value: None,
-			},
-			|ctx| {
-				self.mesh.draw(
-					ctx,
-					DrawParams::new()
-						.color(Rgba::BLUE)
-						.graphics_pipeline(&self.graphics_pipeline),
-				)
-			},
+			Rect::xywh(-100.0, -100.0, 300.0, 300.0),
+			DrawParams::new()
+				.position(Vec2::splat(100.0))
+				.scale(Vec2::splat(3.0)),
 		);
-		self.canvas.draw(ctx, Vec2::new(50.0, 50.0));
 		Ok(())
 	}
 }

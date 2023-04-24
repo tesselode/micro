@@ -63,7 +63,10 @@ impl State<Box<dyn Error>> for MainState {
 		self.canvas.draw_region(
 			ctx,
 			Rect::xywh(-100.0, -100.0, 2000.0, 2000.0),
-			DrawParams::new().position(Vec2::splat(100.0)),
+			DrawParams::new()
+				.scaled(Vec2::new(2.0, 1.0))
+				.rotated(0.5)
+				.translated(Vec2::splat(100.0)),
 		);
 		Ok(())
 	}

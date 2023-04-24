@@ -10,10 +10,7 @@ use super::{
 
 #[derive(Clone)]
 pub struct DrawParams<S: Shader = DefaultShader> {
-	pub position: Vec2,
-	pub rotation: f32,
-	pub scale: Vec2,
-	pub origin: Vec2,
+	pub transform: Mat4,
 	pub color: Rgba,
 	pub graphics_pipeline: Option<GraphicsPipeline<S>>,
 	pub stencil_reference: u32,
@@ -22,10 +19,7 @@ pub struct DrawParams<S: Shader = DefaultShader> {
 impl DrawParams<DefaultShader> {
 	pub fn new() -> Self {
 		Self {
-			position: Vec2::ZERO,
-			rotation: 0.0,
-			scale: Vec2::ONE,
-			origin: Vec2::ZERO,
+			transform: Mat4::IDENTITY,
 			color: Rgba::WHITE,
 			graphics_pipeline: None,
 			stencil_reference: 0,
@@ -34,20 +28,29 @@ impl DrawParams<DefaultShader> {
 }
 
 impl<S: Shader> DrawParams<S> {
-	pub fn position(self, position: Vec2) -> Self {
-		Self { position, ..self }
+	pub fn transform(self, transform: Mat4) -> Self {
+		Self { transform, ..self }
 	}
 
-	pub fn rotation(self, rotation: f32) -> Self {
-		Self { rotation, ..self }
+	pub fn translated(self, translation: Vec2) -> Self {
+		Self {
+			transform: Mat4::from_translation(translation.extend(0.0)) * self.transform,
+			..self
+		}
 	}
 
-	pub fn scale(self, scale: Vec2) -> Self {
-		Self { scale, ..self }
+	pub fn scaled(self, scale: Vec2) -> Self {
+		Self {
+			transform: Mat4::from_scale(scale.extend(0.0)) * self.transform,
+			..self
+		}
 	}
 
-	pub fn origin(self, origin: Vec2) -> Self {
-		Self { origin, ..self }
+	pub fn rotated(self, rotation: f32) -> Self {
+		Self {
+			transform: Mat4::from_rotation_z(rotation) * self.transform,
+			..self
+		}
 	}
 
 	pub fn color(self, color: impl Into<Rgba>) -> Self {
@@ -63,10 +66,7 @@ impl<S: Shader> DrawParams<S> {
 	) -> DrawParams<S2> {
 		DrawParams {
 			graphics_pipeline: graphics_pipeline.into_optional_graphics_pipeline(),
-			position: self.position,
-			rotation: self.rotation,
-			scale: self.scale,
-			origin: self.origin,
+			transform: self.transform,
 			color: self.color,
 			stencil_reference: self.stencil_reference,
 		}
@@ -79,16 +79,9 @@ impl<S: Shader> DrawParams<S> {
 		}
 	}
 
-	pub fn as_mat4(&self) -> Mat4 {
-		Mat4::from_translation(self.position.extend(0.0))
-			* Mat4::from_rotation_z(self.rotation)
-			* Mat4::from_scale(self.scale.extend(1.0))
-			* Mat4::from_translation(-self.origin.extend(0.0))
-	}
-
 	pub(crate) fn as_uniform(&self) -> DrawParamsUniform {
 		DrawParamsUniform {
-			transform: self.as_mat4(),
+			transform: self.transform,
 			color: self.color,
 		}
 	}
@@ -97,10 +90,7 @@ impl<S: Shader> DrawParams<S> {
 impl<S: Shader> Default for DrawParams<S> {
 	fn default() -> Self {
 		Self {
-			position: Default::default(),
-			rotation: Default::default(),
-			scale: Default::default(),
-			origin: Default::default(),
+			transform: Mat4::IDENTITY,
 			color: Default::default(),
 			graphics_pipeline: Default::default(),
 			stencil_reference: Default::default(),
@@ -109,8 +99,8 @@ impl<S: Shader> Default for DrawParams<S> {
 }
 
 impl From<Vec2> for DrawParams<DefaultShader> {
-	fn from(position: Vec2) -> Self {
-		Self::new().position(position)
+	fn from(translation: Vec2) -> Self {
+		Self::new().translated(translation)
 	}
 }
 

@@ -30,6 +30,13 @@ impl MainState {
 }
 
 impl State<Box<dyn Error>> for MainState {
+	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> Result<(), Box<dyn Error>> {
+		egui::Window::new("Test window").show(egui_ctx, |ui| {
+			ui.label("hello, world!");
+		});
+		Ok(())
+	}
+
 	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Box<dyn Error>> {
 		if let Event::KeyPressed(Scancode::Space) = event {
 			ctx.set_window_mode(WindowMode::Windowed {

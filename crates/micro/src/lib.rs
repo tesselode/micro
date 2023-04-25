@@ -1,4 +1,5 @@
 mod context;
+mod egui_integration;
 mod event;
 pub mod graphics;
 pub mod input;

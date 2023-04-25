@@ -1,5 +1,7 @@
 use glam::Vec2;
 
+use super::URect;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {
 	pub top_left: Vec2,
@@ -20,6 +22,13 @@ impl Rect {
 
 	pub fn xywh(x: f32, y: f32, width: f32, height: f32) -> Self {
 		Self::new(Vec2::new(x, y), Vec2::new(x + width, y + height))
+	}
+
+	pub fn as_urect(self) -> URect {
+		URect {
+			top_left: self.top_left.as_uvec2(),
+			bottom_right: self.bottom_right.as_uvec2(),
+		}
 	}
 
 	pub fn size(&self) -> Vec2 {

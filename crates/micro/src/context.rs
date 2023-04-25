@@ -1,6 +1,9 @@
 pub(crate) mod graphics;
 
-use std::time::{Duration, Instant};
+use std::{
+	collections::HashMap,
+	time::{Duration, Instant},
+};
 
 use glam::{IVec2, UVec2};
 use sdl2::{
@@ -11,6 +14,7 @@ use thiserror::Error;
 use wgpu::{CreateSurfaceError, PresentMode, RequestDeviceError, SurfaceError};
 
 use crate::{
+	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	input::{Gamepad, MouseButton, Scancode},
 	window::WindowMode,
 	Event, State,
@@ -26,8 +30,8 @@ where
 	E: From<SurfaceError>,
 {
 	let mut ctx = Context::new(settings)?;
-	/* let egui_ctx = egui::Context::default();
-	let mut egui_textures = HashMap::new(); */
+	let egui_ctx = egui::Context::default();
+	let mut egui_textures = HashMap::new();
 	let mut state = state_constructor(&mut ctx)?;
 	let mut last_update_time = Instant::now();
 	loop {
@@ -35,13 +39,13 @@ where
 		let delta_time = now - last_update_time;
 		last_update_time = now;
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
-		/* let egui_input = egui_raw_input(&ctx, &events);
+		let egui_input = egui_raw_input(&ctx, &events);
 		egui_ctx.begin_frame(egui_input);
 		state.ui(&mut ctx, &egui_ctx)?;
-		let egui_output = egui_ctx.end_frame(); */
+		let egui_output = egui_ctx.end_frame();
 		for event in events
 			.drain(..)
-			/* .filter(|event| !egui_took_sdl2_event(&egui_ctx, event)) */
+			.filter(|event| !egui_took_sdl2_event(&egui_ctx, event))
 			.filter_map(Event::from_sdl2_event)
 		{
 			match event {
@@ -55,8 +59,8 @@ where
 		}
 		state.update(&mut ctx, delta_time)?;
 		state.draw(&mut ctx)?;
+		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		ctx.graphics_ctx.render()?;
-		/* draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures); */
 		if ctx.should_quit {
 			break;
 		}

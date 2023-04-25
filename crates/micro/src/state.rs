@@ -4,9 +4,9 @@ use crate::{Context, Event};
 
 #[allow(unused_variables)]
 pub trait State<E> {
-	/* 	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> Result<(), E> {
+	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> Result<(), E> {
 		Ok(())
-	} */
+	}
 
 	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), E> {
 		Ok(())

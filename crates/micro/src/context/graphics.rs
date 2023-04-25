@@ -27,6 +27,7 @@ use crate::{
 		util::create_depth_stencil_texture_view,
 		DrawParams,
 	},
+	math::URect,
 	InitGraphicsError, OffsetAndCount,
 };
 
@@ -124,6 +125,7 @@ impl GraphicsContext {
 				draw_params_bind_group,
 				graphics_pipeline,
 				stencil_reference,
+				scissor_rect,
 			} in &instructions
 			{
 				let texture_bind_group = match texture {
@@ -137,6 +139,16 @@ impl GraphicsContext {
 				render_pass.set_vertex_buffer(0, mesh.0.vertex_buffer.slice(..));
 				render_pass.set_index_buffer(mesh.0.index_buffer.slice(..), IndexFormat::Uint32);
 				render_pass.set_stencil_reference(*stencil_reference);
+				if let Some(scissor_rect) = scissor_rect {
+					render_pass.set_scissor_rect(
+						scissor_rect.left(),
+						scissor_rect.top(),
+						scissor_rect.size().x,
+						scissor_rect.size().y,
+					)
+				} else {
+					render_pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
+				}
 				render_pass.draw_indexed(range.offset..(range.offset + range.count), 0, 0..1);
 			}
 		}
@@ -193,6 +205,7 @@ impl GraphicsContext {
 			draw_params_uniform,
 			graphics_pipeline,
 			draw_params.stencil_reference,
+			draw_params.scissor_rect,
 		);
 	}
 
@@ -338,6 +351,7 @@ impl GraphicsContext {
 		})
 	}
 
+	#[allow(clippy::too_many_arguments)]
 	fn push_instruction_inner(
 		&mut self,
 		mesh: Mesh,
@@ -346,6 +360,7 @@ impl GraphicsContext {
 		mut draw_params_uniform: DrawParamsUniform,
 		graphics_pipeline: Rc<GraphicsPipelineInner>,
 		stencil_reference: u32,
+		scissor_rect: Option<URect>,
 	) {
 		let set = self.draw_instruction_sets.last_mut().unwrap();
 		let coordinate_system_transform = coordinate_system_transform(match &set.kind {
@@ -373,6 +388,7 @@ impl GraphicsContext {
 			draw_params_bind_group,
 			graphics_pipeline,
 			stencil_reference,
+			scissor_rect,
 		});
 	}
 }
@@ -384,6 +400,7 @@ struct DrawInstruction {
 	draw_params_bind_group: BindGroup,
 	graphics_pipeline: Rc<GraphicsPipelineInner>,
 	stencil_reference: u32,
+	scissor_rect: Option<URect>,
 }
 
 struct DrawInstructionSet {

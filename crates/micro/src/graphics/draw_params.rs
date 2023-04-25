@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec2};
 
-use crate::graphics::color::Rgba;
+use crate::{graphics::color::Rgba, math::URect};
 
 use super::{
 	graphics_pipeline::GraphicsPipeline,
@@ -14,6 +14,7 @@ pub struct DrawParams<S: Shader = DefaultShader> {
 	pub color: Rgba,
 	pub graphics_pipeline: Option<GraphicsPipeline<S>>,
 	pub stencil_reference: u32,
+	pub scissor_rect: Option<URect>,
 }
 
 impl DrawParams<DefaultShader> {
@@ -23,6 +24,7 @@ impl DrawParams<DefaultShader> {
 			color: Rgba::WHITE,
 			graphics_pipeline: None,
 			stencil_reference: 0,
+			scissor_rect: None,
 		}
 	}
 }
@@ -69,12 +71,20 @@ impl<S: Shader> DrawParams<S> {
 			transform: self.transform,
 			color: self.color,
 			stencil_reference: self.stencil_reference,
+			scissor_rect: self.scissor_rect,
 		}
 	}
 
 	pub fn stencil_reference(self, stencil_reference: u32) -> Self {
 		Self {
 			stencil_reference,
+			..self
+		}
+	}
+
+	pub fn scissor_rect(self, scissor_rect: impl Into<Option<URect>>) -> Self {
+		Self {
+			scissor_rect: scissor_rect.into(),
 			..self
 		}
 	}
@@ -94,6 +104,7 @@ impl<S: Shader> Default for DrawParams<S> {
 			color: Default::default(),
 			graphics_pipeline: Default::default(),
 			stencil_reference: Default::default(),
+			scissor_rect: None,
 		}
 	}
 }
@@ -107,6 +118,12 @@ impl From<Vec2> for DrawParams<DefaultShader> {
 impl From<Rgba> for DrawParams<DefaultShader> {
 	fn from(color: Rgba) -> Self {
 		Self::new().color(color)
+	}
+}
+
+impl From<URect> for DrawParams<DefaultShader> {
+	fn from(scissor_rect: URect) -> Self {
+		Self::new().scissor_rect(scissor_rect)
 	}
 }
 

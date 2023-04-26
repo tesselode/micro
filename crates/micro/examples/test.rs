@@ -3,6 +3,7 @@ use std::error::Error;
 use glam::{UVec2, Vec2};
 use micro::{
 	graphics::{
+		color::Rgba,
 		mesh::{Mesh, ShapeStyle},
 		DrawParams,
 	},
@@ -39,6 +40,7 @@ impl State<Box<dyn Error>> for MainState {
 
 	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Box<dyn Error>> {
 		if let Event::KeyPressed(Scancode::Space) = event {
+			ctx.set_background_color(Rgba::new(0.25, 0.25, 0.25, 1.0));
 			ctx.set_window_mode(WindowMode::Windowed {
 				size: UVec2::new(1280, 720),
 			});

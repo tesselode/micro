@@ -44,6 +44,7 @@ pub struct GraphicsContext {
 	draw_instruction_sets: Vec<DrawInstructionSet>,
 	pub(crate) default_texture: Texture,
 	depth_stencil_texture_view: TextureView,
+	background_color: Rgba,
 }
 
 impl GraphicsContext {
@@ -61,6 +62,10 @@ impl GraphicsContext {
 	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
 		self.config.present_mode = present_mode;
 		self.surface.configure(&self.device, &self.config);
+	}
+
+	pub fn set_background_color(&mut self, background_color: Rgba) {
+		self.background_color = background_color;
 	}
 
 	pub fn render(&mut self) -> Result<(), SurfaceError> {
@@ -156,7 +161,7 @@ impl GraphicsContext {
 		output.present();
 		self.draw_instruction_sets.push(DrawInstructionSet {
 			kind: DrawInstructionSetKind::Surface,
-			clear_color: Some(Rgba::BLACK),
+			clear_color: Some(self.background_color),
 			clear_stencil_value: Some(0),
 			instructions: vec![],
 		});
@@ -330,6 +335,7 @@ impl GraphicsContext {
 			TextureSettings::default(),
 		);
 		let depth_stencil_texture_view = create_depth_stencil_texture_view(size.into(), &device, 1);
+		let background_color = Rgba::BLACK;
 		Ok(Self {
 			surface,
 			device,
@@ -342,12 +348,13 @@ impl GraphicsContext {
 			default_graphics_pipeline,
 			draw_instruction_sets: vec![DrawInstructionSet {
 				kind: DrawInstructionSetKind::Surface,
-				clear_color: Some(Rgba::BLACK),
+				clear_color: Some(background_color),
 				clear_stencil_value: Some(0),
 				instructions: vec![],
 			}],
 			default_texture,
 			depth_stencil_texture_view,
+			background_color,
 		})
 	}
 

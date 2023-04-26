@@ -15,6 +15,7 @@ use wgpu::{CreateSurfaceError, PresentMode, RequestDeviceError, SurfaceError};
 
 use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
+	graphics::color::Rgba,
 	input::{Gamepad, MouseButton, Scancode},
 	window::WindowMode,
 	Event, State,
@@ -142,6 +143,10 @@ impl Context {
 
 	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
 		self.graphics_ctx.set_present_mode(present_mode);
+	}
+
+	pub fn set_background_color(&mut self, background_color: Rgba) {
+		self.graphics_ctx.set_background_color(background_color);
 	}
 
 	pub(crate) fn resize(&mut self, size: UVec2) {

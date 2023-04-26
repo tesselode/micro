@@ -10,8 +10,7 @@ use wgpu::{
 	Operations, PipelineLayout, PipelineLayoutDescriptor, PresentMode, Queue,
 	RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
 	RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration,
-	SurfaceError, TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor,
-	TextureViewDimension,
+	TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
 use crate::{
@@ -28,7 +27,7 @@ use crate::{
 		DrawParams,
 	},
 	math::URect,
-	InitGraphicsError, OffsetAndCount,
+	OffsetAndCount,
 };
 
 pub struct GraphicsContext {
@@ -48,7 +47,7 @@ pub struct GraphicsContext {
 }
 
 impl GraphicsContext {
-	pub fn new(window: &Window) -> Result<Self, InitGraphicsError> {
+	pub fn new(window: &Window) -> Self {
 		pollster::block_on(Self::new_inner(window))
 	}
 
@@ -68,8 +67,11 @@ impl GraphicsContext {
 		self.background_color = background_color;
 	}
 
-	pub fn render(&mut self) -> Result<(), SurfaceError> {
-		let output = self.surface.get_current_texture()?;
+	pub fn render(&mut self) {
+		let output = self
+			.surface
+			.get_current_texture()
+			.expect("could not get current texture for surface");
 		let view = output
 			.texture
 			.create_view(&TextureViewDescriptor::default());
@@ -165,7 +167,6 @@ impl GraphicsContext {
 			clear_stencil_value: Some(0),
 			instructions: vec![],
 		});
-		Ok(())
 	}
 
 	pub(crate) fn set_render_target_to_surface(&mut self) {
@@ -214,17 +215,18 @@ impl GraphicsContext {
 		);
 	}
 
-	async fn new_inner(window: &Window) -> Result<Self, InitGraphicsError> {
+	async fn new_inner(window: &Window) -> Self {
 		let size = window.size();
 		let instance = Instance::new(InstanceDescriptor::default());
-		let surface = unsafe { instance.create_surface(window)? };
+		let surface = unsafe { instance.create_surface(window) }
+			.expect("could not create the drawing surface");
 		let adapter = instance
 			.request_adapter(&RequestAdapterOptions {
 				compatible_surface: Some(&surface),
 				..Default::default()
 			})
 			.await
-			.ok_or(InitGraphicsError::NoAdapterFound)?;
+			.expect("could not get a graphics adapter");
 		let (device, queue) = adapter
 			.request_device(
 				&DeviceDescriptor {
@@ -233,9 +235,10 @@ impl GraphicsContext {
 						| Features::ADDRESS_MODE_CLAMP_TO_ZERO,
 					..Default::default()
 				},
-				None, // Trace path
+				None,
 			)
-			.await?;
+			.await
+			.expect("could not get a graphics device");
 		let surface_capabilities = surface.get_capabilities(&adapter);
 		let surface_format = surface_capabilities
 			.formats
@@ -336,7 +339,7 @@ impl GraphicsContext {
 		);
 		let depth_stencil_texture_view = create_depth_stencil_texture_view(size.into(), &device, 1);
 		let background_color = Rgba::BLACK;
-		Ok(Self {
+		Self {
 			surface,
 			device,
 			queue,
@@ -355,7 +358,7 @@ impl GraphicsContext {
 			default_texture,
 			depth_stencil_texture_view,
 			background_color,
-		})
+		}
 	}
 
 	#[allow(clippy::too_many_arguments)]

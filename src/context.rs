@@ -7,11 +7,10 @@ use std::{
 
 use glam::{IVec2, UVec2};
 use sdl2::{
-	video::{FullscreenType, Window, WindowBuildError, WindowPos},
+	video::{FullscreenType, Window, WindowPos},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 };
-use thiserror::Error;
-use wgpu::{CreateSurfaceError, PresentMode, RequestDeviceError, SurfaceError};
+use wgpu::PresentMode;
 
 use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
@@ -23,17 +22,15 @@ use crate::{
 
 use self::graphics::GraphicsContext;
 
-pub fn run<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
+pub fn run<S, F>(settings: ContextSettings, mut state_constructor: F)
 where
-	S: State<E>,
-	F: FnMut(&mut Context) -> Result<S, E>,
-	E: From<InitError>,
-	E: From<SurfaceError>,
+	S: State,
+	F: FnMut(&mut Context) -> S,
 {
-	let mut ctx = Context::new(settings)?;
+	let mut ctx = Context::new(settings);
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
-	let mut state = state_constructor(&mut ctx)?;
+	let mut state = state_constructor(&mut ctx);
 	let mut last_update_time = Instant::now();
 	loop {
 		let now = Instant::now();
@@ -42,7 +39,7 @@ where
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
 		let egui_input = egui_raw_input(&ctx, &events);
 		egui_ctx.begin_frame(egui_input);
-		state.ui(&mut ctx, &egui_ctx)?;
+		state.ui(&mut ctx, &egui_ctx);
 		let egui_output = egui_ctx.end_frame();
 		for event in events
 			.drain(..)
@@ -56,18 +53,17 @@ where
 				}
 				_ => {}
 			}
-			state.event(&mut ctx, event)?;
+			state.event(&mut ctx, event);
 		}
-		state.update(&mut ctx, delta_time)?;
-		state.draw(&mut ctx)?;
+		state.update(&mut ctx, delta_time);
+		state.draw(&mut ctx);
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
-		ctx.graphics_ctx.render()?;
+		ctx.graphics_ctx.render();
 		if ctx.should_quit {
 			break;
 		}
 		std::thread::sleep(Duration::from_millis(2));
 	}
-	Ok(())
 }
 
 pub struct Context {
@@ -186,14 +182,14 @@ impl Context {
 		self.should_quit = true;
 	}
 
-	fn new(settings: ContextSettings) -> Result<Self, InitError> {
-		let sdl = sdl2::init().map_err(InitError::Sdl2Error)?;
-		let video = sdl.video().map_err(InitError::Sdl2Error)?;
+	fn new(settings: ContextSettings) -> Self {
+		let sdl = sdl2::init().expect("error initializing SDL");
+		let video = sdl.video().expect("error initializing video subsystem");
 		let controller = sdl.game_controller().unwrap();
-		let window = build_window(&video, &settings)?;
-		let event_pump = sdl.event_pump().map_err(InitError::Sdl2Error)?;
-		let graphics_ctx = GraphicsContext::new(&window)?;
-		Ok(Self {
+		let window = build_window(&video, &settings);
+		let event_pump = sdl.event_pump().expect("error creating event pump");
+		let graphics_ctx = GraphicsContext::new(&window);
+		Self {
 			_sdl: sdl,
 			video,
 			window,
@@ -201,7 +197,7 @@ impl Context {
 			event_pump,
 			graphics_ctx,
 			should_quit: false,
-		})
+		}
 	}
 }
 
@@ -224,30 +220,7 @@ impl Default for ContextSettings {
 	}
 }
 
-#[derive(Debug, Clone, Error)]
-pub enum InitError {
-	#[error("{0}")]
-	Sdl2Error(String),
-	#[error("{0}")]
-	WindowBuildError(#[from] WindowBuildError),
-	#[error("{0}")]
-	InitGraphicsError(#[from] InitGraphicsError),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-pub enum InitGraphicsError {
-	#[error("{0}")]
-	CreateSurfaceError(#[from] CreateSurfaceError),
-	#[error("{0}")]
-	RequestDeviceError(#[from] RequestDeviceError),
-	#[error("Could not find a graphics adapter")]
-	NoAdapterFound,
-}
-
-fn build_window(
-	video: &VideoSubsystem,
-	settings: &ContextSettings,
-) -> Result<Window, WindowBuildError> {
+fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
 	let window_size = match settings.window_mode {
 		// doesn't matter because we're going to set the window to fullscreen
 		WindowMode::Fullscreen => UVec2::new(800, 600),
@@ -261,5 +234,5 @@ fn build_window(
 	if settings.resizable {
 		window_builder.resizable();
 	}
-	window_builder.build()
+	window_builder.build().expect("error building window")
 }

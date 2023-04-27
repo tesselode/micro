@@ -1,6 +1,6 @@
 pub use wgpu::FilterMode;
 
-use std::{num::NonZeroU32, path::Path, rc::Rc};
+use std::{path::Path, rc::Rc};
 
 use glam::{IVec2, UVec2, Vec2};
 use wgpu::{
@@ -87,8 +87,8 @@ impl Texture {
 			&image_data.pixels,
 			ImageDataLayout {
 				offset: 0,
-				bytes_per_row: NonZeroU32::new(4 * image_data.size.x),
-				rows_per_image: NonZeroU32::new(image_data.size.y),
+				bytes_per_row: Some(4 * image_data.size.x),
+				rows_per_image: Some(image_data.size.y),
 			},
 			Extent3d {
 				width: image_data.size.x,
@@ -151,8 +151,8 @@ impl Texture {
 				&image_data.pixels,
 				ImageDataLayout {
 					offset: 0,
-					bytes_per_row: NonZeroU32::new(4 * image_data.size.x),
-					rows_per_image: NonZeroU32::new(image_data.size.y),
+					bytes_per_row: Some(4 * image_data.size.x),
+					rows_per_image: Some(image_data.size.y),
 				},
 				texture_size,
 			);

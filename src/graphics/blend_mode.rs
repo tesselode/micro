@@ -78,14 +78,9 @@ impl Default for BlendMode {
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum BlendAlphaMode {
+	#[default]
 	AlphaMultiply,
 	Premultiplied,
-}
-
-impl Default for BlendAlphaMode {
-	fn default() -> Self {
-		Self::AlphaMultiply
-	}
 }

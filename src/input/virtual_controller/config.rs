@@ -21,7 +21,9 @@ impl<C: VirtualControls + Default> Default for VirtualControllerConfig<C> {
 	}
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum DeadzoneShape {
+	#[default]
 	Circle,
 	Square,
 }
@@ -49,11 +51,5 @@ impl DeadzoneShape {
 				},
 			},
 		}
-	}
-}
-
-impl Default for DeadzoneShape {
-	fn default() -> Self {
-		Self::Circle
 	}
 }

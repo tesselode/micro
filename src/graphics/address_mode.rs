@@ -1,7 +1,8 @@
 use wgpu::SamplerBorderColor;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum AddressMode {
+	#[default]
 	Repeat,
 	MirrorRepeat,
 	ClampToEdge,
@@ -23,11 +24,5 @@ impl AddressMode {
 			AddressMode::ClampToBorder(border_color) => Some(border_color),
 			_ => None,
 		}
-	}
-}
-
-impl Default for AddressMode {
-	fn default() -> Self {
-		Self::Repeat
 	}
 }

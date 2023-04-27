@@ -24,9 +24,11 @@ struct MainState {
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Self {
+		let mut globals = Globals::new(ctx);
+		let gameplay = Gameplay::new(ctx, &mut globals);
 		Self {
-			globals: Globals::new(ctx),
-			scene_manager: SceneManager::new(Gameplay::new()),
+			globals,
+			scene_manager: SceneManager::new(gameplay),
 			dev_tools_enabled: false,
 			frame_times: VecDeque::with_capacity(NUM_FRAME_TIMES_TO_RECORD),
 		}

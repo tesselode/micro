@@ -4,14 +4,23 @@ use glam::Vec2;
 
 use super::{RealControl, VirtualControls};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct VirtualControllerConfig<C: VirtualControls> {
 	pub control_mapping: HashMap<C, Vec<RealControl>>,
 	pub deadzone: f32,
 	pub deadzone_shape: DeadzoneShape,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+impl<C: VirtualControls + Default> Default for VirtualControllerConfig<C> {
+	fn default() -> Self {
+		Self {
+			control_mapping: Default::default(),
+			deadzone: 0.5,
+			deadzone_shape: Default::default(),
+		}
+	}
+}
+
 pub enum DeadzoneShape {
 	Circle,
 	Square,

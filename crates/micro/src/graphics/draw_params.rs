@@ -115,6 +115,12 @@ impl From<Vec2> for DrawParams<DefaultShader> {
 	}
 }
 
+impl From<Mat3> for DrawParams<DefaultShader> {
+	fn from(transform: Mat3) -> Self {
+		Self::new().transform(transform)
+	}
+}
+
 impl From<Rgba> for DrawParams<DefaultShader> {
 	fn from(color: Rgba) -> Self {
 		Self::new().color(color)

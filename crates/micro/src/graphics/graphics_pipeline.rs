@@ -86,7 +86,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 			multisample: MultisampleState {
 				count: settings.sample_count,
 				mask: !0,
-				alpha_to_coverage_enabled: true,
+				alpha_to_coverage_enabled: false,
 			},
 			multiview: None,
 		});

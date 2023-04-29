@@ -27,7 +27,7 @@ fn vs_main(
     var out: VertexOutput;
     out.texture_coords = model.texture_coords;
     out.color = model.color * params.color;
-    out.clip_position = params.transform * vec4<f32>(model.position, 0.0, 1.0);
+    out.clip_position = params.transform * vec4<f32>(model.position, 1.0, 1.0);
     return out;
 }
 

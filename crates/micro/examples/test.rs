@@ -6,6 +6,7 @@ use micro::{
 		DrawParams,
 	},
 	input::Scancode,
+	math::Rect,
 	window::WindowMode,
 	Context, ContextSettings, Event, State,
 };
@@ -17,12 +18,7 @@ struct MainState {
 impl MainState {
 	fn new(ctx: &mut Context) -> Self {
 		Self {
-			mesh: Mesh::circle(
-				ctx,
-				ShapeStyle::Fill,
-				Vec2::splat(1280.0 / 2.0),
-				1280.0 / 2.0,
-			),
+			mesh: Mesh::rectangle(ctx, Rect::xywh(0.0, 0.0, 100.0, 150.0)),
 		}
 	}
 }
@@ -44,7 +40,13 @@ impl State for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) {
-		self.mesh.draw(ctx, DrawParams::new());
+		self.mesh.draw(
+			ctx,
+			DrawParams::new()
+				.scaled(Vec2::splat(2.0))
+				.rotated(1.0)
+				.translated(Vec2::new(100.0, 150.0)),
+		);
 	}
 }
 

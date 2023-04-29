@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use glam::{Mat4, UVec2, Vec3};
+use glam::{Affine2, UVec2, Vec2};
 use sdl2::video::Window;
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
@@ -425,7 +425,7 @@ enum DrawInstructionSetKind {
 	Canvas(Canvas),
 }
 
-fn coordinate_system_transform(size: UVec2) -> Mat4 {
-	Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
-		* Mat4::from_scale(Vec3::new(2.0 / size.x as f32, -2.0 / size.y as f32, 1.0))
+fn coordinate_system_transform(size: UVec2) -> Affine2 {
+	Affine2::from_translation(Vec2::new(-1.0, 1.0))
+		* Affine2::from_scale(Vec2::new(2.0 / size.x as f32, -2.0 / size.y as f32))
 }

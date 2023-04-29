@@ -8,10 +8,17 @@ use lyon_tessellation::VertexBuffers;
 pub use rect::*;
 pub use urect::*;
 
-use crate::graphics::mesh::{MeshBuilder, ShapeStyle, Vertex};
+use crate::graphics::{
+	color::Rgba,
+	mesh::{FilledPolygonPoint, MeshBuilder, ShapeStyle, Vertex},
+};
 
 pub fn triangulate_polygon(points: &[Vec2]) -> Vec<Vec<Vec2>> {
-	let mesh_builder = MeshBuilder::new().with_polygon(ShapeStyle::Fill, points);
+	let mesh_builder =
+		MeshBuilder::new().with_filled_polygon(points.iter().map(|point| FilledPolygonPoint {
+			position: *point,
+			color: Rgba::WHITE,
+		}));
 	let buffers = mesh_builder.buffers();
 	buffers
 		.indices

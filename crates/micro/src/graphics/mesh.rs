@@ -47,13 +47,21 @@ impl Mesh {
 		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
-	pub fn styled_rectangle(ctx: &Context, style: ShapeStyle, rect: Rect) -> Self {
-		MeshBuilder::new().with_rectangle(style, rect).build(ctx)
+	pub fn styled_rectangle(ctx: &Context, style: ShapeStyle, rect: Rect, color: Rgba) -> Self {
+		MeshBuilder::new()
+			.with_rectangle(style, rect, color)
+			.build(ctx)
 	}
 
-	pub fn circle(ctx: &Context, style: ShapeStyle, center: Vec2, radius: f32) -> Self {
+	pub fn circle(
+		ctx: &Context,
+		style: ShapeStyle,
+		center: Vec2,
+		radius: f32,
+		color: Rgba,
+	) -> Self {
 		MeshBuilder::new()
-			.with_circle(style, center, radius)
+			.with_circle(style, center, radius, color)
 			.build(ctx)
 	}
 
@@ -63,20 +71,26 @@ impl Mesh {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
+		color: Rgba,
 	) -> Self {
 		MeshBuilder::new()
-			.with_ellipse(style, center, radii, rotation)
+			.with_ellipse(style, center, radii, rotation, color)
 			.build(ctx)
 	}
 
-	pub fn polygon(ctx: &Context, style: ShapeStyle, points: &[Vec2]) -> Self {
-		MeshBuilder::new().with_polygon(style, points).build(ctx)
+	pub fn filled_polygon(
+		ctx: &Context,
+		points: impl IntoIterator<Item = FilledPolygonPoint>,
+	) -> Self {
+		MeshBuilder::new().with_filled_polygon(points).build(ctx)
 	}
 
-	pub fn polyline(ctx: &Context, line_width: f32, points: &[Vec2]) -> Self {
-		MeshBuilder::new()
-			.with_polyline(line_width, points)
-			.build(ctx)
+	pub fn polyline(
+		ctx: &Context,
+		points: impl IntoIterator<Item = StrokePoint>,
+		closed: bool,
+	) -> Self {
+		MeshBuilder::new().with_polyline(points, closed).build(ctx)
 	}
 
 	pub fn set_vertex(&self, ctx: &Context, index: usize, vertex: Vertex) {

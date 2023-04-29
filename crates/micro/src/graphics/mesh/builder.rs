@@ -1,7 +1,12 @@
 use glam::Vec2;
 use lyon_tessellation::{
-	path::Winding, BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor,
-	StrokeOptions, StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
+	geom::euclid::Point2D,
+	path::{
+		traits::{Build, PathBuilder},
+		Winding,
+	},
+	BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor, StrokeOptions,
+	StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
 };
 
 use crate::{graphics::color::Rgba, math::Rect, Context};
@@ -10,30 +15,16 @@ use super::{Mesh, Vertex};
 
 pub struct MeshBuilder {
 	buffers: VertexBuffers<Vertex, u32>,
-	color: Rgba,
 }
 
 impl MeshBuilder {
 	pub fn new() -> Self {
 		Self {
 			buffers: VertexBuffers::new(),
-			color: Rgba::WHITE,
 		}
 	}
 
-	pub fn set_color(&mut self, color: Rgba) {
-		self.color = color;
-	}
-
-	pub fn with_color(mut self, color: Rgba, mut f: impl FnMut(Self) -> Self) -> Self {
-		let previous_color = self.color;
-		self.set_color(color);
-		let mut this = f(self);
-		this.set_color(previous_color);
-		this
-	}
-
-	pub fn add_rectangle(&mut self, style: ShapeStyle, rect: Rect) {
+	pub fn add_rectangle(&mut self, style: ShapeStyle, rect: Rect, color: Rgba) {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_rectangle(
@@ -47,7 +38,7 @@ impl MeshBuilder {
 					&FillOptions::default(),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						FillVertexToVertex { color: self.color },
+						PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
@@ -63,19 +54,19 @@ impl MeshBuilder {
 					&StrokeOptions::default().with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						StrokeVertexToVertex { color: self.color },
+						PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
 		};
 	}
 
-	pub fn with_rectangle(mut self, style: ShapeStyle, rect: Rect) -> Self {
-		self.add_rectangle(style, rect);
+	pub fn with_rectangle(mut self, style: ShapeStyle, rect: Rect, color: Rgba) -> Self {
+		self.add_rectangle(style, rect, color);
 		self
 	}
 
-	pub fn add_circle(&mut self, style: ShapeStyle, center: Vec2, radius: f32) {
+	pub fn add_circle(&mut self, style: ShapeStyle, center: Vec2, radius: f32, color: Rgba) {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_circle(
@@ -84,7 +75,7 @@ impl MeshBuilder {
 					&FillOptions::default(),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						FillVertexToVertex { color: self.color },
+						PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
@@ -95,19 +86,32 @@ impl MeshBuilder {
 					&StrokeOptions::default().with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						StrokeVertexToVertex { color: self.color },
+						PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
 		};
 	}
 
-	pub fn with_circle(mut self, style: ShapeStyle, center: Vec2, radius: f32) -> Self {
-		self.add_circle(style, center, radius);
+	pub fn with_circle(
+		mut self,
+		style: ShapeStyle,
+		center: Vec2,
+		radius: f32,
+		color: Rgba,
+	) -> Self {
+		self.add_circle(style, center, radius, color);
 		self
 	}
 
-	pub fn add_ellipse(&mut self, style: ShapeStyle, center: Vec2, radii: Vec2, rotation: f32) {
+	pub fn add_ellipse(
+		&mut self,
+		style: ShapeStyle,
+		center: Vec2,
+		radii: Vec2,
+		rotation: f32,
+		color: Rgba,
+	) {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_ellipse(
@@ -118,7 +122,7 @@ impl MeshBuilder {
 					&FillOptions::default(),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						FillVertexToVertex { color: self.color },
+						PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
@@ -131,7 +135,7 @@ impl MeshBuilder {
 					&StrokeOptions::default().with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						StrokeVertexToVertex { color: self.color },
+						PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
@@ -144,68 +148,96 @@ impl MeshBuilder {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
+		color: Rgba,
 	) -> Self {
-		self.add_ellipse(style, center, radii, rotation);
+		self.add_ellipse(style, center, radii, rotation, color);
 		self
 	}
 
-	pub fn add_polygon(&mut self, style: ShapeStyle, points: &[Vec2]) {
-		let polygon = lyon_tessellation::path::Polygon {
-			points: &points
-				.iter()
-				.map(|point| lyon_tessellation::math::point(point.x, point.y))
-				.collect::<Vec<_>>(),
-			closed: true,
-		};
-		match style {
-			ShapeStyle::Fill => FillTessellator::new()
-				.tessellate_polygon(
-					polygon,
-					&FillOptions::default(),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						FillVertexToVertex { color: self.color },
-					),
-				)
-				.unwrap(),
-			ShapeStyle::Stroke(width) => StrokeTessellator::new()
-				.tessellate_polygon(
-					polygon,
-					&StrokeOptions::default().with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						StrokeVertexToVertex { color: self.color },
-					),
-				)
-				.unwrap(),
-		};
-	}
-
-	pub fn with_polygon(mut self, style: ShapeStyle, points: &[Vec2]) -> Self {
-		self.add_polygon(style, points);
-		self
-	}
-
-	pub fn add_polyline(&mut self, line_width: f32, points: &[Vec2]) {
-		if points.is_empty() {
-			panic!("Need at least one point to build a polyline");
-		}
-		let mut stroke_tessellator = StrokeTessellator::new();
-		let options = StrokeOptions::default().with_line_width(line_width);
-		let mut buffers_builder = BuffersBuilder::new(
-			&mut self.buffers,
-			StrokeVertexToVertex { color: self.color },
+	pub fn add_filled_polygon(&mut self, points: impl IntoIterator<Item = FilledPolygonPoint>) {
+		let mut fill_tessellator = FillTessellator::new();
+		let mut buffers_builder = BuffersBuilder::new(&mut self.buffers, PointWithColorToVertex);
+		let options = FillOptions::default();
+		let mut builder =
+			fill_tessellator.builder_with_attributes(4, &options, &mut buffers_builder);
+		let mut points = points.into_iter();
+		let point = points
+			.next()
+			.expect("need at least one point to build a polyline");
+		builder.begin(
+			Point2D::new(point.position.x, point.position.y),
+			&[
+				point.color.red,
+				point.color.green,
+				point.color.blue,
+				point.color.alpha,
+			],
 		);
-		let mut builder = stroke_tessellator.builder(&options, &mut buffers_builder);
-		builder.begin(lyon_tessellation::math::point(points[0].x, points[0].y));
-		for point in &points[1..] {
-			builder.line_to(lyon_tessellation::math::point(point.x, point.y));
+		for point in points {
+			builder.line_to(
+				Point2D::new(point.position.x, point.position.y),
+				&[
+					point.color.red,
+					point.color.green,
+					point.color.blue,
+					point.color.alpha,
+				],
+			);
 		}
-		builder.end(false);
+		builder.end(true);
+		builder.build().expect("error adding filled polygon");
 	}
 
-	pub fn with_polyline(mut self, line_width: f32, points: &[Vec2]) -> Self {
-		self.add_polyline(line_width, points);
+	pub fn with_filled_polygon(
+		mut self,
+		points: impl IntoIterator<Item = FilledPolygonPoint>,
+	) -> Self {
+		self.add_filled_polygon(points);
+		self
+	}
+
+	pub fn add_polyline(&mut self, points: impl IntoIterator<Item = StrokePoint>, closed: bool) {
+		let mut stroke_tessellator = StrokeTessellator::new();
+		let mut buffers_builder = BuffersBuilder::new(&mut self.buffers, PointWithColorToVertex);
+		let options = StrokeOptions::default().with_variable_line_width(4);
+		let mut builder =
+			stroke_tessellator.builder_with_attributes(5, &options, &mut buffers_builder);
+		let mut points = points.into_iter();
+		let point = points
+			.next()
+			.expect("need at least one point to build a polyline");
+		builder.begin(
+			Point2D::new(point.position.x, point.position.y),
+			&[
+				point.color.red,
+				point.color.green,
+				point.color.blue,
+				point.color.alpha,
+				point.stroke_width,
+			],
+		);
+		for point in points {
+			builder.line_to(
+				Point2D::new(point.position.x, point.position.y),
+				&[
+					point.color.red,
+					point.color.green,
+					point.color.blue,
+					point.color.alpha,
+					point.stroke_width,
+				],
+			);
+		}
+		builder.end(closed);
+		builder.build().expect("error adding polyline");
+	}
+
+	pub fn with_polyline(
+		mut self,
+		points: impl IntoIterator<Item = StrokePoint>,
+		closed: bool,
+	) -> Self {
+		self.add_polyline(points, closed);
 		self
 	}
 
@@ -230,11 +262,24 @@ pub enum ShapeStyle {
 	Stroke(f32),
 }
 
-struct FillVertexToVertex {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FilledPolygonPoint {
+	pub position: Vec2,
+	pub color: Rgba,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StrokePoint {
+	pub position: Vec2,
+	pub color: Rgba,
+	pub stroke_width: f32,
+}
+
+struct PointWithoutColorToVertex {
 	color: Rgba,
 }
 
-impl FillVertexConstructor<Vertex> for FillVertexToVertex {
+impl FillVertexConstructor<Vertex> for PointWithoutColorToVertex {
 	fn new_vertex(&mut self, vertex: FillVertex) -> Vertex {
 		Vertex {
 			position: Vec2::new(vertex.position().x, vertex.position().y),
@@ -244,16 +289,38 @@ impl FillVertexConstructor<Vertex> for FillVertexToVertex {
 	}
 }
 
-struct StrokeVertexToVertex {
-	color: Rgba,
-}
-
-impl StrokeVertexConstructor<Vertex> for StrokeVertexToVertex {
+impl StrokeVertexConstructor<Vertex> for PointWithoutColorToVertex {
 	fn new_vertex(&mut self, vertex: StrokeVertex) -> Vertex {
 		Vertex {
 			position: Vec2::new(vertex.position().x, vertex.position().y),
 			texture_coords: Vec2::ZERO,
 			color: self.color,
+		}
+	}
+}
+
+struct PointWithColorToVertex;
+
+impl FillVertexConstructor<Vertex> for PointWithColorToVertex {
+	fn new_vertex(&mut self, mut vertex: FillVertex) -> Vertex {
+		let position = Vec2::new(vertex.position().x, vertex.position().y);
+		let attributes = vertex.interpolated_attributes();
+		Vertex {
+			position,
+			texture_coords: Vec2::ZERO,
+			color: Rgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
+		}
+	}
+}
+
+impl StrokeVertexConstructor<Vertex> for PointWithColorToVertex {
+	fn new_vertex(&mut self, mut vertex: StrokeVertex) -> Vertex {
+		let position = Vec2::new(vertex.position().x, vertex.position().y);
+		let attributes = vertex.interpolated_attributes();
+		Vertex {
+			position,
+			texture_coords: Vec2::ZERO,
+			color: Rgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
 		}
 	}
 }

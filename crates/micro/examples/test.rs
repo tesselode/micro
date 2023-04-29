@@ -1,14 +1,11 @@
-use glam::{UVec2, Vec2};
+use glam::Vec2;
 use micro::{
 	graphics::{
 		color::Rgba,
-		mesh::{Mesh, ShapeStyle},
+		mesh::{FilledPolygonPoint, Mesh, MeshBuilder, StrokePoint},
 		DrawParams,
 	},
-	input::Scancode,
-	math::Rect,
-	window::WindowMode,
-	Context, ContextSettings, Event, State,
+	Context, ContextSettings, State,
 };
 
 struct MainState {
@@ -18,35 +15,37 @@ struct MainState {
 impl MainState {
 	fn new(ctx: &mut Context) -> Self {
 		Self {
-			mesh: Mesh::rectangle(ctx, Rect::xywh(0.0, 0.0, 100.0, 150.0)),
+			mesh: {
+				let mut mesh_builder = MeshBuilder::new();
+				mesh_builder.add_polyline(
+					[
+						StrokePoint {
+							position: Vec2::new(50.0, 50.0),
+							color: Rgba::GREEN,
+							stroke_width: 1.0,
+						},
+						StrokePoint {
+							position: Vec2::new(100.0, 150.0),
+							color: Rgba::RED,
+							stroke_width: 1.0,
+						},
+						StrokePoint {
+							position: Vec2::new(300.0, 150.0),
+							color: Rgba::BLUE,
+							stroke_width: 1.0,
+						},
+					],
+					false,
+				);
+				mesh_builder.build(ctx)
+			},
 		}
 	}
 }
 
 impl State for MainState {
-	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) {
-		egui::Window::new("Test window").show(egui_ctx, |ui| {
-			ui.label("hello, world!");
-		});
-	}
-
-	fn event(&mut self, ctx: &mut Context, event: Event) {
-		if let Event::KeyPressed(Scancode::Space) = event {
-			ctx.set_background_color(Rgba::new(0.25, 0.25, 0.25, 1.0));
-			ctx.set_window_mode(WindowMode::Windowed {
-				size: UVec2::new(1280, 720),
-			});
-		}
-	}
-
 	fn draw(&mut self, ctx: &mut Context) {
-		self.mesh.draw(
-			ctx,
-			DrawParams::new()
-				.scaled(Vec2::splat(2.0))
-				.rotated(1.0)
-				.translated(Vec2::new(100.0, 150.0)),
-		);
+		self.mesh.draw(ctx, DrawParams::new());
 	}
 }
 

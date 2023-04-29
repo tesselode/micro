@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use glam::{Mat4, Vec2};
+use glam::{Mat3, Mat4, Vec2};
 
 use crate::{graphics::color::Rgba, math::URect};
 
@@ -10,7 +10,7 @@ use super::{
 
 #[derive(Clone)]
 pub struct DrawParams<S: Shader = DefaultShader> {
-	pub transform: Mat4,
+	pub transform: Mat3,
 	pub color: Rgba,
 	pub graphics_pipeline: Option<GraphicsPipeline<S>>,
 	pub stencil_reference: u32,
@@ -20,7 +20,7 @@ pub struct DrawParams<S: Shader = DefaultShader> {
 impl DrawParams<DefaultShader> {
 	pub fn new() -> Self {
 		Self {
-			transform: Mat4::IDENTITY,
+			transform: Mat3::IDENTITY,
 			color: Rgba::WHITE,
 			graphics_pipeline: None,
 			stencil_reference: 0,
@@ -30,27 +30,27 @@ impl DrawParams<DefaultShader> {
 }
 
 impl<S: Shader> DrawParams<S> {
-	pub fn transform(self, transform: Mat4) -> Self {
+	pub fn transform(self, transform: Mat3) -> Self {
 		Self { transform, ..self }
 	}
 
 	pub fn translated(self, translation: Vec2) -> Self {
 		Self {
-			transform: Mat4::from_translation(translation.extend(0.0)) * self.transform,
+			transform: Mat3::from_translation(translation) * self.transform,
 			..self
 		}
 	}
 
 	pub fn scaled(self, scale: Vec2) -> Self {
 		Self {
-			transform: Mat4::from_scale(scale.extend(0.0)) * self.transform,
+			transform: Mat3::from_scale(scale) * self.transform,
 			..self
 		}
 	}
 
 	pub fn rotated(self, rotation: f32) -> Self {
 		Self {
-			transform: Mat4::from_rotation_z(rotation) * self.transform,
+			transform: Mat3::from_rotation_z(rotation) * self.transform,
 			..self
 		}
 	}
@@ -91,7 +91,7 @@ impl<S: Shader> DrawParams<S> {
 
 	pub(crate) fn as_uniform(&self) -> DrawParamsUniform {
 		DrawParamsUniform {
-			transform: self.transform,
+			transform: Mat4::from_mat3(self.transform),
 			color: self.color,
 		}
 	}
@@ -100,7 +100,7 @@ impl<S: Shader> DrawParams<S> {
 impl<S: Shader> Default for DrawParams<S> {
 	fn default() -> Self {
 		Self {
-			transform: Mat4::IDENTITY,
+			transform: Mat3::IDENTITY,
 			color: Default::default(),
 			graphics_pipeline: Default::default(),
 			stencil_reference: Default::default(),

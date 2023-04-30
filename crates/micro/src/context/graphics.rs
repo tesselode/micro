@@ -27,7 +27,7 @@ use crate::{
 		DrawParams,
 	},
 	math::URect,
-	OffsetAndCount,
+	ContextSettings, OffsetAndCount,
 };
 
 pub struct GraphicsContext {
@@ -47,8 +47,8 @@ pub struct GraphicsContext {
 }
 
 impl GraphicsContext {
-	pub fn new(window: &Window) -> Self {
-		pollster::block_on(Self::new_inner(window))
+	pub fn new(window: &Window, context_settings: ContextSettings) -> Self {
+		pollster::block_on(Self::new_inner(window, context_settings))
 	}
 
 	pub fn resize(&mut self, size: UVec2) {
@@ -215,7 +215,7 @@ impl GraphicsContext {
 		);
 	}
 
-	async fn new_inner(window: &Window) -> Self {
+	async fn new_inner(window: &Window, context_settings: ContextSettings) -> Self {
 		let size = window.size();
 		let instance = Instance::new(InstanceDescriptor::default());
 		let surface = unsafe { instance.create_surface(window) }
@@ -251,7 +251,7 @@ impl GraphicsContext {
 			format: surface_format,
 			width: size.0,
 			height: size.1,
-			present_mode: surface_capabilities.present_modes[0],
+			present_mode: context_settings.present_mode,
 			alpha_mode: surface_capabilities.alpha_modes[0],
 			view_formats: vec![],
 		};

@@ -188,7 +188,7 @@ impl Context {
 		let controller = sdl.game_controller().unwrap();
 		let window = build_window(&video, &settings);
 		let event_pump = sdl.event_pump().expect("error creating event pump");
-		let graphics_ctx = GraphicsContext::new(&window);
+		let graphics_ctx = GraphicsContext::new(&window, settings);
 		Self {
 			_sdl: sdl,
 			video,

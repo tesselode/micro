@@ -62,7 +62,7 @@ where
 		if ctx.should_quit {
 			break;
 		}
-		std::thread::sleep(Duration::from_millis(2));
+		std::thread::sleep(Duration::from_millis(1));
 	}
 }
 

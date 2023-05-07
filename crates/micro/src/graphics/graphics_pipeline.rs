@@ -93,7 +93,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 		let shader_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
 			label: Some("Shader Params Buffer"),
 			contents: bytemuck::cast_slice(&[settings.shader_params]),
-			usage: BufferUsages::UNIFORM,
+			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
 		});
 		let shader_params_bind_group = device.create_bind_group(&BindGroupDescriptor {
 			label: Some("Shader Params Bind Group"),

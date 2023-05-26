@@ -10,7 +10,7 @@ pub use urect::*;
 
 use crate::graphics::{
 	color::Rgba,
-	mesh::{FilledPolygonPoint, MeshBuilder, ShapeStyle, Vertex},
+	mesh::{FilledPolygonPoint, MeshBuilder, Vertex},
 };
 
 pub fn triangulate_polygon(points: &[Vec2]) -> Vec<Vec<Vec2>> {

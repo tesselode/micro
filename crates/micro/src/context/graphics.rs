@@ -152,7 +152,17 @@ impl GraphicsContext {
 						scissor_rect.size().y,
 					)
 				} else {
-					render_pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
+					match &kind {
+						DrawInstructionSetKind::Surface => render_pass.set_scissor_rect(
+							0,
+							0,
+							self.config.width,
+							self.config.height,
+						),
+						DrawInstructionSetKind::Canvas(canvas) => {
+							render_pass.set_scissor_rect(0, 0, canvas.size().x, canvas.size().y)
+						}
+					}
 				}
 				render_pass.draw_indexed(range.offset..(range.offset + range.count), 0, 0..1);
 			}

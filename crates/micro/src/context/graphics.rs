@@ -7,10 +7,10 @@ use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingType, BufferBindingType, BufferUsages, CommandEncoderDescriptor,
 	Device, DeviceDescriptor, Features, IndexFormat, Instance, InstanceDescriptor, LoadOp,
-	Operations, PipelineLayout, PipelineLayoutDescriptor, PresentMode, Queue,
-	RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
-	RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface, SurfaceConfiguration,
-	TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor, TextureViewDimension,
+	Operations, PresentMode, Queue, RenderPassColorAttachment, RenderPassDepthStencilAttachment,
+	RenderPassDescriptor, RequestAdapterOptions, SamplerBindingType, ShaderStages, Surface,
+	SurfaceConfiguration, TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor,
+	TextureViewDimension,
 };
 
 use crate::{
@@ -37,8 +37,6 @@ pub struct GraphicsContext {
 	pub(crate) config: SurfaceConfiguration,
 	pub(crate) texture_bind_group_layout: BindGroupLayout,
 	pub(crate) draw_params_bind_group_layout: BindGroupLayout,
-	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
-	pub(crate) render_pipeline_layout: PipelineLayout,
 	default_graphics_pipeline: Rc<GraphicsPipelineInner>,
 	draw_instruction_sets: Vec<DrawInstructionSet>,
 	pub(crate) default_texture: Texture,
@@ -292,37 +290,14 @@ impl GraphicsContext {
 					count: None,
 				}],
 			});
-		let shader_params_bind_group_layout =
-			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-				label: Some("Shader Params Bind Group Layout"),
-				entries: &[BindGroupLayoutEntry {
-					binding: 0,
-					visibility: ShaderStages::VERTEX | ShaderStages::FRAGMENT,
-					ty: BindingType::Buffer {
-						ty: BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
-					},
-					count: None,
-				}],
-			});
-		let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[
-				&texture_bind_group_layout,
-				&draw_params_bind_group_layout,
-				&shader_params_bind_group_layout,
-			],
-			push_constant_ranges: &[],
-		});
 		let default_graphics_pipeline = GraphicsPipeline::new_internal(
 			GraphicsPipelineSettings::<DefaultShader> {
 				shader_params: 0,
 				..Default::default()
 			},
 			&device,
-			&render_pipeline_layout,
-			&shader_params_bind_group_layout,
+			&texture_bind_group_layout,
+			&draw_params_bind_group_layout,
 			&config,
 		)
 		.inner;
@@ -346,8 +321,6 @@ impl GraphicsContext {
 			config,
 			texture_bind_group_layout,
 			draw_params_bind_group_layout,
-			shader_params_bind_group_layout,
-			render_pipeline_layout,
 			default_graphics_pipeline,
 			draw_instruction_sets: vec![DrawInstructionSet {
 				kind: DrawInstructionSetKind::Surface,

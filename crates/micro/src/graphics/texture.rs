@@ -5,8 +5,9 @@ use std::{path::Path, rc::Rc};
 use glam::{IVec2, UVec2, Vec2};
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource, Device,
-	Extent3d, ImageCopyTexture, ImageDataLayout, Origin3d, Queue, SamplerDescriptor, TextureAspect,
-	TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
+	Extent3d, ImageCopyTexture, ImageDataLayout, Origin3d, Queue, Sampler, SamplerDescriptor,
+	TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
+	TextureViewDescriptor,
 };
 
 use crate::{math::Rect, Context};
@@ -185,6 +186,8 @@ impl Texture {
 		});
 		Self(Rc::new(TextureInner {
 			texture,
+			view,
+			sampler,
 			bind_group,
 			size,
 		}))
@@ -200,6 +203,8 @@ pub struct TextureSettings {
 
 pub(crate) struct TextureInner {
 	pub(crate) texture: wgpu::Texture,
+	pub(crate) view: TextureView,
+	pub(crate) sampler: Sampler,
 	pub(crate) bind_group: BindGroup,
 	pub(crate) size: UVec2,
 }

@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use glam::{UVec2, Vec2};
 use wgpu::{
-	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d, FilterMode,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d, FilterMode, Sampler,
 	SamplerDescriptor, TextureDescriptor, TextureDimension, TextureUsages, TextureView,
 	TextureViewDescriptor,
 };
@@ -38,21 +38,21 @@ impl Canvas {
 		});
 		let view = texture.create_view(&TextureViewDescriptor::default());
 		let address_mode = settings.address_mode.to_wgpu_address_mode();
-		let sampler = ctx.graphics_ctx.device.create_sampler(&SamplerDescriptor {
-			address_mode_u: address_mode,
-			address_mode_v: address_mode,
-			address_mode_w: address_mode,
-			mag_filter: settings.magnifying_filter,
-			min_filter: settings.minifying_filter,
-			mipmap_filter: FilterMode::Nearest,
-			border_color: settings.address_mode.border_color(),
-			..Default::default()
-		});
-		let (bind_group, multisample_resolve_texture_view) = if settings.sample_count > 1 {
-			let (bind_group, multisample_resolve_texture_view) =
+		let (bind_group, multisample_resolve_texture_view, sampler) = if settings.sample_count > 1 {
+			let (bind_group, multisample_resolve_texture_view, sampler) =
 				create_multisample_resolve_texture(size, ctx, settings);
-			(bind_group, Some(multisample_resolve_texture_view))
+			(bind_group, Some(multisample_resolve_texture_view), sampler)
 		} else {
+			let sampler = ctx.graphics_ctx.device.create_sampler(&SamplerDescriptor {
+				address_mode_u: address_mode,
+				address_mode_v: address_mode,
+				address_mode_w: address_mode,
+				mag_filter: settings.magnifying_filter,
+				min_filter: settings.minifying_filter,
+				mipmap_filter: FilterMode::Nearest,
+				border_color: settings.address_mode.border_color(),
+				..Default::default()
+			});
 			let bind_group = ctx
 				.graphics_ctx
 				.device
@@ -70,10 +70,11 @@ impl Canvas {
 					],
 					label: Some("texture_bind_group"),
 				});
-			(bind_group, None)
+			(bind_group, None, sampler)
 		};
 		Self(Rc::new(CanvasInner {
 			view,
+			sampler,
 			bind_group,
 			multisample_resolve_texture_view,
 			size,
@@ -160,6 +161,7 @@ pub struct RenderToCanvasSettings {
 
 pub(crate) struct CanvasInner {
 	pub(crate) view: TextureView,
+	pub(crate) sampler: Sampler,
 	pub(crate) bind_group: BindGroup,
 	pub(crate) multisample_resolve_texture_view: Option<TextureView>,
 	pub(crate) size: UVec2,
@@ -170,7 +172,7 @@ fn create_multisample_resolve_texture(
 	size: UVec2,
 	ctx: &Context,
 	settings: CanvasSettings,
-) -> (BindGroup, TextureView) {
+) -> (BindGroup, TextureView, Sampler) {
 	let texture_size = Extent3d {
 		width: size.x,
 		height: size.y,
@@ -217,5 +219,5 @@ fn create_multisample_resolve_texture(
 			],
 			label: Some("texture_bind_group"),
 		});
-	(bind_group, view)
+	(bind_group, view, sampler)
 }

@@ -17,5 +17,9 @@ image = { version = "0.24.6", default-features = false, features = ["png"] }
 lyon_tessellation = "1.0.10"
 pollster = "0.3.0"
 sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2", rev = "b7d75c5", features = ["raw-window-handle"] }
+serde = { version = "1.0.163", optional = true }
 thiserror = "1.0.40"
 wgpu = "0.16.0"
+
+[features]
+sdl2_bundled = ["sdl2/bundled"]

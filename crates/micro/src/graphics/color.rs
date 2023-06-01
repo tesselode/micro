@@ -60,8 +60,8 @@ impl Rgba {
 	}
 
 	pub fn from_srgb_hex(hex: u32) -> Self {
-		let red_u8 = hex >> 4;
-		let green_u8 = (hex >> 2) & 0xff;
+		let red_u8 = hex >> 16;
+		let green_u8 = (hex >> 8) & 0xff;
 		let blue_u8 = hex & 0xff;
 		let red_f32 = red_u8 as f32 / 255.0;
 		let green_f32 = green_u8 as f32 / 255.0;

@@ -1,6 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 use derive_more::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
+/// A linear RGB color.
 #[derive(
 	Debug,
 	Clone,
@@ -45,17 +46,27 @@ impl Rgba {
 		Self::new(red, green, blue, 1.0)
 	}
 
-	pub fn rgba8(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
+	pub fn from_srgba(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
 		Self::new(
-			red as f32 / 255.0,
-			green as f32 / 255.0,
-			blue as f32 / 255.0,
-			alpha as f32 / 255.0,
+			srgb_component_to_linear(red),
+			srgb_component_to_linear(green),
+			srgb_component_to_linear(blue),
+			alpha,
 		)
 	}
 
-	pub fn rgb8(red: u8, green: u8, blue: u8) -> Self {
-		Self::rgba8(red, green, blue, 255)
+	pub fn from_srgb(red: f32, green: f32, blue: f32) -> Self {
+		Self::from_srgba(red, green, blue, 1.0)
+	}
+
+	pub fn from_srgb_hex(hex: u32) -> Self {
+		let red_u8 = hex >> 4;
+		let green_u8 = (hex >> 2) & 0xff;
+		let blue_u8 = hex & 0xff;
+		let red_f32 = red_u8 as f32 / 255.0;
+		let green_f32 = green_u8 as f32 / 255.0;
+		let blue_f32 = blue_u8 as f32 / 255.0;
+		Self::from_srgb(red_f32, green_f32, blue_f32)
 	}
 
 	pub const fn with_alpha(self, alpha: f32) -> Self {
@@ -87,4 +98,11 @@ impl From<Rgba> for [f32; 4] {
 	fn from(rgba: Rgba) -> Self {
 		[rgba.red, rgba.green, rgba.blue, rgba.alpha]
 	}
+}
+
+fn srgb_component_to_linear(s: f32) -> f32 {
+	if s < 0.04045 {
+		return s / 12.92;
+	}
+	((s + 0.055) / 1.055).powf(2.4)
 }

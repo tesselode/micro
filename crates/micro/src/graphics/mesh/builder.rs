@@ -6,7 +6,7 @@ use lyon_tessellation::{
 		Winding,
 	},
 	BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor, StrokeOptions,
-	StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
+	StrokeTessellator, StrokeVertex, StrokeVertexConstructor, TessellationError, VertexBuffers,
 };
 
 use crate::{graphics::color::Rgba, math::Rect, Context};
@@ -24,49 +24,56 @@ impl MeshBuilder {
 		}
 	}
 
-	pub fn add_rectangle(&mut self, style: ShapeStyle, rect: Rect, color: Rgba) {
+	pub fn add_rectangle(
+		&mut self,
+		style: ShapeStyle,
+		rect: Rect,
+		color: Rgba,
+	) -> Result<(), TessellationError> {
 		match style {
-			ShapeStyle::Fill => FillTessellator::new()
-				.tessellate_rectangle(
-					&lyon_tessellation::math::Box2D {
-						min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-						max: lyon_tessellation::math::point(
-							rect.top_left.x + rect.size().x,
-							rect.top_left.y + rect.size().y,
-						),
-					},
-					&FillOptions::default(),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						PointWithoutColorToVertex { color },
+			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
+				&lyon_tessellation::math::Box2D {
+					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+					max: lyon_tessellation::math::point(
+						rect.top_left.x + rect.size().x,
+						rect.top_left.y + rect.size().y,
 					),
-				)
-				.unwrap(),
-			ShapeStyle::Stroke(width) => StrokeTessellator::new()
-				.tessellate_rectangle(
-					&lyon_tessellation::math::Box2D {
-						min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-						max: lyon_tessellation::math::point(
-							rect.top_left.x + rect.size().x,
-							rect.top_left.y + rect.size().y,
-						),
-					},
-					&StrokeOptions::default().with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						PointWithoutColorToVertex { color },
+				},
+				&FillOptions::default(),
+				&mut BuffersBuilder::new(&mut self.buffers, PointWithoutColorToVertex { color }),
+			)?,
+			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_rectangle(
+				&lyon_tessellation::math::Box2D {
+					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+					max: lyon_tessellation::math::point(
+						rect.top_left.x + rect.size().x,
+						rect.top_left.y + rect.size().y,
 					),
-				)
-				.unwrap(),
+				},
+				&StrokeOptions::default().with_line_width(width),
+				&mut BuffersBuilder::new(&mut self.buffers, PointWithoutColorToVertex { color }),
+			)?,
 		};
+		Ok(())
 	}
 
-	pub fn with_rectangle(mut self, style: ShapeStyle, rect: Rect, color: Rgba) -> Self {
-		self.add_rectangle(style, rect, color);
-		self
+	pub fn with_rectangle(
+		mut self,
+		style: ShapeStyle,
+		rect: Rect,
+		color: Rgba,
+	) -> Result<Self, TessellationError> {
+		self.add_rectangle(style, rect, color)?;
+		Ok(self)
 	}
 
-	pub fn add_circle(&mut self, style: ShapeStyle, center: Vec2, radius: f32, color: Rgba) {
+	pub fn add_circle(
+		&mut self,
+		style: ShapeStyle,
+		center: Vec2,
+		radius: f32,
+		color: Rgba,
+	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_circle(
@@ -91,6 +98,7 @@ impl MeshBuilder {
 				)
 				.unwrap(),
 		};
+		Ok(())
 	}
 
 	pub fn with_circle(
@@ -99,9 +107,9 @@ impl MeshBuilder {
 		center: Vec2,
 		radius: f32,
 		color: Rgba,
-	) -> Self {
-		self.add_circle(style, center, radius, color);
-		self
+	) -> Result<Self, TessellationError> {
+		self.add_circle(style, center, radius, color)?;
+		Ok(self)
 	}
 
 	pub fn add_ellipse(
@@ -111,7 +119,7 @@ impl MeshBuilder {
 		radii: Vec2,
 		rotation: f32,
 		color: Rgba,
-	) {
+	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_ellipse(
@@ -140,6 +148,7 @@ impl MeshBuilder {
 				)
 				.unwrap(),
 		};
+		Ok(())
 	}
 
 	pub fn with_ellipse(
@@ -149,12 +158,15 @@ impl MeshBuilder {
 		radii: Vec2,
 		rotation: f32,
 		color: Rgba,
-	) -> Self {
-		self.add_ellipse(style, center, radii, rotation, color);
-		self
+	) -> Result<Self, TessellationError> {
+		self.add_ellipse(style, center, radii, rotation, color)?;
+		Ok(self)
 	}
 
-	pub fn add_filled_polygon(&mut self, points: impl IntoIterator<Item = FilledPolygonPoint>) {
+	pub fn add_filled_polygon(
+		&mut self,
+		points: impl IntoIterator<Item = FilledPolygonPoint>,
+	) -> Result<(), TessellationError> {
 		let mut fill_tessellator = FillTessellator::new();
 		let mut buffers_builder = BuffersBuilder::new(&mut self.buffers, PointWithColorToVertex);
 		let options = FillOptions::default();
@@ -185,18 +197,23 @@ impl MeshBuilder {
 			);
 		}
 		builder.end(true);
-		builder.build().expect("error adding filled polygon");
+		builder.build()?;
+		Ok(())
 	}
 
 	pub fn with_filled_polygon(
 		mut self,
 		points: impl IntoIterator<Item = FilledPolygonPoint>,
-	) -> Self {
-		self.add_filled_polygon(points);
-		self
+	) -> Result<Self, TessellationError> {
+		self.add_filled_polygon(points)?;
+		Ok(self)
 	}
 
-	pub fn add_polyline(&mut self, points: impl IntoIterator<Item = StrokePoint>, closed: bool) {
+	pub fn add_polyline(
+		&mut self,
+		points: impl IntoIterator<Item = StrokePoint>,
+		closed: bool,
+	) -> Result<(), TessellationError> {
 		let mut stroke_tessellator = StrokeTessellator::new();
 		let mut buffers_builder = BuffersBuilder::new(&mut self.buffers, PointWithColorToVertex);
 		let options = StrokeOptions::default().with_variable_line_width(4);
@@ -229,24 +246,21 @@ impl MeshBuilder {
 			);
 		}
 		builder.end(closed);
-		builder.build().expect("error adding polyline");
+		builder.build()?;
+		Ok(())
 	}
 
 	pub fn with_polyline(
 		mut self,
 		points: impl IntoIterator<Item = StrokePoint>,
 		closed: bool,
-	) -> Self {
-		self.add_polyline(points, closed);
-		self
+	) -> Result<Self, TessellationError> {
+		self.add_polyline(points, closed)?;
+		Ok(self)
 	}
 
 	pub fn build(self, ctx: &Context) -> Mesh {
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
-	}
-
-	pub(crate) fn buffers(&self) -> &VertexBuffers<Vertex, u32> {
-		&self.buffers
 	}
 }
 

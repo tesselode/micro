@@ -5,6 +5,7 @@ pub use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::Vec2;
+use thiserror::Error;
 
 use crate::{context::Context, math::Rect, IntoOffsetAndCount};
 
@@ -20,7 +21,12 @@ pub struct Text {
 }
 
 impl Text {
-	pub fn new(ctx: &Context, font: &Font, text: &str, layout_settings: LayoutSettings) -> Self {
+	pub fn new(
+		ctx: &Context,
+		font: &Font,
+		text: &str,
+		layout_settings: LayoutSettings,
+	) -> Result<Self, CharacterNotLoaded> {
 		Self::with_multiple_fonts(
 			ctx,
 			&[font],
@@ -37,7 +43,7 @@ impl Text {
 		fonts: &[&Font],
 		text_fragments: impl IntoIterator<Item = &'a TextFragment<'a>>,
 		layout_settings: LayoutSettings,
-	) -> Self {
+	) -> Result<Self, CharacterNotLoaded> {
 		let fontdue_fonts = fonts.iter().map(|font| &font.font).collect::<Vec<_>>();
 		let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
 		layout.reset(&layout_settings.into());
@@ -85,7 +91,11 @@ impl Text {
 		self.sprite_batches[0].draw_range(ctx, range, params);
 	}
 
-	fn from_layout(layout: Layout, fonts: &[&Font], ctx: &Context) -> Text {
+	fn from_layout(
+		layout: Layout,
+		fonts: &[&Font],
+		ctx: &Context,
+	) -> Result<Text, CharacterNotLoaded> {
 		let glyphs = layout.glyphs();
 		let mut sprite_batches = fonts
 			.iter()
@@ -115,7 +125,9 @@ impl Text {
 			let texture_rect = *fonts[glyph.font_index]
 				.glyph_rects
 				.get(&glyph.parent)
-				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
+				.ok_or(CharacterNotLoaded {
+					character: glyph.parent,
+				})?;
 			sprite_batches[glyph.font_index]
 				.add_region(
 					ctx,
@@ -124,10 +136,10 @@ impl Text {
 				)
 				.expect("Not enough capacity in the sprite batch");
 		}
-		Self {
+		Ok(Self {
 			sprite_batches,
 			bounds,
-		}
+		})
 	}
 }
 
@@ -191,4 +203,10 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 pub struct TextFragment<'a> {
 	pub font_index: usize,
 	pub text: &'a str,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]
+#[error("Cannot create text with the character {character} because the character is not loaded for this font")]
+pub struct CharacterNotLoaded {
+	pub character: char,
 }

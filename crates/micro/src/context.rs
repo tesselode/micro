@@ -7,9 +7,10 @@ use std::{
 
 use glam::{IVec2, UVec2};
 use sdl2::{
-	video::{FullscreenType, Window, WindowPos},
+	video::{FullscreenType, Window, WindowBuildError, WindowPos},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 };
+use thiserror::Error;
 use wgpu::PresentMode;
 
 use crate::{
@@ -22,15 +23,16 @@ use crate::{
 
 use self::graphics::GraphicsContext;
 
-pub fn run<S, F>(settings: ContextSettings, mut state_constructor: F)
+pub fn run<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
 where
-	S: State,
-	F: FnMut(&mut Context) -> S,
+	S: State<E>,
+	F: FnMut(&mut Context) -> Result<S, E>,
+	E: From<InitError>,
 {
-	let mut ctx = Context::new(settings);
+	let mut ctx = Context::new(settings)?;
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
-	let mut state = state_constructor(&mut ctx);
+	let mut state = state_constructor(&mut ctx)?;
 	let mut last_update_time = Instant::now();
 	loop {
 		let now = Instant::now();
@@ -39,7 +41,7 @@ where
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
 		let egui_input = egui_raw_input(&ctx, &events);
 		egui_ctx.begin_frame(egui_input);
-		state.ui(&mut ctx, &egui_ctx);
+		state.ui(&mut ctx, &egui_ctx)?;
 		let egui_output = egui_ctx.end_frame();
 		for event in events
 			.drain(..)
@@ -53,14 +55,14 @@ where
 				}
 				_ => {}
 			}
-			state.event(&mut ctx, event);
+			state.event(&mut ctx, event)?;
 		}
-		state.update(&mut ctx, delta_time);
-		state.draw(&mut ctx);
+		state.update(&mut ctx, delta_time)?;
+		state.draw(&mut ctx)?;
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		ctx.graphics_ctx.render();
 		if ctx.should_quit {
-			break;
+			return Ok(());
 		}
 		std::thread::sleep(Duration::from_millis(1));
 	}
@@ -182,14 +184,14 @@ impl Context {
 		self.should_quit = true;
 	}
 
-	fn new(settings: ContextSettings) -> Self {
-		let sdl = sdl2::init().expect("error initializing SDL");
-		let video = sdl.video().expect("error initializing video subsystem");
-		let controller = sdl.game_controller().unwrap();
-		let window = build_window(&video, &settings);
-		let event_pump = sdl.event_pump().expect("error creating event pump");
+	fn new(settings: ContextSettings) -> Result<Self, InitError> {
+		let sdl = sdl2::init()?;
+		let video = sdl.video()?;
+		let controller = sdl.game_controller()?;
+		let window = build_window(&video, &settings)?;
+		let event_pump = sdl.event_pump()?;
 		let graphics_ctx = GraphicsContext::new(&window, settings);
-		Self {
+		Ok(Self {
 			_sdl: sdl,
 			video,
 			window,
@@ -197,7 +199,7 @@ impl Context {
 			event_pump,
 			graphics_ctx,
 			should_quit: false,
-		}
+		})
 	}
 }
 
@@ -220,7 +222,7 @@ impl Default for ContextSettings {
 	}
 }
 
-fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
+fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Result<Window, InitError> {
 	let window_size = match settings.window_mode {
 		// doesn't matter because we're going to set the window to fullscreen
 		WindowMode::Fullscreen => UVec2::new(800, 600),
@@ -234,5 +236,25 @@ fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
 	if settings.resizable {
 		window_builder.resizable();
 	}
-	window_builder.build().expect("error building window")
+	Ok(window_builder.build()?)
+}
+
+#[derive(Debug, Clone, Error)]
+pub enum InitError {
+	#[error("Error initializing SDL: {0}")]
+	SdlError(String),
+	#[error("Error building the window: {0}")]
+	WindowBuildError(WindowBuildError),
+}
+
+impl From<String> for InitError {
+	fn from(v: String) -> Self {
+		Self::SdlError(v)
+	}
+}
+
+impl From<WindowBuildError> for InitError {
+	fn from(v: WindowBuildError) -> Self {
+		Self::WindowBuildError(v)
+	}
 }

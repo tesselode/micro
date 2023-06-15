@@ -3,6 +3,7 @@ mod builder;
 pub use builder::*;
 use bytemuck::{Pod, Zeroable};
 use glam::Vec2;
+use lyon_tessellation::TessellationError;
 
 use std::rc::Rc;
 
@@ -47,10 +48,15 @@ impl Mesh {
 		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
-	pub fn styled_rectangle(ctx: &Context, style: ShapeStyle, rect: Rect, color: Rgba) -> Self {
-		MeshBuilder::new()
-			.with_rectangle(style, rect, color)
-			.build(ctx)
+	pub fn styled_rectangle(
+		ctx: &Context,
+		style: ShapeStyle,
+		rect: Rect,
+		color: Rgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_rectangle(style, rect, color)?
+			.build(ctx))
 	}
 
 	pub fn circle(
@@ -59,10 +65,10 @@ impl Mesh {
 		center: Vec2,
 		radius: f32,
 		color: Rgba,
-	) -> Self {
-		MeshBuilder::new()
-			.with_circle(style, center, radius, color)
-			.build(ctx)
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_circle(style, center, radius, color)?
+			.build(ctx))
 	}
 
 	pub fn ellipse(
@@ -72,25 +78,25 @@ impl Mesh {
 		radii: Vec2,
 		rotation: f32,
 		color: Rgba,
-	) -> Self {
-		MeshBuilder::new()
-			.with_ellipse(style, center, radii, rotation, color)
-			.build(ctx)
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_ellipse(style, center, radii, rotation, color)?
+			.build(ctx))
 	}
 
 	pub fn filled_polygon(
 		ctx: &Context,
 		points: impl IntoIterator<Item = FilledPolygonPoint>,
-	) -> Self {
-		MeshBuilder::new().with_filled_polygon(points).build(ctx)
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new().with_filled_polygon(points)?.build(ctx))
 	}
 
 	pub fn polyline(
 		ctx: &Context,
 		points: impl IntoIterator<Item = StrokePoint>,
 		closed: bool,
-	) -> Self {
-		MeshBuilder::new().with_polyline(points, closed).build(ctx)
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
 	}
 
 	pub fn set_vertex(&self, ctx: &Context, index: usize, vertex: Vertex) {

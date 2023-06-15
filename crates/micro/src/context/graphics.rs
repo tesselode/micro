@@ -355,7 +355,10 @@ impl GraphicsContext {
 		stencil_reference: u32,
 		scissor_rect: Option<URect>,
 	) {
-		let set = self.draw_instruction_sets.last_mut().unwrap();
+		let set = self
+			.draw_instruction_sets
+			.last_mut()
+			.expect("no draw instruction sets");
 		let coordinate_system_transform = coordinate_system_transform(match &set.kind {
 			DrawInstructionSetKind::Surface => UVec2::new(self.config.width, self.config.height),
 			DrawInstructionSetKind::Canvas(canvas) => canvas.size(),

@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use glam::Vec2;
 use micro::{
 	graphics::{
@@ -7,7 +9,6 @@ use micro::{
 		mesh::{Mesh, MeshTexture, ShapeStyle},
 		shader::{DefaultShader, Shader},
 		texture::{Texture, TextureSettings},
-		DrawParams,
 	},
 	Context, ContextSettings, State,
 };
@@ -29,7 +30,7 @@ struct MainState {
 }
 
 impl MainState {
-	fn new(ctx: &mut Context) -> Self {
+	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		let texture = Texture::from_file(
 			ctx,
 			"crates/micro/examples/tree.png",
@@ -57,17 +58,18 @@ impl MainState {
 				clear_color: Some(Rgba::BLACK),
 				clear_stencil_value: None,
 			},
-			|ctx| {
+			|ctx| -> Result<(), Box<dyn Error>> {
 				Mesh::circle(
 					ctx,
 					ShapeStyle::Fill,
 					Vec2::splat(200.0),
 					500.0,
 					Rgba::WHITE,
-				)
+				)?
 				.draw(ctx, &canvas_graphics_pipeline);
+				Ok(())
 			},
-		);
+		)?;
 		let multiply_graphics_pipeline = GraphicsPipeline::new(
 			ctx,
 			GraphicsPipelineSettings {
@@ -75,19 +77,20 @@ impl MainState {
 				..Default::default()
 			},
 		);
-		Self {
+		Ok(Self {
 			texture,
 			multiply_graphics_pipeline,
-		}
+		})
 	}
 }
 
-impl State for MainState {
-	fn draw(&mut self, ctx: &mut Context) {
+impl State<Box<dyn Error>> for MainState {
+	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		self.texture.draw(ctx, &self.multiply_graphics_pipeline);
+		Ok(())
 	}
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
 	micro::run(ContextSettings::default(), MainState::new)
 }

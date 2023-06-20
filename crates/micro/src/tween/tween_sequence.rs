@@ -1,4 +1,7 @@
-use std::{ops::Range, time::Duration};
+use std::{
+	ops::{Range, RangeInclusive},
+	time::Duration,
+};
 
 use super::{Easing, Tweenable};
 
@@ -16,6 +19,10 @@ impl<T: Tweenable + Copy> TweenSequence<T> {
 			tweens: vec![],
 			elapsed: Duration::ZERO,
 		}
+	}
+
+	pub fn single(duration: Duration, values: RangeInclusive<T>, easing: Easing) -> Self {
+		Self::new(*values.start()).tween(duration, *values.end(), easing)
 	}
 
 	pub fn tween(mut self, duration: Duration, target: T, easing: Easing) -> Self {

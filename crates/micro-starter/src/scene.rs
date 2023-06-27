@@ -16,21 +16,55 @@ pub trait Scene {
 		None
 	}
 
-	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context, globals: &mut Globals) {}
+	fn ui(
+		&mut self,
+		ctx: &mut Context,
+		egui_ctx: &egui::Context,
+		globals: &mut Globals,
+	) -> anyhow::Result<()> {
+		Ok(())
+	}
 
-	fn menu(&mut self, ctx: &mut Context, ui: &mut egui::Ui, globals: &mut Globals) {}
+	fn menu(
+		&mut self,
+		ctx: &mut Context,
+		ui: &mut egui::Ui,
+		globals: &mut Globals,
+	) -> anyhow::Result<()> {
+		Ok(())
+	}
 
 	fn stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
 		None
 	}
 
-	fn event(&mut self, ctx: &mut Context, globals: &mut Globals, event: &Event) {}
+	fn event(
+		&mut self,
+		ctx: &mut Context,
+		globals: &mut Globals,
+		event: &Event,
+	) -> anyhow::Result<()> {
+		Ok(())
+	}
 
-	fn update(&mut self, ctx: &mut Context, globals: &mut Globals, delta_time: Duration) {}
+	fn update(
+		&mut self,
+		ctx: &mut Context,
+		globals: &mut Globals,
+		delta_time: Duration,
+	) -> anyhow::Result<()> {
+		Ok(())
+	}
 
-	fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) {}
+	fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+		Ok(())
+	}
 
-	fn pause(&mut self, ctx: &mut Context, globals: &mut Globals) {}
+	fn pause(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+		Ok(())
+	}
 
-	fn resume(&mut self, ctx: &mut Context, globals: &mut Globals) {}
+	fn resume(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+		Ok(())
+	}
 }

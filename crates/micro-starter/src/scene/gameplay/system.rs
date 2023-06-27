@@ -17,7 +17,8 @@ pub trait System {
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
-	) {
+	) -> anyhow::Result<()> {
+		Ok(())
 	}
 
 	fn ui(
@@ -27,7 +28,8 @@ pub trait System {
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
-	) {
+	) -> anyhow::Result<()> {
+		Ok(())
 	}
 
 	fn menu(
@@ -37,7 +39,8 @@ pub trait System {
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
-	) {
+	) -> anyhow::Result<()> {
+		Ok(())
 	}
 
 	fn stats(
@@ -57,7 +60,8 @@ pub trait System {
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
 		event: &Event,
-	) {
+	) -> anyhow::Result<()> {
+		Ok(())
 	}
 
 	fn gameplay_event(
@@ -67,7 +71,8 @@ pub trait System {
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
 		event: &GameplayEvent,
-	) {
+	) -> anyhow::Result<()> {
+		Ok(())
 	}
 
 	fn update(
@@ -77,7 +82,8 @@ pub trait System {
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
 		delta_time: Duration,
-	) {
+	) -> anyhow::Result<()> {
+		Ok(())
 	}
 
 	fn draw(
@@ -86,6 +92,7 @@ pub trait System {
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
-	) {
+	) -> anyhow::Result<()> {
+		Ok(())
 	}
 }

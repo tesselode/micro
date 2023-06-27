@@ -12,6 +12,7 @@ use globals::Globals;
 use micro::{input::Scancode, window::WindowMode, Context, ContextSettings, Event, State};
 use scene::gameplay::Gameplay;
 use scene_manager::SceneManager;
+use tracing_subscriber::EnvFilter;
 
 const NUM_FRAME_TIMES_TO_RECORD: usize = 30;
 
@@ -23,15 +24,15 @@ struct MainState {
 }
 
 impl MainState {
-	fn new(ctx: &mut Context) -> Self {
-		let mut globals = Globals::new(ctx);
-		let gameplay = Gameplay::new(ctx, &mut globals);
-		Self {
+	fn new(ctx: &mut Context) -> anyhow::Result<Self> {
+		let mut globals = Globals::new(ctx)?;
+		let gameplay = Gameplay::new(ctx, &mut globals)?;
+		Ok(Self {
 			globals,
 			scene_manager: SceneManager::new(gameplay),
 			dev_tools_enabled: false,
 			frame_times: VecDeque::with_capacity(NUM_FRAME_TIMES_TO_RECORD),
-		}
+		})
 	}
 
 	fn record_frame_time(&mut self, delta_time: Duration) {
@@ -42,12 +43,12 @@ impl MainState {
 	}
 }
 
-impl State for MainState {
-	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) {
+impl State<anyhow::Error> for MainState {
+	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> anyhow::Result<()> {
 		if !self.dev_tools_enabled {}
-		TopBottomPanel::top("menu").show(egui_ctx, |ui| {
-			egui::menu::bar(ui, |ui| {
-				self.scene_manager.menu(ctx, ui, &mut self.globals);
+		TopBottomPanel::top("menu").show(egui_ctx, |ui| -> anyhow::Result<()> {
+			egui::menu::bar(ui, |ui| -> anyhow::Result<()> {
+				self.scene_manager.menu(ctx, ui, &mut self.globals)?;
 				ui.separator();
 				let average_frame_time =
 					self.frame_times.iter().sum::<Duration>() / NUM_FRAME_TIMES_TO_RECORD as u32;
@@ -62,34 +63,46 @@ impl State for MainState {
 						ui.label(stat);
 					}
 				}
+				Ok(())
 			})
+			.inner
 		});
-		self.scene_manager.ui(ctx, egui_ctx, &mut self.globals);
+		self.scene_manager.ui(ctx, egui_ctx, &mut self.globals)?;
+		Ok(())
 	}
 
-	fn event(&mut self, ctx: &mut Context, event: Event) {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> anyhow::Result<()> {
 		if let Event::KeyPressed(Scancode::Escape) = event {
 			ctx.quit();
 		}
 		if let Event::KeyPressed(Scancode::F1) = event {
 			self.dev_tools_enabled = !self.dev_tools_enabled;
 		}
-		self.scene_manager.event(ctx, &mut self.globals, event);
+		self.scene_manager.event(ctx, &mut self.globals, event)?;
+		Ok(())
 	}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> anyhow::Result<()> {
 		self.globals.input.update(ctx);
 		self.scene_manager
-			.update(ctx, &mut self.globals, delta_time);
+			.update(ctx, &mut self.globals, delta_time)?;
 		self.record_frame_time(delta_time);
+		Ok(())
 	}
 
-	fn draw(&mut self, ctx: &mut Context) {
-		self.scene_manager.draw(ctx, &mut self.globals);
+	fn draw(&mut self, ctx: &mut Context) -> anyhow::Result<()> {
+		self.scene_manager.draw(ctx, &mut self.globals)?;
+		Ok(())
 	}
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
+	tracing_subscriber::fmt()
+		.with_env_filter(
+			EnvFilter::try_from_default_env()
+				.unwrap_or_else(|_| EnvFilter::new("aetherbeats=info,kira_rhythm=info")),
+		)
+		.init();
 	micro::run(
 		ContextSettings {
 			window_title: "Game".to_string(),

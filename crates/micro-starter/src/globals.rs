@@ -13,10 +13,10 @@ pub struct Globals {
 }
 
 impl Globals {
-	pub fn new(ctx: &mut Context) -> Self {
-		Self {
-			resources: Resources::new(ctx),
+	pub fn new(ctx: &mut Context) -> anyhow::Result<Self> {
+		Ok(Self {
+			resources: Resources::new(ctx)?,
 			input: Input::new(default_input_config(), ctx.game_controller(0)),
-		}
+		})
 	}
 }

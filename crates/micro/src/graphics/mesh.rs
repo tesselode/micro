@@ -99,6 +99,28 @@ impl Mesh {
 		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
 	}
 
+	pub fn simple_polygon(
+		ctx: &Context,
+		style: ShapeStyle,
+		points: impl IntoIterator<Item = Vec2>,
+		color: Rgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_simple_polygon(style, points, color)?
+			.build(ctx))
+	}
+
+	pub fn simple_polyline(
+		ctx: &Context,
+		stroke_width: f32,
+		points: impl IntoIterator<Item = Vec2>,
+		color: Rgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_simple_polyline(stroke_width, points, color)?
+			.build(ctx))
+	}
+
 	pub fn set_vertex(&self, ctx: &Context, index: usize, vertex: Vertex) {
 		ctx.graphics_ctx.queue.write_buffer(
 			&self.0.vertex_buffer,

@@ -259,6 +259,65 @@ impl MeshBuilder {
 		Ok(self)
 	}
 
+	pub fn add_simple_polygon(
+		&mut self,
+		style: ShapeStyle,
+		points: impl IntoIterator<Item = Vec2>,
+		color: Rgba,
+	) -> Result<(), TessellationError> {
+		match style {
+			ShapeStyle::Fill => self.add_filled_polygon(
+				points
+					.into_iter()
+					.map(|position| FilledPolygonPoint { position, color }),
+			),
+			ShapeStyle::Stroke(stroke_width) => self.add_polyline(
+				points.into_iter().map(|position| StrokePoint {
+					position,
+					color,
+					stroke_width,
+				}),
+				true,
+			),
+		}
+	}
+
+	pub fn with_simple_polygon(
+		mut self,
+		style: ShapeStyle,
+		points: impl IntoIterator<Item = Vec2>,
+		color: Rgba,
+	) -> Result<Self, TessellationError> {
+		self.add_simple_polygon(style, points, color)?;
+		Ok(self)
+	}
+
+	pub fn add_simple_polyline(
+		&mut self,
+		stroke_width: f32,
+		points: impl IntoIterator<Item = Vec2>,
+		color: Rgba,
+	) -> Result<(), TessellationError> {
+		self.add_polyline(
+			points.into_iter().map(|position| StrokePoint {
+				position,
+				color,
+				stroke_width,
+			}),
+			false,
+		)
+	}
+
+	pub fn with_simple_polyline(
+		mut self,
+		stroke_width: f32,
+		points: impl IntoIterator<Item = Vec2>,
+		color: Rgba,
+	) -> Result<Self, TessellationError> {
+		self.add_simple_polyline(stroke_width, points, color)?;
+		Ok(self)
+	}
+
 	pub fn build(self, ctx: &Context) -> Mesh {
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
 	}

@@ -3,90 +3,34 @@ use std::error::Error;
 use glam::Vec2;
 use micro::{
 	graphics::{
-		canvas::{Canvas, CanvasSettings, RenderToCanvasSettings},
 		color::Rgba,
-		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
-		mesh::{Mesh, MeshTexture, ShapeStyle},
-		shader::{DefaultShader, Shader},
-		texture::{Texture, TextureSettings},
+		mesh::{Mesh, ShapeStyle},
+		DrawParams,
 	},
 	Context, ContextSettings, State,
 };
 
-#[derive(Clone)]
-pub struct MultiplyShader;
-
-impl Shader for MultiplyShader {
-	const SOURCE: &'static str = include_str!("multiply.wgsl");
-
-	const NUM_TEXTURES: u32 = 1;
-
-	type Params = i32;
-}
-
-struct MainState {
-	texture: Texture,
-	multiply_graphics_pipeline: GraphicsPipeline<MultiplyShader>,
-}
+struct MainState;
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let texture = Texture::from_file(
-			ctx,
-			"crates/micro/examples/tree.png",
-			TextureSettings::default(),
-		)
-		.unwrap();
-		let canvas_graphics_pipeline = GraphicsPipeline::<DefaultShader>::new(
-			ctx,
-			GraphicsPipelineSettings {
-				sample_count: 8,
-				..Default::default()
-			},
-		);
-		let canvas = Canvas::new(
-			ctx,
-			ctx.window_size(),
-			CanvasSettings {
-				sample_count: 8,
-				..Default::default()
-			},
-		);
-		canvas.render_to(
-			ctx,
-			RenderToCanvasSettings {
-				clear_color: Some(Rgba::BLACK),
-				clear_stencil_value: None,
-			},
-			|ctx| -> Result<(), Box<dyn Error>> {
-				Mesh::circle(
-					ctx,
-					ShapeStyle::Fill,
-					Vec2::splat(200.0),
-					500.0,
-					Rgba::WHITE,
-				)?
-				.draw(ctx, &canvas_graphics_pipeline);
-				Ok(())
-			},
-		)?;
-		let multiply_graphics_pipeline = GraphicsPipeline::new(
-			ctx,
-			GraphicsPipelineSettings {
-				textures: vec![MeshTexture::Canvas(canvas.clone())],
-				..Default::default()
-			},
-		);
-		Ok(Self {
-			texture,
-			multiply_graphics_pipeline,
-		})
+		Ok(Self)
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		self.texture.draw(ctx, &self.multiply_graphics_pipeline);
+		Mesh::simple_polyline(
+			ctx,
+			2.0,
+			[
+				Vec2::new(100.0, 100.0),
+				Vec2::new(300.0, 100.0),
+				Vec2::new(100.0, 300.0),
+			],
+			Rgba::WHITE,
+		)?
+		.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

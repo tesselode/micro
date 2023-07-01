@@ -31,8 +31,11 @@ impl DrawParams<DefaultShader> {
 }
 
 impl<S: Shader> DrawParams<S> {
-	pub fn transform(self, transform: Affine2) -> Self {
-		Self { transform, ..self }
+	pub fn transformed(self, transform: Affine2) -> Self {
+		Self {
+			transform: transform * self.transform,
+			..self
+		}
 	}
 
 	pub fn translated(self, translation: Vec2) -> Self {
@@ -118,7 +121,7 @@ impl From<Vec2> for DrawParams<DefaultShader> {
 
 impl From<Affine2> for DrawParams<DefaultShader> {
 	fn from(transform: Affine2) -> Self {
-		Self::new().transform(transform)
+		Self::new().transformed(transform)
 	}
 }
 

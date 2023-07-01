@@ -2,13 +2,10 @@ use std::error::Error;
 
 use glam::Vec2;
 use micro::{
-	graphics::{
-		color::Rgba,
-		mesh::{Mesh, ShapeStyle},
-		DrawParams,
-	},
+	graphics::{mesh::Mesh, DrawParams},
 	Context, ContextSettings, State,
 };
+use palette::LinSrgba;
 
 struct MainState;
 
@@ -28,7 +25,7 @@ impl State<Box<dyn Error>> for MainState {
 				Vec2::new(300.0, 100.0),
 				Vec2::new(100.0, 300.0),
 			],
-			Rgba::WHITE,
+			LinSrgba::new(1.0, 1.0, 1.0, 1.0),
 		)?
 		.draw(ctx, DrawParams::new());
 		Ok(())

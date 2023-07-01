@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use glam::{Affine2, UVec2, Vec2};
+use palette::LinSrgba;
 use sdl2::video::Window;
 use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
@@ -16,7 +17,6 @@ use wgpu::{
 use crate::{
 	graphics::{
 		canvas::Canvas,
-		color::Rgba,
 		draw_params::DrawParamsUniform,
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineInner, GraphicsPipelineSettings},
 		image_data::ImageData,
@@ -41,7 +41,7 @@ pub struct GraphicsContext {
 	draw_instruction_sets: Vec<DrawInstructionSet>,
 	pub(crate) default_texture: Texture,
 	depth_stencil_texture_view: TextureView,
-	background_color: Rgba,
+	background_color: LinSrgba,
 }
 
 impl GraphicsContext {
@@ -61,7 +61,7 @@ impl GraphicsContext {
 		self.surface.configure(&self.device, &self.config);
 	}
 
-	pub fn set_background_color(&mut self, background_color: Rgba) {
+	pub fn set_background_color(&mut self, background_color: LinSrgba) {
 		self.background_color = background_color;
 	}
 
@@ -100,7 +100,7 @@ impl GraphicsContext {
 					},
 					ops: Operations {
 						load: match clear_color {
-							Some(color) => LoadOp::Clear(color.to_wgpu_color()),
+							Some(color) => LoadOp::Clear(palette_lin_srgba_to_wgpu_color(color)),
 							None => LoadOp::Load,
 						},
 						store: true,
@@ -189,7 +189,7 @@ impl GraphicsContext {
 	pub(crate) fn set_render_target_to_canvas(
 		&mut self,
 		canvas: Canvas,
-		clear_color: Option<Rgba>,
+		clear_color: Option<LinSrgba>,
 		clear_stencil_value: Option<u32>,
 	) {
 		self.draw_instruction_sets.push(DrawInstructionSet {
@@ -323,7 +323,7 @@ impl GraphicsContext {
 			TextureSettings::default(),
 		);
 		let depth_stencil_texture_view = create_depth_stencil_texture_view(size.into(), &device, 1);
-		let background_color = Rgba::BLACK;
+		let background_color = LinSrgba::new(0.0, 0.0, 0.0, 1.0);
 		Self {
 			surface,
 			device,
@@ -401,7 +401,7 @@ struct DrawInstruction {
 
 struct DrawInstructionSet {
 	kind: DrawInstructionSetKind,
-	clear_color: Option<Rgba>,
+	clear_color: Option<LinSrgba>,
 	clear_stencil_value: Option<u32>,
 	instructions: Vec<DrawInstruction>,
 }
@@ -414,4 +414,13 @@ enum DrawInstructionSetKind {
 fn coordinate_system_transform(size: UVec2) -> Affine2 {
 	Affine2::from_translation(Vec2::new(-1.0, 1.0))
 		* Affine2::from_scale(Vec2::new(2.0 / size.x as f32, -2.0 / size.y as f32))
+}
+
+fn palette_lin_srgba_to_wgpu_color(srgba: LinSrgba) -> wgpu::Color {
+	wgpu::Color {
+		r: srgba.red as f64,
+		g: srgba.green as f64,
+		b: srgba.blue as f64,
+		a: srgba.alpha as f64,
+	}
 }

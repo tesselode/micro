@@ -4,6 +4,7 @@ pub use builder::*;
 use bytemuck::{Pod, Zeroable};
 use glam::Vec2;
 use lyon_tessellation::TessellationError;
+use palette::LinSrgba;
 
 use std::rc::Rc;
 
@@ -15,7 +16,7 @@ use wgpu::{
 
 use crate::{math::Rect, Context, IntoOffsetAndCount};
 
-use super::{canvas::Canvas, color::Rgba, shader::Shader, texture::Texture, DrawParams};
+use super::{canvas::Canvas, shader::Shader, texture::Texture, DrawParams};
 
 #[derive(Clone)]
 pub struct Mesh(pub(crate) Rc<MeshInner>);
@@ -42,7 +43,7 @@ impl Mesh {
 			.map(|(position, texture_coords)| Vertex {
 				position,
 				texture_coords,
-				color: Rgba::WHITE,
+				color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
 			})
 			.collect::<Vec<_>>();
 		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
@@ -52,7 +53,7 @@ impl Mesh {
 		ctx: &Context,
 		style: ShapeStyle,
 		rect: Rect,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
 			.with_rectangle(style, rect, color)?
@@ -64,7 +65,7 @@ impl Mesh {
 		style: ShapeStyle,
 		center: Vec2,
 		radius: f32,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
 			.with_circle(style, center, radius, color)?
@@ -77,7 +78,7 @@ impl Mesh {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
 			.with_ellipse(style, center, radii, rotation, color)?
@@ -103,7 +104,7 @@ impl Mesh {
 		ctx: &Context,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = Vec2>,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
 			.with_simple_polygon(style, points, color)?
@@ -114,7 +115,7 @@ impl Mesh {
 		ctx: &Context,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = Vec2>,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
 			.with_simple_polyline(stroke_width, points, color)?
@@ -225,7 +226,7 @@ impl From<&Canvas> for MeshTexture {
 pub struct Vertex {
 	pub position: Vec2,
 	pub texture_coords: Vec2,
-	pub color: Rgba,
+	pub color: LinSrgba,
 }
 
 impl Vertex {

@@ -8,8 +8,9 @@ use lyon_tessellation::{
 	BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor, StrokeOptions,
 	StrokeTessellator, StrokeVertex, StrokeVertexConstructor, TessellationError, VertexBuffers,
 };
+use palette::LinSrgba;
 
-use crate::{graphics::color::Rgba, math::Rect, Context};
+use crate::{math::Rect, Context};
 
 use super::{Mesh, Vertex};
 
@@ -28,7 +29,7 @@ impl MeshBuilder {
 		&mut self,
 		style: ShapeStyle,
 		rect: Rect,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
@@ -61,7 +62,7 @@ impl MeshBuilder {
 		mut self,
 		style: ShapeStyle,
 		rect: Rect,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		self.add_rectangle(style, rect, color)?;
 		Ok(self)
@@ -72,7 +73,7 @@ impl MeshBuilder {
 		style: ShapeStyle,
 		center: Vec2,
 		radius: f32,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
@@ -106,7 +107,7 @@ impl MeshBuilder {
 		style: ShapeStyle,
 		center: Vec2,
 		radius: f32,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		self.add_circle(style, center, radius, color)?;
 		Ok(self)
@@ -118,7 +119,7 @@ impl MeshBuilder {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
@@ -157,7 +158,7 @@ impl MeshBuilder {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		self.add_ellipse(style, center, radii, rotation, color)?;
 		Ok(self)
@@ -263,7 +264,7 @@ impl MeshBuilder {
 		&mut self,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = Vec2>,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => self.add_filled_polygon(
@@ -286,7 +287,7 @@ impl MeshBuilder {
 		mut self,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = Vec2>,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		self.add_simple_polygon(style, points, color)?;
 		Ok(self)
@@ -296,7 +297,7 @@ impl MeshBuilder {
 		&mut self,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = Vec2>,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<(), TessellationError> {
 		self.add_polyline(
 			points.into_iter().map(|position| StrokePoint {
@@ -312,7 +313,7 @@ impl MeshBuilder {
 		mut self,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = Vec2>,
-		color: Rgba,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		self.add_simple_polyline(stroke_width, points, color)?;
 		Ok(self)
@@ -338,18 +339,18 @@ pub enum ShapeStyle {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FilledPolygonPoint {
 	pub position: Vec2,
-	pub color: Rgba,
+	pub color: LinSrgba,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StrokePoint {
 	pub position: Vec2,
-	pub color: Rgba,
+	pub color: LinSrgba,
 	pub stroke_width: f32,
 }
 
 struct PointWithoutColorToVertex {
-	color: Rgba,
+	color: LinSrgba,
 }
 
 impl FillVertexConstructor<Vertex> for PointWithoutColorToVertex {
@@ -381,7 +382,7 @@ impl FillVertexConstructor<Vertex> for PointWithColorToVertex {
 		Vertex {
 			position,
 			texture_coords: Vec2::ZERO,
-			color: Rgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
+			color: LinSrgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
 		}
 	}
 }
@@ -393,7 +394,7 @@ impl StrokeVertexConstructor<Vertex> for PointWithColorToVertex {
 		Vertex {
 			position,
 			texture_coords: Vec2::ZERO,
-			color: Rgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
+			color: LinSrgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
 		}
 	}
 }

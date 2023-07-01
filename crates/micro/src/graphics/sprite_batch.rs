@@ -1,5 +1,6 @@
 mod sprite_params;
 
+use palette::LinSrgba;
 pub use sprite_params::SpriteParams;
 
 use generational_arena::{Arena, Index};
@@ -17,7 +18,7 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::{color::Rgba, shader::Shader};
+use super::shader::Shader;
 
 pub struct SpriteBatch {
 	texture: Texture,
@@ -31,7 +32,7 @@ impl SpriteBatch {
 			Vertex {
 				position: Vec2::ZERO,
 				texture_coords: Vec2::ZERO,
-				color: Rgba::WHITE,
+				color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
 			};
 			capacity * 4
 		];
@@ -123,7 +124,7 @@ impl SpriteBatch {
 				Vertex {
 					position: Vec2::ZERO,
 					texture_coords: Vec2::ZERO,
-					color: Rgba::WHITE,
+					color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
 				},
 			);
 		}

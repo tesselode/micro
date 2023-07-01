@@ -1,7 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{Affine2, Vec2};
+use palette::LinSrgba;
 
-use crate::{graphics::color::Rgba, math::URect};
+use crate::math::URect;
 
 use super::{
 	graphics_pipeline::GraphicsPipeline,
@@ -11,7 +12,7 @@ use super::{
 #[derive(Clone)]
 pub struct DrawParams<S: Shader = DefaultShader> {
 	pub transform: Affine2,
-	pub color: Rgba,
+	pub color: LinSrgba,
 	pub graphics_pipeline: Option<GraphicsPipeline<S>>,
 	pub stencil_reference: u32,
 	pub scissor_rect: Option<URect>,
@@ -21,7 +22,7 @@ impl DrawParams<DefaultShader> {
 	pub fn new() -> Self {
 		Self {
 			transform: Affine2::IDENTITY,
-			color: Rgba::WHITE,
+			color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
 			graphics_pipeline: None,
 			stencil_reference: 0,
 			scissor_rect: None,
@@ -55,7 +56,7 @@ impl<S: Shader> DrawParams<S> {
 		}
 	}
 
-	pub fn color(self, color: impl Into<Rgba>) -> Self {
+	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			color: color.into(),
 			..self
@@ -121,8 +122,8 @@ impl From<Affine2> for DrawParams<DefaultShader> {
 	}
 }
 
-impl From<Rgba> for DrawParams<DefaultShader> {
-	fn from(color: Rgba) -> Self {
+impl From<LinSrgba> for DrawParams<DefaultShader> {
+	fn from(color: LinSrgba) -> Self {
 		Self::new().color(color)
 	}
 }
@@ -171,5 +172,5 @@ impl<S: Shader> IntoOptionalGraphicsPipeline<S> for &GraphicsPipeline<S> {
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 pub(crate) struct DrawParamsUniform {
 	pub transform: Affine2,
-	pub color: Rgba,
+	pub color: LinSrgba,
 }

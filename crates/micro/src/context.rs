@@ -6,6 +6,7 @@ use std::{
 };
 
 use glam::{IVec2, UVec2};
+use palette::LinSrgba;
 use sdl2::{
 	video::{FullscreenType, Window, WindowBuildError, WindowPos},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
@@ -15,7 +16,6 @@ use wgpu::PresentMode;
 
 use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	graphics::color::Rgba,
 	input::{Gamepad, MouseButton, Scancode},
 	window::WindowMode,
 	Event, State,
@@ -143,7 +143,7 @@ impl Context {
 		self.graphics_ctx.set_present_mode(present_mode);
 	}
 
-	pub fn set_background_color(&mut self, background_color: Rgba) {
+	pub fn set_background_color(&mut self, background_color: LinSrgba) {
 		self.graphics_ctx.set_background_color(background_color);
 	}
 

@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use glam::{UVec2, Vec2};
+use palette::LinSrgba;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d, FilterMode, Sampler,
 	SamplerDescriptor, TextureDescriptor, TextureDimension, TextureUsages, TextureView,
@@ -10,8 +11,7 @@ use wgpu::{
 use crate::{math::Rect, Context};
 
 use super::{
-	color::Rgba, mesh::Mesh, shader::Shader, util::create_depth_stencil_texture_view, AddressMode,
-	DrawParams,
+	mesh::Mesh, shader::Shader, util::create_depth_stencil_texture_view, AddressMode, DrawParams,
 };
 
 #[derive(Clone)]
@@ -155,7 +155,7 @@ impl Default for CanvasSettings {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderToCanvasSettings {
-	pub clear_color: Option<Rgba>,
+	pub clear_color: Option<LinSrgba>,
 	pub clear_stencil_value: Option<u32>,
 }
 

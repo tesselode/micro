@@ -1,6 +1,5 @@
 use glam::{Mat3, Vec2};
-
-use crate::graphics::color::Rgba;
+use palette::LinSrgba;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpriteParams {
@@ -8,7 +7,7 @@ pub struct SpriteParams {
 	pub rotation: f32,
 	pub scale: Vec2,
 	pub origin: Vec2,
-	pub color: Rgba,
+	pub color: LinSrgba,
 }
 
 impl SpriteParams {
@@ -18,7 +17,7 @@ impl SpriteParams {
 			rotation: 0.0,
 			scale: Vec2::ONE,
 			origin: Vec2::ZERO,
-			color: Rgba::WHITE,
+			color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
 		}
 	}
 
@@ -38,7 +37,7 @@ impl SpriteParams {
 		Self { origin, ..self }
 	}
 
-	pub fn color(self, color: impl Into<Rgba>) -> Self {
+	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			color: color.into(),
 			..self
@@ -65,8 +64,8 @@ impl From<Vec2> for SpriteParams {
 	}
 }
 
-impl From<Rgba> for SpriteParams {
-	fn from(color: Rgba) -> Self {
+impl From<LinSrgba> for SpriteParams {
+	fn from(color: LinSrgba) -> Self {
 		Self::new().color(color)
 	}
 }

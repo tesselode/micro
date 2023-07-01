@@ -5,7 +5,6 @@ use glam::IVec2;
 
 use crate::{
 	graphics::{
-		color::Rgba,
 		mesh::{Mesh, Vertex},
 		texture::{Texture, TextureSettings},
 		DrawParams,
@@ -284,9 +283,9 @@ fn egui_pos2_to_glam_vec2(v: egui::Pos2) -> glam::Vec2 {
 	glam::Vec2::new(v.x, v.y)
 }
 
-fn egui_color32_to_micro_rgba(v: egui::epaint::Color32) -> Rgba {
+fn egui_color32_to_palette_lin_srgba(v: egui::epaint::Color32) -> palette::LinSrgba {
 	let v: egui::Rgba = v.into();
-	Rgba::new(v.r(), v.g(), v.b(), v.a())
+	palette::LinSrgba::new(v.r(), v.g(), v.b(), v.a())
 }
 
 fn egui_rect_to_micro_rect(v: egui::Rect) -> crate::math::Rect {
@@ -307,7 +306,7 @@ fn egui_vertex_to_micro_vertex(vertex: egui::epaint::Vertex) -> Vertex {
 	Vertex {
 		position: egui_pos2_to_glam_vec2(vertex.pos),
 		texture_coords: egui_pos2_to_glam_vec2(vertex.uv),
-		color: egui_color32_to_micro_rgba(vertex.color),
+		color: egui_color32_to_palette_lin_srgba(vertex.color),
 	}
 }
 

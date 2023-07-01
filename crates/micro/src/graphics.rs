@@ -1,7 +1,6 @@
 mod address_mode;
 mod blend_mode;
 pub mod canvas;
-pub mod color;
 pub(crate) mod draw_params;
 pub mod graphics_pipeline;
 pub mod image_data;

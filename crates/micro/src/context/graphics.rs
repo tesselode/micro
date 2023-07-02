@@ -148,8 +148,8 @@ impl GraphicsContext {
 					render_pass.set_scissor_rect(
 						scissor_rect.left(),
 						scissor_rect.top(),
-						scissor_rect.size().x,
-						scissor_rect.size().y,
+						scissor_rect.size.x,
+						scissor_rect.size.y,
 					)
 				} else {
 					match &kind {

@@ -36,8 +36,8 @@ impl MeshBuilder {
 				&lyon_tessellation::math::Box2D {
 					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
 					max: lyon_tessellation::math::point(
-						rect.top_left.x + rect.size().x,
-						rect.top_left.y + rect.size().y,
+						rect.top_left.x + rect.size.x,
+						rect.top_left.y + rect.size.y,
 					),
 				},
 				&FillOptions::default(),
@@ -47,8 +47,8 @@ impl MeshBuilder {
 				&lyon_tessellation::math::Box2D {
 					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
 					max: lyon_tessellation::math::point(
-						rect.top_left.x + rect.size().x,
-						rect.top_left.y + rect.size().y,
+						rect.top_left.x + rect.size.x,
+						rect.top_left.y + rect.size.y,
 					),
 				},
 				&StrokeOptions::default().with_line_width(width),

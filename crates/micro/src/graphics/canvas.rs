@@ -94,7 +94,7 @@ impl Canvas {
 		let size = self.0.size.as_vec2();
 		Rect {
 			top_left: absolute_rect.top_left / size,
-			bottom_right: absolute_rect.bottom_right / size,
+			size: absolute_rect.size / size,
 		}
 	}
 
@@ -127,7 +127,7 @@ impl Canvas {
 	) {
 		Mesh::rectangle_with_texture_region(
 			ctx,
-			Rect::new(Vec2::ZERO, region.size()),
+			Rect::new(Vec2::ZERO, region.size),
 			self.relative_rect(region),
 		)
 		.draw_textured(ctx, self, params);

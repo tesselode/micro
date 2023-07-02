@@ -113,10 +113,8 @@ impl Text {
 			if !glyph.char_data.rasterize() {
 				continue;
 			}
-			let display_rect = Rect::from_top_left_and_size(
-				Vec2::new(glyph.x, glyph.y),
-				Vec2::new(glyph.width as f32, glyph.height as f32),
-			);
+			let display_rect =
+				Rect::from_xywh(glyph.x, glyph.y, glyph.width as f32, glyph.height as f32);
 			if let Some(bounds) = &mut bounds {
 				*bounds = bounds.union(display_rect);
 			} else {

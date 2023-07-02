@@ -139,7 +139,7 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 			.map(|PackedItem { data, rect }| {
 				(
 					*data,
-					Rect::from_top_left_and_size(
+					Rect::new(
 						Vec2::new(
 							(rect.x + GLYPH_PADDING) as f32,
 							(rect.y + GLYPH_PADDING) as f32,

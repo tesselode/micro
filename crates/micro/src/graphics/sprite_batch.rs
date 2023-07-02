@@ -71,7 +71,7 @@ impl SpriteBatch {
 	) -> Result<SpriteId, SpriteLimitReached> {
 		self.add_region(
 			ctx,
-			Rect::from_top_left_and_size(Vec2::ZERO, self.texture.size().as_vec2()),
+			Rect::new(Vec2::ZERO, self.texture.size().as_vec2()),
 			params,
 		)
 	}
@@ -90,8 +90,7 @@ impl SpriteBatch {
 		let params: SpriteParams = params.into();
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
-		let untransformed_display_rect =
-			Rect::from_top_left_and_size(Vec2::ZERO, texture_rect.size());
+		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_rect.size);
 		let relative_texture_rect = self.texture.relative_rect(texture_rect);
 		let transform = params.transform();
 		let corners = untransformed_display_rect.corners();

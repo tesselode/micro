@@ -7,7 +7,7 @@ use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::Vec2;
 use thiserror::Error;
 
-use crate::{context::Context, math::Rect, IntoOffsetAndCount};
+use crate::{context::Context, math::Rect, IntoOffsetAndCount, OffsetAndCount};
 
 use super::{
 	draw_params::DrawParams,
@@ -18,6 +18,7 @@ use super::{
 pub struct Text {
 	pub(crate) sprite_batches: Vec<SpriteBatch>,
 	pub(crate) bounds: Option<Rect>,
+	pub(crate) character_bounds: Vec<Rect>,
 }
 
 impl Text {
@@ -72,6 +73,15 @@ impl Text {
 		self.bounds
 	}
 
+	pub fn character_bounds(&self, range: impl IntoOffsetAndCount<usize>) -> Option<Rect> {
+		let OffsetAndCount { offset, count } =
+			range.into_offset_and_count(self.character_bounds.len());
+		self.character_bounds[offset..offset + count]
+			.iter()
+			.copied()
+			.reduce(|range_bounds, character_bounds| range_bounds.union(character_bounds))
+	}
+
 	pub fn draw<S: Shader>(&self, ctx: &mut Context, params: impl Into<DrawParams<S>>) {
 		let params = params.into();
 		for sprite_batch in &self.sprite_batches {
@@ -82,7 +92,7 @@ impl Text {
 	pub fn draw_range<S: Shader>(
 		&self,
 		ctx: &mut Context,
-		range: impl IntoOffsetAndCount,
+		range: impl IntoOffsetAndCount<u32>,
 		params: impl Into<DrawParams<S>>,
 	) {
 		if self.sprite_batches.len() != 1 {
@@ -109,6 +119,7 @@ impl Text {
 			})
 			.collect::<Vec<_>>();
 		let mut bounds: Option<Rect> = None;
+		let mut character_bounds = vec![];
 		for glyph in glyphs {
 			if !glyph.char_data.rasterize() {
 				continue;
@@ -120,6 +131,7 @@ impl Text {
 			} else {
 				bounds = Some(display_rect);
 			}
+			character_bounds.push(display_rect);
 			let texture_rect = *fonts[glyph.font_index]
 				.glyph_rects
 				.get(&glyph.parent)
@@ -137,6 +149,7 @@ impl Text {
 		Ok(Self {
 			sprite_batches,
 			bounds,
+			character_bounds,
 		})
 	}
 }

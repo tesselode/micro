@@ -146,7 +146,7 @@ impl Mesh {
 	pub fn draw_range<S: Shader>(
 		&self,
 		ctx: &mut Context,
-		range: impl IntoOffsetAndCount,
+		range: impl IntoOffsetAndCount<u32>,
 		params: impl Into<DrawParams<S>>,
 	) {
 		self.draw_range_textured(
@@ -161,7 +161,7 @@ impl Mesh {
 		&self,
 		ctx: &mut Context,
 		texture: impl Into<MeshTexture>,
-		range: impl IntoOffsetAndCount,
+		range: impl IntoOffsetAndCount<u32>,
 		params: impl Into<DrawParams<S>>,
 	) {
 		ctx.graphics_ctx.push_instruction(

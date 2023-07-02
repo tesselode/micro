@@ -137,7 +137,7 @@ impl SpriteBatch {
 	pub fn draw_range<S: Shader>(
 		&self,
 		ctx: &mut Context,
-		range: impl IntoOffsetAndCount,
+		range: impl IntoOffsetAndCount<u32>,
 		params: impl Into<DrawParams<S>>,
 	) {
 		let offset_and_count = range.into_offset_and_count(

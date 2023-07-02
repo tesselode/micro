@@ -1,33 +1,48 @@
 use std::error::Error;
 
-use glam::Vec2;
 use micro::{
-	graphics::{mesh::Mesh, DrawParams},
+	graphics::{
+		mesh::{Mesh, ShapeStyle},
+		text::{Font, FontSettings, LayoutSettings, Text},
+		DrawParams,
+	},
 	Context, ContextSettings, State,
 };
 use palette::LinSrgba;
 
-struct MainState;
+struct MainState {
+	text: Text,
+	mesh: Mesh,
+}
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self)
+		let font = Font::from_file(
+			ctx,
+			"crates/micro/examples/Roboto-Regular.ttf",
+			FontSettings::default(),
+		)?;
+		let text = Text::new(
+			ctx,
+			&font,
+			"The quick brown fox jumps over the lazy dog.",
+			LayoutSettings::default(),
+		)?;
+		let rect = text.character_bounds(5..10).unwrap();
+		let mesh = Mesh::styled_rectangle(
+			ctx,
+			ShapeStyle::Stroke(2.0),
+			rect,
+			LinSrgba::new(1.0, 0.0, 0.0, 1.0),
+		)?;
+		Ok(Self { text, mesh })
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		Mesh::simple_polyline(
-			ctx,
-			2.0,
-			[
-				Vec2::new(100.0, 100.0),
-				Vec2::new(300.0, 100.0),
-				Vec2::new(100.0, 300.0),
-			],
-			LinSrgba::new(1.0, 1.0, 1.0, 1.0),
-		)?
-		.draw(ctx, DrawParams::new());
+		self.text.draw(ctx, DrawParams::new());
+		self.mesh.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

@@ -204,7 +204,7 @@ impl GraphicsContext {
 		&mut self,
 		mesh: Mesh,
 		texture: MeshTexture,
-		range: OffsetAndCount,
+		range: OffsetAndCount<u32>,
 		draw_params: DrawParams<S>,
 	) {
 		let draw_params_uniform = draw_params.as_uniform();
@@ -349,7 +349,7 @@ impl GraphicsContext {
 		&mut self,
 		mesh: Mesh,
 		texture: MeshTexture,
-		range: OffsetAndCount,
+		range: OffsetAndCount<u32>,
 		mut draw_params_uniform: DrawParamsUniform,
 		graphics_pipeline: Rc<GraphicsPipelineInner>,
 		stencil_reference: u32,
@@ -392,7 +392,7 @@ impl GraphicsContext {
 struct DrawInstruction {
 	mesh: Mesh,
 	texture: MeshTexture,
-	range: OffsetAndCount,
+	range: OffsetAndCount<u32>,
 	draw_params_bind_group: BindGroup,
 	graphics_pipeline: Rc<GraphicsPipelineInner>,
 	stencil_reference: u32,

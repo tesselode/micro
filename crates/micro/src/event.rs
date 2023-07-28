@@ -5,7 +5,10 @@ use crate::input::{Axis, Button, MouseButton, Scancode};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
 	WindowSizeChanged(UVec2),
-	KeyPressed(Scancode),
+	KeyPressed {
+		key: Scancode,
+		is_repeat: bool,
+	},
 	KeyReleased(Scancode),
 	MouseMoved {
 		position: IVec2,
@@ -51,8 +54,12 @@ impl Event {
 			))),
 			sdl2::event::Event::KeyDown {
 				scancode: Some(scancode),
+				repeat,
 				..
-			} => Some(Self::KeyPressed(scancode.into())),
+			} => Some(Self::KeyPressed {
+				key: scancode.into(),
+				is_repeat: repeat,
+			}),
 			sdl2::event::Event::KeyUp {
 				scancode: Some(scancode),
 				..

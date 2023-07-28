@@ -72,10 +72,17 @@ impl State<anyhow::Error> for MainState {
 	}
 
 	fn event(&mut self, ctx: &mut Context, event: Event) -> anyhow::Result<()> {
-		if let Event::KeyPressed(Scancode::Escape) = event {
+		if let Event::KeyPressed {
+			key: Scancode::Escape,
+			..
+		} = event
+		{
 			ctx.quit();
 		}
-		if let Event::KeyPressed(Scancode::F1) = event {
+		if let Event::KeyPressed {
+			key: Scancode::F1, ..
+		} = event
+		{
 			self.dev_tools_enabled = !self.dev_tools_enabled;
 		}
 		self.scene_manager.event(ctx, &mut self.globals, event)?;

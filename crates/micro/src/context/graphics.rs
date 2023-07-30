@@ -24,7 +24,7 @@ use crate::{
 		shader::{DefaultShader, Shader},
 		texture::{Texture, TextureSettings},
 		util::create_depth_stencil_texture_view,
-		DrawParams,
+		ColorConstants, DrawParams,
 	},
 	math::URect,
 	ContextSettings, OffsetAndCount,
@@ -323,7 +323,7 @@ impl GraphicsContext {
 			TextureSettings::default(),
 		);
 		let depth_stencil_texture_view = create_depth_stencil_texture_view(size.into(), &device, 1);
-		let background_color = LinSrgba::new(0.0, 0.0, 0.0, 1.0);
+		let background_color = LinSrgba::BLACK;
 		Self {
 			surface,
 			device,

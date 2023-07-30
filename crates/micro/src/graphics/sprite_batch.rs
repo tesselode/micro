@@ -18,7 +18,7 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::shader::Shader;
+use super::{shader::Shader, ColorConstants};
 
 pub struct SpriteBatch {
 	texture: Texture,
@@ -32,7 +32,7 @@ impl SpriteBatch {
 			Vertex {
 				position: Vec2::ZERO,
 				texture_coords: Vec2::ZERO,
-				color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
+				color: LinSrgba::WHITE,
 			};
 			capacity * 4
 		];
@@ -123,7 +123,7 @@ impl SpriteBatch {
 				Vertex {
 					position: Vec2::ZERO,
 					texture_coords: Vec2::ZERO,
-					color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
+					color: LinSrgba::WHITE,
 				},
 			);
 		}

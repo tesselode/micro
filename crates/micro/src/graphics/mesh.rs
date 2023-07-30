@@ -16,7 +16,7 @@ use wgpu::{
 
 use crate::{math::Rect, Context, IntoOffsetAndCount};
 
-use super::{canvas::Canvas, shader::Shader, texture::Texture, DrawParams};
+use super::{canvas::Canvas, shader::Shader, texture::Texture, ColorConstants, DrawParams};
 
 #[derive(Clone)]
 pub struct Mesh(pub(crate) Rc<MeshInner>);
@@ -43,7 +43,7 @@ impl Mesh {
 			.map(|(position, texture_coords)| Vertex {
 				position,
 				texture_coords,
-				color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
+				color: LinSrgba::WHITE,
 			})
 			.collect::<Vec<_>>();
 		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])

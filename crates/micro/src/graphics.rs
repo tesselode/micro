@@ -1,6 +1,7 @@
 mod address_mode;
 mod blend_mode;
 pub mod canvas;
+mod color_constants;
 pub(crate) mod draw_params;
 pub mod graphics_pipeline;
 pub mod image_data;
@@ -14,5 +15,6 @@ pub(crate) mod util;
 
 pub use address_mode::*;
 pub use blend_mode::*;
+pub use color_constants::*;
 pub use draw_params::DrawParams;
 pub use wgpu::PresentMode;

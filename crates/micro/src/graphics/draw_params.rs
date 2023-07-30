@@ -7,6 +7,7 @@ use crate::math::URect;
 use super::{
 	graphics_pipeline::GraphicsPipeline,
 	shader::{DefaultShader, Shader},
+	ColorConstants,
 };
 
 #[derive(Clone)]
@@ -22,7 +23,7 @@ impl DrawParams<DefaultShader> {
 	pub fn new() -> Self {
 		Self {
 			transform: Affine2::IDENTITY,
-			color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
+			color: LinSrgba::WHITE,
 			graphics_pipeline: None,
 			stencil_reference: 0,
 			scissor_rect: None,

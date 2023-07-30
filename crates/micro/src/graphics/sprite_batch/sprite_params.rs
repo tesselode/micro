@@ -1,6 +1,8 @@
 use glam::{Mat3, Vec2};
 use palette::LinSrgba;
 
+use crate::graphics::ColorConstants;
+
 #[derive(Debug, Clone, Copy)]
 pub struct SpriteParams {
 	pub position: Vec2,
@@ -17,7 +19,7 @@ impl SpriteParams {
 			rotation: 0.0,
 			scale: Vec2::ONE,
 			origin: Vec2::ZERO,
-			color: LinSrgba::new(1.0, 1.0, 1.0, 1.0),
+			color: LinSrgba::WHITE,
 		}
 	}
 

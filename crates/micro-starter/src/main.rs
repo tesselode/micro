@@ -12,7 +12,6 @@ use globals::Globals;
 use micro::{input::Scancode, window::WindowMode, Context, ContextSettings, Event, State};
 use scene::gameplay::Gameplay;
 use scene_manager::SceneManager;
-use tracing_subscriber::EnvFilter;
 
 const NUM_FRAME_TIMES_TO_RECORD: usize = 30;
 
@@ -103,13 +102,7 @@ impl State<anyhow::Error> for MainState {
 	}
 }
 
-fn main() -> anyhow::Result<()> {
-	tracing_subscriber::fmt()
-		.with_env_filter(
-			EnvFilter::try_from_default_env()
-				.unwrap_or_else(|_| EnvFilter::new("aetherbeats=info,kira_rhythm=info")),
-		)
-		.init();
+fn main() {
 	micro::run(
 		ContextSettings {
 			window_title: "Game".to_string(),

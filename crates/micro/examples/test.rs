@@ -19,7 +19,7 @@ impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		let font = Font::from_file(
 			ctx,
-			"crates/micro/examples/Roboto-Regular.ttf",
+			"crates/micro/examples/Roboto-asdfRegular.ttf",
 			FontSettings::default(),
 		)?;
 		let text = Text::new(
@@ -47,6 +47,6 @@ impl State<Box<dyn Error>> for MainState {
 	}
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
 	micro::run(ContextSettings::default(), MainState::new)
 }

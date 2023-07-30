@@ -2,6 +2,8 @@ pub(crate) mod graphics;
 
 use std::{
 	collections::HashMap,
+	fmt::Debug,
+	path::PathBuf,
 	time::{Duration, Instant},
 };
 
@@ -17,17 +19,31 @@ use wgpu::PresentMode;
 use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	input::{Gamepad, MouseButton, Scancode},
+	log_if_err,
 	window::WindowMode,
 	Event, State,
 };
 
 use self::graphics::GraphicsContext;
 
-pub fn run<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
+pub fn run<S, F, E>(settings: ContextSettings, state_constructor: F)
 where
 	S: State<E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
-	E: From<InitError>,
+	E: From<InitError> + Debug,
+{
+	#[cfg(debug_assertions)]
+	setup_logging();
+	#[cfg(not(debug_assertions))]
+	let _guard = setup_logging(&settings);
+	log_if_err!(run_inner(settings, state_constructor));
+}
+
+fn run_inner<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
+where
+	S: State<E>,
+	F: FnMut(&mut Context) -> Result<S, E>,
+	E: From<InitError> + Debug,
 {
 	let mut ctx = Context::new(settings)?;
 	let egui_ctx = egui::Context::default();
@@ -209,6 +225,7 @@ pub struct ContextSettings {
 	pub window_mode: WindowMode,
 	pub resizable: bool,
 	pub present_mode: PresentMode,
+	pub logs_dir: PathBuf,
 }
 
 impl Default for ContextSettings {
@@ -218,6 +235,7 @@ impl Default for ContextSettings {
 			window_mode: WindowMode::default(),
 			resizable: false,
 			present_mode: PresentMode::default(),
+			logs_dir: PathBuf::from(""),
 		}
 	}
 }
@@ -257,4 +275,31 @@ impl From<WindowBuildError> for InitError {
 	fn from(v: WindowBuildError) -> Self {
 		Self::WindowBuildError(v)
 	}
+}
+
+#[cfg(debug_assertions)]
+fn setup_logging() {
+	use tracing_subscriber::EnvFilter;
+
+	tracing_subscriber::fmt()
+		.with_env_filter(
+			EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
+		)
+		.init();
+}
+
+#[cfg(not(debug_assertions))]
+fn setup_logging(settings: &ContextSettings) -> tracing_appender::non_blocking::WorkerGuard {
+	use tracing_subscriber::EnvFilter;
+
+	let file_appender = tracing_appender::rolling::hourly(&settings.logs_dir, "log");
+	let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+	tracing_subscriber::fmt()
+		.with_env_filter(
+			EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
+		)
+		.with_ansi(false)
+		.with_writer(non_blocking)
+		.init();
+	guard
 }

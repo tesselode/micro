@@ -2,7 +2,7 @@ mod builder;
 
 pub use builder::*;
 use bytemuck::{Pod, Zeroable};
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
@@ -41,7 +41,7 @@ impl Mesh {
 			.copied()
 			.zip(texture_rect.corners())
 			.map(|(position, texture_coords)| Vertex {
-				position,
+				position: position.extend(0.0),
 				texture_coords,
 				color: LinSrgba::WHITE,
 			})
@@ -224,14 +224,14 @@ impl From<&Canvas> for MeshTexture {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Vertex {
-	pub position: Vec2,
+	pub position: Vec3,
 	pub texture_coords: Vec2,
 	pub color: LinSrgba,
 }
 
 impl Vertex {
 	const ATTRIBUTES: [VertexAttribute; 3] =
-		wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2, 2 => Float32x4];
+		wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2, 2 => Float32x4];
 
 	pub(crate) fn buffer_layout<'a>() -> VertexBufferLayout<'a> {
 		use std::mem;

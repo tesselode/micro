@@ -1,6 +1,6 @@
-use std::rc::Rc;
+use std::{f32::consts::FRAC_PI_4, rc::Rc};
 
-use glam::{Affine2, UVec2, Vec2};
+use glam::{Mat4, UVec2, Vec3};
 use palette::LinSrgba;
 use sdl2::video::Window;
 use wgpu::{
@@ -363,7 +363,13 @@ impl GraphicsContext {
 			DrawInstructionSetKind::Surface => UVec2::new(self.config.width, self.config.height),
 			DrawInstructionSetKind::Canvas(canvas) => canvas.size(),
 		});
-		draw_params_uniform.transform = coordinate_system_transform * draw_params_uniform.transform;
+		let projection = Mat4::perspective_infinite_rh(FRAC_PI_4, 16.0 / 9.0, 0.1);
+		let view = Mat4::look_at_rh(
+			Vec3::new(0.0, 0.0, -1000.0),
+			Vec3::new(500.0, 0.0, 10.0),
+			Vec3::new(0.0, 1.0, 0.0),
+		);
+		draw_params_uniform.transform = projection * view * draw_params_uniform.transform;
 		let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
 			label: Some("Draw Params Buffer"),
 			contents: bytemuck::cast_slice(&[draw_params_uniform]),
@@ -411,9 +417,9 @@ enum DrawInstructionSetKind {
 	Canvas(Canvas),
 }
 
-fn coordinate_system_transform(size: UVec2) -> Affine2 {
-	Affine2::from_translation(Vec2::new(-1.0, 1.0))
-		* Affine2::from_scale(Vec2::new(2.0 / size.x as f32, -2.0 / size.y as f32))
+fn coordinate_system_transform(size: UVec2) -> Mat4 {
+	Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+		* Mat4::from_scale(Vec3::new(2.0 / size.x as f32, -2.0 / size.y as f32, 1.0))
 }
 
 fn palette_lin_srgba_to_wgpu_color(srgba: LinSrgba) -> wgpu::Color {

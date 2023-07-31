@@ -4,7 +4,7 @@ use palette::LinSrgba;
 pub use sprite_params::SpriteParams;
 
 use generational_arena::{Arena, Index};
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 use thiserror::Error;
 
 use crate::{
@@ -30,7 +30,7 @@ impl SpriteBatch {
 	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
 		let vertices = vec![
 			Vertex {
-				position: Vec2::ZERO,
+				position: Vec3::ZERO,
 				texture_coords: Vec2::ZERO,
 				color: LinSrgba::WHITE,
 			};
@@ -99,7 +99,7 @@ impl SpriteBatch {
 			.copied()
 			.zip(relative_texture_rect.corners())
 			.map(|(position, texture_coords)| Vertex {
-				position: transform.transform_point2(position),
+				position: transform.transform_point2(position).extend(0.0),
 				texture_coords,
 				color: params.color,
 			})
@@ -121,7 +121,7 @@ impl SpriteBatch {
 				ctx,
 				start_vertex_index + i,
 				Vertex {
-					position: Vec2::ZERO,
+					position: Vec3::ZERO,
 					texture_coords: Vec2::ZERO,
 					color: LinSrgba::WHITE,
 				},

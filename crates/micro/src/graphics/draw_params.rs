@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use glam::{Affine2, Vec2};
+use glam::{Mat4, Vec3};
 use palette::LinSrgba;
 
 use crate::math::URect;
@@ -12,7 +12,7 @@ use super::{
 
 #[derive(Clone)]
 pub struct DrawParams<S: Shader = DefaultShader> {
-	pub transform: Affine2,
+	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub graphics_pipeline: Option<GraphicsPipeline<S>>,
 	pub stencil_reference: u32,
@@ -22,7 +22,7 @@ pub struct DrawParams<S: Shader = DefaultShader> {
 impl DrawParams<DefaultShader> {
 	pub fn new() -> Self {
 		Self {
-			transform: Affine2::IDENTITY,
+			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			graphics_pipeline: None,
 			stencil_reference: 0,
@@ -32,30 +32,23 @@ impl DrawParams<DefaultShader> {
 }
 
 impl<S: Shader> DrawParams<S> {
-	pub fn transformed(self, transform: Affine2) -> Self {
+	pub fn transformed(self, transform: Mat4) -> Self {
 		Self {
 			transform: transform * self.transform,
 			..self
 		}
 	}
 
-	pub fn translated(self, translation: Vec2) -> Self {
+	pub fn translated(self, translation: Vec3) -> Self {
 		Self {
-			transform: Affine2::from_translation(translation) * self.transform,
+			transform: Mat4::from_translation(translation) * self.transform,
 			..self
 		}
 	}
 
-	pub fn scaled(self, scale: Vec2) -> Self {
+	pub fn scaled(self, scale: Vec3) -> Self {
 		Self {
-			transform: Affine2::from_scale(scale) * self.transform,
-			..self
-		}
-	}
-
-	pub fn rotated(self, rotation: f32) -> Self {
-		Self {
-			transform: Affine2::from_angle(rotation) * self.transform,
+			transform: Mat4::from_scale(scale) * self.transform,
 			..self
 		}
 	}
@@ -105,7 +98,7 @@ impl<S: Shader> DrawParams<S> {
 impl<S: Shader> Default for DrawParams<S> {
 	fn default() -> Self {
 		Self {
-			transform: Affine2::IDENTITY,
+			transform: Mat4::IDENTITY,
 			color: Default::default(),
 			graphics_pipeline: Default::default(),
 			stencil_reference: Default::default(),
@@ -114,14 +107,14 @@ impl<S: Shader> Default for DrawParams<S> {
 	}
 }
 
-impl From<Vec2> for DrawParams<DefaultShader> {
-	fn from(translation: Vec2) -> Self {
+impl From<Vec3> for DrawParams<DefaultShader> {
+	fn from(translation: Vec3) -> Self {
 		Self::new().translated(translation)
 	}
 }
 
-impl From<Affine2> for DrawParams<DefaultShader> {
-	fn from(transform: Affine2) -> Self {
+impl From<Mat4> for DrawParams<DefaultShader> {
+	fn from(transform: Mat4) -> Self {
 		Self::new().transformed(transform)
 	}
 }
@@ -175,6 +168,6 @@ impl<S: Shader> IntoOptionalGraphicsPipeline<S> for &GraphicsPipeline<S> {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 pub(crate) struct DrawParamsUniform {
-	pub transform: Affine2,
+	pub transform: Mat4,
 	pub color: LinSrgba,
 }

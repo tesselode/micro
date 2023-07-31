@@ -60,7 +60,7 @@ pub fn draw_egui_output(
 					ctx,
 					textures.get(&texture_id).expect("missing egui texture"),
 					DrawParams::new()
-						.scaled(glam::Vec2::splat(scaling_factor))
+						.scaled(glam::Vec2::splat(scaling_factor).extend(1.0))
 						.scissor_rect(clip_rect_pixels),
 				);
 			}
@@ -304,7 +304,7 @@ fn egui_mesh_to_micro_mesh(ctx: &Context, egui_mesh: egui::Mesh) -> Mesh {
 
 fn egui_vertex_to_micro_vertex(vertex: egui::epaint::Vertex) -> Vertex {
 	Vertex {
-		position: egui_pos2_to_glam_vec2(vertex.pos),
+		position: egui_pos2_to_glam_vec2(vertex.pos).extend(0.0),
 		texture_coords: egui_pos2_to_glam_vec2(vertex.uv),
 		color: egui_color32_to_palette_lin_srgba(vertex.color),
 	}

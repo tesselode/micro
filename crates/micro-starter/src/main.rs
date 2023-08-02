@@ -44,7 +44,9 @@ impl MainState {
 
 impl State<anyhow::Error> for MainState {
 	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> anyhow::Result<()> {
-		if !self.dev_tools_enabled {}
+		if !self.dev_tools_enabled {
+			return Ok(());
+		}
 		TopBottomPanel::top("menu").show(egui_ctx, |ui| -> anyhow::Result<()> {
 			egui::menu::bar(ui, |ui| -> anyhow::Result<()> {
 				self.scene_manager.menu(ctx, ui, &mut self.globals)?;

@@ -12,7 +12,7 @@ pub struct Rect {
 }
 
 impl Rect {
-	pub fn new(top_left: Vec2, size: Vec2) -> Self {
+	pub const fn new(top_left: Vec2, size: Vec2) -> Self {
 		Self { top_left, size }
 	}
 
@@ -20,7 +20,7 @@ impl Rect {
 		Self::new(top_left, bottom_right - top_left)
 	}
 
-	pub fn from_xywh(x: f32, y: f32, width: f32, height: f32) -> Self {
+	pub const fn from_xywh(x: f32, y: f32, width: f32, height: f32) -> Self {
 		Self::new(Vec2::new(x, y), Vec2::new(width, height))
 	}
 
@@ -38,7 +38,7 @@ impl Rect {
 		}
 	}
 
-	pub fn left(&self) -> f32 {
+	pub const fn left(&self) -> f32 {
 		self.top_left.x
 	}
 
@@ -46,7 +46,7 @@ impl Rect {
 		self.top_left.x + self.size.x
 	}
 
-	pub fn top(&self) -> f32 {
+	pub const fn top(&self) -> f32 {
 		self.top_left.y
 	}
 

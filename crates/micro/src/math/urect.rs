@@ -9,7 +9,7 @@ pub struct URect {
 }
 
 impl URect {
-	pub fn new(top_left: UVec2, size: UVec2) -> Self {
+	pub const fn new(top_left: UVec2, size: UVec2) -> Self {
 		Self { top_left, size }
 	}
 
@@ -17,7 +17,7 @@ impl URect {
 		Self::new(top_left, bottom_right - top_left)
 	}
 
-	pub fn from_xywh(x: u32, y: u32, width: u32, height: u32) -> Self {
+	pub const fn from_xywh(x: u32, y: u32, width: u32, height: u32) -> Self {
 		Self::new(UVec2::new(x, y), UVec2::new(width, height))
 	}
 
@@ -35,47 +35,47 @@ impl URect {
 		}
 	}
 
-	pub fn left(&self) -> u32 {
+	pub const fn left(&self) -> u32 {
 		self.top_left.x
 	}
 
-	pub fn right(&self) -> u32 {
+	pub const fn right(&self) -> u32 {
 		self.top_left.x + self.size.x
 	}
 
-	pub fn top(&self) -> u32 {
+	pub const fn top(&self) -> u32 {
 		self.top_left.y
 	}
 
-	pub fn bottom(&self) -> u32 {
+	pub const fn bottom(&self) -> u32 {
 		self.top_left.y + self.size.y
 	}
 
-	pub fn top_right(&self) -> UVec2 {
+	pub const fn top_right(&self) -> UVec2 {
 		UVec2::new(self.right(), self.top())
 	}
 
-	pub fn bottom_left(&self) -> UVec2 {
+	pub const fn bottom_left(&self) -> UVec2 {
 		UVec2::new(self.left(), self.bottom())
 	}
 
-	pub fn bottom_right(&self) -> UVec2 {
+	pub const fn bottom_right(&self) -> UVec2 {
 		UVec2::new(self.right(), self.bottom())
 	}
 
-	pub fn fractional_x(&self, fraction: u32) -> u32 {
+	pub const fn fractional_x(&self, fraction: u32) -> u32 {
 		self.left() + (self.right() - self.left()) * fraction
 	}
 
-	pub fn fractional_y(&self, fraction: u32) -> u32 {
+	pub const fn fractional_y(&self, fraction: u32) -> u32 {
 		self.top() + (self.bottom() - self.top()) * fraction
 	}
 
-	pub fn fractional_point(&self, fraction: UVec2) -> UVec2 {
+	pub const fn fractional_point(&self, fraction: UVec2) -> UVec2 {
 		UVec2::new(self.fractional_x(fraction.x), self.fractional_y(fraction.y))
 	}
 
-	pub fn corners(&self) -> [UVec2; 4] {
+	pub const fn corners(&self) -> [UVec2; 4] {
 		[
 			self.bottom_right(),
 			self.top_right(),
@@ -110,14 +110,14 @@ impl URect {
 		Self::from_top_left_and_bottom_right(top_left, bottom_right)
 	}
 
-	pub fn contains_point(&self, point: UVec2) -> bool {
+	pub const fn contains_point(&self, point: UVec2) -> bool {
 		point.x >= self.left()
 			&& point.x <= self.right()
 			&& point.y >= self.top()
 			&& point.y <= self.bottom()
 	}
 
-	pub fn overlaps(&self, other: Self) -> bool {
+	pub const fn overlaps(&self, other: Self) -> bool {
 		self.left() < other.right()
 			&& other.left() < self.right()
 			&& self.top() < other.bottom()

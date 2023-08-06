@@ -142,7 +142,7 @@ impl Text {
 				.add_region(
 					ctx,
 					texture_rect,
-					SpriteParams::new().position(Vec2::new(glyph.x, glyph.y)),
+					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
 				)
 				.expect("Not enough capacity in the sprite batch");
 		}

@@ -1,42 +1,48 @@
-use glam::{Mat3, Vec2};
+use glam::{Affine2, Vec2};
 use palette::LinSrgba;
 
 use crate::graphics::ColorConstants;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpriteParams {
-	pub position: Vec2,
-	pub rotation: f32,
-	pub scale: Vec2,
-	pub origin: Vec2,
+	pub transform: Affine2,
 	pub color: LinSrgba,
 }
 
 impl SpriteParams {
 	pub fn new() -> Self {
 		Self {
-			position: Vec2::ZERO,
-			rotation: 0.0,
-			scale: Vec2::ONE,
-			origin: Vec2::ZERO,
+			transform: Affine2::IDENTITY,
 			color: LinSrgba::WHITE,
 		}
 	}
 
-	pub fn position(self, position: Vec2) -> Self {
-		Self { position, ..self }
+	pub fn transformed(self, transform: Affine2) -> Self {
+		Self {
+			transform: transform * self.transform,
+			..self
+		}
 	}
 
-	pub fn rotation(self, rotation: f32) -> Self {
-		Self { rotation, ..self }
+	pub fn translated(self, translation: Vec2) -> Self {
+		Self {
+			transform: Affine2::from_translation(translation) * self.transform,
+			..self
+		}
 	}
 
-	pub fn scale(self, scale: Vec2) -> Self {
-		Self { scale, ..self }
+	pub fn scaled(self, scale: Vec2) -> Self {
+		Self {
+			transform: Affine2::from_scale(scale) * self.transform,
+			..self
+		}
 	}
 
-	pub fn origin(self, origin: Vec2) -> Self {
-		Self { origin, ..self }
+	pub fn rotated(self, rotation: f32) -> Self {
+		Self {
+			transform: Affine2::from_angle(rotation) * self.transform,
+			..self
+		}
 	}
 
 	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
@@ -44,13 +50,6 @@ impl SpriteParams {
 			color: color.into(),
 			..self
 		}
-	}
-
-	pub fn transform(&self) -> Mat3 {
-		Mat3::from_translation(self.position)
-			* Mat3::from_rotation_z(self.rotation)
-			* Mat3::from_scale(self.scale)
-			* Mat3::from_translation(-self.origin)
 	}
 }
 
@@ -61,8 +60,8 @@ impl Default for SpriteParams {
 }
 
 impl From<Vec2> for SpriteParams {
-	fn from(position: Vec2) -> Self {
-		Self::new().position(position)
+	fn from(translation: Vec2) -> Self {
+		Self::new().translated(translation)
 	}
 }
 

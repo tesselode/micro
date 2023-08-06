@@ -92,14 +92,13 @@ impl SpriteBatch {
 		let start_vertex_index = sprite_index * 4;
 		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_rect.size);
 		let relative_texture_rect = self.texture.relative_rect(texture_rect);
-		let transform = params.transform();
 		let corners = untransformed_display_rect.corners();
 		let vertices = corners
 			.iter()
 			.copied()
 			.zip(relative_texture_rect.corners())
 			.map(|(position, texture_coords)| Vertex {
-				position: transform.transform_point2(position),
+				position: params.transform.transform_point2(position),
 				texture_coords,
 				color: params.color,
 			})

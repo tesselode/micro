@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path};
 
-use crunch::pack_into_po2;
+use crunch::{pack_into_po2, PackedItem, PackedItems};
 use glam::{UVec2, Vec2};
 use thiserror::Error;
 
@@ -117,7 +117,11 @@ fn rasterize_chars(font: &fontdue::Font, settings: FontSettings) -> HashMap<char
 }
 
 fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, HashMap<char, Rect>) {
-	let (width, height, packed_items) = pack_into_po2(
+	let PackedItems {
+		w: width,
+		h: height,
+		items,
+	} = pack_into_po2(
 		usize::MAX,
 		glyph_image_data.iter().map(|(char, image_data)| {
 			let base_width: usize = image_data.size.x.try_into().unwrap();
@@ -134,9 +138,9 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 	(
 		width,
 		height,
-		packed_items
+		items
 			.into_iter()
-			.map(|(rect, char)| {
+			.map(|PackedItem { data: char, rect }| {
 				(
 					*char,
 					Rect::from_top_left_and_size(

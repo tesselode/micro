@@ -1,4 +1,4 @@
-use glam::{Mat3, Vec2};
+use glam::{Affine2, Vec2};
 use palette::LinSrgba;
 
 use crate::graphics::{blend_mode::BlendMode, shader::Shader};
@@ -63,11 +63,11 @@ impl<'a> DrawParams<'a> {
 		Self { blend_mode, ..self }
 	}
 
-	pub fn transform(&self) -> Mat3 {
-		Mat3::from_translation(self.position)
-			* Mat3::from_rotation_z(self.rotation)
-			* Mat3::from_scale(self.scale)
-			* Mat3::from_translation(-self.origin)
+	pub fn transform(&self) -> Affine2 {
+		Affine2::from_translation(self.position)
+			* Affine2::from_angle(self.rotation)
+			* Affine2::from_scale(self.scale)
+			* Affine2::from_translation(-self.origin)
 	}
 }
 

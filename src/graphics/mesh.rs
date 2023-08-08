@@ -256,10 +256,10 @@ impl Mesh {
 				.send_color("blendColor", params.color)
 				.expect("Shader does not have a blendColor uniform");
 			shader
-				.send_mat4("globalTransform", Mat4::from_mat3(ctx.global_transform()))
+				.send_mat3("globalTransform", ctx.global_transform().into())
 				.expect("Shader does not have a globalTransform uniform");
 			shader
-				.send_mat4("localTransform", Mat4::from_mat3(params.transform()))
+				.send_mat3("localTransform", params.transform().into())
 				.expect("Shader does not have a localTransform uniform");
 			shader.bind_sent_textures();
 			gl.use_program(Some(shader.program));

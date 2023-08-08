@@ -5,7 +5,7 @@ use std::{
 	time::{Duration, Instant},
 };
 
-use glam::{IVec2, Mat3, UVec2, Vec2};
+use glam::{Affine2, IVec2, UVec2, Vec2};
 use glow::HasContext;
 use palette::LinSrgba;
 use sdl2::{
@@ -97,7 +97,7 @@ pub struct Context {
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
-	pub(crate) transform_stack: Vec<Mat3>,
+	pub(crate) transform_stack: Vec<Affine2>,
 	pub(crate) render_target: RenderTarget,
 }
 
@@ -173,7 +173,11 @@ impl Context {
 		}
 	}
 
-	pub fn with_transform<T>(&mut self, transform: Mat3, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn with_transform<T>(
+		&mut self,
+		transform: Affine2,
+		f: impl FnOnce(&mut Context) -> T,
+	) -> T {
 		self.transform_stack.push(transform);
 		let returned_value = f(self);
 		self.transform_stack.pop();
@@ -315,19 +319,19 @@ impl Context {
 		}
 	}
 
-	pub(crate) fn global_transform(&self) -> Mat3 {
+	pub(crate) fn global_transform(&self) -> Affine2 {
 		let coordinate_system_transform = match self.render_target {
 			RenderTarget::Window => {
 				let window_size = self.window_size();
-				Mat3::from_translation(Vec2::new(-1.0, 1.0))
-					* Mat3::from_scale(Vec2::new(
+				Affine2::from_translation(Vec2::new(-1.0, 1.0))
+					* Affine2::from_scale(Vec2::new(
 						2.0 / window_size.x as f32,
 						-2.0 / window_size.y as f32,
 					))
 			}
 			RenderTarget::Canvas { size } => {
-				Mat3::from_translation(Vec2::new(-1.0, -1.0))
-					* Mat3::from_scale(Vec2::new(2.0 / size.x as f32, 2.0 / size.y as f32))
+				Affine2::from_translation(Vec2::new(-1.0, -1.0))
+					* Affine2::from_scale(Vec2::new(2.0 / size.x as f32, 2.0 / size.y as f32))
 			}
 		};
 		self.transform_stack

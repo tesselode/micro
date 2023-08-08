@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path, rc::Rc};
 
-use glam::{Mat4, Vec2};
+use glam::{Affine2, Mat3, Mat4, Vec2};
 use glow::{HasContext, NativeProgram};
 use palette::LinSrgba;
 use thiserror::Error;
@@ -136,6 +136,19 @@ impl Shader {
 				.get_uniform_location(self.program, name)
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			self.gl.uniform_2_f32(Some(&location), vec2.x, vec2.y);
+		}
+		Ok(())
+	}
+
+	pub fn send_mat3(&self, name: &str, mat3: Mat3) -> Result<(), UniformNotFound> {
+		unsafe {
+			self.gl.use_program(Some(self.program));
+			let location = self
+				.gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			self.gl
+				.uniform_matrix_3_f32_slice(Some(&location), false, &mat3.to_cols_array());
 		}
 		Ok(())
 	}

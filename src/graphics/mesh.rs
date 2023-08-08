@@ -1,7 +1,7 @@
 mod builder;
 
 pub use builder::*;
-use glam::{Mat4, Vec2};
+use glam::Vec2;
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
@@ -259,7 +259,7 @@ impl Mesh {
 				.send_mat3("globalTransform", ctx.global_transform().into())
 				.expect("Shader does not have a globalTransform uniform");
 			shader
-				.send_mat3("localTransform", params.transform().into())
+				.send_mat3("localTransform", params.transform.into())
 				.expect("Shader does not have a localTransform uniform");
 			shader.bind_sent_textures();
 			gl.use_program(Some(shader.program));

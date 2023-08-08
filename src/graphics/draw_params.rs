@@ -8,10 +8,7 @@ use super::color_constants::ColorConstants;
 #[derive(Debug, Clone, Copy)]
 pub struct DrawParams<'a> {
 	pub shader: Option<&'a Shader>,
-	pub position: Vec2,
-	pub rotation: f32,
-	pub scale: Vec2,
-	pub origin: Vec2,
+	pub transform: Affine2,
 	pub color: LinSrgba,
 	pub blend_mode: BlendMode,
 }
@@ -20,10 +17,7 @@ impl<'a> DrawParams<'a> {
 	pub fn new() -> Self {
 		Self {
 			shader: None,
-			position: Vec2::ZERO,
-			rotation: 0.0,
-			scale: Vec2::ONE,
-			origin: Vec2::ZERO,
+			transform: Affine2::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
 		}
@@ -36,20 +30,32 @@ impl<'a> DrawParams<'a> {
 		}
 	}
 
-	pub fn position(self, position: Vec2) -> Self {
-		Self { position, ..self }
+	pub fn transformed(self, transform: Affine2) -> Self {
+		Self {
+			transform: transform * self.transform,
+			..self
+		}
 	}
 
-	pub fn rotation(self, rotation: f32) -> Self {
-		Self { rotation, ..self }
+	pub fn translated(self, translation: Vec2) -> Self {
+		Self {
+			transform: Affine2::from_translation(translation) * self.transform,
+			..self
+		}
 	}
 
-	pub fn scale(self, scale: Vec2) -> Self {
-		Self { scale, ..self }
+	pub fn scaled(self, scale: Vec2) -> Self {
+		Self {
+			transform: Affine2::from_scale(scale) * self.transform,
+			..self
+		}
 	}
 
-	pub fn origin(self, origin: Vec2) -> Self {
-		Self { origin, ..self }
+	pub fn rotated(self, rotation: f32) -> Self {
+		Self {
+			transform: Affine2::from_angle(rotation) * self.transform,
+			..self
+		}
 	}
 
 	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
@@ -61,13 +67,6 @@ impl<'a> DrawParams<'a> {
 
 	pub fn blend_mode(self, blend_mode: BlendMode) -> Self {
 		Self { blend_mode, ..self }
-	}
-
-	pub fn transform(&self) -> Affine2 {
-		Affine2::from_translation(self.position)
-			* Affine2::from_angle(self.rotation)
-			* Affine2::from_scale(self.scale)
-			* Affine2::from_translation(-self.origin)
 	}
 }
 
@@ -85,7 +84,13 @@ impl<'a> From<&'a Shader> for DrawParams<'a> {
 
 impl<'a> From<Vec2> for DrawParams<'a> {
 	fn from(position: Vec2) -> Self {
-		Self::new().position(position)
+		Self::new().translated(position)
+	}
+}
+
+impl<'a> From<Affine2> for DrawParams<'a> {
+	fn from(transform: Affine2) -> Self {
+		Self::new().transformed(transform)
 	}
 }
 

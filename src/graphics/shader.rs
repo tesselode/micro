@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path, rc::Rc};
 
-use glam::{Affine2, Mat3, Mat4, Vec2};
+use glam::{Mat3, Mat4, Vec2};
 use glow::{HasContext, NativeProgram};
 use palette::LinSrgba;
 use thiserror::Error;

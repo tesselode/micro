@@ -65,7 +65,7 @@ pub fn draw_egui_output(
 					egui_mesh_to_micro_mesh(ctx, mesh).draw_textured(
 						ctx,
 						textures.get(&texture_id).expect("missing egui texture"),
-						DrawParams::new().scale(glam::Vec2::splat(scaling_factor)),
+						DrawParams::new().scaled(glam::Vec2::splat(scaling_factor)),
 					);
 				});
 				ctx.clear_stencil();

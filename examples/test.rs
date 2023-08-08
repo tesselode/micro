@@ -27,7 +27,7 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(LinSrgba::BLACK);
-		self.texture.draw(ctx, DrawParams::new());
+		self.texture.draw(ctx, DrawParams::new().rotated(0.5));
 		Ok(())
 	}
 }

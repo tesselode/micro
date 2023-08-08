@@ -118,8 +118,11 @@ impl Mesh {
 		ctx: &Context,
 		style: ShapeStyle,
 		rect: Rect,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new().with_rectangle(style, rect)?.build(ctx))
+		Ok(MeshBuilder::new()
+			.with_rectangle(style, rect, color)?
+			.build(ctx))
 	}
 
 	pub fn circle(
@@ -127,9 +130,10 @@ impl Mesh {
 		style: ShapeStyle,
 		center: Vec2,
 		radius: f32,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
-			.with_circle(style, center, radius)?
+			.with_circle(style, center, radius, color)?
 			.build(ctx))
 	}
 
@@ -139,24 +143,48 @@ impl Mesh {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
+		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
-			.with_ellipse(style, center, radii, rotation)?
+			.with_ellipse(style, center, radii, rotation, color)?
 			.build(ctx))
 	}
 
-	pub fn polygon(
+	pub fn filled_polygon(
 		ctx: &Context,
-		style: ShapeStyle,
-		points: &[Vec2],
+		points: impl IntoIterator<Item = FilledPolygonPoint>,
 	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new().with_polygon(style, points)?.build(ctx))
+		Ok(MeshBuilder::new().with_filled_polygon(points)?.build(ctx))
 	}
 
-	pub fn polyline(ctx: &Context, line_width: f32, points: &[Vec2]) -> Self {
-		MeshBuilder::new()
-			.with_polyline(line_width, points)
-			.build(ctx)
+	pub fn polyline(
+		ctx: &Context,
+		points: impl IntoIterator<Item = StrokePoint>,
+		closed: bool,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
+	}
+
+	pub fn simple_polygon(
+		ctx: &Context,
+		style: ShapeStyle,
+		points: impl IntoIterator<Item = Vec2>,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_simple_polygon(style, points, color)?
+			.build(ctx))
+	}
+
+	pub fn simple_polyline(
+		ctx: &Context,
+		stroke_width: f32,
+		points: impl IntoIterator<Item = Vec2>,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_simple_polyline(stroke_width, points, color)?
+			.build(ctx))
 	}
 
 	pub fn set_vertex(&self, index: usize, vertex: Vertex) {

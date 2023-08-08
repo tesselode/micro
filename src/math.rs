@@ -3,17 +3,25 @@ mod rect;
 mod urect;
 
 pub use irect::*;
+use palette::LinSrgba;
 pub use rect::*;
 pub use urect::*;
 
 use glam::Vec2;
 use lyon_tessellation::{TessellationError, VertexBuffers};
 
-use crate::graphics::mesh::{MeshBuilder, ShapeStyle, Vertex};
+use crate::graphics::{
+	color_constants::ColorConstants,
+	mesh::{MeshBuilder, ShapeStyle, Vertex},
+};
 
 pub fn triangulate_polygon(points: &[Vec2]) -> Result<Vec<Vec<Vec2>>, TessellationError> {
-	let mesh_builder = MeshBuilder::new().with_polygon(ShapeStyle::Fill, points)?;
-	let buffers = mesh_builder.buffers();
+	let mesh_builder = MeshBuilder::new().with_simple_polygon(
+		ShapeStyle::Fill,
+		points.iter().copied(),
+		LinSrgba::WHITE,
+	)?;
+	let buffers = &mesh_builder.buffers;
 	Ok(buffers
 		.indices
 		.chunks_exact(3)

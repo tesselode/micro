@@ -1,4 +1,6 @@
-pub mod tween_sequence;
+mod tween_sequence;
+
+pub use tween_sequence::*;
 
 use std::{
 	f32::consts::PI,

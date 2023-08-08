@@ -7,9 +7,8 @@ use palette::{LinSrgba, Srgba};
 use crate::{
 	graphics::{
 		mesh::{Mesh, Vertex},
-		stencil::{StencilAction, StencilTest},
 		texture::{Texture, TextureSettings},
-		DrawParams,
+		DrawParams, StencilAction, StencilTest,
 	},
 	input::Scancode,
 	Context,
@@ -306,9 +305,7 @@ fn egui_vertex_to_micro_vertex(vertex: egui::epaint::Vertex) -> Vertex {
 	}
 }
 
-fn egui_image_data_to_micro_image_data(
-	image_data: &egui::ImageData,
-) -> crate::graphics::image_data::ImageData {
+fn egui_image_data_to_micro_image_data(image_data: &egui::ImageData) -> crate::graphics::ImageData {
 	let size = glam::UVec2::new(image_data.width() as u32, image_data.height() as u32);
 	let mut pixels = vec![];
 	match image_data {
@@ -329,7 +326,7 @@ fn egui_image_data_to_micro_image_data(
 			}
 		}
 	}
-	crate::graphics::image_data::ImageData { size, pixels }
+	crate::graphics::ImageData { size, pixels }
 }
 
 fn egui_scaling_factor(ctx: &Context) -> f32 {

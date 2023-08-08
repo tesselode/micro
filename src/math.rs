@@ -11,8 +11,8 @@ use glam::Vec2;
 use lyon_tessellation::{TessellationError, VertexBuffers};
 
 use crate::graphics::{
-	color_constants::ColorConstants,
 	mesh::{MeshBuilder, ShapeStyle, Vertex},
+	ColorConstants,
 };
 
 pub fn triangulate_polygon(points: &[Vec2]) -> Result<Vec<Vec<Vec2>>, TessellationError> {

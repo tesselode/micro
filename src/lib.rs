@@ -1,6 +1,6 @@
 mod context;
 mod egui_integration;
-pub mod error;
+mod error;
 mod event;
 pub mod graphics;
 pub mod input;
@@ -8,10 +8,12 @@ pub mod math;
 mod offset_and_count;
 mod state;
 pub mod tween;
-pub mod util;
-pub mod window;
+mod util;
+mod window;
 
 pub use context::{run, Context, ContextSettings};
+pub use error::*;
 pub use event::*;
 pub use offset_and_count::*;
 pub use state::*;
+pub use window::*;

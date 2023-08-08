@@ -3,9 +3,8 @@ use std::error::Error;
 use glam::UVec2;
 use micro::{
 	graphics::{
-		color_constants::ColorConstants,
 		texture::{Texture, TextureSettings},
-		DrawParams,
+		ColorConstants, DrawParams,
 	},
 	window::WindowMode,
 	Context, ContextSettings, State,

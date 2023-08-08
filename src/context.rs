@@ -18,8 +18,8 @@ use crate::{
 	error::SdlError,
 	graphics::{
 		shader::{Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
-		stencil::{StencilAction, StencilTest},
 		texture::{Texture, TextureSettings},
+		StencilAction, StencilTest,
 	},
 	input::{Gamepad, MouseButton, Scancode},
 	log_if_err,

@@ -6,8 +6,7 @@ use micro::{
 		texture::{Texture, TextureSettings},
 		ColorConstants, DrawParams,
 	},
-	window::WindowMode,
-	Context, ContextSettings, State,
+	Context, ContextSettings, State, WindowMode,
 };
 use palette::LinSrgba;
 

@@ -7,6 +7,7 @@ use std::{
 
 use glam::{IVec2, Mat3, UVec2, Vec2};
 use glow::HasContext;
+use palette::LinSrgba;
 use sdl2::{
 	video::{FullscreenType, GLContext, GLProfile, SwapInterval, Window, WindowPos},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
@@ -16,7 +17,6 @@ use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	error::SdlError,
 	graphics::{
-		color::Rgba,
 		shader::{Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
 		stencil::{StencilAction, StencilTest},
 		texture::{Texture, TextureSettings},
@@ -152,7 +152,7 @@ impl Context {
 		Ok(())
 	}
 
-	pub fn clear(&self, color: Rgba) {
+	pub fn clear(&self, color: LinSrgba) {
 		unsafe {
 			self.gl
 				.clear_color(color.red, color.green, color.blue, color.alpha);

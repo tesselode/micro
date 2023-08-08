@@ -3,7 +3,7 @@ use std::error::Error;
 use glam::{UVec2, Vec2};
 use micro::{
 	graphics::{
-		color::Rgba,
+		color_constants::ColorConstants,
 		mesh::{Mesh, ShapeStyle},
 		DrawParams,
 	},
@@ -12,6 +12,7 @@ use micro::{
 	window::WindowMode,
 	Context, ContextSettings, Event, State,
 };
+use palette::LinSrgba;
 
 const VERTICES: &[Vec2] = &[
 	Vec2::new(10.0, 10.0),
@@ -48,7 +49,7 @@ impl State<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		ctx.clear(Rgba::BLACK);
+		ctx.clear(LinSrgba::BLACK);
 		match self {
 			MainState::Polygon { mesh } => mesh.draw(ctx, DrawParams::new()),
 			MainState::Triangles { meshes } => {

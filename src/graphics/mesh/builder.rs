@@ -4,29 +4,30 @@ use lyon_tessellation::{
 	StrokeOptions, StrokeTessellator, StrokeVertex, StrokeVertexConstructor, TessellationError,
 	VertexBuffers,
 };
+use palette::LinSrgba;
 
-use crate::{graphics::color::Rgba, math::Rect, Context};
+use crate::{graphics::color_constants::ColorConstants, math::Rect, Context};
 
 use super::{Mesh, Vertex};
 
 pub struct MeshBuilder {
 	buffers: VertexBuffers<Vertex, u32>,
-	color: Rgba,
+	color: LinSrgba,
 }
 
 impl MeshBuilder {
 	pub fn new() -> Self {
 		Self {
 			buffers: VertexBuffers::new(),
-			color: Rgba::WHITE,
+			color: LinSrgba::WHITE,
 		}
 	}
 
-	pub fn set_color(&mut self, color: Rgba) {
+	pub fn set_color(&mut self, color: LinSrgba) {
 		self.color = color;
 	}
 
-	pub fn with_color(mut self, color: Rgba, mut f: impl FnMut(Self) -> Self) -> Self {
+	pub fn with_color(mut self, color: LinSrgba, mut f: impl FnMut(Self) -> Self) -> Self {
 		let previous_color = self.color;
 		self.set_color(color);
 		let mut this = f(self);
@@ -252,7 +253,7 @@ pub enum ShapeStyle {
 }
 
 struct FillVertexToVertex {
-	color: Rgba,
+	color: LinSrgba,
 }
 
 impl FillVertexConstructor<Vertex> for FillVertexToVertex {
@@ -266,7 +267,7 @@ impl FillVertexConstructor<Vertex> for FillVertexToVertex {
 }
 
 struct StrokeVertexToVertex {
-	color: Rgba,
+	color: LinSrgba,
 }
 
 impl StrokeVertexConstructor<Vertex> for StrokeVertexToVertex {

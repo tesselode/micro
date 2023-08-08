@@ -3,6 +3,7 @@ mod builder;
 pub use builder::*;
 use glam::{Mat4, Vec2};
 use lyon_tessellation::TessellationError;
+use palette::LinSrgba;
 
 use std::rc::Rc;
 
@@ -16,7 +17,7 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::color::Rgba;
+use super::color_constants::ColorConstants;
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -107,7 +108,7 @@ impl Mesh {
 			.map(|(position, texture_coords)| Vertex {
 				position,
 				texture_coords,
-				color: Rgba::WHITE,
+				color: LinSrgba::WHITE,
 			})
 			.collect::<Vec<_>>();
 		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
@@ -262,5 +263,5 @@ impl Drop for Mesh {
 pub struct Vertex {
 	pub position: Vec2,
 	pub texture_coords: Vec2,
-	pub color: Rgba,
+	pub color: LinSrgba,
 }

@@ -2,6 +2,7 @@ use std::{path::Path, rc::Rc};
 
 use glam::{IVec2, UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
+use palette::LinSrgba;
 use thiserror::Error;
 
 use crate::{
@@ -13,8 +14,6 @@ use crate::{
 	},
 	math::Rect,
 };
-
-use super::color::Rgba;
 
 #[derive(Debug, Clone)]
 pub struct Texture {
@@ -187,7 +186,7 @@ pub enum TextureWrapping {
 	Repeat,
 	MirroredRepeat,
 	ClampToEdge,
-	ClampToBorder(Rgba),
+	ClampToBorder(LinSrgba),
 }
 
 impl TextureWrapping {

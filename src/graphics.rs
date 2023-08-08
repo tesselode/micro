@@ -1,6 +1,6 @@
 mod blend_mode;
 pub mod canvas;
-pub mod color;
+pub mod color_constants;
 mod draw_params;
 pub mod image_data;
 pub mod mesh;

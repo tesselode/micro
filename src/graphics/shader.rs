@@ -2,9 +2,10 @@ use std::{collections::HashMap, path::Path, rc::Rc};
 
 use glam::{Mat4, Vec2};
 use glow::{HasContext, NativeProgram};
+use palette::LinSrgba;
 use thiserror::Error;
 
-use crate::{context::Context, graphics::color::Rgba};
+use crate::context::Context;
 
 use super::texture::Texture;
 
@@ -152,7 +153,7 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_color(&self, name: &str, color: Rgba) -> Result<(), UniformNotFound> {
+	pub fn send_color(&self, name: &str, color: LinSrgba) -> Result<(), UniformNotFound> {
 		unsafe {
 			self.gl.use_program(Some(self.program));
 			let location = self

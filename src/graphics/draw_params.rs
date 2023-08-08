@@ -1,6 +1,9 @@
 use glam::{Mat3, Vec2};
+use palette::LinSrgba;
 
-use crate::graphics::{blend_mode::BlendMode, color::Rgba, shader::Shader};
+use crate::graphics::{blend_mode::BlendMode, shader::Shader};
+
+use super::color_constants::ColorConstants;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DrawParams<'a> {
@@ -9,7 +12,7 @@ pub struct DrawParams<'a> {
 	pub rotation: f32,
 	pub scale: Vec2,
 	pub origin: Vec2,
-	pub color: Rgba,
+	pub color: LinSrgba,
 	pub blend_mode: BlendMode,
 }
 
@@ -21,7 +24,7 @@ impl<'a> DrawParams<'a> {
 			rotation: 0.0,
 			scale: Vec2::ONE,
 			origin: Vec2::ZERO,
-			color: Rgba::WHITE,
+			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
 		}
 	}
@@ -49,7 +52,7 @@ impl<'a> DrawParams<'a> {
 		Self { origin, ..self }
 	}
 
-	pub fn color(self, color: impl Into<Rgba>) -> Self {
+	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			color: color.into(),
 			..self
@@ -86,8 +89,8 @@ impl<'a> From<Vec2> for DrawParams<'a> {
 	}
 }
 
-impl<'a> From<Rgba> for DrawParams<'a> {
-	fn from(color: Rgba) -> Self {
+impl<'a> From<LinSrgba> for DrawParams<'a> {
+	fn from(color: LinSrgba) -> Self {
 		Self::new().color(color)
 	}
 }

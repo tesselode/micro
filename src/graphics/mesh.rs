@@ -92,7 +92,7 @@ impl Mesh {
 	}
 
 	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
-		Self::rectangle_with_texture_region(ctx, rect, Rect::xywh(0.0, 0.0, 1.0, 1.0))
+		Self::rectangle_with_texture_region(ctx, rect, Rect::from_xywh(0.0, 0.0, 1.0, 1.0))
 	}
 
 	pub fn rectangle_with_texture_region(

@@ -87,10 +87,10 @@ impl Canvas {
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
 		let size = self.size().as_vec2();
-		Rect {
-			top_left: absolute_rect.top_left / size,
-			bottom_right: absolute_rect.bottom_right / size,
-		}
+		Rect::from_top_left_and_bottom_right(
+			absolute_rect.top_left / size,
+			absolute_rect.bottom_right() / size,
+		)
 	}
 
 	pub fn render_to<T>(&self, ctx: &mut Context, f: impl FnOnce(&mut Context) -> T) -> T {

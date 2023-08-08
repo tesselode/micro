@@ -56,7 +56,7 @@ pub fn draw_egui_output(
 					let clip_rect_points = egui_rect_to_micro_rect(clipped_primitive.clip_rect);
 					let clip_rect_pixels = crate::math::Rect::new(
 						clip_rect_points.top_left * scaling_factor,
-						clip_rect_points.bottom_right * scaling_factor,
+						clip_rect_points.bottom_right() * scaling_factor,
 					);
 					Mesh::rectangle(ctx, clip_rect_pixels).draw(ctx, DrawParams::new());
 				});

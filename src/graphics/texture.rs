@@ -111,10 +111,10 @@ impl Texture {
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
 		let size = self.inner.size.as_vec2();
-		Rect {
-			top_left: absolute_rect.top_left / size,
-			bottom_right: absolute_rect.bottom_right / size,
-		}
+		Rect::from_top_left_and_bottom_right(
+			absolute_rect.top_left / size,
+			absolute_rect.bottom_right() / size,
+		)
 	}
 
 	pub fn replace(&self, top_left: IVec2, image_data: &ImageData) {
@@ -144,7 +144,7 @@ impl Texture {
 	pub fn draw_region<'a>(&self, ctx: &Context, region: Rect, params: impl Into<DrawParams<'a>>) {
 		Mesh::rectangle_with_texture_region(
 			ctx,
-			Rect::new(Vec2::ZERO, region.size()),
+			Rect::new(Vec2::ZERO, region.size),
 			self.relative_rect(region),
 		)
 		.draw_textured(ctx, self, params);

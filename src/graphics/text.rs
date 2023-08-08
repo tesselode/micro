@@ -102,7 +102,7 @@ impl Text {
 			if !glyph.char_data.rasterize() {
 				continue;
 			}
-			let display_rect = Rect::from_top_left_and_size(
+			let display_rect = Rect::new(
 				Vec2::new(glyph.x, glyph.y),
 				Vec2::new(glyph.width as f32, glyph.height as f32),
 			);

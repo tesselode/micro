@@ -1,10 +1,13 @@
 mod irect;
 mod rect;
+mod urect;
+
+pub use irect::*;
+pub use rect::*;
+pub use urect::*;
 
 use glam::Vec2;
-pub use irect::*;
 use lyon_tessellation::{TessellationError, VertexBuffers};
-pub use rect::*;
 
 use crate::graphics::mesh::{MeshBuilder, ShapeStyle, Vertex};
 

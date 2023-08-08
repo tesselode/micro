@@ -10,7 +10,7 @@ pub struct ImageData {
 }
 
 impl ImageData {
-	pub fn load(path: impl AsRef<Path>) -> Result<Self, LoadImageDataError> {
+	pub fn from_file(path: impl AsRef<Path>) -> Result<Self, LoadImageDataError> {
 		let image_buffer = image::io::Reader::open(path)?.decode()?.to_rgba8();
 		Ok(Self {
 			size: UVec2::new(image_buffer.width(), image_buffer.height()),

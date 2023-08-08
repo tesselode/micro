@@ -101,7 +101,7 @@ impl Texture {
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
 	) -> Result<Self, LoadImageDataError> {
-		let image_data = ImageData::load(path)?;
+		let image_data = ImageData::from_file(path)?;
 		Ok(Self::from_image_data(ctx, &image_data, settings))
 	}
 

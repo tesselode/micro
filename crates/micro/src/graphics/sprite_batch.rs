@@ -84,7 +84,7 @@ impl SpriteBatch {
 		let start_vertex_index = sprite_index * 4;
 		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_rect.size);
 		let relative_texture_rect = self.texture.relative_rect(texture_rect);
-		let transform = params.transform();
+		let transform = params.transform;
 		let corners = untransformed_display_rect.corners();
 		let vertices = corners
 			.iter()

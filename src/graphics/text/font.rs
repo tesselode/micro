@@ -50,10 +50,7 @@ impl Font {
 		let (width, height, glyph_rects) = pack_glyphs(&glyph_image_data);
 		let texture = create_texture(
 			ctx,
-			UVec2::new(
-				width.try_into().expect("Packed glyphs are too wide"),
-				height.try_into().expect("Packed glyphs are too tall"),
-			),
+			UVec2::new(width as u32, height as u32),
 			&glyph_image_data,
 			&glyph_rects,
 			texture_settings,
@@ -105,10 +102,7 @@ fn rasterize_chars(font: &fontdue::Font, settings: FontSettings) -> HashMap<char
 			(
 				char,
 				ImageData {
-					size: UVec2::new(
-						metrics.width.try_into().expect("Glyph too wide"),
-						metrics.height.try_into().expect("Glyph too tall"),
-					),
+					size: UVec2::new(metrics.width as u32, metrics.height as u32),
 					pixels,
 				},
 			)
@@ -124,8 +118,8 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 	} = pack_into_po2(
 		usize::MAX,
 		glyph_image_data.iter().map(|(char, image_data)| {
-			let base_width: usize = image_data.size.x.try_into().unwrap();
-			let base_height: usize = image_data.size.y.try_into().unwrap();
+			let base_width: usize = image_data.size.x as usize;
+			let base_height: usize = image_data.size.y as usize;
 			crunch::Item {
 				data: char,
 				w: base_width + GLYPH_PADDING * 2,

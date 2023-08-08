@@ -87,12 +87,7 @@ fn patch_textures(
 		if let Some(texture) = textures.get(texture_id) {
 			let top_left = delta
 				.pos
-				.map(|[x, y]| {
-					IVec2::new(
-						x.try_into().expect("cannot convert usize into i32"),
-						y.try_into().expect("cannot convert usize into i32"),
-					)
-				})
+				.map(|[x, y]| IVec2::new(x as i32, y as i32))
 				.unwrap_or_default();
 			texture.replace(top_left, &egui_image_data_to_micro_image_data(&delta.image))
 		} else {
@@ -338,5 +333,8 @@ fn egui_image_data_to_micro_image_data(
 }
 
 fn egui_scaling_factor(ctx: &Context) -> f32 {
-	(ctx.monitor_resolution().y as f32 / 1080.0).max(1.0)
+	let Ok(monitor_resolution) = ctx.monitor_resolution() else {
+		return 1.0
+	};
+	(monitor_resolution.y as f32 / 1080.0).max(1.0)
 }

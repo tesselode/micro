@@ -40,12 +40,12 @@ impl SpriteBatch {
 		for i in 0..capacity {
 			let start_index = i * 4;
 			indices.extend_from_slice(&[
-				start_index.try_into().expect("Too many vertices"),
-				(start_index + 1).try_into().expect("Too many vertices"),
-				(start_index + 3).try_into().expect("Too many vertices"),
-				(start_index + 1).try_into().expect("Too many vertices"),
-				(start_index + 2).try_into().expect("Too many vertices"),
-				(start_index + 3).try_into().expect("Too many vertices"),
+				start_index as u32,
+				(start_index + 1) as u32,
+				(start_index + 3) as u32,
+				(start_index + 1) as u32,
+				(start_index + 2) as u32,
+				(start_index + 3) as u32,
 			]);
 		}
 		Self {

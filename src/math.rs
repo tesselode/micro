@@ -3,19 +3,19 @@ mod rect;
 
 use glam::Vec2;
 pub use irect::*;
-use lyon_tessellation::VertexBuffers;
+use lyon_tessellation::{TessellationError, VertexBuffers};
 pub use rect::*;
 
 use crate::graphics::mesh::{MeshBuilder, ShapeStyle, Vertex};
 
-pub fn triangulate_polygon(points: &[Vec2]) -> Vec<Vec<Vec2>> {
-	let mesh_builder = MeshBuilder::new().with_polygon(ShapeStyle::Fill, points);
+pub fn triangulate_polygon(points: &[Vec2]) -> Result<Vec<Vec<Vec2>>, TessellationError> {
+	let mesh_builder = MeshBuilder::new().with_polygon(ShapeStyle::Fill, points)?;
 	let buffers = mesh_builder.buffers();
-	buffers
+	Ok(buffers
 		.indices
 		.chunks_exact(3)
 		.map(|indices| triangle_points(indices, buffers))
-		.collect()
+		.collect())
 }
 
 fn triangle_points(indices: &[u32], buffers: &VertexBuffers<Vertex, u32>) -> Vec<Vec2> {

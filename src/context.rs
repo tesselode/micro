@@ -13,6 +13,7 @@ use sdl2::{
 
 use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
+	error::SdlError,
 	graphics::{
 		color::Rgba,
 		shader::{Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
@@ -104,51 +105,35 @@ impl Context {
 		self.video.gl_get_swap_interval()
 	}
 
-	pub fn monitor_resolution(&self) -> UVec2 {
-		let display_index = self
-			.window
-			.display_index()
-			.expect("could not get display index of window");
-		let display_mode = self
-			.video
-			.desktop_display_mode(display_index)
-			.expect("could not get display mode");
-		UVec2::new(
-			display_mode
-				.w
-				.try_into()
-				.expect("could not convert i32 into u32"),
-			display_mode
-				.h
-				.try_into()
-				.expect("could not convert i32 into u32"),
-		)
+	pub fn monitor_resolution(&self) -> Result<UVec2, SdlError> {
+		let display_index = self.window.display_index()?;
+		let display_mode = self.video.desktop_display_mode(display_index)?;
+		Ok(UVec2::new(display_mode.w as u32, display_mode.h as u32))
 	}
 
-	pub fn set_window_mode(&mut self, window_mode: WindowMode) {
+	pub fn set_window_mode(&mut self, window_mode: WindowMode) -> Result<(), SdlError> {
 		match window_mode {
 			WindowMode::Fullscreen => {
-				self.window
-					.set_fullscreen(FullscreenType::Desktop)
-					.expect("error setting fullscreen mode");
+				self.window.set_fullscreen(FullscreenType::Desktop)?;
 			}
 			WindowMode::Windowed { size } => {
-				self.window
-					.set_fullscreen(FullscreenType::Off)
-					.expect("error setting fullscreen mode");
+				self.window.set_fullscreen(FullscreenType::Off)?;
 				self.window
 					.set_size(size.x, size.y)
-					.expect("error setting window size");
+					.map_err(|err| match err {
+						IntegerOrSdlError::IntegerOverflows(_, _) => panic!("integer overflow"),
+						IntegerOrSdlError::SdlError(err) => SdlError(err),
+					})?;
 				self.window
 					.set_position(WindowPos::Centered, WindowPos::Centered);
 			}
 		}
+		Ok(())
 	}
 
-	pub fn set_swap_interval(&mut self, swap_interval: SwapInterval) {
-		self.video
-			.gl_set_swap_interval(swap_interval)
-			.expect("could not set swap interval");
+	pub fn set_swap_interval(&mut self, swap_interval: SwapInterval) -> Result<(), SdlError> {
+		self.video.gl_set_swap_interval(swap_interval)?;
+		Ok(())
 	}
 
 	pub fn clear(&self, color: Rgba) {
@@ -258,24 +243,25 @@ impl Context {
 	}
 
 	fn new(settings: ContextSettings) -> Self {
-		let sdl = sdl2::init().unwrap();
-		let video = sdl.video().unwrap();
-		let controller = sdl.game_controller().unwrap();
+		let sdl = sdl2::init().expect("error initializing SDL");
+		let video = sdl.video().expect("error initializing video subsystem");
+		let controller = sdl
+			.game_controller()
+			.expect("error initializing controller subsystem");
 		let gl_attr = video.gl_attr();
 		gl_attr.set_context_profile(GLProfile::Core);
 		gl_attr.set_context_version(3, 3);
 		gl_attr.set_stencil_size(8);
 		let window = build_window(&video, &settings);
 		let (window_width, window_height) = window.size();
-		let window_size = IVec2::new(
-			window_width.try_into().expect("window is too wide"),
-			window_height.try_into().expect("window is too tall"),
-		);
-		let _sdl_gl_ctx = window.gl_create_context().unwrap();
+		let window_size = UVec2::new(window_width, window_height);
+		let _sdl_gl_ctx = window
+			.gl_create_context()
+			.expect("error creating OpenGL context");
 		video
 			.gl_set_swap_interval(settings.swap_interval)
-			.expect("Could not set swap interval");
-		let event_pump = sdl.event_pump().unwrap();
+			.expect("error setting swap interval");
+		let event_pump = sdl.event_pump().expect("error creating event pump");
 		let (gl, default_texture, default_shader) = create_gl_context(&video, window_size);
 		Self {
 			_sdl: sdl,
@@ -374,12 +360,12 @@ fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
 	if settings.resizable {
 		window_builder.resizable();
 	}
-	window_builder.build().unwrap()
+	window_builder.build().expect("error building window")
 }
 
 fn create_gl_context(
 	video: &VideoSubsystem,
-	window_size: IVec2,
+	window_size: UVec2,
 ) -> (Rc<glow::Context>, Texture, Shader) {
 	let gl = Rc::new(unsafe {
 		glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
@@ -387,7 +373,7 @@ fn create_gl_context(
 	unsafe {
 		gl.enable(glow::BLEND);
 		gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
-		gl.viewport(0, 0, window_size.x, window_size.y);
+		gl.viewport(0, 0, window_size.x as i32, window_size.y as i32);
 	}
 	let default_texture = Texture::new_from_gl(
 		gl.clone(),

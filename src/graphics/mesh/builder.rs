@@ -1,7 +1,8 @@
 use glam::Vec2;
 use lyon_tessellation::{
 	path::Winding, BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor,
-	StrokeOptions, StrokeTessellator, StrokeVertex, StrokeVertexConstructor, VertexBuffers,
+	StrokeOptions, StrokeTessellator, StrokeVertex, StrokeVertexConstructor, TessellationError,
+	VertexBuffers,
 };
 
 use crate::{graphics::color::Rgba, math::Rect, Context};
@@ -33,109 +34,124 @@ impl MeshBuilder {
 		this
 	}
 
-	pub fn add_rectangle(&mut self, style: ShapeStyle, rect: Rect) {
+	pub fn add_rectangle(
+		&mut self,
+		style: ShapeStyle,
+		rect: Rect,
+	) -> Result<(), TessellationError> {
 		match style {
-			ShapeStyle::Fill => FillTessellator::new()
-				.tessellate_rectangle(
-					&lyon_tessellation::math::Box2D {
-						min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-						max: lyon_tessellation::math::point(
-							rect.top_left.x + rect.size().x,
-							rect.top_left.y + rect.size().y,
-						),
-					},
-					&FillOptions::default(),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						FillVertexToVertex { color: self.color },
+			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
+				&lyon_tessellation::math::Box2D {
+					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+					max: lyon_tessellation::math::point(
+						rect.top_left.x + rect.size().x,
+						rect.top_left.y + rect.size().y,
 					),
-				)
-				.unwrap(),
-			ShapeStyle::Stroke(width) => StrokeTessellator::new()
-				.tessellate_rectangle(
-					&lyon_tessellation::math::Box2D {
-						min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-						max: lyon_tessellation::math::point(
-							rect.top_left.x + rect.size().x,
-							rect.top_left.y + rect.size().y,
-						),
-					},
-					&StrokeOptions::default().with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						StrokeVertexToVertex { color: self.color },
+				},
+				&FillOptions::default(),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					FillVertexToVertex { color: self.color },
+				),
+			)?,
+			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_rectangle(
+				&lyon_tessellation::math::Box2D {
+					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+					max: lyon_tessellation::math::point(
+						rect.top_left.x + rect.size().x,
+						rect.top_left.y + rect.size().y,
 					),
-				)
-				.unwrap(),
+				},
+				&StrokeOptions::default().with_line_width(width),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					StrokeVertexToVertex { color: self.color },
+				),
+			)?,
 		};
+		Ok(())
 	}
 
-	pub fn with_rectangle(mut self, style: ShapeStyle, rect: Rect) -> Self {
-		self.add_rectangle(style, rect);
-		self
+	pub fn with_rectangle(
+		mut self,
+		style: ShapeStyle,
+		rect: Rect,
+	) -> Result<Self, TessellationError> {
+		self.add_rectangle(style, rect)?;
+		Ok(self)
 	}
 
-	pub fn add_circle(&mut self, style: ShapeStyle, center: Vec2, radius: f32) {
+	pub fn add_circle(
+		&mut self,
+		style: ShapeStyle,
+		center: Vec2,
+		radius: f32,
+	) -> Result<(), TessellationError> {
 		match style {
-			ShapeStyle::Fill => FillTessellator::new()
-				.tessellate_circle(
-					lyon_tessellation::math::point(center.x, center.y),
-					radius,
-					&FillOptions::default(),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						FillVertexToVertex { color: self.color },
-					),
-				)
-				.unwrap(),
-			ShapeStyle::Stroke(width) => StrokeTessellator::new()
-				.tessellate_circle(
-					lyon_tessellation::math::point(center.x, center.y),
-					radius,
-					&StrokeOptions::default().with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						StrokeVertexToVertex { color: self.color },
-					),
-				)
-				.unwrap(),
+			ShapeStyle::Fill => FillTessellator::new().tessellate_circle(
+				lyon_tessellation::math::point(center.x, center.y),
+				radius,
+				&FillOptions::default(),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					FillVertexToVertex { color: self.color },
+				),
+			)?,
+			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_circle(
+				lyon_tessellation::math::point(center.x, center.y),
+				radius,
+				&StrokeOptions::default().with_line_width(width),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					StrokeVertexToVertex { color: self.color },
+				),
+			)?,
 		};
+		Ok(())
 	}
 
-	pub fn with_circle(mut self, style: ShapeStyle, center: Vec2, radius: f32) -> Self {
-		self.add_circle(style, center, radius);
-		self
+	pub fn with_circle(
+		mut self,
+		style: ShapeStyle,
+		center: Vec2,
+		radius: f32,
+	) -> Result<Self, TessellationError> {
+		self.add_circle(style, center, radius)?;
+		Ok(self)
 	}
 
-	pub fn add_ellipse(&mut self, style: ShapeStyle, center: Vec2, radii: Vec2, rotation: f32) {
+	pub fn add_ellipse(
+		&mut self,
+		style: ShapeStyle,
+		center: Vec2,
+		radii: Vec2,
+		rotation: f32,
+	) -> Result<(), TessellationError> {
 		match style {
-			ShapeStyle::Fill => FillTessellator::new()
-				.tessellate_ellipse(
-					lyon_tessellation::math::point(center.x, center.y),
-					lyon_tessellation::math::vector(radii.x, radii.y),
-					lyon_tessellation::math::Angle::radians(rotation),
-					Winding::Positive,
-					&FillOptions::default(),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						FillVertexToVertex { color: self.color },
-					),
-				)
-				.unwrap(),
-			ShapeStyle::Stroke(width) => StrokeTessellator::new()
-				.tessellate_ellipse(
-					lyon_tessellation::math::point(center.x, center.y),
-					lyon_tessellation::math::vector(radii.x, radii.y),
-					lyon_tessellation::math::Angle::radians(rotation),
-					Winding::Positive,
-					&StrokeOptions::default().with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						StrokeVertexToVertex { color: self.color },
-					),
-				)
-				.unwrap(),
+			ShapeStyle::Fill => FillTessellator::new().tessellate_ellipse(
+				lyon_tessellation::math::point(center.x, center.y),
+				lyon_tessellation::math::vector(radii.x, radii.y),
+				lyon_tessellation::math::Angle::radians(rotation),
+				Winding::Positive,
+				&FillOptions::default(),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					FillVertexToVertex { color: self.color },
+				),
+			)?,
+			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_ellipse(
+				lyon_tessellation::math::point(center.x, center.y),
+				lyon_tessellation::math::vector(radii.x, radii.y),
+				lyon_tessellation::math::Angle::radians(rotation),
+				Winding::Positive,
+				&StrokeOptions::default().with_line_width(width),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					StrokeVertexToVertex { color: self.color },
+				),
+			)?,
 		};
+		Ok(())
 	}
 
 	pub fn with_ellipse(
@@ -144,12 +160,16 @@ impl MeshBuilder {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
-	) -> Self {
-		self.add_ellipse(style, center, radii, rotation);
-		self
+	) -> Result<Self, TessellationError> {
+		self.add_ellipse(style, center, radii, rotation)?;
+		Ok(self)
 	}
 
-	pub fn add_polygon(&mut self, style: ShapeStyle, points: &[Vec2]) {
+	pub fn add_polygon(
+		&mut self,
+		style: ShapeStyle,
+		points: &[Vec2],
+	) -> Result<(), TessellationError> {
 		let polygon = lyon_tessellation::path::Polygon {
 			points: &points
 				.iter()
@@ -158,32 +178,33 @@ impl MeshBuilder {
 			closed: true,
 		};
 		match style {
-			ShapeStyle::Fill => FillTessellator::new()
-				.tessellate_polygon(
-					polygon,
-					&FillOptions::default(),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						FillVertexToVertex { color: self.color },
-					),
-				)
-				.unwrap(),
-			ShapeStyle::Stroke(width) => StrokeTessellator::new()
-				.tessellate_polygon(
-					polygon,
-					&StrokeOptions::default().with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						StrokeVertexToVertex { color: self.color },
-					),
-				)
-				.unwrap(),
+			ShapeStyle::Fill => FillTessellator::new().tessellate_polygon(
+				polygon,
+				&FillOptions::default(),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					FillVertexToVertex { color: self.color },
+				),
+			)?,
+			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_polygon(
+				polygon,
+				&StrokeOptions::default().with_line_width(width),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					StrokeVertexToVertex { color: self.color },
+				),
+			)?,
 		};
+		Ok(())
 	}
 
-	pub fn with_polygon(mut self, style: ShapeStyle, points: &[Vec2]) -> Self {
-		self.add_polygon(style, points);
-		self
+	pub fn with_polygon(
+		mut self,
+		style: ShapeStyle,
+		points: &[Vec2],
+	) -> Result<Self, TessellationError> {
+		self.add_polygon(style, points)?;
+		Ok(self)
 	}
 
 	pub fn add_polyline(&mut self, line_width: f32, points: &[Vec2]) {

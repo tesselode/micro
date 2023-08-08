@@ -46,8 +46,8 @@ impl Event {
 				win_event: sdl2::event::WindowEvent::SizeChanged(width, height),
 				..
 			} => Some(Self::WindowSizeChanged(UVec2::new(
-				width.try_into().expect("window width is negative"),
-				height.try_into().expect("window height is negative"),
+				width as u32,
+				height as u32,
 			))),
 			sdl2::event::Event::KeyDown {
 				scancode: Some(scancode),

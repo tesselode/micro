@@ -63,7 +63,10 @@ impl Shader {
 		vertex: &str,
 		fragment: &str,
 	) -> Result<Self, String> {
-		let vertex_shader = unsafe { gl.create_shader(glow::VERTEX_SHADER).unwrap() };
+		let vertex_shader = unsafe {
+			gl.create_shader(glow::VERTEX_SHADER)
+				.expect("error creating vertex shader")
+		};
 		unsafe {
 			gl.shader_source(vertex_shader, vertex);
 			gl.compile_shader(vertex_shader);
@@ -71,7 +74,10 @@ impl Shader {
 				return Err(gl.get_shader_info_log(vertex_shader));
 			}
 		}
-		let fragment_shader = unsafe { gl.create_shader(glow::FRAGMENT_SHADER).unwrap() };
+		let fragment_shader = unsafe {
+			gl.create_shader(glow::FRAGMENT_SHADER)
+				.expect("error creating fragment shader")
+		};
 		unsafe {
 			gl.shader_source(fragment_shader, fragment);
 			gl.compile_shader(fragment_shader);
@@ -79,7 +85,7 @@ impl Shader {
 				return Err(gl.get_shader_info_log(fragment_shader));
 			}
 		}
-		let program = unsafe { gl.create_program().unwrap() };
+		let program = unsafe { gl.create_program().expect("error creating shader program") };
 		unsafe {
 			gl.attach_shader(program, vertex_shader);
 			gl.attach_shader(program, fragment_shader);

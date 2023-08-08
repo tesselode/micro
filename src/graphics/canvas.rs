@@ -22,7 +22,10 @@ pub struct Canvas {
 impl Canvas {
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
 		let gl = ctx.gl.clone();
-		let framebuffer = unsafe { gl.create_framebuffer().unwrap() };
+		let framebuffer = unsafe {
+			gl.create_framebuffer()
+				.expect("error creating canvas framebuffer")
+		};
 		unsafe {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
 		}
@@ -36,7 +39,10 @@ impl Canvas {
 				settings.msaa.num_samples(),
 			)),
 		};
-		let depth_stencil_renderbuffer = unsafe { gl.create_renderbuffer().unwrap() };
+		let depth_stencil_renderbuffer = unsafe {
+			gl.create_renderbuffer()
+				.expect("error creating depth/stencil renderbuffer")
+		};
 		unsafe {
 			gl.bind_renderbuffer(glow::RENDERBUFFER, Some(depth_stencil_renderbuffer));
 			if settings.msaa != Msaa::None {
@@ -44,15 +50,15 @@ impl Canvas {
 					glow::RENDERBUFFER,
 					settings.msaa.num_samples().into(),
 					glow::DEPTH24_STENCIL8,
-					size.x.try_into().expect("canvas is too wide"),
-					size.y.try_into().expect("canvas is too tall"),
+					size.x as i32,
+					size.y as i32,
 				);
 			} else {
 				gl.renderbuffer_storage(
 					glow::RENDERBUFFER,
 					glow::DEPTH24_STENCIL8,
-					size.x.try_into().expect("canvas is too wide"),
-					size.y.try_into().expect("canvas is too tall"),
+					size.x as i32,
+					size.y as i32,
 				);
 			}
 			// gl.bind_renderbuffer(glow::RENDERBUFFER, None);
@@ -114,8 +120,8 @@ impl Canvas {
 					.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(framebuffer));
 				ctx.gl
 					.bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(self.framebuffer));
-				let width = self.size().x.try_into().expect("Canvas is too wide");
-				let height = self.size().x.try_into().expect("Canvas is too tall");
+				let width = self.size().x as i32;
+				let height = self.size().x as i32;
 				ctx.gl.blit_framebuffer(
 					0,
 					0,
@@ -204,19 +210,25 @@ struct MultisampleFramebuffer {
 
 impl MultisampleFramebuffer {
 	fn new(gl: Rc<glow::Context>, size: UVec2, num_samples: u8) -> Self {
-		let framebuffer = unsafe { gl.create_framebuffer().unwrap() };
+		let framebuffer = unsafe {
+			gl.create_framebuffer()
+				.expect("error creating multisample framebuffer")
+		};
 		unsafe {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
 		}
-		let texture = unsafe { gl.create_texture().unwrap() };
+		let texture = unsafe {
+			gl.create_texture()
+				.expect("error creating multisample texture")
+		};
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D_MULTISAMPLE, Some(texture));
 			gl.tex_image_2d_multisample(
 				glow::TEXTURE_2D_MULTISAMPLE,
 				num_samples.into(),
-				glow::RGBA.try_into().unwrap(),
-				size.x.try_into().expect("Canvas is too wide"),
-				size.y.try_into().expect("Canvas is too tall"),
+				glow::RGBA as i32,
+				size.x as i32,
+				size.y as i32,
 				true,
 			);
 			gl.framebuffer_texture_2d(

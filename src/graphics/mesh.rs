@@ -2,6 +2,7 @@ mod builder;
 
 pub use builder::*;
 use glam::{Mat4, Vec2};
+use lyon_tessellation::TessellationError;
 
 use std::rc::Rc;
 
@@ -32,9 +33,12 @@ impl Mesh {
 	}
 
 	pub(crate) fn new_from_gl(gl: Rc<glow::Context>, vertices: &[Vertex], indices: &[u32]) -> Self {
-		let vertex_array = unsafe { gl.create_vertex_array().unwrap() };
-		let vertex_buffer = unsafe { gl.create_buffer().unwrap() };
-		let index_buffer = unsafe { gl.create_buffer().unwrap() };
+		let vertex_array = unsafe {
+			gl.create_vertex_array()
+				.expect("error creating vertex array")
+		};
+		let vertex_buffer = unsafe { gl.create_buffer().expect("error creating vertex buffer") };
+		let index_buffer = unsafe { gl.create_buffer().expect("error creating index buffer") };
 		unsafe {
 			gl.bind_vertex_array(Some(vertex_array));
 			gl.bind_buffer(glow::ARRAY_BUFFER, Some(vertex_buffer));
@@ -82,7 +86,7 @@ impl Mesh {
 			vertex_array,
 			vertex_buffer,
 			index_buffer,
-			num_indices: indices.len().try_into().expect("Mesh has too many indices"),
+			num_indices: indices.len() as i32,
 		}
 	}
 
@@ -109,14 +113,23 @@ impl Mesh {
 		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
-	pub fn styled_rectangle(ctx: &Context, style: ShapeStyle, rect: Rect) -> Self {
-		MeshBuilder::new().with_rectangle(style, rect).build(ctx)
+	pub fn styled_rectangle(
+		ctx: &Context,
+		style: ShapeStyle,
+		rect: Rect,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new().with_rectangle(style, rect)?.build(ctx))
 	}
 
-	pub fn circle(ctx: &Context, style: ShapeStyle, center: Vec2, radius: f32) -> Self {
-		MeshBuilder::new()
-			.with_circle(style, center, radius)
-			.build(ctx)
+	pub fn circle(
+		ctx: &Context,
+		style: ShapeStyle,
+		center: Vec2,
+		radius: f32,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_circle(style, center, radius)?
+			.build(ctx))
 	}
 
 	pub fn ellipse(
@@ -125,14 +138,18 @@ impl Mesh {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
-	) -> Self {
-		MeshBuilder::new()
-			.with_ellipse(style, center, radii, rotation)
-			.build(ctx)
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_ellipse(style, center, radii, rotation)?
+			.build(ctx))
 	}
 
-	pub fn polygon(ctx: &Context, style: ShapeStyle, points: &[Vec2]) -> Self {
-		MeshBuilder::new().with_polygon(style, points).build(ctx)
+	pub fn polygon(
+		ctx: &Context,
+		style: ShapeStyle,
+		points: &[Vec2],
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new().with_polygon(style, points)?.build(ctx))
 	}
 
 	pub fn polyline(ctx: &Context, line_width: f32, points: &[Vec2]) -> Self {
@@ -167,11 +184,7 @@ impl Mesh {
 		self.draw_inner(
 			ctx,
 			&ctx.default_texture,
-			range.into_offset_and_count(
-				self.num_indices
-					.try_into()
-					.expect("cannot convert usize into i32"),
-			),
+			range.into_offset_and_count(self.num_indices as usize),
 			params.into(),
 		);
 	}
@@ -195,11 +208,7 @@ impl Mesh {
 		self.draw_inner(
 			ctx,
 			texture,
-			range.into_offset_and_count(
-				self.num_indices
-					.try_into()
-					.expect("cannot convert usize into i32"),
-			),
+			range.into_offset_and_count(self.num_indices as usize),
 			params.into(),
 		);
 	}
@@ -230,12 +239,9 @@ impl Mesh {
 			params.blend_mode.apply(gl);
 			gl.draw_elements(
 				glow::TRIANGLES,
-				range
-					.count
-					.try_into()
-					.expect("cannot convert usize into i32"),
+				range.count as i32,
 				glow::UNSIGNED_INT,
-				i32::try_from(range.offset).expect("cannot convert usize into i32") * 4,
+				range.offset as i32 * 4,
 			);
 		}
 	}

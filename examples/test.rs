@@ -29,7 +29,7 @@ enum MainState {
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self::Polygon {
-			mesh: Mesh::polygon(ctx, ShapeStyle::Stroke(4.0), VERTICES),
+			mesh: Mesh::polygon(ctx, ShapeStyle::Stroke(4.0), VERTICES)?,
 		})
 	}
 }
@@ -38,10 +38,10 @@ impl State<Box<dyn Error>> for MainState {
 	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Box<dyn Error>> {
 		if let Event::KeyPressed(Scancode::Space) = event {
 			*self = Self::Triangles {
-				meshes: triangulate_polygon(VERTICES)
+				meshes: triangulate_polygon(VERTICES)?
 					.iter()
 					.map(|triangle| Mesh::polygon(ctx, ShapeStyle::Stroke(4.0), triangle))
-					.collect(),
+					.collect::<Result<_, _>>()?,
 			}
 		}
 		Ok(())

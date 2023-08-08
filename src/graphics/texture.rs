@@ -52,18 +52,18 @@ impl Texture {
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
 	) -> Self {
-		let texture = unsafe { gl.create_texture().unwrap() };
+		let texture = unsafe { gl.create_texture().expect("error creating texture") };
 		unsafe {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
 			gl.tex_parameter_i32(
 				glow::TEXTURE_2D,
 				glow::TEXTURE_WRAP_S,
-				settings.wrapping.as_u32().try_into().unwrap(),
+				settings.wrapping.as_u32() as i32,
 			);
 			gl.tex_parameter_i32(
 				glow::TEXTURE_2D,
 				glow::TEXTURE_WRAP_T,
-				settings.wrapping.as_u32().try_into().unwrap(),
+				settings.wrapping.as_u32() as i32,
 			);
 			if let TextureWrapping::ClampToBorder(color) = settings.wrapping {
 				let color: [f32; 4] = color.into();
@@ -72,19 +72,19 @@ impl Texture {
 			gl.tex_parameter_i32(
 				glow::TEXTURE_2D,
 				glow::TEXTURE_MIN_FILTER,
-				settings.minifying_filter.as_u32().try_into().unwrap(),
+				settings.minifying_filter.as_u32() as i32,
 			);
 			gl.tex_parameter_i32(
 				glow::TEXTURE_2D,
 				glow::TEXTURE_MAG_FILTER,
-				settings.magnifying_filter.as_u32().try_into().unwrap(),
+				settings.magnifying_filter.as_u32() as i32,
 			);
 			gl.tex_image_2d(
 				glow::TEXTURE_2D,
 				0,
 				glow::RGBA as i32,
-				size.x.try_into().expect("Texture is too wide"),
-				size.y.try_into().expect("Texture is too tall"),
+				size.x as i32,
+				size.y as i32,
 				0,
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
@@ -128,8 +128,8 @@ impl Texture {
 				0,
 				top_left.x,
 				top_left.y,
-				image_data.size.x.try_into().expect("Image data too wide"),
-				image_data.size.y.try_into().expect("Image data too tall"),
+				image_data.size.x as i32,
+				image_data.size.y as i32,
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
 				PixelUnpackData::Slice(&image_data.pixels),

@@ -226,7 +226,7 @@ impl MultisampleFramebuffer {
 			gl.tex_image_2d_multisample(
 				glow::TEXTURE_2D_MULTISAMPLE,
 				num_samples.into(),
-				glow::RGBA as i32,
+				glow::SRGB8_ALPHA8 as i32,
 				size.x as i32,
 				size.y as i32,
 				true,

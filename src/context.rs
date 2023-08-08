@@ -268,6 +268,7 @@ impl Context {
 		gl_attr.set_context_profile(GLProfile::Core);
 		gl_attr.set_context_version(3, 3);
 		gl_attr.set_stencil_size(8);
+		gl_attr.set_framebuffer_srgb_compatible(true);
 		let window = build_window(&video, &settings);
 		let (window_width, window_height) = window.size();
 		let window_size = UVec2::new(window_width, window_height);
@@ -388,6 +389,7 @@ fn create_gl_context(
 	});
 	unsafe {
 		gl.enable(glow::BLEND);
+		gl.enable(glow::FRAMEBUFFER_SRGB);
 		gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 		gl.viewport(0, 0, window_size.x as i32, window_size.y as i32);
 	}

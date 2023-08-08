@@ -1,5 +1,6 @@
 use std::{
 	collections::HashMap,
+	fmt::Debug,
 	rc::Rc,
 	time::{Duration, Instant},
 };
@@ -21,11 +22,26 @@ use crate::{
 		texture::{Texture, TextureSettings},
 	},
 	input::{Gamepad, MouseButton, Scancode},
+	log_if_err,
 	window::WindowMode,
 	Event, State,
 };
 
-pub fn run<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
+pub fn run<S, F, E>(settings: ContextSettings, state_constructor: F)
+where
+	S: State<E>,
+	F: FnMut(&mut Context) -> Result<S, E>,
+	E: Debug,
+{
+	#[cfg(debug_assertions)]
+	setup_logging();
+	#[cfg(not(debug_assertions))]
+	let _guard = setup_logging(&settings);
+	std::panic::set_hook(Box::new(|info| tracing::error!("{}", info)));
+	log_if_err!(run_inner(settings, state_constructor));
+}
+
+fn run_inner<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
 where
 	S: State<E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
@@ -385,4 +401,31 @@ fn create_gl_context(
 		Shader::new_from_gl(gl.clone(), DEFAULT_VERTEX_SHADER, DEFAULT_FRAGMENT_SHADER)
 			.expect("Error compiling default shader");
 	(gl, default_texture, default_shader)
+}
+
+#[cfg(debug_assertions)]
+fn setup_logging() {
+	use tracing_subscriber::EnvFilter;
+
+	tracing_subscriber::fmt()
+		.with_env_filter(
+			EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
+		)
+		.init();
+}
+
+#[cfg(not(debug_assertions))]
+fn setup_logging(settings: &ContextSettings) -> tracing_appender::non_blocking::WorkerGuard {
+	use tracing_subscriber::EnvFilter;
+
+	let file_appender = tracing_appender::rolling::hourly(&settings.logs_dir, "log");
+	let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+	tracing_subscriber::fmt()
+		.with_env_filter(
+			EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
+		)
+		.with_ansi(false)
+		.with_writer(non_blocking)
+		.init();
+	guard
 }

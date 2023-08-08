@@ -8,6 +8,7 @@ pub mod math;
 mod offset_and_count;
 mod state;
 pub mod tween;
+pub mod util;
 pub mod window;
 
 pub use context::{run, Context, ContextSettings};

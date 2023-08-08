@@ -61,7 +61,7 @@ impl State<Box<dyn Error>> for MainState {
 	}
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
 	micro::run(
 		ContextSettings {
 			window_mode: WindowMode::Windowed {
@@ -71,5 +71,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 			..Default::default()
 		},
 		MainState::new,
-	)
+	);
 }

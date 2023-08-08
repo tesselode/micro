@@ -19,6 +19,9 @@ lyon_tessellation = "1.0.0"
 serde = { version = "1.0", features = ["derive"], optional = true }
 sdl2 = "0.35.2"
 thiserror = "1.0.31"
+tracing = "0.1.37"
+tracing-appender = "0.2.2"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 
 [features]
 sdl2_bundled = ["sdl2/bundled"]

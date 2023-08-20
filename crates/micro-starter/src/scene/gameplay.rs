@@ -1,3 +1,4 @@
+mod component;
 mod context;
 mod entity;
 mod event;
@@ -23,7 +24,7 @@ pub struct Gameplay {
 impl Gameplay {
 	pub fn new(ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<Self> {
 		let gameplay_ctx = GameplayContext::new();
-		let systems = vec![];
+		let systems: Vec<Box<dyn System>> = vec![];
 		let mut gameplay = Self {
 			gameplay_ctx,
 			world: World::new(),

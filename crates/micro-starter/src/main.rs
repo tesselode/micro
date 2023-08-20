@@ -15,6 +15,20 @@ use scene_manager::SceneManager;
 
 const NUM_FRAME_TIMES_TO_RECORD: usize = 30;
 
+fn main() {
+	micro::run(
+		ContextSettings {
+			window_title: "Game".to_string(),
+			window_mode: WindowMode::Windowed {
+				size: UVec2::new(1920, 1080),
+			},
+			resizable: true,
+			..Default::default()
+		},
+		MainState::new,
+	)
+}
+
 struct MainState {
 	globals: Globals,
 	scene_manager: SceneManager,
@@ -102,18 +116,4 @@ impl State<anyhow::Error> for MainState {
 		self.scene_manager.draw(ctx, &mut self.globals)?;
 		Ok(())
 	}
-}
-
-fn main() {
-	micro::run(
-		ContextSettings {
-			window_title: "Game".to_string(),
-			window_mode: WindowMode::Windowed {
-				size: UVec2::new(1920, 1080),
-			},
-			resizable: true,
-			..Default::default()
-		},
-		MainState::new,
-	)
 }

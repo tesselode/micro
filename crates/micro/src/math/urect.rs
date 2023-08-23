@@ -2,7 +2,7 @@ use glam::UVec2;
 
 use super::{IRect, Rect};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct URect {
 	pub top_left: UVec2,
 	pub size: UVec2,

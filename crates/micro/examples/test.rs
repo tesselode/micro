@@ -17,7 +17,11 @@ pub struct MainState {
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			texture: Texture::from_file(ctx, "examples/wall.png", TextureSettings::default())?,
+			texture: Texture::from_file(
+				ctx,
+				"crates/micro/examples/wall.png",
+				TextureSettings::default(),
+			)?,
 		})
 	}
 }

@@ -5,6 +5,7 @@ use std::{
 	time::{Duration, Instant},
 };
 
+use backtrace::Backtrace;
 use glam::{Affine2, IVec2, UVec2, Vec2};
 use glow::HasContext;
 use palette::LinSrgba;
@@ -37,7 +38,9 @@ where
 	setup_logging();
 	#[cfg(not(debug_assertions))]
 	let _guard = setup_logging(&settings);
-	std::panic::set_hook(Box::new(|info| tracing::error!("{}", info)));
+	std::panic::set_hook(Box::new(|info| {
+		tracing::error!("{}\n{:?}", info, Backtrace::new())
+	}));
 	log_if_err!(run_inner(settings, state_constructor));
 }
 

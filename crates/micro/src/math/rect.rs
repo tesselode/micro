@@ -24,6 +24,14 @@ impl Rect {
 		Self::new(Vec2::new(x, y), Vec2::new(width, height))
 	}
 
+	pub fn centered_around(center: Vec2, size: Vec2) -> Self {
+		Self::new(center - size / 2.0, size)
+	}
+
+	pub fn centered_around_zero(size: Vec2) -> Self {
+		Self::centered_around(Vec2::ZERO, size)
+	}
+
 	pub fn as_urect(self) -> URect {
 		URect {
 			top_left: self.top_left.as_uvec2(),

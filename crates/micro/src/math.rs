@@ -1,14 +1,16 @@
+mod circle;
 mod irect;
 mod rect;
 mod urect;
 
+pub use circle::*;
 pub use irect::*;
-use palette::LinSrgba;
 pub use rect::*;
 pub use urect::*;
 
 use glam::Vec2;
 use lyon_tessellation::{TessellationError, VertexBuffers};
+use palette::LinSrgba;
 
 use crate::graphics::{
 	mesh::{MeshBuilder, ShapeStyle, Vertex},

@@ -10,7 +10,10 @@ use lyon_tessellation::{
 };
 use palette::LinSrgba;
 
-use crate::{math::Rect, Context};
+use crate::{
+	math::{Circle, Rect},
+	Context,
+};
 
 use super::{Mesh, Vertex};
 
@@ -71,15 +74,14 @@ impl MeshBuilder {
 	pub fn add_circle(
 		&mut self,
 		style: ShapeStyle,
-		center: Vec2,
-		radius: f32,
+		circle: Circle,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_circle(
-					lyon_tessellation::math::point(center.x, center.y),
-					radius,
+					lyon_tessellation::math::point(circle.center.x, circle.center.y),
+					circle.radius,
 					&FillOptions::default(),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
@@ -89,8 +91,8 @@ impl MeshBuilder {
 				.unwrap(),
 			ShapeStyle::Stroke(width) => StrokeTessellator::new()
 				.tessellate_circle(
-					lyon_tessellation::math::point(center.x, center.y),
-					radius,
+					lyon_tessellation::math::point(circle.center.x, circle.center.y),
+					circle.radius,
 					&StrokeOptions::default().with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
@@ -105,11 +107,10 @@ impl MeshBuilder {
 	pub fn with_circle(
 		mut self,
 		style: ShapeStyle,
-		center: Vec2,
-		radius: f32,
+		circle: Circle,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
-		self.add_circle(style, center, radius, color)?;
+		self.add_circle(style, circle, color)?;
 		Ok(self)
 	}
 

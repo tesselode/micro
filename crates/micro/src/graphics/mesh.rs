@@ -13,7 +13,7 @@ use glow::{HasContext, NativeBuffer, NativeVertexArray};
 use crate::{
 	context::Context,
 	graphics::{draw_params::DrawParams, texture::Texture},
-	math::Rect,
+	math::{Circle, Rect},
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
@@ -128,12 +128,11 @@ impl Mesh {
 	pub fn circle(
 		ctx: &Context,
 		style: ShapeStyle,
-		center: Vec2,
-		radius: f32,
+		circle: Circle,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
-			.with_circle(style, center, radius, color)?
+			.with_circle(style, circle, color)?
 			.build(ctx))
 	}
 

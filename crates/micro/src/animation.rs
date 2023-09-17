@@ -1,3 +1,7 @@
+mod player;
+
+pub use player::*;
+
 #[cfg(feature = "aseprite")]
 mod from_json;
 

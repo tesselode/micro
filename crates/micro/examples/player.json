@@ -280,8 +280,8 @@
   "frameTags": [
    { "name": "Idle", "from": 0, "to": 9, "direction": "forward", "color": "#000000ff" },
    { "name": "Run", "from": 10, "to": 17, "direction": "forward", "color": "#000000ff" },
-   { "name": "Jump", "from": 18, "to": 20, "direction": "forward", "repeat": "1", "color": "#000000ff", "data": "{\"next\": \"Jump\"}" },
-   { "name": "Land", "from": 21, "to": 29, "direction": "forward", "repeat": "1", "color": "#000000ff", "data": "{\"next\": \"Land\"}" }
+   { "name": "Jump", "from": 18, "to": 20, "direction": "forward", "repeat": "1", "color": "#000000ff", "data": "{\"next\": \"Land\"}" },
+   { "name": "Land", "from": 21, "to": 29, "direction": "forward", "repeat": "1", "color": "#000000ff", "data": "{\"next\": \"Idle\"}" }
   ],
   "layers": [
    { "name": "Back Leg", "opacity": 255, "blendMode": "normal" },

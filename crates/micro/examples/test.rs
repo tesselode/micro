@@ -2,6 +2,7 @@ use std::error::Error;
 
 use glam::UVec2;
 use micro::{
+	animation::AnimationData,
 	graphics::{
 		texture::{Texture, TextureSettings},
 		ColorConstants, DrawParams,
@@ -16,6 +17,8 @@ pub struct MainState {
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		let animation_data = AnimationData::from_json("crates/micro/examples/player.json")?;
+		dbg!(animation_data);
 		Ok(Self {
 			texture: Texture::from_file(
 				ctx,

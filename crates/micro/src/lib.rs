@@ -1,3 +1,4 @@
+pub mod animation;
 mod context;
 mod egui_integration;
 mod error;

@@ -5,7 +5,7 @@ use crate::{
 	Context,
 };
 
-use super::{AnimationData, Repeats};
+use super::{AnimationData, Frame, Repeats};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnimationPlayer {
@@ -34,6 +34,10 @@ impl AnimationPlayer {
 
 	pub fn current_animation_name(&self) -> &str {
 		&self.current_animation_name
+	}
+
+	pub fn current_frame(&self) -> Frame {
+		self.animation_data.frames[self.current_frame_index]
 	}
 
 	pub fn switch(&mut self, animation_name: String) {

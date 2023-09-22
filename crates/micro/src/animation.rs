@@ -3,7 +3,7 @@ mod player;
 pub use player::*;
 
 #[cfg(feature = "aseprite")]
-mod from_json;
+mod from_file;
 
 use std::{collections::HashMap, time::Duration};
 
@@ -11,7 +11,7 @@ use crate::math::Rect;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "aseprite", derive(serde::Deserialize))]
-#[cfg_attr(feature = "aseprite", serde(try_from = "from_json::RawAnimationData"))]
+#[cfg_attr(feature = "aseprite", serde(try_from = "from_file::RawAnimationData"))]
 pub struct AnimationData {
 	pub frames: Vec<Frame>,
 	pub animations: HashMap<String, Animation>,

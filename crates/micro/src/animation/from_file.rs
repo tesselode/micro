@@ -26,7 +26,7 @@ pub enum FromJsonError {
 }
 
 impl AnimationData {
-	pub fn from_json(path: impl AsRef<Path>) -> Result<Self, FromJsonError> {
+	pub fn from_file(path: impl AsRef<Path>) -> Result<Self, FromJsonError> {
 		Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
 	}
 }

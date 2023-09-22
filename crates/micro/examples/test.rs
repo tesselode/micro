@@ -18,7 +18,7 @@ pub struct MainState {
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let animation_data = AnimationData::from_json("crates/micro/examples/player.json")?;
+		let animation_data = AnimationData::from_file("crates/micro/examples/player.json")?;
 		let animation_player = AnimationPlayer::new(animation_data, "Jump".to_string());
 		Ok(Self {
 			animation_player,

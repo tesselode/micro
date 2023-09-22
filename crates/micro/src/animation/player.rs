@@ -18,7 +18,8 @@ pub struct AnimationPlayer {
 }
 
 impl AnimationPlayer {
-	pub fn new(animation_data: AnimationData, initial_animation_name: String) -> Self {
+	pub fn new(animation_data: AnimationData, initial_animation_name: impl Into<String>) -> Self {
+		let initial_animation_name = initial_animation_name.into();
 		let initial_animation = &animation_data.animations[&initial_animation_name];
 		let initial_animation_repeats = initial_animation.repeats;
 		let initial_frame_index = initial_animation.start_frame;

@@ -2,11 +2,13 @@ mod circle;
 mod irect;
 mod rect;
 mod urect;
+mod vec_constants;
 
 pub use circle::*;
 pub use irect::*;
 pub use rect::*;
 pub use urect::*;
+pub use vec_constants::*;
 
 use glam::Vec2;
 use lyon_tessellation::{TessellationError, VertexBuffers};

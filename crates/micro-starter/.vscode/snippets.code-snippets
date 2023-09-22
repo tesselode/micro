@@ -73,5 +73,9 @@
 			"$0",
 			"mesh_builder.build(ctx).draw(ctx, DrawParams::new());",
 		]
+	},
+	"DrawParams::new()": {
+		"prefix": "dpn",
+		"body": "DrawParams::new()"
 	}
 }

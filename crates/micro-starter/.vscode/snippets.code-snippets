@@ -77,5 +77,14 @@
 	"DrawParams::new()": {
 		"prefix": "dpn",
 		"body": "DrawParams::new()"
-	}
+	},
+	"With transform": {
+		"prefix": "wt",
+		"body": [
+			"ctx.with_transform($1, |ctx| -> anyhow::Result<()> {",
+			"\t$0",
+			"\tOk(())",
+			"})?;"
+		]
+	},
 }

@@ -40,8 +40,8 @@ impl AnimationPlayer {
 		self.animation_data.frames[self.current_frame_index]
 	}
 
-	pub fn switch(&mut self, animation_name: String) {
-		self.current_animation_name = animation_name;
+	pub fn switch(&mut self, animation_name: impl Into<String>) {
+		self.current_animation_name = animation_name.into();
 		let animation = &self.animation_data.animations[&self.current_animation_name];
 		self.current_frame_index = animation.start_frame;
 		self.current_frame_elapsed_time = Duration::ZERO;

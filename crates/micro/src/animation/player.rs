@@ -14,6 +14,7 @@ pub struct AnimationPlayer {
 	current_animation_remaining_repeats: Repeats,
 	current_frame_index: usize,
 	current_frame_elapsed_time: Duration,
+	current_animation_finished: bool,
 	pub paused: bool,
 }
 
@@ -29,6 +30,7 @@ impl AnimationPlayer {
 			current_animation_remaining_repeats: initial_animation_repeats,
 			current_frame_index: initial_frame_index,
 			current_frame_elapsed_time: Duration::ZERO,
+			current_animation_finished: false,
 			paused: false,
 		}
 	}
@@ -41,16 +43,21 @@ impl AnimationPlayer {
 		self.animation_data.frames[self.current_frame_index]
 	}
 
+	pub fn finished(&self) -> bool {
+		self.current_animation_finished
+	}
+
 	pub fn switch(&mut self, animation_name: impl Into<String>) {
 		self.current_animation_name = animation_name.into();
 		let animation = &self.animation_data.animations[&self.current_animation_name];
 		self.current_frame_index = animation.start_frame;
 		self.current_frame_elapsed_time = Duration::ZERO;
 		self.current_animation_remaining_repeats = animation.repeats;
+		self.current_animation_finished = false;
 	}
 
 	pub fn update(&mut self, delta_time: Duration) {
-		if self.paused {
+		if self.paused || self.current_animation_finished {
 			return;
 		}
 		self.current_frame_elapsed_time += delta_time;
@@ -61,6 +68,7 @@ impl AnimationPlayer {
 				if advanced_frame {
 					self.current_frame_elapsed_time -= current_frame.duration;
 				} else {
+					self.current_animation_finished = true;
 					break;
 				}
 			} else {

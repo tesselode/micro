@@ -21,6 +21,7 @@ use crate::{
 	graphics::{StencilAction, StencilTest},
 	input::{Gamepad, MouseButton, Scancode},
 	log_if_err,
+	time::FrameTimeTracker,
 	window::WindowMode,
 	Event, State,
 };
@@ -57,6 +58,7 @@ where
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
 		last_update_time = now;
+		ctx.frame_time_tracker.record(delta_time);
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
 		let egui_input = egui_raw_input(&ctx, &events);
 		egui_ctx.begin_frame(egui_input);
@@ -95,6 +97,7 @@ pub struct Context {
 	controller: GameControllerSubsystem,
 	event_pump: EventPump,
 	pub(crate) graphics: GraphicsContext,
+	frame_time_tracker: FrameTimeTracker,
 	should_quit: bool,
 }
 
@@ -262,6 +265,14 @@ impl Context {
 		}
 	}
 
+	pub fn average_frame_time(&self) -> Duration {
+		self.frame_time_tracker.average()
+	}
+
+	pub fn fps(&self) -> f32 {
+		1.0 / self.average_frame_time().as_secs_f32()
+	}
+
 	pub fn quit(&mut self) {
 		self.should_quit = true;
 	}
@@ -293,6 +304,7 @@ impl Context {
 			controller,
 			event_pump,
 			graphics,
+			frame_time_tracker: FrameTimeTracker::new(),
 			should_quit: false,
 		}
 	}

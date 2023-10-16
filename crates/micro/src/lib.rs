@@ -8,6 +8,7 @@ pub mod input;
 pub mod math;
 mod offset_and_count;
 mod state;
+mod time;
 pub mod tween;
 mod util;
 mod window;

@@ -48,7 +48,8 @@ impl Shader {
 	}
 
 	pub fn from_str(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
-		Self::new_from_gl(ctx.gl.clone(), vertex, fragment).map_err(LoadShaderError::ShaderError)
+		Self::new_from_gl(ctx.graphics.gl.clone(), vertex, fragment)
+			.map_err(LoadShaderError::ShaderError)
 	}
 
 	pub fn from_vertex_str(ctx: &Context, vertex: &str) -> Result<Self, LoadShaderError> {

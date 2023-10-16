@@ -29,7 +29,7 @@ pub(crate) struct TextureInner {
 
 impl Texture {
 	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
-		Self::new_from_gl(ctx.gl.clone(), size, None, settings)
+		Self::new_from_gl(ctx.graphics.gl.clone(), size, None, settings)
 	}
 
 	pub fn from_image_data(
@@ -38,7 +38,7 @@ impl Texture {
 		settings: TextureSettings,
 	) -> Self {
 		Self::new_from_gl(
-			ctx.gl.clone(),
+			ctx.graphics.gl.clone(),
 			image_data.size,
 			Some(&image_data.pixels),
 			settings,

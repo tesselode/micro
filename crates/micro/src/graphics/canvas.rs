@@ -3,7 +3,7 @@ use std::rc::Rc;
 use glam::UVec2;
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture};
 
-use crate::{context::RenderTarget, math::Rect, Context};
+use crate::{context::graphics::RenderTarget, math::Rect, Context};
 
 use super::{
 	texture::{Texture, TextureSettings},
@@ -21,7 +21,7 @@ pub struct Canvas {
 
 impl Canvas {
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
-		let gl = ctx.gl.clone();
+		let gl = ctx.graphics.gl.clone();
 		let framebuffer = unsafe {
 			gl.create_framebuffer()
 				.expect("error creating canvas framebuffer")
@@ -94,12 +94,12 @@ impl Canvas {
 	}
 
 	pub fn render_to<T>(&self, ctx: &mut Context, f: impl FnOnce(&mut Context) -> T) -> T {
-		if let RenderTarget::Canvas { .. } = ctx.render_target {
+		if let RenderTarget::Canvas { .. } = ctx.graphics.render_target {
 			unimplemented!("cannot nest render_to calls");
 		}
 		let size = self.size();
 		unsafe {
-			ctx.gl.bind_framebuffer(
+			ctx.graphics.gl.bind_framebuffer(
 				glow::FRAMEBUFFER,
 				Some(
 					if let Some(MultisampleFramebuffer { framebuffer, .. }) =
@@ -112,17 +112,20 @@ impl Canvas {
 				),
 			);
 		}
-		ctx.set_render_target(RenderTarget::Canvas { size });
+		ctx.graphics
+			.set_render_target(RenderTarget::Canvas { size });
 		let returned_value = f(ctx);
 		if let Some(MultisampleFramebuffer { framebuffer, .. }) = self.multisample_framebuffer {
 			unsafe {
-				ctx.gl
+				ctx.graphics
+					.gl
 					.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(framebuffer));
-				ctx.gl
+				ctx.graphics
+					.gl
 					.bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(self.framebuffer));
 				let width = self.size().x as i32;
 				let height = self.size().x as i32;
-				ctx.gl.blit_framebuffer(
+				ctx.graphics.gl.blit_framebuffer(
 					0,
 					0,
 					width,
@@ -137,9 +140,9 @@ impl Canvas {
 			}
 		}
 		unsafe {
-			ctx.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+			ctx.graphics.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
 		}
-		ctx.set_render_target(RenderTarget::Window);
+		ctx.graphics.set_render_target(RenderTarget::Window);
 		returned_value
 	}
 

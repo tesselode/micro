@@ -30,7 +30,7 @@ pub struct Mesh {
 
 impl Mesh {
 	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Self {
-		Self::new_from_gl(ctx.gl.clone(), vertices, indices)
+		Self::new_from_gl(ctx.graphics.gl.clone(), vertices, indices)
 	}
 
 	pub(crate) fn new_from_gl(gl: Rc<glow::Context>, vertices: &[Vertex], indices: &[u32]) -> Self {
@@ -211,7 +211,7 @@ impl Mesh {
 	) {
 		self.draw_inner(
 			ctx,
-			&ctx.default_texture,
+			&ctx.graphics.default_texture,
 			range.into_offset_and_count(self.num_indices as usize),
 			params.into(),
 		);
@@ -248,14 +248,14 @@ impl Mesh {
 		range: OffsetAndCount,
 		params: DrawParams,
 	) {
-		let gl = &ctx.gl;
+		let gl = &ctx.graphics.gl;
 		unsafe {
-			let shader = params.shader.unwrap_or(&ctx.default_shader);
+			let shader = params.shader.unwrap_or(&ctx.graphics.default_shader);
 			shader
 				.send_color("blendColor", params.color)
 				.expect("Shader does not have a blendColor uniform");
 			shader
-				.send_mat3("globalTransform", ctx.global_transform().into())
+				.send_mat3("globalTransform", ctx.graphics.global_transform().into())
 				.expect("Shader does not have a globalTransform uniform");
 			shader
 				.send_mat3("localTransform", params.transform.into())

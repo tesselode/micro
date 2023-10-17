@@ -27,6 +27,7 @@ tracing-appender = "0.2.2"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 backtrace = "0.3.69"
 serde_json = { version = "1.0.107", optional = true }
+indexmap = "2.0.2"
 
 [features]
 aseprite = ["serde", "serde_json"]

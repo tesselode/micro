@@ -7,6 +7,7 @@ pub mod graphics;
 pub mod input;
 pub mod math;
 mod offset_and_count;
+pub mod resource;
 mod state;
 mod time;
 pub mod tween;

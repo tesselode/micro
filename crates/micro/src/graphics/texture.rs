@@ -3,7 +3,6 @@ use std::{path::Path, rc::Rc};
 use glam::{IVec2, UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
 use palette::LinSrgba;
-use thiserror::Error;
 
 use crate::{
 	context::Context,
@@ -224,19 +223,5 @@ impl TextureFilter {
 impl Default for TextureFilter {
 	fn default() -> Self {
 		Self::Nearest
-	}
-}
-
-#[derive(Debug, Error)]
-pub enum LoadTextureError {
-	#[error("{0}")]
-	LoadImageDataError(#[from] LoadImageDataError),
-	#[error("{0}")]
-	GlError(String),
-}
-
-impl From<String> for LoadTextureError {
-	fn from(v: String) -> Self {
-		Self::GlError(v)
 	}
 }

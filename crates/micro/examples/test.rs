@@ -1,46 +1,31 @@
-use std::{error::Error, time::Duration};
+use std::error::Error;
 
 use glam::UVec2;
 use micro::{
-	animation::{AnimationData, AnimationPlayer},
-	graphics::{
-		texture::{Texture, TextureSettings},
-		ColorConstants, DrawParams,
-	},
+	graphics::DrawParams,
+	resource::{loader::TextureLoader, Resources},
 	Context, ContextSettings, State, WindowMode,
 };
-use palette::LinSrgba;
 
 pub struct MainState {
-	animation_player: AnimationPlayer,
-	texture: Texture,
+	textures: Resources<TextureLoader>,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let animation_data = AnimationData::from_file("crates/micro/examples/player.json")?;
-		let animation_player = AnimationPlayer::new(animation_data, "Jump".to_string());
-		Ok(Self {
-			animation_player,
-			texture: Texture::from_file(
-				ctx,
-				"crates/micro/examples/player.png",
-				TextureSettings::default(),
-			)?,
-		})
+		let mut textures = Resources::new(TextureLoader);
+		textures.load(ctx, "")?;
+		dbg!(&textures);
+		Ok(Self { textures })
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
-	fn update(&mut self, _ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		self.animation_player.update(delta_time);
-		Ok(())
-	}
-
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		ctx.clear(LinSrgba::BLACK);
-		self.animation_player
-			.draw(ctx, &self.texture, DrawParams::new());
+		self.textures
+			.get("player")
+			.unwrap()
+			.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

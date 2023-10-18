@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use glam::UVec2;
+use glam::{UVec2, Vec2};
 use micro::{
 	graphics::DrawParams,
 	resource::{loader::TextureLoader, Resources},
@@ -13,7 +13,7 @@ pub struct MainState {
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let mut textures = Resources::new(TextureLoader);
+		let mut textures = Resources::new(TextureLoader::default());
 		textures.load(ctx, "")?;
 		dbg!(&textures);
 		Ok(Self { textures })
@@ -25,7 +25,7 @@ impl State<Box<dyn Error>> for MainState {
 		self.textures
 			.get("player")
 			.unwrap()
-			.draw(ctx, DrawParams::new());
+			.draw(ctx, DrawParams::new().scaled(Vec2::splat(2.0)));
 		Ok(())
 	}
 }

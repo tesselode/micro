@@ -1,7 +1,7 @@
 use sdl2::mouse::MouseButton as Sdl2MouseButton;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum MouseButton {
 	Unknown,
 	Left,

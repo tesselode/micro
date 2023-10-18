@@ -6,7 +6,7 @@ use crate::{
 use super::InputKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum RealControl {
 	Key(Scancode),
 	MouseButton(MouseButton),
@@ -63,7 +63,7 @@ impl RealControl {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum AxisDirection {
 	Negative,
 	Positive,

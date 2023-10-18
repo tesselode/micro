@@ -30,5 +30,7 @@ serde_json = { version = "1.0.107", optional = true }
 indexmap = "2.0.2"
 
 [features]
-aseprite = ["serde", "serde_json"]
+aseprite = ["serializing", "serde_json"]
+resource_management = ["serializing", "serde_json"]
 sdl2_bundled = ["sdl2/bundled"]
+serializing = ["serde", "palette/serializing"]

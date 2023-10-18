@@ -3,7 +3,7 @@ use sdl2::keyboard::Keycode as Sdl2Keycode;
 use super::scancode::Scancode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum Keycode {
 	Backspace,
 	Tab,

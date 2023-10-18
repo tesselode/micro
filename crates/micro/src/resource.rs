@@ -3,6 +3,7 @@ pub mod loader;
 use std::path::{Path, PathBuf};
 
 use indexmap::{map::Iter, IndexMap, IndexSet};
+use thiserror::Error;
 
 use crate::Context;
 
@@ -22,7 +23,11 @@ impl<L: ResourceLoader> Resources<L> {
 		}
 	}
 
-	pub fn load(&mut self, ctx: &mut Context, path: impl AsRef<Path>) -> Result<(), L::Error> {
+	pub fn load(
+		&mut self,
+		ctx: &mut Context,
+		path: impl AsRef<Path>,
+	) -> Result<(), LoadResourcesError<L>> {
 		self.load_inner(ctx, path.as_ref())
 	}
 
@@ -43,7 +48,7 @@ impl<L: ResourceLoader> Resources<L> {
 		self.resources.iter()
 	}
 
-	fn load_inner(&mut self, ctx: &mut Context, path: &Path) -> Result<(), L::Error> {
+	fn load_inner(&mut self, ctx: &mut Context, path: &Path) -> Result<(), LoadResourcesError<L>> {
 		let base_resources_path = Self::base_resources_path();
 		let full_path = base_resources_path.join(path);
 		if full_path.is_dir() {
@@ -65,7 +70,11 @@ impl<L: ResourceLoader> Resources<L> {
 			for extension in L::SUPPORTED_FILE_EXTENSIONS {
 				let file_path = full_path.with_extension(extension);
 				if file_path.exists() {
-					let resource = self.loader.load(ctx, &file_path)?;
+					let settings = Self::load_settings(&full_path)?;
+					let resource = self
+						.loader
+						.load(ctx, &file_path, settings)
+						.map_err(LoadResourcesError::LoadResourceError)?;
 					self.resources.insert(path.into(), resource);
 					return Ok(());
 				}
@@ -77,4 +86,23 @@ impl<L: ResourceLoader> Resources<L> {
 	fn base_resources_path() -> PathBuf {
 		"resources".into()
 	}
+
+	fn load_settings(resource_path: &Path) -> Result<Option<L::Settings>, LoadResourcesError<L>> {
+		let settings_path = resource_path.with_extension("settings");
+		if !settings_path.exists() {
+			return Ok(None);
+		}
+		let settings_string = std::fs::read_to_string(&settings_path)?;
+		Ok(serde_json::from_str(&settings_string)?)
+	}
+}
+
+#[derive(Debug, Error)]
+pub enum LoadResourcesError<L: ResourceLoader> {
+	#[error("{0}")]
+	IoError(#[from] std::io::Error),
+	#[error("{0}")]
+	LoadResourceError(L::Error),
+	#[error("{0}")]
+	LoadSettingsError(#[from] serde_json::Error),
 }

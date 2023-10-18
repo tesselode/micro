@@ -174,6 +174,8 @@ impl Drop for TextureInner {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serializing", serde(default))]
 pub struct TextureSettings {
 	pub wrapping: TextureWrapping,
 	pub minifying_filter: TextureFilter,
@@ -181,6 +183,7 @@ pub struct TextureSettings {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TextureWrapping {
 	Repeat,
 	MirroredRepeat,
@@ -206,6 +209,7 @@ impl Default for TextureWrapping {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TextureFilter {
 	Nearest,
 	Linear,

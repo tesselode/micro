@@ -83,8 +83,19 @@ impl<L: ResourceLoader> Resources<L> {
 		Ok(())
 	}
 
-	fn base_resources_path() -> PathBuf {
-		"resources".into()
+	pub fn base_resources_path() -> PathBuf {
+		#[cfg(debug_assertions)]
+		{
+			"resources".into()
+		}
+		#[cfg(not(debug_assertions))]
+		{
+			std::env::current_exe()
+				.expect("could not get current executable path")
+				.parent()
+				.expect("could not get current executable directory")
+				.join("resources")
+		}
 	}
 
 	fn load_settings(resource_path: &Path) -> Result<Option<L::Settings>, LoadResourcesError<L>> {

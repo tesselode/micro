@@ -1,6 +1,9 @@
 pub mod loader;
 
-use std::path::{Path, PathBuf};
+use std::{
+	ops::Index,
+	path::{Path, PathBuf},
+};
 
 use indexmap::{map::Iter, IndexMap, IndexSet};
 use thiserror::Error;
@@ -105,6 +108,14 @@ impl<L: ResourceLoader> Resources<L> {
 		}
 		let settings_string = std::fs::read_to_string(&settings_path)?;
 		Ok(serde_json::from_str(&settings_string)?)
+	}
+}
+
+impl<T: AsRef<Path>, L: ResourceLoader> Index<T> for Resources<L> {
+	type Output = L::Resource;
+
+	fn index(&self, path: T) -> &Self::Output {
+		self.get(path).unwrap()
 	}
 }
 

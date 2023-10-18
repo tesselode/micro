@@ -65,6 +65,8 @@ impl Font {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serializing", serde(default))]
 pub struct FontSettings {
 	pub scale: f32,
 	pub chars: String,

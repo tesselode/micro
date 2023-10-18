@@ -1,9 +1,10 @@
-mod player;
-
-pub use player::*;
-
 #[cfg(feature = "aseprite")]
 mod from_file;
+mod player;
+
+#[cfg(feature = "aseprite")]
+pub use from_file::LoadAnimationDataError;
+pub use player::*;
 
 use std::{collections::HashMap, time::Duration};
 

@@ -8,7 +8,7 @@ use crate::math::Rect;
 use super::{Animation, AnimationData, Frame, Repeats};
 
 #[derive(Debug, Error)]
-pub enum FromJsonError {
+pub enum LoadAnimationDataError {
 	#[error("{0}")]
 	IoError(#[from] std::io::Error),
 	#[error("{0}")]
@@ -26,15 +26,15 @@ pub enum FromJsonError {
 }
 
 impl AnimationData {
-	pub fn from_file(path: impl AsRef<Path>) -> Result<Self, FromJsonError> {
+	pub fn from_file(path: impl AsRef<Path>) -> Result<Self, LoadAnimationDataError> {
 		Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
 	}
 }
 
 impl TryFrom<RawAnimationData> for AnimationData {
-	type Error = FromJsonError;
+	type Error = LoadAnimationDataError;
 
-	fn try_from(mut raw: RawAnimationData) -> Result<Self, FromJsonError> {
+	fn try_from(mut raw: RawAnimationData) -> Result<Self, LoadAnimationDataError> {
 		Ok(Self {
 			frames: raw
 				.frames
@@ -46,7 +46,7 @@ impl TryFrom<RawAnimationData> for AnimationData {
 				.frame_tags
 				.drain(..)
 				.map(
-					|raw_frame_tag| -> Result<(String, Animation), FromJsonError> {
+					|raw_frame_tag| -> Result<(String, Animation), LoadAnimationDataError> {
 						let name = raw_frame_tag.name.clone();
 						let animation = raw_frame_tag.try_into()?;
 						Ok((name, animation))
@@ -58,7 +58,7 @@ impl TryFrom<RawAnimationData> for AnimationData {
 }
 
 #[derive(Deserialize)]
-pub struct RawAnimationData {
+pub(super) struct RawAnimationData {
 	frames: Vec<RawFrame>,
 	meta: RawMeta,
 }
@@ -107,14 +107,14 @@ struct RawFrameTag {
 }
 
 impl TryFrom<RawFrameTag> for Animation {
-	type Error = FromJsonError;
+	type Error = LoadAnimationDataError;
 
-	fn try_from(raw: RawFrameTag) -> Result<Self, FromJsonError> {
+	fn try_from(raw: RawFrameTag) -> Result<Self, LoadAnimationDataError> {
 		let raw_user_data = raw
 			.data
 			.map(|data| {
 				serde_json::from_str::<RawUserData>(&data).map_err(|error| {
-					FromJsonError::ParseUserDataError {
+					LoadAnimationDataError::ParseUserDataError {
 						animation_name: raw.name.clone(),
 						error,
 					}
@@ -126,7 +126,7 @@ impl TryFrom<RawFrameTag> for Animation {
 			end_frame: raw.to,
 			repeats: match &raw.repeat {
 				Some(repeats) => Repeats::Finite(repeats.parse().map_err(|error| {
-					FromJsonError::InvalidRepeatAmount {
+					LoadAnimationDataError::InvalidRepeatAmount {
 						animation_name: raw.name.clone(),
 						error,
 					}

@@ -1,7 +1,20 @@
+mod animation_data;
+mod font;
+#[cfg(feature = "kira")]
+mod static_sound_data;
+#[cfg(feature = "kira")]
+mod streaming_sound_data;
 mod texture;
 
-use serde::Deserialize;
+pub use animation_data::*;
+pub use font::*;
+#[cfg(feature = "kira")]
+pub use static_sound_data::*;
+#[cfg(feature = "kira")]
+pub use streaming_sound_data::*;
 pub use texture::*;
+
+use serde::Deserialize;
 
 use std::{error::Error, path::Path};
 

@@ -1,5 +1,7 @@
 {
 	"rust-analyzer.cargo.features": [
+		"aseprite",
+		"kira",
 		"resource_management"
 	]
 }

@@ -1,6 +1,7 @@
 pub mod loader;
 
 use std::{
+	fmt::{Debug, Formatter},
 	ops::Index,
 	path::{Path, PathBuf},
 };
@@ -119,7 +120,7 @@ impl<T: AsRef<Path>, L: ResourceLoader> Index<T> for Resources<L> {
 	}
 }
 
-#[derive(Debug, Error)]
+#[derive(Error)]
 pub enum LoadResourcesError<L: ResourceLoader> {
 	#[error("{0}")]
 	IoError(#[from] std::io::Error),
@@ -127,4 +128,21 @@ pub enum LoadResourcesError<L: ResourceLoader> {
 	LoadResourceError(L::Error),
 	#[error("{0}")]
 	LoadSettingsError(#[from] serde_json::Error),
+}
+
+impl<L: ResourceLoader> Debug for LoadResourcesError<L>
+where
+	L::Error: Debug,
+{
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::IoError(error) => f.debug_tuple("IoError").field(error).finish(),
+			Self::LoadResourceError(error) => {
+				f.debug_tuple("LoadResourceError").field(error).finish()
+			}
+			Self::LoadSettingsError(error) => {
+				f.debug_tuple("LoadSettingsError").field(error).finish()
+			}
+		}
+	}
 }

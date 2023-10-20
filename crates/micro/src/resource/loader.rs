@@ -1,3 +1,4 @@
+#[cfg(feature = "aseprite")]
 mod animation_data;
 mod font;
 #[cfg(feature = "kira")]
@@ -6,6 +7,7 @@ mod static_sound_data;
 mod streaming_sound_data;
 mod texture;
 
+#[cfg(feature = "aseprite")]
 pub use animation_data::*;
 pub use font::*;
 #[cfg(feature = "kira")]

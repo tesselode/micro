@@ -6,6 +6,8 @@ mod static_sound_data;
 #[cfg(feature = "kira")]
 mod streaming_sound_data;
 mod texture;
+#[cfg(feature = "tiled")]
+mod tiled;
 
 #[cfg(feature = "aseprite")]
 pub use animation_data::*;
@@ -15,6 +17,8 @@ pub use static_sound_data::*;
 #[cfg(feature = "kira")]
 pub use streaming_sound_data::*;
 pub use texture::*;
+#[cfg(feature = "tiled")]
+pub use tiled::*;
 
 use serde::Deserialize;
 

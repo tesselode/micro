@@ -7,6 +7,7 @@ use crate::{
 
 use super::ResourceLoader;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct AnimationDataLoader;
 
 impl ResourceLoader for AnimationDataLoader {

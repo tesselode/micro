@@ -15,16 +15,28 @@ use self::loader::ResourceLoader;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Resources<L: ResourceLoader> {
+	base_dir: PathBuf,
 	resources: IndexMap<PathBuf, L::Resource>,
 	loader: L,
 }
 
 impl<L: ResourceLoader> Resources<L> {
-	pub fn new(loader: L) -> Self {
+	pub fn new(base_dir: impl AsRef<Path>, loader: L) -> Self {
 		Self {
+			base_dir: Self::base_resources_path().join(base_dir.as_ref()),
 			resources: IndexMap::new(),
 			loader,
 		}
+	}
+
+	pub fn autoloaded(
+		ctx: &mut Context,
+		base_dir: impl AsRef<Path>,
+		loader: L,
+	) -> Result<Self, LoadResourcesError<L>> {
+		let mut resources = Self::new(base_dir, loader);
+		resources.load_all(ctx)?;
+		Ok(resources)
 	}
 
 	pub fn load(
@@ -33,6 +45,10 @@ impl<L: ResourceLoader> Resources<L> {
 		path: impl AsRef<Path>,
 	) -> Result<(), LoadResourcesError<L>> {
 		self.load_inner(ctx, path.as_ref())
+	}
+
+	pub fn load_all(&mut self, ctx: &mut Context) -> Result<(), LoadResourcesError<L>> {
+		self.load(ctx, "")
 	}
 
 	pub fn unload(&mut self, dir: impl AsRef<Path>) {
@@ -53,8 +69,7 @@ impl<L: ResourceLoader> Resources<L> {
 	}
 
 	fn load_inner(&mut self, ctx: &mut Context, path: &Path) -> Result<(), LoadResourcesError<L>> {
-		let base_resources_path = Self::base_resources_path();
-		let full_path = base_resources_path.join(path);
+		let full_path = self.base_dir.join(path);
 		if full_path.is_dir() {
 			let mut resource_paths = IndexSet::new();
 			for entry in std::fs::read_dir(&full_path)? {
@@ -62,7 +77,7 @@ impl<L: ResourceLoader> Resources<L> {
 				resource_paths.insert(
 					entry
 						.path()
-						.strip_prefix(&base_resources_path)
+						.strip_prefix(&self.base_dir)
 						.unwrap()
 						.with_extension(""),
 				);

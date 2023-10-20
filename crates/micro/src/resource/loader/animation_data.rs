@@ -23,7 +23,7 @@ impl ResourceLoader for AnimationDataLoader {
 		&mut self,
 		_ctx: &mut Context,
 		path: &Path,
-		_settings: Option<Self::Settings>,
+		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
 		AnimationData::from_file(path)
 	}

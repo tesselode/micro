@@ -40,8 +40,19 @@ pub trait ResourceLoader {
 		&mut self,
 		ctx: &mut Context,
 		path: &Path,
-		settings: Option<Self::Settings>,
+		settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error>;
+
+	fn reload(
+		&mut self,
+		ctx: &mut Context,
+		resource: &mut Self::Resource,
+		path: &Path,
+		settings: Option<&Self::Settings>,
+	) -> Result<(), Self::Error> {
+		*resource = self.load(ctx, path, settings)?;
+		Ok(())
+	}
 
 	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Resource> {
 		None

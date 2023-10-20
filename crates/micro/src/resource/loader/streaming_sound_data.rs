@@ -24,7 +24,7 @@ impl ResourceLoader for StreamingSoundDataLoader {
 		&mut self,
 		_ctx: &mut Context,
 		path: &Path,
-		_settings: Option<Self::Settings>,
+		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
 		StreamingSoundData::from_file(path, self.default_settings)
 	}

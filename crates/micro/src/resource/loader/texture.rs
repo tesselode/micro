@@ -1,4 +1,4 @@
-use glam::UVec2;
+use glam::{IVec2, UVec2};
 use palette::{rgb::channels::Rgba, Srgba};
 
 use crate::{
@@ -30,9 +30,24 @@ impl ResourceLoader for TextureLoader {
 		&mut self,
 		ctx: &mut Context,
 		path: &std::path::Path,
-		settings: Option<Self::Settings>,
+		settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
-		Texture::from_file(ctx, path, settings.unwrap_or(self.default_settings))
+		Texture::from_file(
+			ctx,
+			path,
+			settings.copied().unwrap_or(self.default_settings),
+		)
+	}
+
+	fn reload(
+		&mut self,
+		_ctx: &mut Context,
+		resource: &mut Self::Resource,
+		path: &std::path::Path,
+		_settings: Option<&Self::Settings>,
+	) -> Result<(), Self::Error> {
+		resource.replace(IVec2::ZERO, &ImageData::from_file(path)?);
+		Ok(())
 	}
 
 	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Resource> {

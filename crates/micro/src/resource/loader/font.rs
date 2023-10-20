@@ -20,8 +20,12 @@ impl ResourceLoader for FontLoader {
 		&mut self,
 		ctx: &mut crate::Context,
 		path: &std::path::Path,
-		settings: Option<Self::Settings>,
+		settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
-		Font::from_file(ctx, path, settings.unwrap_or(self.default_settings.clone()))
+		Font::from_file(
+			ctx,
+			path,
+			settings.cloned().unwrap_or(self.default_settings.clone()),
+		)
 	}
 }

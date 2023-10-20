@@ -18,7 +18,7 @@ impl ResourceLoader for TiledMapLoader {
 		&mut self,
 		_ctx: &mut Context,
 		path: &std::path::Path,
-		_settings: Option<Self::Settings>,
+		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
 		let mut loader = tiled::Loader::new();
 		loader.load_tmx_map(path)

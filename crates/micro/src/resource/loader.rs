@@ -26,6 +26,7 @@ use std::{error::Error, path::Path};
 
 use crate::Context;
 
+#[allow(unused_variables)]
 pub trait ResourceLoader {
 	type Resource;
 
@@ -41,4 +42,8 @@ pub trait ResourceLoader {
 		path: &Path,
 		settings: Option<Self::Settings>,
 	) -> Result<Self::Resource, Self::Error>;
+
+	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Resource> {
+		None
+	}
 }

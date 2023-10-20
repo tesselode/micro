@@ -15,21 +15,24 @@ use self::loader::ResourceLoader;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Resources<L: ResourceLoader> {
 	base_dir: PathBuf,
-	resources: IndexMap<PathBuf, L::Resource>,
 	loader: L,
+	resources: IndexMap<PathBuf, L::Resource>,
+	placeholder: Option<L::Resource>,
 }
 
 impl<L: ResourceLoader> Resources<L> {
-	pub fn new(base_dir: impl AsRef<Path>, loader: L) -> Self {
+	pub fn new(ctx: &mut Context, base_dir: impl AsRef<Path>, mut loader: L) -> Self {
+		let placeholder = loader.placeholder(ctx);
 		Self {
 			base_dir: Self::base_resources_path().join(base_dir.as_ref()),
-			resources: IndexMap::new(),
 			loader,
+			resources: IndexMap::new(),
+			placeholder,
 		}
 	}
 
 	pub fn autoloaded(ctx: &mut Context, base_dir: impl AsRef<Path>, loader: L) -> Self {
-		let mut resources = Self::new(base_dir, loader);
+		let mut resources = Self::new(ctx, base_dir, loader);
 		resources.load_all(ctx);
 		resources
 	}
@@ -52,7 +55,9 @@ impl<L: ResourceLoader> Resources<L> {
 	}
 
 	pub fn get(&self, path: impl AsRef<Path>) -> Option<&L::Resource> {
-		self.resources.get(path.as_ref())
+		self.resources
+			.get(path.as_ref())
+			.or(self.placeholder.as_ref())
 	}
 
 	pub fn iter(&self) -> Iter<'_, PathBuf, L::Resource> {

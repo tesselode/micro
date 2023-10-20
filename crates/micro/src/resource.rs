@@ -1,7 +1,6 @@
 pub mod loader;
 
 use std::{
-	fmt::{Debug, Formatter},
 	ops::Index,
 	path::{Path, PathBuf},
 };
@@ -29,25 +28,17 @@ impl<L: ResourceLoader> Resources<L> {
 		}
 	}
 
-	pub fn autoloaded(
-		ctx: &mut Context,
-		base_dir: impl AsRef<Path>,
-		loader: L,
-	) -> Result<Self, LoadResourcesError<L>> {
+	pub fn autoloaded(ctx: &mut Context, base_dir: impl AsRef<Path>, loader: L) -> Self {
 		let mut resources = Self::new(base_dir, loader);
-		resources.load_all(ctx)?;
-		Ok(resources)
+		resources.load_all(ctx);
+		resources
 	}
 
-	pub fn load(
-		&mut self,
-		ctx: &mut Context,
-		path: impl AsRef<Path>,
-	) -> Result<(), LoadResourcesError<L>> {
+	pub fn load(&mut self, ctx: &mut Context, path: impl AsRef<Path>) {
 		self.load_inner(ctx, path.as_ref())
 	}
 
-	pub fn load_all(&mut self, ctx: &mut Context) -> Result<(), LoadResourcesError<L>> {
+	pub fn load_all(&mut self, ctx: &mut Context) {
 		self.load(ctx, "")
 	}
 
@@ -68,38 +59,73 @@ impl<L: ResourceLoader> Resources<L> {
 		self.resources.iter()
 	}
 
-	fn load_inner(&mut self, ctx: &mut Context, path: &Path) -> Result<(), LoadResourcesError<L>> {
-		let full_path = self.base_dir.join(path);
-		if full_path.is_dir() {
-			let mut resource_paths = IndexSet::new();
-			for entry in std::fs::read_dir(&full_path)? {
-				let entry = entry?;
-				resource_paths.insert(
-					entry
-						.path()
-						.strip_prefix(&self.base_dir)
-						.unwrap()
-						.with_extension(""),
-				);
-			}
+	fn load_inner(&mut self, ctx: &mut Context, path: &Path) {
+		let full_resource_path = self.base_dir.join(path);
+		if full_resource_path.is_dir() {
+			let resource_paths = match self.resources_in_dir(&full_resource_path) {
+				Ok(paths) => paths,
+				Err(err) => {
+					tracing::error!(
+						"Error getting resources in {}: {}",
+						full_resource_path.display(),
+						err
+					);
+					return;
+				}
+			};
 			for resource_path in resource_paths {
-				self.load_inner(ctx, &resource_path)?;
+				self.load_inner(ctx, &resource_path);
 			}
 		} else {
-			for extension in L::SUPPORTED_FILE_EXTENSIONS {
-				let file_path = full_path.with_extension(extension);
-				if file_path.exists() {
-					let settings = Self::load_settings(&full_path)?;
-					let resource = self
-						.loader
-						.load(ctx, &file_path, settings)
-						.map_err(LoadResourcesError::LoadResourceError)?;
-					self.resources.insert(path.into(), resource);
-					return Ok(());
+			let Some(file_path) = L::SUPPORTED_FILE_EXTENSIONS
+				.iter()
+				.map(|extension| full_resource_path.with_extension(extension))
+				.find(|path| path.exists())
+			else {
+				return;
+			};
+			let settings = match Self::load_settings(&full_resource_path) {
+				Ok(settings) => settings,
+				Err(err) => {
+					tracing::error!(
+						"Error loading settings at path {}: {}",
+						full_resource_path.with_extension("settings").display(),
+						err
+					);
+					None
 				}
-			}
+			};
+			let resource = match self.loader.load(ctx, &file_path, settings) {
+				Ok(resource) => resource,
+				Err(err) => {
+					tracing::error!(
+						"Error loading resource at path {}: {}",
+						file_path.display(),
+						err
+					);
+					return;
+				}
+			};
+			self.resources.insert(path.into(), resource);
 		}
-		Ok(())
+	}
+
+	fn resources_in_dir(
+		&mut self,
+		full_path: &PathBuf,
+	) -> Result<IndexSet<PathBuf>, std::io::Error> {
+		let mut resource_paths = IndexSet::new();
+		for entry in std::fs::read_dir(full_path)? {
+			let entry = entry?;
+			resource_paths.insert(
+				entry
+					.path()
+					.strip_prefix(&self.base_dir)
+					.unwrap()
+					.with_extension(""),
+			);
+		}
+		Ok(resource_paths)
 	}
 
 	pub fn base_resources_path() -> PathBuf {
@@ -117,7 +143,7 @@ impl<L: ResourceLoader> Resources<L> {
 		}
 	}
 
-	fn load_settings(resource_path: &Path) -> Result<Option<L::Settings>, LoadResourcesError<L>> {
+	fn load_settings(resource_path: &Path) -> Result<Option<L::Settings>, LoadSettingsError> {
 		let settings_path = resource_path.with_extension("settings");
 		if !settings_path.exists() {
 			return Ok(None);
@@ -135,29 +161,10 @@ impl<T: AsRef<Path>, L: ResourceLoader> Index<T> for Resources<L> {
 	}
 }
 
-#[derive(Error)]
-pub enum LoadResourcesError<L: ResourceLoader> {
+#[derive(Debug, Error)]
+enum LoadSettingsError {
 	#[error("{0}")]
 	IoError(#[from] std::io::Error),
 	#[error("{0}")]
-	LoadResourceError(L::Error),
-	#[error("{0}")]
 	LoadSettingsError(#[from] serde_json::Error),
-}
-
-impl<L: ResourceLoader> Debug for LoadResourcesError<L>
-where
-	L::Error: Debug,
-{
-	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		match self {
-			Self::IoError(error) => f.debug_tuple("IoError").field(error).finish(),
-			Self::LoadResourceError(error) => {
-				f.debug_tuple("LoadResourceError").field(error).finish()
-			}
-			Self::LoadSettingsError(error) => {
-				f.debug_tuple("LoadSettingsError").field(error).finish()
-			}
-		}
-	}
 }

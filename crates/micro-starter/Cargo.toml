@@ -10,7 +10,7 @@ anyhow = { version = "1.0.71", features = ["backtrace"] }
 egui = "0.23.0"
 glam = "0.24.0"
 hecs = "0.10.3"
-micro = { path = "../micro" }
+micro = { path = "../micro", features = ["resource_management"] }
 palette = { version = "0.7.2", default-features = false, features = [
 	"std",
 	"bytemuck",

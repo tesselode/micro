@@ -1,22 +1,28 @@
-use micro::{input::virtual_controller::VirtualController, Context};
-
-use crate::{
-	input::{default_input_config, Controls, Sticks},
-	resources::Resources,
+use micro::{
+	input::virtual_controller::VirtualController,
+	resource::{
+		loader::{FontLoader, TextureLoader},
+		Resources,
+	},
+	Context,
 };
+
+use crate::input::{default_input_config, Controls, Sticks};
 
 type Input = VirtualController<Controls, Sticks>;
 
 pub struct Globals {
-	pub resources: Resources,
 	pub input: Input,
+	pub textures: Resources<TextureLoader>,
+	pub fonts: Resources<FontLoader>,
 }
 
 impl Globals {
 	pub fn new(ctx: &mut Context) -> anyhow::Result<Self> {
 		Ok(Self {
-			resources: Resources::new(ctx)?,
 			input: Input::new(default_input_config(), ctx.game_controller(0)),
+			textures: Resources::autoloaded(ctx, "texture", TextureLoader::default()),
+			fonts: Resources::autoloaded(ctx, "font", FontLoader::default()),
 		})
 	}
 }

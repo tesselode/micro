@@ -1,25 +1,25 @@
 pub mod loader;
+mod resource_with_metadata;
 
 use std::{
 	fmt::Debug,
 	ops::Index,
 	path::{Path, PathBuf},
-	time::{Duration, SystemTime},
+	time::Duration,
 };
 
 use indexmap::{IndexMap, IndexSet};
-use thiserror::Error;
 
 use crate::Context;
 
-use self::loader::ResourceLoader;
+use self::{loader::ResourceLoader, resource_with_metadata::ResourceWithMetadata};
 
 const HOT_RELOAD_INTERVAL: Duration = Duration::from_secs(1);
 
 pub struct Resources<L: ResourceLoader> {
 	base_dir: PathBuf,
 	loader: L,
-	resources: IndexMap<PathBuf, Resource<L>>,
+	resources: IndexMap<PathBuf, ResourceWithMetadata<L>>,
 	placeholder: Option<L::Resource>,
 	hot_reload_timer: Duration,
 }
@@ -102,55 +102,20 @@ impl<L: ResourceLoader> Resources<L> {
 				self.load_inner(ctx, &resource_path);
 			}
 		} else {
-			let Some(file_path) = L::SUPPORTED_FILE_EXTENSIONS
-				.iter()
-				.map(|extension| full_resource_path.with_extension(extension))
-				.find(|path| path.exists())
-			else {
-				return;
-			};
-			let settings = match Self::load_settings(&full_resource_path) {
-				Ok(settings) => settings,
-				Err(err) => {
-					tracing::error!(
-						"Error loading settings at path {}: {}",
-						full_resource_path.with_extension("settings").display(),
-						err
-					);
-					None
-				}
-			};
-			let resource = match self.loader.load(ctx, &file_path, settings.as_ref()) {
-				Ok(resource) => resource,
-				Err(err) => {
-					tracing::error!(
-						"Error loading resource at path {}: {}",
-						file_path.display(),
-						err
-					);
-					return;
-				}
-			};
-			let modified = match Self::modified_time(&file_path) {
-				Ok(modified) => Some(modified),
-				Err(err) => {
-					tracing::error!(
-						"Error getting modified time of resource at path {}: {}",
-						file_path.display(),
-						err
-					);
-					None
-				}
-			};
-			self.resources.insert(
-				path.into(),
-				Resource {
-					file_path,
-					modified,
-					resource,
-					settings,
-				},
-			);
+			let resource =
+				match ResourceWithMetadata::load(ctx, &full_resource_path, &mut self.loader) {
+					Ok(Some(resource)) => resource,
+					Ok(None) => return,
+					Err(err) => {
+						tracing::error!(
+							"Error loading resource at path {}: {}",
+							full_resource_path.display(),
+							err
+						);
+						return;
+					}
+				};
+			self.resources.insert(path.into(), resource);
 		}
 	}
 
@@ -187,52 +152,9 @@ impl<L: ResourceLoader> Resources<L> {
 		}
 	}
 
-	fn load_settings(resource_path: &Path) -> Result<Option<L::Settings>, LoadSettingsError> {
-		let settings_path = resource_path.with_extension("settings");
-		if !settings_path.exists() {
-			return Ok(None);
-		}
-		let settings_string = std::fs::read_to_string(&settings_path)?;
-		Ok(serde_json::from_str(&settings_string)?)
-	}
-
-	fn modified_time(path: &Path) -> std::io::Result<SystemTime> {
-		std::fs::metadata(path)?.modified()
-	}
-
 	fn hot_reload(&mut self, ctx: &mut Context) {
-		for Resource {
-			file_path,
-			modified,
-			resource,
-			settings,
-		} in self.resources.values_mut()
-		{
-			let current_modified_time = match Self::modified_time(file_path) {
-				Ok(current_modified_time) => current_modified_time,
-				Err(err) => {
-					tracing::error!(
-						"Error getting modified time of resource at path '{}': {}",
-						file_path.display(),
-						err
-					);
-					continue;
-				}
-			};
-			if modified.is_some_and(|modified| modified == current_modified_time) {
-				continue;
-			}
-			tracing::info!("hot reloading resource at path '{}'", file_path.display());
-			if let Err(err) = self
-				.loader
-				.reload(ctx, resource, file_path, settings.as_ref())
-			{
-				tracing::error!(
-					"Error loading resource at path {}: {}",
-					file_path.display(),
-					err
-				);
-			}
+		for resource in self.resources.values_mut() {
+			resource.reload(ctx, &mut self.loader);
 		}
 	}
 }
@@ -300,20 +222,4 @@ impl<T: AsRef<Path>, L: ResourceLoader> Index<T> for Resources<L> {
 	fn index(&self, path: T) -> &Self::Output {
 		self.get(path).unwrap()
 	}
-}
-
-#[derive(Debug, Error)]
-enum LoadSettingsError {
-	#[error("{0}")]
-	IoError(#[from] std::io::Error),
-	#[error("{0}")]
-	LoadSettingsError(#[from] serde_json::Error),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct Resource<L: ResourceLoader> {
-	file_path: PathBuf,
-	modified: Option<SystemTime>,
-	resource: L::Resource,
-	settings: Option<L::Settings>,
 }

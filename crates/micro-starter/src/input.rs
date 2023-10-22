@@ -1,23 +1,30 @@
 use std::collections::HashMap;
 
-use micro::input::{
-	virtual_controller::{
-		AxisDirection, DeadzoneShape, RealControl, VirtualAnalogStickControls, VirtualAnalogSticks,
-		VirtualControllerConfig, VirtualControls,
+use micro::{
+	input::{
+		virtual_controller::{
+			AxisDirection, DeadzoneShape, RealControl, VirtualAnalogStickControls,
+			VirtualAnalogSticks, VirtualControllerConfig, VirtualControls,
+		},
+		Axis, Button, Scancode,
 	},
-	Axis, Button, Scancode,
+	math::CardinalDirection,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Controls {
-	Left,
-	Right,
-	Up,
-	Down,
+	Move(CardinalDirection),
+	Primary,
 }
 
 impl VirtualControls for Controls {
-	const ALL: &'static [Self] = &[Self::Left, Self::Right, Self::Up, Self::Down];
+	const ALL: &'static [Self] = &[
+		Self::Move(CardinalDirection::Left),
+		Self::Move(CardinalDirection::Right),
+		Self::Move(CardinalDirection::Up),
+		Self::Move(CardinalDirection::Down),
+		Self::Primary,
+	];
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -31,10 +38,10 @@ impl VirtualAnalogSticks<Controls> for Sticks {
 	fn controls(&self) -> VirtualAnalogStickControls<Controls> {
 		match self {
 			Sticks::Move => VirtualAnalogStickControls {
-				left: Controls::Left,
-				right: Controls::Right,
-				up: Controls::Up,
-				down: Controls::Down,
+				left: Controls::Move(CardinalDirection::Left),
+				right: Controls::Move(CardinalDirection::Right),
+				up: Controls::Move(CardinalDirection::Up),
+				down: Controls::Move(CardinalDirection::Down),
 			},
 		}
 	}
@@ -45,7 +52,7 @@ pub fn default_input_config() -> VirtualControllerConfig<Controls> {
 		control_mapping: {
 			let mut mapping = HashMap::new();
 			mapping.insert(
-				Controls::Left,
+				Controls::Move(CardinalDirection::Left),
 				vec![
 					RealControl::Key(Scancode::Left),
 					RealControl::GamepadButton(Button::DPadLeft),
@@ -53,7 +60,7 @@ pub fn default_input_config() -> VirtualControllerConfig<Controls> {
 				],
 			);
 			mapping.insert(
-				Controls::Right,
+				Controls::Move(CardinalDirection::Right),
 				vec![
 					RealControl::Key(Scancode::Right),
 					RealControl::GamepadButton(Button::DPadRight),
@@ -61,7 +68,7 @@ pub fn default_input_config() -> VirtualControllerConfig<Controls> {
 				],
 			);
 			mapping.insert(
-				Controls::Up,
+				Controls::Move(CardinalDirection::Up),
 				vec![
 					RealControl::Key(Scancode::Up),
 					RealControl::GamepadButton(Button::DPadUp),
@@ -69,11 +76,18 @@ pub fn default_input_config() -> VirtualControllerConfig<Controls> {
 				],
 			);
 			mapping.insert(
-				Controls::Down,
+				Controls::Move(CardinalDirection::Down),
 				vec![
 					RealControl::Key(Scancode::Down),
 					RealControl::GamepadButton(Button::DPadDown),
 					RealControl::GamepadAxis(Axis::LeftY, AxisDirection::Positive),
+				],
+			);
+			mapping.insert(
+				Controls::Primary,
+				vec![
+					RealControl::Key(Scancode::X),
+					RealControl::GamepadButton(Button::A),
 				],
 			);
 			mapping

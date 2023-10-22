@@ -1,9 +1,11 @@
+mod cardinal_direction;
 mod circle;
 mod irect;
 mod rect;
 mod urect;
 mod vec_constants;
 
+pub use cardinal_direction::*;
 pub use circle::*;
 pub use irect::*;
 pub use rect::*;

@@ -98,13 +98,13 @@ impl Mesh {
 	pub fn rectangle_with_texture_region(
 		ctx: &Context,
 		display_rect: Rect,
-		texture_rect: Rect,
+		texture_region: Rect,
 	) -> Self {
 		let vertices = display_rect
 			.corners()
 			.iter()
 			.copied()
-			.zip(texture_rect.corners())
+			.zip(texture_region.corners())
 			.map(|(position, texture_coords)| Vertex {
 				position,
 				texture_coords,

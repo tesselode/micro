@@ -85,7 +85,7 @@ impl AnimationPlayer {
 	) {
 		texture.draw_region(
 			ctx,
-			self.animation_data.frames[self.current_frame_index].texture_rect,
+			self.animation_data.frames[self.current_frame_index].texture_region,
 			params,
 		)
 	}

@@ -28,7 +28,7 @@ pub struct Animation {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Frame {
-	pub texture_rect: Rect,
+	pub texture_region: Rect,
 	pub duration: Duration,
 }
 

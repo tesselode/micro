@@ -71,7 +71,7 @@ impl SpriteBatch {
 
 	pub fn add_region(
 		&mut self,
-		texture_rect: Rect,
+		texture_region: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<SpriteId, SpriteLimitReached> {
 		let id = self
@@ -82,14 +82,14 @@ impl SpriteBatch {
 		let params: SpriteParams = params.into();
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
-		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_rect.size);
-		let relative_texture_rect = self.texture.relative_rect(texture_rect);
+		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_region.size);
+		let relative_texture_region = self.texture.relative_rect(texture_region);
 		let transform = params.transform;
 		let corners = untransformed_display_rect.corners();
 		let vertices = corners
 			.iter()
 			.copied()
-			.zip(relative_texture_rect.corners())
+			.zip(relative_texture_region.corners())
 			.map(|(position, texture_coords)| Vertex {
 				position: transform.transform_point2(position),
 				texture_coords,

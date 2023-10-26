@@ -72,7 +72,7 @@ struct RawFrame {
 impl From<RawFrame> for Frame {
 	fn from(raw: RawFrame) -> Self {
 		Self {
-			texture_rect: Rect::from_xywh(
+			texture_region: Rect::from_xywh(
 				raw.frame.x as f32,
 				raw.frame.y as f32,
 				raw.frame.w as f32,

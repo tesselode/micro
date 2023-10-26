@@ -111,13 +111,13 @@ impl Text {
 			} else {
 				bounds = Some(display_rect);
 			}
-			let texture_rect = *fonts[glyph.font_index]
+			let texture_region = *fonts[glyph.font_index]
 				.glyph_rects
 				.get(&glyph.parent)
 				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
 			sprite_batches[glyph.font_index]
 				.add_region(
-					texture_rect,
+					texture_region,
 					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
 				)
 				.expect("Not enough capacity in the sprite batch");

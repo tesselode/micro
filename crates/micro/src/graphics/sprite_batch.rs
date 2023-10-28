@@ -18,13 +18,14 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::color_constants::ColorConstants;
+use super::{color_constants::ColorConstants, NineSlice};
 
 #[derive(Debug)]
 pub struct SpriteBatch {
 	texture: Texture,
 	sprites: Arena<()>,
 	mesh: Mesh,
+	capacity: usize,
 }
 
 impl SpriteBatch {
@@ -53,6 +54,7 @@ impl SpriteBatch {
 			texture: texture.clone(),
 			sprites: Arena::with_capacity(capacity),
 			mesh: Mesh::new(ctx, &vertices, &indices),
+			capacity,
 		}
 	}
 
@@ -100,6 +102,27 @@ impl SpriteBatch {
 			self.mesh.set_vertex(start_vertex_index + i, vertex);
 		}
 		Ok(id)
+	}
+
+	pub fn add_nine_slice(
+		&mut self,
+		nine_slice: NineSlice,
+		display_rect: Rect,
+		params: impl Into<SpriteParams>,
+	) -> Result<[SpriteId; 9], SpriteLimitReached> {
+		if self.sprites.len() + 9 > self.capacity {
+			return Err(SpriteLimitReached);
+		}
+		let params: SpriteParams = params.into();
+		Ok(nine_slice.slices(display_rect).map(|slice| {
+			self.add_region(
+				slice.texture_region,
+				params
+					.scaled(slice.display_rect.size / slice.texture_region.size)
+					.translated(slice.display_rect.top_left),
+			)
+			.unwrap()
+		}))
 	}
 
 	pub fn remove(&mut self, id: SpriteId) -> Result<(), InvalidSpriteId> {

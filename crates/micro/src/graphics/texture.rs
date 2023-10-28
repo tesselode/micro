@@ -14,6 +14,11 @@ use crate::{
 	math::Rect,
 };
 
+use super::{
+	sprite_batch::{SpriteBatch, SpriteParams},
+	NineSlice,
+};
+
 #[derive(Debug, Clone)]
 pub struct Texture {
 	pub(crate) inner: Rc<TextureInner>,
@@ -147,6 +152,20 @@ impl Texture {
 			self.relative_rect(region),
 		)
 		.draw_textured(ctx, self, params);
+	}
+
+	pub fn draw_nine_slice<'a>(
+		&self,
+		ctx: &Context,
+		nine_slice: NineSlice,
+		display_rect: Rect,
+		params: impl Into<DrawParams<'a>>,
+	) {
+		let mut sprite_batch = SpriteBatch::new(ctx, self, 9);
+		sprite_batch
+			.add_nine_slice(nine_slice, display_rect, SpriteParams::default())
+			.unwrap();
+		sprite_batch.draw(ctx, params)
 	}
 
 	pub(crate) fn attach_to_framebuffer(&mut self) {

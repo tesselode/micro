@@ -34,7 +34,6 @@ tracing-appender = "0.2.2"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 
 [features]
-aseprite = ["serializing", "serde_json"]
 resource_management = ["serializing", "serde_json"]
 sdl2_bundled = ["sdl2/bundled"]
-serializing = ["serde", "palette/serializing"]
+serializing = ["serde", "glam/serde", "palette/serializing"]

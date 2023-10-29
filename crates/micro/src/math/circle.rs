@@ -3,6 +3,7 @@ use glam::Vec2;
 use super::Rect;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct Circle {
 	pub center: Vec2,
 	pub radius: f32,

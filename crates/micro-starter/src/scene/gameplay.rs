@@ -136,9 +136,6 @@ impl Scene for Gameplay {
 			)?;
 		}
 		self.dispatch_gameplay_events(ctx, globals)?;
-		self.gameplay_ctx
-			.world_command_buffer
-			.run_on(&mut self.world);
 		Ok(())
 	}
 
@@ -146,6 +143,9 @@ impl Scene for Gameplay {
 		for system in &mut self.systems {
 			system.draw(ctx, globals, &mut self.gameplay_ctx, &mut self.world)?;
 		}
+		self.gameplay_ctx
+			.world_command_buffer
+			.run_on(&mut self.world);
 		Ok(())
 	}
 

@@ -8,7 +8,10 @@ use std::time::Duration;
 use egui::TopBottomPanel;
 use glam::UVec2;
 use globals::Globals;
-use micro::{input::Scancode, Context, ContextSettings, Event, State, WindowMode};
+use micro::{
+	graphics::ColorConstants, input::Scancode, Context, ContextSettings, Event, State, WindowMode,
+};
+use palette::LinSrgba;
 use scene::gameplay::Gameplay;
 use scene_manager::SceneManager;
 
@@ -98,6 +101,7 @@ impl State<anyhow::Error> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> anyhow::Result<()> {
+		ctx.clear(LinSrgba::BLACK);
 		self.scene_manager.draw(ctx, &mut self.globals)?;
 		Ok(())
 	}

@@ -1,5 +1,6 @@
 use std::{
 	collections::HashMap,
+	ffi::OsStr,
 	path::{Path, PathBuf},
 	time::Duration,
 };
@@ -11,6 +12,29 @@ use indexmap::IndexMap;
 use micro::animation::{Animation, AnimationData, Repeats};
 use serde::Deserialize;
 use thiserror::Error;
+
+pub fn export_aseprite_files_in_dir(
+	dir: impl AsRef<Path>,
+	texture_atlas_path: impl AsRef<Path>,
+	animations_dir: impl AsRef<Path>,
+	max_size: usize,
+) -> Result<()> {
+	let mut aseprite_file_paths = vec![];
+	for entry in std::fs::read_dir(dir.as_ref())? {
+		let entry = entry?;
+		let path = entry.path();
+		if path.extension() != Some(OsStr::new("aseprite")) {
+			continue;
+		}
+		aseprite_file_paths.push(path);
+	}
+	export_aseprite_files(
+		aseprite_file_paths,
+		texture_atlas_path,
+		animations_dir,
+		max_size,
+	)
+}
 
 pub fn export_aseprite_files(
 	aseprite_file_paths: impl IntoIterator<Item = impl AsRef<Path>>,

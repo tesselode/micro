@@ -1,0 +1,13 @@
+use std::error::Error;
+
+use micro_aseprite_exporter::export_texture_atlas;
+
+fn main() -> Result<(), Box<dyn Error>> {
+	let mut aseprite_file_paths = vec![];
+	for entry in std::fs::read_dir("resources/ppl")? {
+		let entry = entry?;
+		aseprite_file_paths.push(entry.path());
+	}
+	export_texture_atlas(&aseprite_file_paths, "resources/test.png", 1024)?;
+	Ok(())
+}

@@ -9,3 +9,4 @@ SDL2.lib
 # already existing elements were commented out
 
 #/target
+resources/test.png

@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use micro_aseprite_exporter::export_texture_atlas;
+use micro_aseprite_exporter::export_aseprite_files;
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let mut aseprite_file_paths = vec![];
@@ -8,6 +8,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 		let entry = entry?;
 		aseprite_file_paths.push(entry.path());
 	}
-	export_texture_atlas(&aseprite_file_paths, "resources/test.png", 1024)?;
+	export_aseprite_files(
+		&aseprite_file_paths,
+		"resources/test.png",
+		"resources/animations",
+		1024,
+	)?;
 	Ok(())
 }

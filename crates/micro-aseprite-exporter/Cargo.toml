@@ -11,4 +11,6 @@ crunch = "0.5.3"
 image = "0.23"
 indexmap = "2.0.2"
 micro = { path = "../micro", features = ["serializing"] }
+serde = { version = "1.0.190", features = ["derive"] }
+serde_json = "1.0.107"
 thiserror = "1.0.50"

@@ -1,5 +1,7 @@
 #[cfg(feature = "aseprite")]
 mod from_file;
+#[cfg(feature = "aseprite")]
+mod multiple_from_file;
 mod player;
 
 #[cfg(feature = "aseprite")]

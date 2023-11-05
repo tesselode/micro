@@ -23,6 +23,12 @@ pub enum LoadAnimationDataError {
 		animation_name: String,
 		error: serde_json::Error,
 	},
+	#[error("Invalid format for frame name {}", frame_name)]
+	InvalidFrameName { frame_name: String },
+	#[error("Invalid format for tag name {}", tag_name)]
+	InvalidTagName { tag_name: String },
+	#[error("No frames for animation with name {}", filename)]
+	NoFramesForAnimation { filename: String },
 }
 
 impl AnimationData {
@@ -64,7 +70,7 @@ pub(super) struct RawAnimationData {
 }
 
 #[derive(Clone, Copy, Deserialize)]
-struct RawFrame {
+pub(super) struct RawFrame {
 	frame: RawFrameRect,
 	duration: u64,
 }
@@ -93,17 +99,17 @@ struct RawFrameRect {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RawMeta {
-	frame_tags: Vec<RawFrameTag>,
+pub(super) struct RawMeta {
+	pub(super) frame_tags: Vec<RawFrameTag>,
 }
 
-#[derive(Deserialize)]
-struct RawFrameTag {
-	name: String,
-	from: usize,
-	to: usize,
-	repeat: Option<String>,
-	data: Option<String>,
+#[derive(Deserialize, Clone)]
+pub(super) struct RawFrameTag {
+	pub(super) name: String,
+	pub(super) from: usize,
+	pub(super) to: usize,
+	pub(super) repeat: Option<String>,
+	pub(super) data: Option<String>,
 }
 
 impl TryFrom<RawFrameTag> for Animation {

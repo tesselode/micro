@@ -2,6 +2,7 @@
 	"rust-analyzer.cargo.features": [
 		"kira",
 		"resource_management",
-		"tiled"
+		"tiled",
+		"aseprite"
 	]
 }

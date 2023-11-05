@@ -7,20 +7,23 @@ use micro::{
 		texture::{Texture, TextureSettings},
 		ColorConstants, DrawParams,
 	},
+	resource::{loader::MultipleAnimationDataLoader, Resources},
 	Context, ContextSettings, State,
 };
 use palette::LinSrgba;
 
 struct MainState {
 	texture: Texture,
-	animations: HashMap<String, AnimationData>,
+	animations: Resources<MultipleAnimationDataLoader>,
 	animation_player: AnimationPlayer,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let animations = AnimationData::multiple_from_file("resources/ppl/animations.json")?;
-		let animation_player = AnimationPlayer::new(animations["player"].clone(), "Walk");
+		let animations = Resources::autoloaded(ctx, "ppl", MultipleAnimationDataLoader);
+		dbg!(&animations);
+		let animation_player =
+			AnimationPlayer::new(animations["animations"]["player"].clone(), "Walk");
 		Ok(Self {
 			texture: Texture::from_file(
 				ctx,

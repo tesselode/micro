@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use crate::{
 	animation::{AnimationData, LoadAnimationDataError},
@@ -26,5 +26,27 @@ impl ResourceLoader for AnimationDataLoader {
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
 		AnimationData::from_file(path)
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct MultipleAnimationDataLoader;
+
+impl ResourceLoader for MultipleAnimationDataLoader {
+	type Resource = HashMap<String, AnimationData>;
+
+	type Error = LoadAnimationDataError;
+
+	type Settings = ();
+
+	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["json"];
+
+	fn load(
+		&mut self,
+		_ctx: &mut Context,
+		path: &Path,
+		_settings: Option<&Self::Settings>,
+	) -> Result<Self::Resource, Self::Error> {
+		AnimationData::multiple_from_file(path)
 	}
 }

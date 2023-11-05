@@ -32,7 +32,7 @@ struct MainState {
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			scaler: Scaler::new(ctx, UVec2::splat(100), false),
+			scaler: Scaler::smooth(UVec2::splat(100)),
 			mesh: Mesh::circle(
 				ctx,
 				ShapeStyle::Fill,

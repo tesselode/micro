@@ -10,7 +10,7 @@ mod offset_and_count;
 #[cfg(feature = "resource_management")]
 pub mod resource;
 mod state;
-mod time;
+pub mod time;
 pub mod tween;
 mod util;
 mod window;

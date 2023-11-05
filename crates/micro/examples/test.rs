@@ -1,58 +1,54 @@
-use std::{collections::HashMap, error::Error, time::Duration};
+use std::error::Error;
 
-use glam::Vec2;
+use glam::{UVec2, Vec2};
 use micro::{
-	animation::{AnimationData, AnimationPlayer},
 	graphics::{
-		texture::{Texture, TextureSettings},
-		ColorConstants, DrawParams,
+		mesh::{Mesh, ShapeStyle},
+		ColorConstants, DrawParams, Scaler,
 	},
-	resource::{loader::MultipleAnimationDataLoader, Resources},
+	math::Circle,
 	Context, ContextSettings, State,
 };
 use palette::LinSrgba;
 
+fn main() {
+	micro::run(
+		ContextSettings {
+			resizable: true,
+			..Default::default()
+		},
+		MainState::new,
+	)
+}
+
 struct MainState {
-	texture: Texture,
-	animations: Resources<MultipleAnimationDataLoader>,
-	animation_player: AnimationPlayer,
+	scaler: Scaler,
+	mesh: Mesh,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let animations = Resources::autoloaded(ctx, "ppl", MultipleAnimationDataLoader);
-		dbg!(&animations);
-		let animation_player =
-			AnimationPlayer::new(animations["animations"]["player"].clone(), "Walk");
 		Ok(Self {
-			texture: Texture::from_file(
+			scaler: Scaler::new(ctx, UVec2::splat(100), false),
+			mesh: Mesh::circle(
 				ctx,
-				"resources/ppl/sheet.png",
-				TextureSettings::default(),
+				ShapeStyle::Fill,
+				Circle {
+					center: Vec2::splat(50.0),
+					radius: 16.0,
+				},
+				LinSrgba::WHITE,
 			)?,
-			animations,
-			animation_player,
 		})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		self.animation_player.update(delta_time);
-		Ok(())
-	}
-
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		ctx.clear(LinSrgba::WHITE);
-		self.animation_player.draw(
-			ctx,
-			&self.texture,
-			DrawParams::new().scaled(Vec2::splat(10.0)),
-		);
+		ctx.clear(LinSrgba::BLACK);
+		self.scaler.draw(ctx, |ctx| {
+			self.mesh.draw(ctx, DrawParams::new());
+		});
 		Ok(())
 	}
-}
-
-fn main() {
-	micro::run(ContextSettings::default(), MainState::new)
 }

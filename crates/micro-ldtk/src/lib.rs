@@ -1,8 +1,12 @@
 mod entity;
+mod entity_ref;
+mod field;
 mod layer;
 mod tile;
 
 pub use entity::*;
+pub use entity_ref::*;
+pub use field::*;
 pub use layer::*;
 pub use tile::*;
 

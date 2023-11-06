@@ -1,7 +1,7 @@
 use glam::{IVec2, UVec2, Vec2};
 use serde::Deserialize;
 
-use crate::Error;
+use crate::{Error, Field};
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(try_from = "RawEntity")]
@@ -13,6 +13,7 @@ pub struct Entity {
 	pub world_position: IVec2,
 	pub size: UVec2,
 	pub pivot: Vec2,
+	pub fields: Vec<Field>,
 }
 
 impl TryFrom<RawEntity> for Entity {
@@ -29,6 +30,7 @@ impl TryFrom<RawEntity> for Entity {
 			iid,
 			px,
 			width,
+			field_instances,
 		}: RawEntity,
 	) -> Result<Self, Self::Error> {
 		Ok(Self {
@@ -39,6 +41,7 @@ impl TryFrom<RawEntity> for Entity {
 			world_position: IVec2::new(world_x, world_y),
 			size: UVec2::new(width, height),
 			pivot: pivot.into(),
+			fields: field_instances,
 		})
 	}
 }
@@ -60,4 +63,5 @@ struct RawEntity {
 	iid: String,
 	px: [i32; 2],
 	width: u32,
+	field_instances: Vec<Field>,
 }

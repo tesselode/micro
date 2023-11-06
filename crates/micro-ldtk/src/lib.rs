@@ -2,12 +2,18 @@ mod entity;
 mod entity_ref;
 mod field;
 mod layer;
+#[cfg(feature = "resource_loader")]
+mod loader;
 mod tile;
+
+use std::path::Path;
 
 pub use entity::*;
 pub use entity_ref::*;
 pub use field::*;
 pub use layer::*;
+#[cfg(feature = "resource_loader")]
+pub use loader::*;
 pub use tile::*;
 
 use glam::{IVec2, UVec2};
@@ -23,6 +29,14 @@ pub struct Level {
 	pub pixel_size: UVec2,
 	pub background_color: LinSrgba,
 	pub layers: Vec<Layer>,
+}
+
+impl Level {
+	pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
+		let level_string = std::fs::read_to_string(path)?;
+		let level = serde_json::from_str::<Level>(&level_string)?;
+		Ok(level)
+	}
 }
 
 impl TryFrom<RawLevel> for Level {
@@ -49,8 +63,12 @@ impl TryFrom<RawLevel> for Level {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Error)]
+#[derive(Debug, Error)]
 pub enum Error {
+	#[error("{0}")]
+	IoError(#[from] std::io::Error),
+	#[error("Error parsing ldtk file: {0}")]
+	ParseError(#[from] serde_json::Error),
 	#[error("{0} is not a valid color")]
 	InvalidColor(String),
 }

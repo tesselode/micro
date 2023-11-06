@@ -3,6 +3,7 @@
 		"kira",
 		"resource_management",
 		"tiled",
-		"aseprite"
+		"aseprite",
+		"resource_loader",
 	]
 }

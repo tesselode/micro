@@ -3,9 +3,14 @@ use serde::Deserialize;
 
 use crate::{Entity, Tile};
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(transparent)]
+pub struct LayerId(pub String);
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(from = "RawLayer")]
 pub struct Layer {
+	pub id: LayerId,
 	pub name: String,
 	pub grid_size: UVec2,
 	pub cell_size: u32,
@@ -26,6 +31,7 @@ impl From<RawLayer> for Layer {
 			opacity,
 			px_total_offset_x,
 			px_total_offset_y,
+			iid,
 			px_offset_x,
 			px_offset_y,
 			visible,
@@ -33,6 +39,7 @@ impl From<RawLayer> for Layer {
 		}: RawLayer,
 	) -> Self {
 		Self {
+			id: iid,
 			name: identifier,
 			grid_size: UVec2::new(c_wid, c_hei),
 			cell_size: grid_size,
@@ -81,6 +88,7 @@ struct RawLayer {
 	px_total_offset_x: i32,
 	#[serde(rename = "__pxTotalOffsetY")]
 	px_total_offset_y: i32,
+	iid: LayerId,
 	px_offset_x: i32,
 	px_offset_y: i32,
 	visible: bool,

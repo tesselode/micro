@@ -3,10 +3,14 @@ use serde::Deserialize;
 
 use crate::{Error, Field};
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(transparent)]
+pub struct EntityId(pub String);
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(try_from = "RawEntity")]
 pub struct Entity {
-	pub id: String,
+	pub id: EntityId,
 	pub name: String,
 	pub grid_position: IVec2,
 	pub position: IVec2,
@@ -60,7 +64,7 @@ struct RawEntity {
 	#[serde(rename = "__worldY")]
 	world_y: i32,
 	height: u32,
-	iid: String,
+	iid: EntityId,
 	px: [i32; 2],
 	width: u32,
 	field_instances: Vec<Field>,

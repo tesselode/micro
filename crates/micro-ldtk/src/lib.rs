@@ -1,5 +1,7 @@
+mod entity;
 mod layer;
 
+pub use entity::*;
 pub use layer::*;
 
 use glam::{IVec2, UVec2};

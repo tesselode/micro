@@ -1,6 +1,8 @@
 use glam::{IVec2, UVec2};
 use serde::Deserialize;
 
+use crate::Entity;
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(from = "RawLayer")]
 pub struct Layer {
@@ -11,6 +13,7 @@ pub struct Layer {
 	pub pixel_offset: IVec2,
 	pub total_pixel_offset: IVec2,
 	pub visible: bool,
+	pub kind: LayerKind,
 }
 
 impl From<RawLayer> for Layer {
@@ -26,6 +29,7 @@ impl From<RawLayer> for Layer {
 			px_offset_x,
 			px_offset_y,
 			visible,
+			kind,
 		}: RawLayer,
 	) -> Self {
 		Self {
@@ -36,8 +40,20 @@ impl From<RawLayer> for Layer {
 			pixel_offset: IVec2::new(px_offset_x, px_offset_y),
 			total_pixel_offset: IVec2::new(px_total_offset_x, px_total_offset_y),
 			visible,
+			kind,
 		}
 	}
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(tag = "__type")]
+pub enum LayerKind {
+	IntGrid,
+	Tiles,
+	Entities {
+		#[serde(rename = "entityInstances")]
+		entities: Vec<Entity>,
+	},
 }
 
 #[derive(Deserialize)]
@@ -60,4 +76,6 @@ struct RawLayer {
 	px_offset_x: i32,
 	px_offset_y: i32,
 	visible: bool,
+	#[serde(flatten)]
+	kind: LayerKind,
 }

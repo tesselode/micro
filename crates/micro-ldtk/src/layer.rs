@@ -1,7 +1,7 @@
 use glam::{IVec2, UVec2};
 use serde::Deserialize;
 
-use crate::Entity;
+use crate::{Entity, Tile};
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(from = "RawLayer")]
@@ -48,8 +48,16 @@ impl From<RawLayer> for Layer {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(tag = "__type")]
 pub enum LayerKind {
-	IntGrid,
-	Tiles,
+	IntGrid {
+		#[serde(rename = "intGridCsv")]
+		values: Vec<u32>,
+		#[serde(rename = "autoLayerTiles")]
+		auto_tiles: Vec<Tile>,
+	},
+	Tiles {
+		#[serde(rename = "gridTiles")]
+		tiles: Vec<Tile>,
+	},
 	Entities {
 		#[serde(rename = "entityInstances")]
 		entities: Vec<Entity>,

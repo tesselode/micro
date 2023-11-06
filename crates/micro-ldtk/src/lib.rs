@@ -1,8 +1,10 @@
 mod entity;
 mod layer;
+mod tile;
 
 pub use entity::*;
 pub use layer::*;
+pub use tile::*;
 
 use glam::{IVec2, UVec2};
 use palette::{LinSrgba, Srgb, WithAlpha};

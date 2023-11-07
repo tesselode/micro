@@ -2,8 +2,6 @@ mod entity;
 mod entity_ref;
 mod field;
 mod layer;
-#[cfg(feature = "resource_loader")]
-mod loader;
 mod tile;
 
 use std::path::Path;
@@ -12,8 +10,6 @@ pub use entity::*;
 pub use entity_ref::*;
 pub use field::*;
 pub use layer::*;
-#[cfg(feature = "resource_loader")]
-pub use loader::*;
 pub use tile::*;
 
 use glam::{IVec2, UVec2};

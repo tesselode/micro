@@ -21,6 +21,27 @@ pub struct Layer {
 	pub kind: LayerKind,
 }
 
+impl Layer {
+	/// Returns `Some(tiles)` if the layer is a Tile or IntGrid layer
+	/// or `None` otherwise.
+	pub fn tiles(&self) -> Option<&[Tile]> {
+		match &self.kind {
+			LayerKind::IntGrid { auto_tiles, .. } => Some(auto_tiles),
+			LayerKind::Tiles { tiles } => Some(tiles),
+			_ => None,
+		}
+	}
+
+	/// Returns `Some(entities)` if the layer is an Entity layer
+	/// or `None` otherwise.
+	pub fn entities(&self) -> Option<&[Entity]> {
+		match &self.kind {
+			LayerKind::Entities { entities } => Some(entities),
+			_ => None,
+		}
+	}
+}
+
 impl From<RawLayer> for Layer {
 	fn from(
 		RawLayer {

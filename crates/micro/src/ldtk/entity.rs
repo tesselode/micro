@@ -1,7 +1,7 @@
 use glam::{IVec2, UVec2, Vec2};
 use serde::Deserialize;
 
-use crate::{Error, Field};
+use super::{Error, Field};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 #[serde(transparent)]

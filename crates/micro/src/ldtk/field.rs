@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::EntityRef;
+use super::EntityRef;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Field {

@@ -1,8 +1,10 @@
 use std::path::Path;
 
-use micro::{resource::loader::ResourceLoader, Context};
-
-use crate::{Error, Level};
+use crate::{
+	ldtk::{Error, Level},
+	resource::loader::ResourceLoader,
+	Context,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LdtkLevelLoader;

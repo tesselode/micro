@@ -1,6 +1,8 @@
 #[cfg(feature = "aseprite")]
 mod animation_data;
 mod font;
+#[cfg(feature = "ldtk")]
+mod ldtk;
 #[cfg(feature = "kira")]
 mod static_sound_data;
 #[cfg(feature = "kira")]
@@ -12,6 +14,8 @@ mod tiled;
 #[cfg(feature = "aseprite")]
 pub use animation_data::*;
 pub use font::*;
+#[cfg(feature = "ldtk")]
+pub use ldtk::*;
 #[cfg(feature = "kira")]
 pub use static_sound_data::*;
 #[cfg(feature = "kira")]

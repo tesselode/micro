@@ -1,2 +1,2 @@
 [workspace]
-members = ["crates/micro", "crates/micro-starter", "crates/micro-ldtk"]
+members = ["crates/micro", "crates/micro-starter"]

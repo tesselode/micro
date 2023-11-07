@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{EntityId, LayerId};
+use super::{EntityId, LayerId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct EntityRef {

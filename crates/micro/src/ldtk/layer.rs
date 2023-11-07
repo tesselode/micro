@@ -1,7 +1,7 @@
 use glam::{IVec2, UVec2};
 use serde::Deserialize;
 
-use crate::{Entity, Tile};
+use super::{Entity, Tile};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 #[serde(transparent)]

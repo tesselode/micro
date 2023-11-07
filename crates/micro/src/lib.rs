@@ -5,6 +5,8 @@ mod error;
 mod event;
 pub mod graphics;
 pub mod input;
+#[cfg(feature = "ldtk")]
+pub mod ldtk;
 pub mod math;
 mod offset_and_count;
 #[cfg(feature = "resource_management")]

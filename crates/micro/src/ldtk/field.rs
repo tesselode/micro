@@ -10,6 +10,22 @@ pub struct Field {
 	pub kind: FieldKind,
 }
 
+impl Field {
+	pub fn float(&self) -> Option<f32> {
+		match &self.kind {
+			FieldKind::Float { value } => Some(*value),
+			_ => None,
+		}
+	}
+
+	pub fn entities(&self) -> Option<&[EntityRef]> {
+		match &self.kind {
+			FieldKind::Entities { value } => Some(value),
+			_ => None,
+		}
+	}
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(tag = "__type")]
 pub enum FieldKind {
@@ -18,7 +34,7 @@ pub enum FieldKind {
 		value: f32,
 	},
 	#[serde(rename = "Array<EntityRef>")]
-	EntityRefs {
+	Entities {
 		#[serde(rename = "__value")]
 		value: Vec<EntityRef>,
 	},

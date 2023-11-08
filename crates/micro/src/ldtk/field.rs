@@ -5,9 +5,9 @@ use super::EntityRef;
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Field {
 	#[serde(rename = "__identifier")]
-	name: String,
+	pub name: String,
 	#[serde(flatten)]
-	kind: FieldKind,
+	pub kind: FieldKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]

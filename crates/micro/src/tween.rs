@@ -2,7 +2,26 @@ mod tween_sequence;
 
 pub use tween_sequence::*;
 
-use std::f32::consts::PI;
+use std::{
+	f32::consts::PI,
+	ops::{Add, Mul, Sub},
+};
+
+pub trait Tweenable {
+	fn lerp(self, other: Self, f: f32) -> Self;
+}
+
+impl<T> Tweenable for T
+where
+	T: Copy,
+	T: Add<Output = T>,
+	T: Sub<Output = T>,
+	T: Mul<f32, Output = T>,
+{
+	fn lerp(self, other: Self, f: f32) -> Self {
+		self + (other - self) * f
+	}
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Easing {

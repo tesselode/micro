@@ -1,7 +1,6 @@
 mod cardinal_direction;
 mod circle;
 mod irect;
-mod lerp;
 mod rect;
 mod urect;
 mod vec_constants;
@@ -9,7 +8,6 @@ mod vec_constants;
 pub use cardinal_direction::*;
 pub use circle::*;
 pub use irect::*;
-pub use lerp::*;
 pub use rect::*;
 pub use urect::*;
 pub use vec_constants::*;

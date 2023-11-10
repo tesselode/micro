@@ -3,18 +3,16 @@ use std::{
 	time::Duration,
 };
 
-use crate::math::Lerp;
-
-use super::Easing;
+use super::{Easing, Tweenable};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TweenSequence<T: Lerp + Copy> {
+pub struct TweenSequence<T: Tweenable + Copy> {
 	starting_value: T,
 	tweens: Vec<Tween<T>>,
 	pub elapsed: Duration,
 }
 
-impl<T: Lerp + Copy> TweenSequence<T> {
+impl<T: Tweenable + Copy> TweenSequence<T> {
 	pub fn new(starting_value: T) -> Self {
 		Self {
 			starting_value,
@@ -93,7 +91,7 @@ impl<T: Lerp + Copy> TweenSequence<T> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct Tween<T: Lerp> {
+struct Tween<T: Tweenable> {
 	times: Range<Duration>,
 	values: Range<T>,
 	easing: Easing,

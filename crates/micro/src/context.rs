@@ -419,9 +419,9 @@ impl ScalingMode {
 				if *integer_scale {
 					scale = scale.floor();
 				}
-				Affine2::from_translation(ctx.window_size().as_vec2() / 2.0)
+				Affine2::from_translation((ctx.window_size().as_vec2() / 2.0).round())
 					* Affine2::from_scale(Vec2::splat(scale))
-					* Affine2::from_translation(-base_size.as_vec2() / 2.0)
+					* Affine2::from_translation((-base_size.as_vec2() / 2.0).round())
 			}
 		}
 	}

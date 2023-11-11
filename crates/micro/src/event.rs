@@ -42,6 +42,34 @@ pub enum Event {
 }
 
 impl Event {
+	pub fn transform_mouse_events(self, transform: Affine2) -> Self {
+		match self {
+			Self::MouseMoved { position, delta } => Self::MouseMoved {
+				position: transform.transform_point2(position.as_vec2()).as_ivec2(),
+				delta: transform.transform_vector2(delta.as_vec2()).as_ivec2(),
+			},
+			Self::MouseButtonPressed {
+				button,
+				mouse_position,
+			} => Self::MouseButtonPressed {
+				button,
+				mouse_position: transform
+					.transform_point2(mouse_position.as_vec2())
+					.as_ivec2(),
+			},
+			Self::MouseButtonReleased {
+				button,
+				mouse_position,
+			} => Self::MouseButtonReleased {
+				button,
+				mouse_position: transform
+					.transform_point2(mouse_position.as_vec2())
+					.as_ivec2(),
+			},
+			_ => self,
+		}
+	}
+
 	pub(crate) fn from_sdl2_event(sdl2_event: sdl2::event::Event) -> Option<Self> {
 		match sdl2_event {
 			sdl2::event::Event::Quit { .. } => Some(Self::Exited),
@@ -111,34 +139,6 @@ impl Event {
 				Some(Self::GamepadDisconnected(which))
 			}
 			_ => None,
-		}
-	}
-
-	pub(crate) fn transform_mouse_events(self, transform: Affine2) -> Self {
-		match self {
-			Self::MouseMoved { position, delta } => Self::MouseMoved {
-				position: transform.transform_point2(position.as_vec2()).as_ivec2(),
-				delta: transform.transform_vector2(delta.as_vec2()).as_ivec2(),
-			},
-			Self::MouseButtonPressed {
-				button,
-				mouse_position,
-			} => Self::MouseButtonPressed {
-				button,
-				mouse_position: transform
-					.transform_point2(mouse_position.as_vec2())
-					.as_ivec2(),
-			},
-			Self::MouseButtonReleased {
-				button,
-				mouse_position,
-			} => Self::MouseButtonReleased {
-				button,
-				mouse_position: transform
-					.transform_point2(mouse_position.as_vec2())
-					.as_ivec2(),
-			},
-			_ => self,
 		}
 	}
 }

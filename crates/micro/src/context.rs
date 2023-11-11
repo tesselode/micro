@@ -16,6 +16,7 @@ use sdl2::{
 };
 
 use crate::{
+	build_window,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	error::SdlError,
 	graphics::{StencilAction, StencilTest},
@@ -334,21 +335,4 @@ impl Default for ContextSettings {
 			app_name: "Game",
 		}
 	}
-}
-
-fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
-	let window_size = match settings.window_mode {
-		// doesn't matter because we're going to set the window to fullscreen
-		WindowMode::Fullscreen => UVec2::new(800, 600),
-		WindowMode::Windowed { size } => size,
-	};
-	let mut window_builder = video.window(&settings.window_title, window_size.x, window_size.y);
-	if settings.window_mode == WindowMode::Fullscreen {
-		window_builder.fullscreen_desktop();
-	}
-	window_builder.opengl();
-	if settings.resizable {
-		window_builder.resizable();
-	}
-	window_builder.build().expect("error building window")
 }

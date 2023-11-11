@@ -31,6 +31,7 @@ struct MainState {
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		tracing::error!("test error");
 		Ok(Self {
 			scaler: Scaler::smooth(UVec2::splat(100)),
 			mesh: Mesh::circle(

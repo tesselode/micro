@@ -20,6 +20,7 @@ use crate::{
 	error::SdlError,
 	graphics::{StencilAction, StencilTest},
 	input::{Gamepad, MouseButton, Scancode},
+	log::setup_logging,
 	log_if_err,
 	time::FrameTimeTracker,
 	window::WindowMode,
@@ -316,6 +317,9 @@ pub struct ContextSettings {
 	pub window_mode: WindowMode,
 	pub resizable: bool,
 	pub swap_interval: SwapInterval,
+	pub qualifier: &'static str,
+	pub organization_name: &'static str,
+	pub app_name: &'static str,
 }
 
 impl Default for ContextSettings {
@@ -325,6 +329,9 @@ impl Default for ContextSettings {
 			window_mode: WindowMode::default(),
 			resizable: false,
 			swap_interval: SwapInterval::VSync,
+			qualifier: "com",
+			organization_name: "Tesselode",
+			app_name: "Game",
 		}
 	}
 }
@@ -344,31 +351,4 @@ fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
 		window_builder.resizable();
 	}
 	window_builder.build().expect("error building window")
-}
-
-#[cfg(debug_assertions)]
-fn setup_logging() {
-	use tracing_subscriber::EnvFilter;
-
-	tracing_subscriber::fmt()
-		.with_env_filter(
-			EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
-		)
-		.init();
-}
-
-#[cfg(not(debug_assertions))]
-fn setup_logging(settings: &ContextSettings) -> tracing_appender::non_blocking::WorkerGuard {
-	use tracing_subscriber::EnvFilter;
-
-	let file_appender = tracing_appender::rolling::hourly(&settings.logs_dir, "log");
-	let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
-	tracing_subscriber::fmt()
-		.with_env_filter(
-			EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
-		)
-		.with_ansi(false)
-		.with_writer(non_blocking)
-		.init();
-	guard
 }

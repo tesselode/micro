@@ -7,6 +7,7 @@ pub mod graphics;
 pub mod input;
 #[cfg(feature = "ldtk")]
 pub mod ldtk;
+mod log;
 pub mod math;
 mod offset_and_count;
 #[cfg(feature = "resource_management")]
@@ -14,7 +15,6 @@ pub mod resource;
 mod state;
 pub mod time;
 pub mod tween;
-mod util;
 mod window;
 
 pub use context::{run, Context, ContextSettings};

@@ -4,19 +4,26 @@ use glam::{UVec2, Vec2};
 use micro::{
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
-		ColorConstants, DrawParams, Scaler,
+		ColorConstants, DrawParams,
 	},
 	input::Scancode,
 	math::Circle,
 	time::{FixedTimestepProducer, FixedTimestepProducerSettings},
-	Context, ContextSettings, Event, State,
+	Context, ContextSettings, Event, ScalingMode, State, WindowMode,
 };
 use palette::LinSrgba;
 
 fn main() {
 	micro::run(
 		ContextSettings {
+			window_mode: WindowMode::Windowed {
+				size: UVec2::splat(400),
+			},
 			resizable: true,
+			scaling_mode: ScalingMode::Pixelated {
+				base_size: UVec2::splat(100),
+				integer_scale: true,
+			},
 			..Default::default()
 		},
 		MainState::new,
@@ -24,7 +31,6 @@ fn main() {
 }
 
 struct MainState {
-	scaler: Scaler,
 	mesh: Mesh,
 	fixed_timestep_producer: FixedTimestepProducer,
 }
@@ -33,7 +39,6 @@ impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		tracing::error!("test error");
 		Ok(Self {
-			scaler: Scaler::smooth(UVec2::splat(100)),
 			mesh: Mesh::circle(
 				ctx,
 				ShapeStyle::Fill,
@@ -59,25 +64,22 @@ impl State<Box<dyn Error>> for MainState {
 		{
 			std::thread::sleep(Duration::from_millis(1000));
 		}
+
 		Ok(())
 	}
 
 	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		self.fixed_timestep_producer.run(
-			delta_time,
-			|delta_time| -> Result<(), Box<dyn Error>> {
-				println!("{:?}", delta_time);
+		dbg!(ctx.mouse_position());
+		self.fixed_timestep_producer
+			.run(delta_time, |delta_time| -> Result<(), Box<dyn Error>> {
 				Ok(())
-			},
-		)?;
+			})?;
 		Ok(())
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(LinSrgba::BLACK);
-		self.scaler.draw(ctx, |ctx| {
-			self.mesh.draw(ctx, DrawParams::new());
-		});
+		self.mesh.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

@@ -5,7 +5,6 @@ mod draw_params;
 mod image_data;
 pub mod mesh;
 mod nine_slice;
-mod scaler;
 pub mod shader;
 pub mod sprite_batch;
 mod stencil;
@@ -18,7 +17,6 @@ pub use color_constants::*;
 pub use draw_params::*;
 pub use image_data::*;
 pub use nine_slice::*;
-pub use scaler::*;
 pub use stencil::*;
 
 pub use sdl2::video::SwapInterval;

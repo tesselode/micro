@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use glam::UVec2;
-use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture};
+use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, PixelPackData};
 
 use crate::{context::graphics::RenderTarget, math::Rect, Context};
 
@@ -151,6 +151,26 @@ impl Canvas {
 
 	pub fn draw_region<'a>(&self, ctx: &Context, region: Rect, params: impl Into<DrawParams<'a>>) {
 		self.texture.draw_region(ctx, region, params)
+	}
+
+	pub fn read(&self, buffer: &mut [u8]) {
+		if buffer.len() < (self.size().x * self.size().y * 4) as usize {
+			panic!("buffer not big enough");
+		}
+		unsafe {
+			self.gl
+				.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(self.framebuffer));
+			self.gl.read_buffer(glow::COLOR_ATTACHMENT0);
+			self.gl.read_pixels(
+				0,
+				0,
+				self.size().x as i32,
+				self.size().y as i32,
+				glow::RGBA,
+				glow::UNSIGNED_BYTE,
+				PixelPackData::Slice(buffer),
+			);
+		}
 	}
 }
 

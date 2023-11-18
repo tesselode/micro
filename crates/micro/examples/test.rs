@@ -4,7 +4,7 @@ use glam::{UVec2, Vec2};
 use micro::{
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
-		ColorConstants, DrawParams,
+		Canvas, CanvasSettings, ColorConstants, DrawParams,
 	},
 	input::Scancode,
 	math::Circle,
@@ -20,10 +20,6 @@ fn main() {
 				size: UVec2::splat(400),
 			},
 			resizable: true,
-			scaling_mode: ScalingMode::Pixelated {
-				base_size: UVec2::splat(100),
-				integer_scale: true,
-			},
 			..Default::default()
 		},
 		MainState::new,
@@ -31,6 +27,7 @@ fn main() {
 }
 
 struct MainState {
+	canvas: Canvas,
 	mesh: Mesh,
 	fixed_timestep_producer: FixedTimestepProducer,
 }
@@ -39,6 +36,7 @@ impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		tracing::error!("test error");
 		Ok(Self {
+			canvas: Canvas::new(ctx, ctx.window_size(), CanvasSettings::default()),
 			mesh: Mesh::circle(
 				ctx,
 				ShapeStyle::Fill,
@@ -62,7 +60,9 @@ impl State<Box<dyn Error>> for MainState {
 			key: Scancode::Z, ..
 		} = event
 		{
-			std::thread::sleep(Duration::from_millis(1000));
+			let mut buffer = vec![0; (self.canvas.size().x * self.canvas.size().y * 4) as usize];
+			self.canvas.read(&mut buffer);
+			dbg!(buffer);
 		}
 
 		Ok(())
@@ -79,7 +79,11 @@ impl State<Box<dyn Error>> for MainState {
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(LinSrgba::BLACK);
-		self.mesh.draw(ctx, DrawParams::new());
+		self.canvas.render_to(ctx, |ctx| {
+			ctx.clear(LinSrgba::BLACK);
+			self.mesh.draw(ctx, DrawParams::new());
+		});
+		self.canvas.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

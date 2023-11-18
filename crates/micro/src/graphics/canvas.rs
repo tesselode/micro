@@ -61,7 +61,6 @@ impl Canvas {
 					size.y as i32,
 				);
 			}
-			// gl.bind_renderbuffer(glow::RENDERBUFFER, None);
 			gl.framebuffer_renderbuffer(
 				glow::FRAMEBUFFER,
 				glow::DEPTH_STENCIL_ATTACHMENT,

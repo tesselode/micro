@@ -4,6 +4,7 @@ use glam::UVec2;
 use image::ImageError;
 use thiserror::Error;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ImageData {
 	pub size: UVec2,
 	pub pixels: Vec<u8>,

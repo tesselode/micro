@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use glam::UVec2;
-use image::ImageError;
+use image::{ImageBuffer, ImageError};
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -17,6 +17,16 @@ impl ImageData {
 			size: UVec2::new(image_buffer.width(), image_buffer.height()),
 			pixels: image_buffer.into_raw(),
 		})
+	}
+
+	pub(crate) fn flipped_vertical(&self) -> Self {
+		let mut image_buffer: ImageBuffer<image::Rgba<u8>, _> =
+			ImageBuffer::from_vec(self.size.x, self.size.y, self.pixels.clone()).unwrap();
+		image::imageops::flip_vertical_in_place(&mut image_buffer);
+		Self {
+			size: self.size,
+			pixels: image_buffer.into_vec(),
+		}
 	}
 }
 

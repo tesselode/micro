@@ -8,7 +8,7 @@ use std::{
 
 use backtrace::Backtrace;
 use glam::{Affine2, IVec2, UVec2, Vec2};
-use glow::HasContext;
+use glow::{HasContext, PixelPackData};
 use palette::LinSrgba;
 use sdl2::{
 	video::{FullscreenType, GLProfile, SwapInterval, Window, WindowPos},
@@ -19,7 +19,7 @@ use crate::{
 	build_window,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	error::SdlError,
-	graphics::{Canvas, CanvasSettings, ColorConstants, StencilAction, StencilTest},
+	graphics::{Canvas, CanvasSettings, ColorConstants, ImageData, StencilAction, StencilTest},
 	input::{Gamepad, MouseButton, Scancode},
 	log::setup_logging,
 	log_if_err,
@@ -275,6 +275,28 @@ impl Context {
 			self.graphics.gl.disable(glow::STENCIL_TEST);
 		}
 		returned_value
+	}
+
+	pub fn take_screenshot(&self) -> ImageData {
+		let window_size = self.window_size();
+		let mut pixels: Vec<u8> = vec![0; (window_size.x * window_size.y * 4) as usize];
+		unsafe {
+			self.graphics.gl.read_buffer(glow::BACK);
+			self.graphics.gl.read_pixels(
+				0,
+				0,
+				window_size.x as i32,
+				window_size.y as i32,
+				glow::RGBA,
+				glow::UNSIGNED_BYTE,
+				PixelPackData::Slice(pixels.as_mut_slice()),
+			)
+		}
+		let image_data = ImageData {
+			size: window_size,
+			pixels,
+		};
+		image_data.flipped_vertical()
 	}
 
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {

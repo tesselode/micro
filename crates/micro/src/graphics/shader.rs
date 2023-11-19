@@ -129,6 +129,18 @@ impl Shader {
 		Ok(())
 	}
 
+	pub fn send_f32(&self, name: &str, value: f32) -> Result<(), UniformNotFound> {
+		unsafe {
+			self.gl.use_program(Some(self.program));
+			let location = self
+				.gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			self.gl.uniform_1_f32(Some(&location), value);
+		}
+		Ok(())
+	}
+
 	pub fn send_vec2(&self, name: &str, vec2: Vec2) -> Result<(), UniformNotFound> {
 		unsafe {
 			self.gl.use_program(Some(self.program));

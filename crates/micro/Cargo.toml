@@ -10,11 +10,11 @@ backtrace = "0.3.69"
 bytemuck = { version = "1.10.0", features = ["derive"] }
 crunch = "0.5.3"
 directories = "5.0.1"
-egui = "0.23.0"
+egui = "0.24.0"
 fontdue = "0.7.3"
 generational-arena = "0.2.8"
 glam = { version = "0.24.1", features = ["bytemuck"] }
-glow = "0.12.0"
+glow = "0.13.0"
 image = { version = "0.24.2", default-features = false, features = ["png"] }
 indexmap = "2.0.2"
 kira = { version = "0.8.5", optional = true, default-features = false, features = [
@@ -27,7 +27,7 @@ palette = { version = "0.7.2", default-features = false, features = [
 ] }
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0.107", optional = true }
-sdl2 = "0.35.2"
+sdl2 = "0.36.0"
 thiserror = "1.0.31"
 tiled = { version = "0.11.2", optional = true }
 tracing = "0.1.37"

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use egui::{FullOutput, RawInput};
+use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
 use glam::IVec2;
 use palette::{LinSrgba, Srgba};
 
@@ -24,6 +24,14 @@ pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput 
 	};
 	let scaling_factor = egui_scaling_factor(ctx);
 	RawInput {
+		viewports: std::iter::once((
+			ViewportId::ROOT,
+			ViewportInfo {
+				native_pixels_per_point: Some(scaling_factor),
+				..Default::default()
+			},
+		))
+		.collect(),
 		screen_rect: Some(egui::Rect::from_min_size(
 			Default::default(),
 			glam_vec2_to_egui_vec2(ctx.window_size().as_vec2()) / scaling_factor,
@@ -34,7 +42,6 @@ pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput 
 			.cloned()
 			.filter_map(|event| sdl2_event_to_egui_event(ctx, event, modifiers))
 			.collect(),
-		pixels_per_point: Some(scaling_factor),
 		..Default::default()
 	}
 }
@@ -48,7 +55,7 @@ pub fn draw_egui_output(
 	patch_textures(&output, textures, ctx);
 	let scaling_factor = egui_scaling_factor(ctx);
 	ctx.clear_stencil();
-	for clipped_primitive in egui_ctx.tessellate(output.shapes) {
+	for clipped_primitive in egui_ctx.tessellate(output.shapes, scaling_factor) {
 		match clipped_primitive.primitive {
 			egui::epaint::Primitive::Mesh(mesh) => {
 				ctx.write_to_stencil(StencilAction::Replace(1), |ctx| {
@@ -331,7 +338,7 @@ fn egui_image_data_to_micro_image_data(image_data: &egui::ImageData) -> crate::g
 
 fn egui_scaling_factor(ctx: &Context) -> f32 {
 	let Ok(monitor_resolution) = ctx.monitor_resolution() else {
-		return 1.0
+		return 1.0;
 	};
 	(monitor_resolution.y as f32 / 1080.0).max(1.0)
 }

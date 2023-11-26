@@ -1,4 +1,4 @@
-use glam::{Mat4, Vec2};
+use glam::{Mat4, Vec2, Vec3};
 use palette::LinSrgba;
 
 use crate::graphics::{blend_mode::BlendMode, shader::Shader};
@@ -37,9 +37,16 @@ impl<'a> DrawParams<'a> {
 		}
 	}
 
-	pub fn translated(self, translation: Vec2) -> Self {
+	pub fn translated_2d(self, translation: Vec2) -> Self {
 		Self {
 			transform: Mat4::from_translation(translation.extend(0.0)) * self.transform,
+			..self
+		}
+	}
+
+	pub fn translated_3d(self, translation: Vec3) -> Self {
+		Self {
+			transform: Mat4::from_translation(translation) * self.transform,
 			..self
 		}
 	}
@@ -84,7 +91,13 @@ impl<'a> From<&'a Shader> for DrawParams<'a> {
 
 impl<'a> From<Vec2> for DrawParams<'a> {
 	fn from(position: Vec2) -> Self {
-		Self::new().translated(position)
+		Self::new().translated_2d(position)
+	}
+}
+
+impl<'a> From<Vec3> for DrawParams<'a> {
+	fn from(position: Vec3) -> Self {
+		Self::new().translated_3d(position)
 	}
 }
 

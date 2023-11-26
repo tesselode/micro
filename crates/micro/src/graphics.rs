@@ -1,4 +1,5 @@
 mod blend_mode;
+mod camera;
 mod canvas;
 mod color_constants;
 mod draw_params;
@@ -12,6 +13,7 @@ pub mod text;
 pub mod texture;
 
 pub use blend_mode::*;
+pub use camera::*;
 pub use canvas::*;
 pub use color_constants::*;
 pub use draw_params::*;

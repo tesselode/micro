@@ -28,7 +28,7 @@ use crate::{
 	Event, State,
 };
 
-use self::graphics::GraphicsContext;
+use self::graphics::{GraphicsContext, Transform};
 
 pub fn run<S, F, E>(settings: ContextSettings, state_constructor: F)
 where
@@ -218,7 +218,24 @@ impl Context {
 	}
 
 	pub fn with_transform<T>(&mut self, transform: Mat4, f: impl FnOnce(&mut Context) -> T) -> T {
-		self.graphics.transform_stack.push(transform);
+		self.graphics.transform_stack.push(Transform {
+			replace: false,
+			transform,
+		});
+		let returned_value = f(self);
+		self.graphics.transform_stack.pop();
+		returned_value
+	}
+
+	pub fn with_replacement_transform<T>(
+		&mut self,
+		transform: Mat4,
+		f: impl FnOnce(&mut Context) -> T,
+	) -> T {
+		self.graphics.transform_stack.push(Transform {
+			replace: true,
+			transform,
+		});
 		let returned_value = f(self);
 		self.graphics.transform_stack.pop();
 		returned_value

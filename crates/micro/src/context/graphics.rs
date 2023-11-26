@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use glam::{Affine2, IVec2, Mat4, UVec2, Vec2, Vec3};
+use glam::{IVec2, Mat4, UVec2, Vec3};
 use glow::HasContext;
 use sdl2::{
 	video::{GLContext, Window},
@@ -16,7 +16,7 @@ pub(crate) struct GraphicsContext {
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
-	pub(crate) transform_stack: Vec<Mat4>,
+	pub(crate) transform_stack: Vec<Transform>,
 	pub(crate) render_target: RenderTarget,
 	viewport_size: IVec2,
 	_sdl_gl_ctx: GLContext,
@@ -92,11 +92,16 @@ impl GraphicsContext {
 					* Mat4::from_scale(Vec3::new(2.0 / size.x as f32, 2.0 / size.y as f32, 1.0))
 			}
 		};
-		self.transform_stack
-			.iter()
-			.fold(coordinate_system_transform, |previous, transform| {
-				previous * *transform
-			})
+		self.transform_stack.iter().fold(
+			coordinate_system_transform,
+			|previous, Transform { replace, transform }| {
+				if *replace {
+					*transform
+				} else {
+					previous * *transform
+				}
+			},
+		)
 	}
 }
 
@@ -104,4 +109,9 @@ impl GraphicsContext {
 pub(crate) enum RenderTarget {
 	Window,
 	Canvas { size: UVec2 },
+}
+
+pub(crate) struct Transform {
+	pub(crate) replace: bool,
+	pub(crate) transform: Mat4,
 }

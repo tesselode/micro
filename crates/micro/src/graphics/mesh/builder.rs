@@ -1,4 +1,4 @@
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 use lyon_tessellation::{
 	geom::euclid::Point2D,
 	path::{
@@ -357,7 +357,7 @@ struct PointWithoutColorToVertex {
 impl FillVertexConstructor<Vertex> for PointWithoutColorToVertex {
 	fn new_vertex(&mut self, vertex: FillVertex) -> Vertex {
 		Vertex {
-			position: Vec2::new(vertex.position().x, vertex.position().y),
+			position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
 			texture_coords: Vec2::ZERO,
 			color: self.color,
 		}
@@ -367,7 +367,7 @@ impl FillVertexConstructor<Vertex> for PointWithoutColorToVertex {
 impl StrokeVertexConstructor<Vertex> for PointWithoutColorToVertex {
 	fn new_vertex(&mut self, vertex: StrokeVertex) -> Vertex {
 		Vertex {
-			position: Vec2::new(vertex.position().x, vertex.position().y),
+			position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
 			texture_coords: Vec2::ZERO,
 			color: self.color,
 		}
@@ -378,7 +378,7 @@ struct PointWithColorToVertex;
 
 impl FillVertexConstructor<Vertex> for PointWithColorToVertex {
 	fn new_vertex(&mut self, mut vertex: FillVertex) -> Vertex {
-		let position = Vec2::new(vertex.position().x, vertex.position().y);
+		let position = Vec3::new(vertex.position().x, vertex.position().y, 0.0);
 		let attributes = vertex.interpolated_attributes();
 		Vertex {
 			position,
@@ -390,7 +390,7 @@ impl FillVertexConstructor<Vertex> for PointWithColorToVertex {
 
 impl StrokeVertexConstructor<Vertex> for PointWithColorToVertex {
 	fn new_vertex(&mut self, mut vertex: StrokeVertex) -> Vertex {
-		let position = Vec2::new(vertex.position().x, vertex.position().y);
+		let position = Vec3::new(vertex.position().x, vertex.position().y, 0.0);
 		let attributes = vertex.interpolated_attributes();
 		Vertex {
 			position,

@@ -1,4 +1,4 @@
-use glam::{Affine2, Vec2};
+use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
 use crate::graphics::{blend_mode::BlendMode, shader::Shader};
@@ -8,7 +8,7 @@ use super::color_constants::ColorConstants;
 #[derive(Debug, Clone, Copy)]
 pub struct DrawParams<'a> {
 	pub shader: Option<&'a Shader>,
-	pub transform: Affine2,
+	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub blend_mode: BlendMode,
 }
@@ -17,7 +17,7 @@ impl<'a> DrawParams<'a> {
 	pub fn new() -> Self {
 		Self {
 			shader: None,
-			transform: Affine2::IDENTITY,
+			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
 		}
@@ -30,7 +30,7 @@ impl<'a> DrawParams<'a> {
 		}
 	}
 
-	pub fn transformed(self, transform: Affine2) -> Self {
+	pub fn transformed(self, transform: Mat4) -> Self {
 		Self {
 			transform: transform * self.transform,
 			..self
@@ -39,21 +39,21 @@ impl<'a> DrawParams<'a> {
 
 	pub fn translated(self, translation: Vec2) -> Self {
 		Self {
-			transform: Affine2::from_translation(translation) * self.transform,
+			transform: Mat4::from_translation(translation.extend(0.0)) * self.transform,
 			..self
 		}
 	}
 
 	pub fn scaled(self, scale: Vec2) -> Self {
 		Self {
-			transform: Affine2::from_scale(scale) * self.transform,
+			transform: Mat4::from_scale(scale.extend(1.0)) * self.transform,
 			..self
 		}
 	}
 
 	pub fn rotated(self, rotation: f32) -> Self {
 		Self {
-			transform: Affine2::from_angle(rotation) * self.transform,
+			transform: Mat4::from_rotation_z(rotation) * self.transform,
 			..self
 		}
 	}
@@ -88,8 +88,8 @@ impl<'a> From<Vec2> for DrawParams<'a> {
 	}
 }
 
-impl<'a> From<Affine2> for DrawParams<'a> {
-	fn from(transform: Affine2) -> Self {
+impl<'a> From<Mat4> for DrawParams<'a> {
+	fn from(transform: Mat4) -> Self {
 		Self::new().transformed(transform)
 	}
 }

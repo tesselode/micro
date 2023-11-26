@@ -78,7 +78,6 @@ impl State<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		ctx.clear(LinSrgba::BLACK);
 		self.canvas.render_to(ctx, |ctx| {
 			ctx.clear(LinSrgba::BLACK);
 			self.mesh.draw(ctx, DrawParams::new());

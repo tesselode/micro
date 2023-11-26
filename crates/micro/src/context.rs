@@ -7,7 +7,7 @@ use std::{
 };
 
 use backtrace::Backtrace;
-use glam::{Affine2, IVec2, UVec2, Vec2};
+use glam::{Affine2, IVec2, Mat4, UVec2, Vec2};
 use glow::HasContext;
 use palette::LinSrgba;
 use sdl2::{
@@ -96,7 +96,7 @@ where
 				}
 				_ => {}
 			}
-			let transform = ctx.scaling_mode.transform(&ctx).inverse();
+			let transform = ctx.scaling_mode.transform_affine2(&ctx).inverse();
 			state.event(&mut ctx, event.transform_mouse_events(transform))?;
 		}
 
@@ -110,13 +110,16 @@ where
 				state.draw(ctx)?;
 				Ok(())
 			})?;
-			let transform = ctx.scaling_mode.transform(&ctx);
+			let transform = ctx.scaling_mode.transform_mat4(&ctx);
 			main_canvas.draw(&ctx, transform);
 		} else {
-			ctx.with_transform(ctx.scaling_mode.transform(&ctx), |ctx| -> Result<(), E> {
-				state.draw(ctx)?;
-				Ok(())
-			})?;
+			ctx.with_transform(
+				ctx.scaling_mode.transform_mat4(&ctx),
+				|ctx| -> Result<(), E> {
+					state.draw(ctx)?;
+					Ok(())
+				},
+			)?;
 		}
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		ctx.window.gl_swap_window();
@@ -214,11 +217,7 @@ impl Context {
 		}
 	}
 
-	pub fn with_transform<T>(
-		&mut self,
-		transform: Affine2,
-		f: impl FnOnce(&mut Context) -> T,
-	) -> T {
+	pub fn with_transform<T>(&mut self, transform: Mat4, f: impl FnOnce(&mut Context) -> T) -> T {
 		self.graphics.transform_stack.push(transform);
 		let returned_value = f(self);
 		self.graphics.transform_stack.pop();
@@ -291,7 +290,7 @@ impl Context {
 		let mouse_state = self.event_pump.mouse_state();
 		let untransformed = IVec2::new(mouse_state.x(), mouse_state.y());
 		self.scaling_mode
-			.transform(self)
+			.transform_affine2(self)
 			.inverse()
 			.transform_point2(untransformed.as_vec2())
 			.as_ivec2()
@@ -396,7 +395,7 @@ pub enum ScalingMode {
 }
 
 impl ScalingMode {
-	fn transform(&self, ctx: &Context) -> Affine2 {
+	fn transform_affine2(&self, ctx: &Context) -> Affine2 {
 		match self {
 			ScalingMode::None => Affine2::IDENTITY,
 			ScalingMode::Smooth { base_size } => {
@@ -420,6 +419,34 @@ impl ScalingMode {
 				Affine2::from_translation((ctx.window_size().as_vec2() / 2.0).round())
 					* Affine2::from_scale(Vec2::splat(scale))
 					* Affine2::from_translation((-base_size.as_vec2() / 2.0).round())
+			}
+		}
+	}
+
+	fn transform_mat4(&self, ctx: &Context) -> Mat4 {
+		match self {
+			ScalingMode::None => Mat4::IDENTITY,
+			ScalingMode::Smooth { base_size } => {
+				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
+				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
+				let scale = max_horizontal_scale.min(max_vertical_scale);
+				Mat4::from_translation((ctx.window_size().as_vec2() / 2.0).extend(0.0))
+					* Mat4::from_scale(Vec2::splat(scale).extend(1.0))
+					* Mat4::from_translation((-base_size.as_vec2() / 2.0).extend(0.0))
+			}
+			ScalingMode::Pixelated {
+				base_size,
+				integer_scale,
+			} => {
+				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
+				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
+				let mut scale = max_horizontal_scale.min(max_vertical_scale);
+				if *integer_scale {
+					scale = scale.floor();
+				}
+				Mat4::from_translation((ctx.window_size().as_vec2() / 2.0).extend(0.0))
+					* Mat4::from_scale(Vec2::splat(scale).extend(1.0))
+					* Mat4::from_translation((-base_size.as_vec2() / 2.0).extend(0.0))
 			}
 		}
 	}

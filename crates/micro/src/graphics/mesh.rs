@@ -1,7 +1,7 @@
 mod builder;
 
 pub use builder::*;
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
@@ -56,7 +56,7 @@ impl Mesh {
 			);
 			gl.vertex_attrib_pointer_f32(
 				0,
-				2,
+				3,
 				glow::FLOAT,
 				false,
 				std::mem::size_of::<Vertex>() as i32,
@@ -69,7 +69,7 @@ impl Mesh {
 				glow::FLOAT,
 				false,
 				std::mem::size_of::<Vertex>() as i32,
-				2 * std::mem::size_of::<f32>() as i32,
+				3 * std::mem::size_of::<f32>() as i32,
 			);
 			gl.enable_vertex_attrib_array(1);
 			gl.vertex_attrib_pointer_f32(
@@ -78,7 +78,7 @@ impl Mesh {
 				glow::FLOAT,
 				false,
 				std::mem::size_of::<Vertex>() as i32,
-				4 * std::mem::size_of::<f32>() as i32,
+				5 * std::mem::size_of::<f32>() as i32,
 			);
 			gl.enable_vertex_attrib_array(2);
 		}
@@ -106,7 +106,7 @@ impl Mesh {
 			.copied()
 			.zip(texture_region.corners())
 			.map(|(position, texture_coords)| Vertex {
-				position,
+				position: position.extend(0.0),
 				texture_coords,
 				color: LinSrgba::WHITE,
 			})
@@ -253,11 +253,9 @@ impl Mesh {
 			let shader = params.shader.unwrap_or(&ctx.graphics.default_shader);
 			shader.send_color("blendColor", params.color).ok();
 			shader
-				.send_mat3("globalTransform", ctx.graphics.global_transform().into())
+				.send_mat4("globalTransform", ctx.graphics.global_transform())
 				.ok();
-			shader
-				.send_mat3("localTransform", params.transform.into())
-				.ok();
+			shader.send_mat4("localTransform", params.transform).ok();
 			shader.bind_sent_textures();
 			gl.use_program(Some(shader.program));
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
@@ -286,7 +284,7 @@ impl Drop for Mesh {
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct Vertex {
-	pub position: Vec2,
+	pub position: Vec3,
 	pub texture_coords: Vec2,
 	pub color: LinSrgba,
 }

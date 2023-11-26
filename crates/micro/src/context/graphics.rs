@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use glam::{Affine2, IVec2, UVec2, Vec2};
+use glam::{Affine2, IVec2, Mat4, UVec2, Vec2, Vec3};
 use glow::HasContext;
 use sdl2::{
 	video::{GLContext, Window},
@@ -16,7 +16,7 @@ pub(crate) struct GraphicsContext {
 	pub(crate) gl: Rc<glow::Context>,
 	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
-	pub(crate) transform_stack: Vec<Affine2>,
+	pub(crate) transform_stack: Vec<Mat4>,
 	pub(crate) render_target: RenderTarget,
 	viewport_size: IVec2,
 	_sdl_gl_ctx: GLContext,
@@ -77,18 +77,19 @@ impl GraphicsContext {
 		}
 	}
 
-	pub(crate) fn global_transform(&self) -> Affine2 {
+	pub(crate) fn global_transform(&self) -> Mat4 {
 		let coordinate_system_transform = match self.render_target {
 			RenderTarget::Window => {
-				Affine2::from_translation(Vec2::new(-1.0, 1.0))
-					* Affine2::from_scale(Vec2::new(
+				Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+					* Mat4::from_scale(Vec3::new(
 						2.0 / self.viewport_size.x as f32,
 						-2.0 / self.viewport_size.y as f32,
+						1.0,
 					))
 			}
 			RenderTarget::Canvas { size } => {
-				Affine2::from_translation(Vec2::new(-1.0, -1.0))
-					* Affine2::from_scale(Vec2::new(2.0 / size.x as f32, 2.0 / size.y as f32))
+				Mat4::from_translation(Vec3::new(-1.0, -1.0, 0.0))
+					* Mat4::from_scale(Vec3::new(2.0 / size.x as f32, 2.0 / size.y as f32, 1.0))
 			}
 		};
 		self.transform_stack

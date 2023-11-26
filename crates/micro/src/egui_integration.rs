@@ -286,6 +286,10 @@ fn egui_pos2_to_glam_vec2(v: egui::Pos2) -> glam::Vec2 {
 	glam::Vec2::new(v.x, v.y)
 }
 
+fn egui_pos2_to_glam_vec3(v: egui::Pos2) -> glam::Vec3 {
+	glam::Vec3::new(v.x, v.y, 0.0)
+}
+
 fn egui_color32_to_palette_lin_srgba(v: egui::epaint::Color32) -> LinSrgba {
 	Srgba::new(v.r(), v.g(), v.b(), v.a()).into_linear()
 }
@@ -306,7 +310,7 @@ fn egui_mesh_to_micro_mesh(ctx: &Context, egui_mesh: egui::Mesh) -> Mesh {
 
 fn egui_vertex_to_micro_vertex(vertex: egui::epaint::Vertex) -> Vertex {
 	Vertex {
-		position: egui_pos2_to_glam_vec2(vertex.pos),
+		position: egui_pos2_to_glam_vec3(vertex.pos),
 		texture_coords: egui_pos2_to_glam_vec2(vertex.uv),
 		color: egui_color32_to_palette_lin_srgba(vertex.color),
 	}

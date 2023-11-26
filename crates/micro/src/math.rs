@@ -38,6 +38,9 @@ pub fn triangulate_polygon(points: &[Vec2]) -> Result<Vec<Vec<Vec2>>, Tessellati
 fn triangle_points(indices: &[u32], buffers: &VertexBuffers<Vertex, u32>) -> Vec<Vec2> {
 	indices
 		.iter()
-		.map(|index| buffers.vertices[*index as usize].position)
+		.map(|index| {
+			let position = buffers.vertices[*index as usize].position;
+			Vec2::new(position.x, position.y)
+		})
 		.collect()
 }

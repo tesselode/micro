@@ -1,12 +1,8 @@
 use std::{error::Error, f32::consts::FRAC_PI_4, time::Duration};
 
-use glam::{Vec2, Vec3};
+use glam::Vec3;
 use micro::{
-	graphics::{
-		mesh::{Mesh, ShapeStyle},
-		Camera3d, ColorConstants,
-	},
-	math::{Circle, Rect},
+	graphics::{mesh::Mesh, Camera3d, ColorConstants},
 	Context, ContextSettings, State,
 };
 use palette::LinSrgba;
@@ -23,7 +19,6 @@ fn main() {
 
 struct MainState {
 	mesh: Mesh,
-	mesh2: Mesh,
 	mesh_position: Vec3,
 }
 
@@ -31,24 +26,7 @@ impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		tracing::error!("test error");
 		Ok(Self {
-			mesh: Mesh::circle(
-				ctx,
-				ShapeStyle::Fill,
-				Circle {
-					center: Vec2::ZERO,
-					radius: 0.5,
-				},
-				LinSrgba::WHITE,
-			)?,
-			mesh2: Mesh::circle(
-				ctx,
-				ShapeStyle::Fill,
-				Circle {
-					center: Vec2::splat(50.0),
-					radius: 10.0,
-				},
-				LinSrgba::WHITE,
-			)?,
+			mesh: Mesh::from_obj_file(ctx, "resources/wireframe_cube.obj")?,
 			mesh_position: Vec3::ZERO,
 		})
 	}
@@ -63,8 +41,9 @@ impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(LinSrgba::BLACK);
 		ctx.with_replacement_transform(
-			Camera3d::orthographic(
-				Rect::from_xywh(-1.0, -1.0, 2.0, 2.0),
+			Camera3d::perspective(
+				FRAC_PI_4,
+				ctx.window_size().x as f32 / ctx.window_size().y as f32,
 				0.0..=100.0,
 				Vec3::ZERO,
 				Vec3::new(0.0, 0.0, 1.0),
@@ -74,7 +53,6 @@ impl State<Box<dyn Error>> for MainState {
 				self.mesh.draw(ctx, self.mesh_position);
 			},
 		);
-		self.mesh2.draw(ctx, LinSrgba::RED);
 		Ok(())
 	}
 }

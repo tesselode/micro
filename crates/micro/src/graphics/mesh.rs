@@ -2,10 +2,11 @@ mod builder;
 
 pub use builder::*;
 use glam::{Vec2, Vec3};
+use itertools::{izip, Itertools};
 use lyon_tessellation::TessellationError;
-use palette::LinSrgba;
+use palette::{LinSrgb, LinSrgba, WithAlpha};
 
-use std::rc::Rc;
+use std::{fmt::Debug, path::Path, rc::Rc};
 
 use bytemuck::{Pod, Zeroable};
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
@@ -31,6 +32,14 @@ pub struct Mesh {
 impl Mesh {
 	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Self {
 		Self::new_from_gl(ctx.graphics.gl.clone(), vertices, indices)
+	}
+
+	pub fn from_obj_file(
+		ctx: &Context,
+		path: impl AsRef<Path> + Debug,
+	) -> Result<Self, tobj::LoadError> {
+		let (models, _) = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS)?;
+		Ok(Self::from_tobj_model(ctx, &models[0]))
 	}
 
 	pub(crate) fn new_from_gl(gl: Rc<glow::Context>, vertices: &[Vertex], indices: &[u32]) -> Self {
@@ -268,6 +277,35 @@ impl Mesh {
 				range.offset as i32 * 4,
 			);
 		}
+	}
+
+	fn from_tobj_model(ctx: &Context, model: &tobj::Model) -> Self {
+		let tobj_mesh = &model.mesh;
+		let num_vertices = tobj_mesh.positions.len() / 3;
+		let positions = tobj_mesh
+			.positions
+			.chunks_exact(3)
+			.map(|coords| Vec3::new(coords[0], coords[1], coords[2]));
+		let texture_coords = tobj_mesh
+			.texcoords
+			.chunks_exact(2)
+			.map(|coords| Vec2::new(coords[0], coords[1]))
+			.pad_using(num_vertices, |_| Vec2::ZERO);
+		let colors = tobj_mesh
+			.vertex_color
+			.chunks_exact(3)
+			.map(|components| {
+				LinSrgb::new(components[0], components[1], components[2]).with_alpha(1.0)
+			})
+			.pad_using(num_vertices, |_| LinSrgba::WHITE);
+		let vertices = izip!(positions, texture_coords, colors)
+			.map(|(position, texture_coords, color)| Vertex {
+				position,
+				texture_coords,
+				color,
+			})
+			.collect::<Vec<_>>();
+		Self::new(ctx, &vertices, &tobj_mesh.indices)
 	}
 }
 

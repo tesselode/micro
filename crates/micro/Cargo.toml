@@ -17,6 +17,7 @@ glam = { version = "0.24.1", features = ["bytemuck"] }
 glow = "0.13.0"
 image = { version = "0.24.2", default-features = false, features = ["png"] }
 indexmap = "2.0.2"
+itertools = "0.12.0"
 kira = { version = "0.8.5", optional = true, default-features = false, features = [
 	"symphonia",
 ] }
@@ -30,6 +31,7 @@ serde_json = { version = "1.0.107", optional = true }
 sdl2 = "0.36.0"
 thiserror = "1.0.31"
 tiled = { version = "0.11.2", optional = true }
+tobj = "4.0.0"
 tracing = "0.1.37"
 tracing-appender = "0.2.2"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }

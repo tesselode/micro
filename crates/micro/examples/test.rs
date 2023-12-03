@@ -1,12 +1,12 @@
-use std::{error::Error, time::Duration};
+use std::{error::Error, f32::consts::FRAC_PI_4, time::Duration};
 
 use glam::{Vec2, Vec3};
 use micro::{
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
-		Camera3d, ColorConstants, DrawParams,
+		Camera3d, ColorConstants,
 	},
-	math::Circle,
+	math::{Circle, Rect},
 	Context, ContextSettings, State,
 };
 use palette::LinSrgba;
@@ -63,10 +63,12 @@ impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(LinSrgba::BLACK);
 		ctx.with_replacement_transform(
-			Camera3d {
-				aspect_ratio: ctx.window_size().x as f32 / ctx.window_size().y as f32,
-				..Default::default()
-			}
+			Camera3d::orthographic(
+				Rect::from_xywh(-1.0, -1.0, 2.0, 2.0),
+				0.0..=100.0,
+				Vec3::ZERO,
+				Vec3::new(0.0, 0.0, 1.0),
+			)
 			.transform(),
 			|ctx| {
 				self.mesh.draw(ctx, self.mesh_position);

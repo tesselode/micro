@@ -4,7 +4,7 @@ use glam::{Vec2, Vec3};
 use micro::{
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
-		Camera, ColorConstants, DrawParams,
+		Camera3d, ColorConstants, DrawParams,
 	},
 	math::Circle,
 	Context, ContextSettings, State,
@@ -63,7 +63,7 @@ impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(LinSrgba::BLACK);
 		ctx.with_replacement_transform(
-			Camera {
+			Camera3d {
 				aspect_ratio: ctx.window_size().x as f32 / ctx.window_size().y as f32,
 				..Default::default()
 			}

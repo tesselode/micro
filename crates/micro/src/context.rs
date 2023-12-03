@@ -203,7 +203,7 @@ impl Context {
 			self.graphics.gl.clear_stencil(0);
 			self.graphics
 				.gl
-				.clear(glow::COLOR_BUFFER_BIT | glow::STENCIL_BUFFER_BIT);
+				.clear(glow::COLOR_BUFFER_BIT | glow::STENCIL_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 			self.graphics.gl.stencil_mask(0x00);
 		}
 	}
@@ -225,6 +225,16 @@ impl Context {
 		let returned_value = f(self);
 		self.graphics.transform_stack.pop();
 		returned_value
+	}
+
+	pub fn set_depth_buffer_enabled(&mut self, enabled: bool) {
+		unsafe {
+			if enabled {
+				self.graphics.gl.enable(glow::DEPTH_TEST);
+			} else {
+				self.graphics.gl.disable(glow::DEPTH_TEST);
+			}
+		}
 	}
 
 	pub fn with_replacement_transform<T>(

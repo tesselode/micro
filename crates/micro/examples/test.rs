@@ -2,7 +2,7 @@ use std::{error::Error, f32::consts::FRAC_PI_4, time::Duration};
 
 use glam::Vec3;
 use micro::{
-	graphics::{mesh::Mesh, Camera3d, ColorConstants},
+	graphics::{mesh::Mesh, Camera3d, ColorConstants, DrawParams},
 	Context, ContextSettings, State,
 };
 use palette::LinSrgba;
@@ -39,18 +39,25 @@ impl State<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
+		ctx.set_depth_buffer_enabled(true);
 		ctx.clear(LinSrgba::BLACK);
 		ctx.with_replacement_transform(
 			Camera3d::perspective(
 				FRAC_PI_4,
 				ctx.window_size().x as f32 / ctx.window_size().y as f32,
-				0.0..=100.0,
+				0.1..=100.0,
 				Vec3::ZERO,
 				Vec3::new(0.0, 0.0, 1.0),
 			)
 			.transform(),
 			|ctx| {
 				self.mesh.draw(ctx, self.mesh_position);
+				self.mesh.draw(
+					ctx,
+					DrawParams::new()
+						.translated_3d(self.mesh_position + Vec3::new(0.0, 0.0, 10.0))
+						.color(LinSrgba::RED),
+				);
 			},
 		);
 		Ok(())

@@ -123,7 +123,7 @@ impl Canvas {
 					.gl
 					.bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(self.framebuffer));
 				let width = self.size().x as i32;
-				let height = self.size().x as i32;
+				let height = self.size().y as i32;
 				ctx.graphics.gl.blit_framebuffer(
 					0,
 					0,

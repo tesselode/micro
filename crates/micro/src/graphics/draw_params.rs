@@ -51,14 +51,35 @@ impl<'a> DrawParams<'a> {
 		}
 	}
 
-	pub fn scaled(self, scale: Vec2) -> Self {
+	pub fn scaled_2d(self, scale: Vec2) -> Self {
 		Self {
 			transform: Mat4::from_scale(scale.extend(1.0)) * self.transform,
 			..self
 		}
 	}
 
-	pub fn rotated(self, rotation: f32) -> Self {
+	pub fn scaled_3d(self, scale: Vec3) -> Self {
+		Self {
+			transform: Mat4::from_scale(scale) * self.transform,
+			..self
+		}
+	}
+
+	pub fn rotated_x(self, rotation: f32) -> Self {
+		Self {
+			transform: Mat4::from_rotation_x(rotation) * self.transform,
+			..self
+		}
+	}
+
+	pub fn rotated_y(self, rotation: f32) -> Self {
+		Self {
+			transform: Mat4::from_rotation_y(rotation) * self.transform,
+			..self
+		}
+	}
+
+	pub fn rotated_z(self, rotation: f32) -> Self {
 		Self {
 			transform: Mat4::from_rotation_z(rotation) * self.transform,
 			..self

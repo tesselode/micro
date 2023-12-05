@@ -1,13 +1,13 @@
 use std::{error::Error, f32::consts::FRAC_PI_4, time::Duration};
 
-use glam::{Mat4, Vec2, Vec3};
+use glam::{Mat4, UVec2, Vec2, Vec3};
 use micro::{
 	graphics::{
 		mesh::{Mesh, MeshBuilder, ShapeStyle},
 		Camera3d, ColorConstants,
 	},
 	math::Circle,
-	Context, ContextSettings, State,
+	Context, ContextSettings, ScalingMode, State,
 };
 use palette::LinSrgba;
 
@@ -15,6 +15,10 @@ fn main() {
 	micro::run(
 		ContextSettings {
 			resizable: true,
+			scaling_mode: ScalingMode::Pixelated {
+				base_size: UVec2::new(800, 600),
+				integer_scale: true,
+			},
 			..Default::default()
 		},
 		MainState::new,
@@ -57,7 +61,7 @@ impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.set_depth_buffer_enabled(true);
 		ctx.clear(LinSrgba::BLACK);
-		ctx.with_replacement_transform(
+		ctx.with_transform(
 			Camera3d::perspective(
 				FRAC_PI_4,
 				ctx.window_size().x as f32 / ctx.window_size().y as f32,
@@ -65,7 +69,7 @@ impl State<Box<dyn Error>> for MainState {
 				Vec3::ZERO,
 				Vec3::new(0.0, 0.0, 1.0),
 			)
-			.transform(),
+			.transform(ctx),
 			|ctx| {
 				self.mesh.draw(ctx, self.mesh_position);
 			},

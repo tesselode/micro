@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use glam::{Mat4, Vec3};
 
-use crate::math::Rect;
+use crate::{context::graphics::RenderTarget, math::Rect, Context};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Camera3d {
@@ -48,7 +48,7 @@ impl Camera3d {
 		}
 	}
 
-	pub fn transform(self) -> Mat4 {
+	pub fn transform(self, ctx: &Context) -> Mat4 {
 		let projection = match self.kind {
 			Camera3dKind::Perspective {
 				field_of_view,
@@ -63,7 +63,22 @@ impl Camera3d {
 				self.z_far,
 			),
 		};
-		projection * Mat4::look_at_rh(self.position, self.look_at, Vec3::new(0.0, 1.0, 0.0))
+		let view = Mat4::look_at_rh(self.position, self.look_at, Vec3::new(0.0, 1.0, 0.0));
+		Self::undo_2d_coordinate_system_transform(ctx) * projection * view
+	}
+
+	fn undo_2d_coordinate_system_transform(ctx: &Context) -> Mat4 {
+		let viewport_size = match ctx.graphics.render_target {
+			RenderTarget::Window => ctx.window_size(),
+			RenderTarget::Canvas { size } => size,
+		};
+		(Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+			* Mat4::from_scale(Vec3::new(
+				2.0 / viewport_size.x as f32,
+				-2.0 / viewport_size.y as f32,
+				1.0,
+			)))
+		.inverse()
 	}
 }
 

@@ -1,22 +1,29 @@
-use glam::{Vec2, Vec3};
+mod vertex_constructors;
+
+use std::{fmt::Debug, path::Path};
+
+use glam::{Mat4, Vec2, Vec3};
+use itertools::{izip, Itertools};
 use lyon_tessellation::{
 	geom::euclid::Point2D,
 	path::{
 		traits::{Build, PathBuilder},
 		Winding,
 	},
-	BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor, StrokeOptions,
-	StrokeTessellator, StrokeVertex, StrokeVertexConstructor, TessellationError, VertexBuffers,
+	BuffersBuilder, FillOptions, FillTessellator, StrokeOptions, StrokeTessellator,
+	TessellationError, VertexBuffers,
 };
-use palette::LinSrgba;
+use palette::{LinSrgb, LinSrgba, WithAlpha};
 
 use crate::{
+	graphics::ColorConstants,
 	math::{Circle, Rect},
 	Context,
 };
 
 use super::{Mesh, Vertex};
 
+#[derive(Debug, Clone)]
 pub struct MeshBuilder {
 	pub(crate) buffers: VertexBuffers<Vertex, u32>,
 }
@@ -26,6 +33,67 @@ impl MeshBuilder {
 		Self {
 			buffers: VertexBuffers::new(),
 		}
+	}
+
+	pub fn from_obj_file(path: impl AsRef<Path> + Debug) -> Result<Self, tobj::LoadError> {
+		let (mut models, _) = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS)?;
+		let model = models.drain(..).next().expect("no models in obj file");
+		Ok(Self::from_tobj_model(model))
+	}
+
+	pub fn rectangle(
+		style: ShapeStyle,
+		rect: Rect,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Self::new().with_rectangle(style, rect, color)
+	}
+
+	pub fn circle(
+		style: ShapeStyle,
+		circle: Circle,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Self::new().with_circle(style, circle, color)
+	}
+
+	pub fn ellipse(
+		style: ShapeStyle,
+		center: Vec2,
+		radii: Vec2,
+		rotation: f32,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Self::new().with_ellipse(style, center, radii, rotation, color)
+	}
+
+	pub fn filled_polygon(
+		points: impl IntoIterator<Item = FilledPolygonPoint>,
+	) -> Result<Self, TessellationError> {
+		Self::new().with_filled_polygon(points)
+	}
+
+	pub fn polyline(
+		points: impl IntoIterator<Item = StrokePoint>,
+		closed: bool,
+	) -> Result<Self, TessellationError> {
+		Self::new().with_polyline(points, closed)
+	}
+
+	pub fn simple_polygon(
+		style: ShapeStyle,
+		points: impl IntoIterator<Item = Vec2>,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Self::new().with_simple_polygon(style, points, color)
+	}
+
+	pub fn simple_polyline(
+		stroke_width: f32,
+		points: impl IntoIterator<Item = Vec2>,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Self::new().with_simple_polyline(stroke_width, points, color)
 	}
 
 	pub fn add_rectangle(
@@ -44,7 +112,10 @@ impl MeshBuilder {
 					),
 				},
 				&FillOptions::default(),
-				&mut BuffersBuilder::new(&mut self.buffers, PointWithoutColorToVertex { color }),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					vertex_constructors::PointWithoutColorToVertex { color },
+				),
 			)?,
 			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_rectangle(
 				&lyon_tessellation::math::Box2D {
@@ -55,7 +126,10 @@ impl MeshBuilder {
 					),
 				},
 				&StrokeOptions::default().with_line_width(width),
-				&mut BuffersBuilder::new(&mut self.buffers, PointWithoutColorToVertex { color }),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					vertex_constructors::PointWithoutColorToVertex { color },
+				),
 			)?,
 		};
 		Ok(())
@@ -85,7 +159,7 @@ impl MeshBuilder {
 					&FillOptions::default(),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						PointWithoutColorToVertex { color },
+						vertex_constructors::PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
@@ -96,7 +170,7 @@ impl MeshBuilder {
 					&StrokeOptions::default().with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						PointWithoutColorToVertex { color },
+						vertex_constructors::PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
@@ -132,7 +206,7 @@ impl MeshBuilder {
 					&FillOptions::default(),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						PointWithoutColorToVertex { color },
+						vertex_constructors::PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
@@ -145,7 +219,7 @@ impl MeshBuilder {
 					&StrokeOptions::default().with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
-						PointWithoutColorToVertex { color },
+						vertex_constructors::PointWithoutColorToVertex { color },
 					),
 				)
 				.unwrap(),
@@ -170,7 +244,10 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = FilledPolygonPoint>,
 	) -> Result<(), TessellationError> {
 		let mut fill_tessellator = FillTessellator::new();
-		let mut buffers_builder = BuffersBuilder::new(&mut self.buffers, PointWithColorToVertex);
+		let mut buffers_builder = BuffersBuilder::new(
+			&mut self.buffers,
+			vertex_constructors::PointWithColorToVertex,
+		);
 		let options = FillOptions::default();
 		let mut builder =
 			fill_tessellator.builder_with_attributes(4, &options, &mut buffers_builder);
@@ -217,7 +294,10 @@ impl MeshBuilder {
 		closed: bool,
 	) -> Result<(), TessellationError> {
 		let mut stroke_tessellator = StrokeTessellator::new();
-		let mut buffers_builder = BuffersBuilder::new(&mut self.buffers, PointWithColorToVertex);
+		let mut buffers_builder = BuffersBuilder::new(
+			&mut self.buffers,
+			vertex_constructors::PointWithColorToVertex,
+		);
 		let options = StrokeOptions::default().with_variable_line_width(4);
 		let mut builder =
 			stroke_tessellator.builder_with_attributes(5, &options, &mut buffers_builder);
@@ -320,8 +400,70 @@ impl MeshBuilder {
 		Ok(self)
 	}
 
+	pub fn transform(&mut self, transform: Mat4) {
+		for vertex in &mut self.buffers.vertices {
+			vertex.position = transform.transform_point3(vertex.position);
+		}
+	}
+
+	pub fn transformed(mut self, transform: Mat4) -> Self {
+		self.transform(transform);
+		self
+	}
+
+	pub fn append(&mut self, mut other: Self) {
+		let num_vertices_before_append = self.buffers.vertices.len();
+		self.buffers.vertices.append(&mut other.buffers.vertices);
+		self.buffers.indices.extend(
+			other
+				.buffers
+				.indices
+				.drain(..)
+				.map(|index| index + num_vertices_before_append as u32),
+		);
+	}
+
+	pub fn appended_with(mut self, other: Self) -> Self {
+		self.append(other);
+		self
+	}
+
 	pub fn build(self, ctx: &Context) -> Mesh {
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
+	}
+
+	fn from_tobj_model(model: tobj::Model) -> Self {
+		let tobj_mesh = model.mesh;
+		let num_vertices = tobj_mesh.positions.len() / 3;
+		let positions = tobj_mesh
+			.positions
+			.chunks_exact(3)
+			.map(|coords| Vec3::new(coords[0], coords[1], coords[2]));
+		let texture_coords = tobj_mesh
+			.texcoords
+			.chunks_exact(2)
+			.map(|coords| Vec2::new(coords[0], coords[1]))
+			.pad_using(num_vertices, |_| Vec2::ZERO);
+		let colors = tobj_mesh
+			.vertex_color
+			.chunks_exact(3)
+			.map(|components| {
+				LinSrgb::new(components[0], components[1], components[2]).with_alpha(1.0)
+			})
+			.pad_using(num_vertices, |_| LinSrgba::WHITE);
+		let vertices = izip!(positions, texture_coords, colors)
+			.map(|(position, texture_coords, color)| Vertex {
+				position,
+				texture_coords,
+				color,
+			})
+			.collect::<Vec<_>>();
+		Self {
+			buffers: VertexBuffers {
+				vertices,
+				indices: tobj_mesh.indices,
+			},
+		}
 	}
 }
 
@@ -348,54 +490,4 @@ pub struct StrokePoint {
 	pub position: Vec2,
 	pub color: LinSrgba,
 	pub stroke_width: f32,
-}
-
-struct PointWithoutColorToVertex {
-	color: LinSrgba,
-}
-
-impl FillVertexConstructor<Vertex> for PointWithoutColorToVertex {
-	fn new_vertex(&mut self, vertex: FillVertex) -> Vertex {
-		Vertex {
-			position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
-			texture_coords: Vec2::ZERO,
-			color: self.color,
-		}
-	}
-}
-
-impl StrokeVertexConstructor<Vertex> for PointWithoutColorToVertex {
-	fn new_vertex(&mut self, vertex: StrokeVertex) -> Vertex {
-		Vertex {
-			position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
-			texture_coords: Vec2::ZERO,
-			color: self.color,
-		}
-	}
-}
-
-struct PointWithColorToVertex;
-
-impl FillVertexConstructor<Vertex> for PointWithColorToVertex {
-	fn new_vertex(&mut self, mut vertex: FillVertex) -> Vertex {
-		let position = Vec3::new(vertex.position().x, vertex.position().y, 0.0);
-		let attributes = vertex.interpolated_attributes();
-		Vertex {
-			position,
-			texture_coords: Vec2::ZERO,
-			color: LinSrgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
-		}
-	}
-}
-
-impl StrokeVertexConstructor<Vertex> for PointWithColorToVertex {
-	fn new_vertex(&mut self, mut vertex: StrokeVertex) -> Vertex {
-		let position = Vec3::new(vertex.position().x, vertex.position().y, 0.0);
-		let attributes = vertex.interpolated_attributes();
-		Vertex {
-			position,
-			texture_coords: Vec2::ZERO,
-			color: LinSrgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
-		}
-	}
 }

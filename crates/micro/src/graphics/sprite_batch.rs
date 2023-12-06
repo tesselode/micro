@@ -33,6 +33,7 @@ impl SpriteBatch {
 		let vertices = vec![
 			Vertex {
 				position: Vec3::ZERO,
+				normal: Vec3::ZERO,
 				texture_coords: Vec2::ZERO,
 				color: LinSrgba::WHITE,
 			};
@@ -94,6 +95,7 @@ impl SpriteBatch {
 			.zip(relative_texture_region.corners())
 			.map(|(position, texture_coords)| Vertex {
 				position: transform.transform_point2(position).extend(0.0),
+				normal: Vec3::ZERO,
 				texture_coords,
 				color: params.color,
 			})
@@ -136,6 +138,7 @@ impl SpriteBatch {
 				start_vertex_index + i,
 				Vertex {
 					position: Vec3::ZERO,
+					normal: Vec3::ZERO,
 					texture_coords: Vec2::ZERO,
 					color: LinSrgba::WHITE,
 				},

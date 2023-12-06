@@ -12,6 +12,7 @@ impl FillVertexConstructor<Vertex> for PointWithoutColorToVertex {
 	fn new_vertex(&mut self, vertex: FillVertex) -> Vertex {
 		Vertex {
 			position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
+			normal: Vec3::ZERO,
 			texture_coords: Vec2::ZERO,
 			color: self.color,
 		}
@@ -22,6 +23,7 @@ impl StrokeVertexConstructor<Vertex> for PointWithoutColorToVertex {
 	fn new_vertex(&mut self, vertex: StrokeVertex) -> Vertex {
 		Vertex {
 			position: Vec3::new(vertex.position().x, vertex.position().y, 0.0),
+			normal: Vec3::ZERO,
 			texture_coords: Vec2::ZERO,
 			color: self.color,
 		}
@@ -36,6 +38,7 @@ impl FillVertexConstructor<Vertex> for PointWithColorToVertex {
 		let attributes = vertex.interpolated_attributes();
 		Vertex {
 			position,
+			normal: Vec3::ZERO,
 			texture_coords: Vec2::ZERO,
 			color: LinSrgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
 		}
@@ -48,6 +51,7 @@ impl StrokeVertexConstructor<Vertex> for PointWithColorToVertex {
 		let attributes = vertex.interpolated_attributes();
 		Vertex {
 			position,
+			normal: Vec3::ZERO,
 			texture_coords: Vec2::ZERO,
 			color: LinSrgba::new(attributes[0], attributes[1], attributes[2], attributes[3]),
 		}

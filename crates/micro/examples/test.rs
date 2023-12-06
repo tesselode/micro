@@ -4,7 +4,8 @@ use glam::{Mat4, UVec2, Vec2, Vec3};
 use micro::{
 	graphics::{
 		mesh::{Mesh, MeshBuilder, ShapeStyle},
-		Camera3d, ColorConstants,
+		shader::Shader,
+		Camera3d, ColorConstants, DrawParams,
 	},
 	math::Circle,
 	Context, ContextSettings, ScalingMode, State,
@@ -15,10 +16,6 @@ fn main() {
 	micro::run(
 		ContextSettings {
 			resizable: true,
-			scaling_mode: ScalingMode::Pixelated {
-				base_size: UVec2::new(800, 600),
-				integer_scale: true,
-			},
 			..Default::default()
 		},
 		MainState::new,
@@ -27,34 +24,30 @@ fn main() {
 
 struct MainState {
 	mesh: Mesh,
-	mesh_position: Vec3,
+	shader: Shader,
+	rotation_x: f32,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let cube = MeshBuilder::from_obj_file("resources/wireframe_cube.obj")?;
 		Ok(Self {
-			mesh: MeshBuilder::new()
-				.with_circle(
-					ShapeStyle::Stroke(0.1),
-					Circle {
-						center: Vec2::ZERO,
-						radius: 4.0,
-					},
-					LinSrgba::RED,
-				)?
-				.transformed(Mat4::from_rotation_x(1.0))
-				.appended_with(cube.clone().transformed(Mat4::from_rotation_z(FRAC_PI_4)))
-				.appended_with(cube.transformed(Mat4::from_scale(Vec3::splat(2.0))))
-				.build(ctx),
-			mesh_position: Vec3::new(0.0, 0.0, 2.0),
+			mesh: Mesh::from_obj_file(ctx, "resources/cube.obj")?,
+			shader: {
+				let shader =
+					Shader::from_file(ctx, "resources/vertex.glsl", "resources/fragment.glsl")?;
+				shader
+					.send_vec3("lightPosition", Vec3::new(0.0, 0.0, 1.0))
+					.unwrap();
+				shader
+			},
+			rotation_x: 0.0,
 		})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
-	fn update(&mut self, _ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		self.mesh_position.z += delta_time.as_secs_f32();
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
+		self.rotation_x += delta_time.as_secs_f32();
 		Ok(())
 	}
 
@@ -71,7 +64,14 @@ impl State<Box<dyn Error>> for MainState {
 			)
 			.transform(ctx),
 			|ctx| {
-				self.mesh.draw(ctx, self.mesh_position);
+				self.mesh.draw(
+					ctx,
+					DrawParams::new()
+						.rotated_y(self.rotation_x)
+						.rotated_x(self.rotation_x / 0.8)
+						.translated_3d(Vec3::new(0.0, 0.0, 10.0))
+						.shader(&self.shader),
+				);
 			},
 		);
 		Ok(())

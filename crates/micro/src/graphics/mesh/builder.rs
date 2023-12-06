@@ -439,6 +439,10 @@ impl MeshBuilder {
 			.positions
 			.chunks_exact(3)
 			.map(|coords| Vec3::new(coords[0], coords[1], coords[2]));
+		let normals = tobj_mesh
+			.normals
+			.chunks_exact(3)
+			.map(|coords| Vec3::new(coords[0], coords[1], coords[2]));
 		let texture_coords = tobj_mesh
 			.texcoords
 			.chunks_exact(2)
@@ -451,9 +455,10 @@ impl MeshBuilder {
 				LinSrgb::new(components[0], components[1], components[2]).with_alpha(1.0)
 			})
 			.pad_using(num_vertices, |_| LinSrgba::WHITE);
-		let vertices = izip!(positions, texture_coords, colors)
-			.map(|(position, texture_coords, color)| Vertex {
+		let vertices = izip!(positions, normals, texture_coords, colors)
+			.map(|(position, normal, texture_coords, color)| Vertex {
 				position,
+				normal,
 				texture_coords,
 				color,
 			})

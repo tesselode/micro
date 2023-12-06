@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
-use glam::IVec2;
+use glam::{IVec2, Vec3};
 use palette::{LinSrgba, Srgba};
 
 use crate::{
@@ -311,6 +311,7 @@ fn egui_mesh_to_micro_mesh(ctx: &Context, egui_mesh: egui::Mesh) -> Mesh {
 fn egui_vertex_to_micro_vertex(vertex: egui::epaint::Vertex) -> Vertex {
 	Vertex {
 		position: egui_pos2_to_glam_vec3(vertex.pos),
+		normal: Vec3::ZERO,
 		texture_coords: egui_pos2_to_glam_vec2(vertex.uv),
 		color: egui_color32_to_palette_lin_srgba(vertex.color),
 	}

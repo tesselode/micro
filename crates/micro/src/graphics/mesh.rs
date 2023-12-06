@@ -72,7 +72,7 @@ impl Mesh {
 			gl.enable_vertex_attrib_array(0);
 			gl.vertex_attrib_pointer_f32(
 				1,
-				2,
+				3,
 				glow::FLOAT,
 				false,
 				std::mem::size_of::<Vertex>() as i32,
@@ -81,13 +81,22 @@ impl Mesh {
 			gl.enable_vertex_attrib_array(1);
 			gl.vertex_attrib_pointer_f32(
 				2,
+				2,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<Vertex>() as i32,
+				6 * std::mem::size_of::<f32>() as i32,
+			);
+			gl.enable_vertex_attrib_array(2);
+			gl.vertex_attrib_pointer_f32(
+				3,
 				4,
 				glow::FLOAT,
 				false,
 				std::mem::size_of::<Vertex>() as i32,
-				5 * std::mem::size_of::<f32>() as i32,
+				8 * std::mem::size_of::<f32>() as i32,
 			);
-			gl.enable_vertex_attrib_array(2);
+			gl.enable_vertex_attrib_array(3);
 		}
 		Self {
 			gl,
@@ -114,6 +123,7 @@ impl Mesh {
 			.zip(texture_region.corners())
 			.map(|(position, texture_coords)| Vertex {
 				position: position.extend(0.0),
+				normal: Vec3::ZERO,
 				texture_coords,
 				color: LinSrgba::WHITE,
 			})
@@ -263,6 +273,9 @@ impl Mesh {
 				.send_mat4("globalTransform", ctx.graphics.global_transform())
 				.ok();
 			shader.send_mat4("localTransform", params.transform).ok();
+			shader
+				.send_mat4("normalTransform", params.transform.inverse().transpose())
+				.ok();
 			shader.bind_sent_textures();
 			gl.use_program(Some(shader.program));
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
@@ -292,6 +305,7 @@ impl Drop for Mesh {
 #[repr(C)]
 pub struct Vertex {
 	pub position: Vec3,
+	pub normal: Vec3,
 	pub texture_coords: Vec2,
 	pub color: LinSrgba,
 }

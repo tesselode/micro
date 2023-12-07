@@ -403,6 +403,7 @@ impl MeshBuilder {
 	pub fn transform(&mut self, transform: Mat4) {
 		for vertex in &mut self.buffers.vertices {
 			vertex.position = transform.transform_point3(vertex.position);
+			vertex.normal = transform.transform_vector3(vertex.normal);
 		}
 	}
 

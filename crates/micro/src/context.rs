@@ -217,6 +217,12 @@ impl Context {
 		}
 	}
 
+	pub fn clear_depth_buffer(&self) {
+		unsafe {
+			self.graphics.gl.clear(glow::DEPTH_BUFFER_BIT);
+		}
+	}
+
 	pub fn with_transform<T>(&mut self, transform: Mat4, f: impl FnOnce(&mut Context) -> T) -> T {
 		self.graphics.transform_stack.push(transform);
 		let returned_value = f(self);

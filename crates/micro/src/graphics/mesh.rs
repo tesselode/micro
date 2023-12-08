@@ -414,6 +414,7 @@ impl Mesh {
 				range.offset as i32 * 4,
 				settings.instances.len() as i32,
 			);
+			gl.delete_buffer(instance_buffer);
 		}
 	}
 }

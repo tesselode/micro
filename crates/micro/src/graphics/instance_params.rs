@@ -8,6 +8,7 @@ use super::color_constants::ColorConstants;
 #[repr(C)]
 pub struct InstanceParams {
 	pub transform: Mat4,
+	pub normal_transform: Mat4,
 	pub color: LinSrgba,
 }
 
@@ -15,64 +16,46 @@ impl InstanceParams {
 	pub fn new() -> Self {
 		Self {
 			transform: Mat4::IDENTITY,
+			normal_transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 		}
 	}
 
 	pub fn transformed(self, transform: Mat4) -> Self {
+		let new_transform = transform * self.transform;
 		Self {
-			transform: transform * self.transform,
+			transform: new_transform,
+			normal_transform: new_transform.inverse().transpose(),
 			..self
 		}
 	}
 
 	pub fn translated_2d(self, translation: Vec2) -> Self {
-		Self {
-			transform: Mat4::from_translation(translation.extend(0.0)) * self.transform,
-			..self
-		}
+		self.transformed(Mat4::from_translation(translation.extend(0.0)))
 	}
 
 	pub fn translated_3d(self, translation: Vec3) -> Self {
-		Self {
-			transform: Mat4::from_translation(translation) * self.transform,
-			..self
-		}
+		self.transformed(Mat4::from_translation(translation))
 	}
 
 	pub fn scaled_2d(self, scale: Vec2) -> Self {
-		Self {
-			transform: Mat4::from_scale(scale.extend(1.0)) * self.transform,
-			..self
-		}
+		self.transformed(Mat4::from_scale(scale.extend(1.0)))
 	}
 
 	pub fn scaled_3d(self, scale: Vec3) -> Self {
-		Self {
-			transform: Mat4::from_scale(scale) * self.transform,
-			..self
-		}
+		self.transformed(Mat4::from_scale(scale))
 	}
 
 	pub fn rotated_x(self, rotation: f32) -> Self {
-		Self {
-			transform: Mat4::from_rotation_x(rotation) * self.transform,
-			..self
-		}
+		self.transformed(Mat4::from_rotation_x(rotation))
 	}
 
 	pub fn rotated_y(self, rotation: f32) -> Self {
-		Self {
-			transform: Mat4::from_rotation_y(rotation) * self.transform,
-			..self
-		}
+		self.transformed(Mat4::from_rotation_y(rotation))
 	}
 
 	pub fn rotated_z(self, rotation: f32) -> Self {
-		Self {
-			transform: Mat4::from_rotation_z(rotation) * self.transform,
-			..self
-		}
+		self.transformed(Mat4::from_rotation_z(rotation))
 	}
 
 	pub fn color(self, color: impl Into<LinSrgba>) -> Self {

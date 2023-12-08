@@ -5,7 +5,7 @@ use micro::{
 	graphics::{
 		mesh::{Mesh, MeshBuilder, ShapeStyle},
 		shader::Shader,
-		Camera3d, ColorConstants, DrawParams,
+		Camera3d, ColorConstants, DrawInstancedSettings, DrawParams, InstanceParams,
 	},
 	math::Circle,
 	Context, ContextSettings, ScalingMode, State,
@@ -33,8 +33,7 @@ impl MainState {
 		Ok(Self {
 			mesh: Mesh::from_obj_file(ctx, "resources/cube.obj")?,
 			shader: {
-				let shader =
-					Shader::from_file(ctx, "resources/vertex.glsl", "resources/fragment.glsl")?;
+				let shader = Shader::from_fragment_file(ctx, "resources/fragment.glsl")?;
 				shader
 					.send_vec3("lightPosition", Vec3::new(0.0, 0.0, 1.0))
 					.unwrap();
@@ -64,13 +63,26 @@ impl State<Box<dyn Error>> for MainState {
 			)
 			.transform(ctx),
 			|ctx| {
-				self.mesh.draw(
+				self.mesh.draw_instanced(
 					ctx,
-					DrawParams::new()
-						.rotated_y(self.rotation_x)
-						.rotated_x(self.rotation_x / 0.8)
-						.translated_3d(Vec3::new(0.0, 0.0, 10.0))
-						.shader(&self.shader),
+					DrawInstancedSettings::new([
+						InstanceParams::new()
+							.rotated_x(self.rotation_x)
+							.rotated_y(self.rotation_x * 0.7)
+							.translated_3d(Vec3::new(-3.0, 0.0, 10.0))
+							.color(LinSrgba::RED),
+						InstanceParams::new()
+							.rotated_x(self.rotation_x)
+							.rotated_y(self.rotation_x * 0.7)
+							.translated_3d(Vec3::new(0.0, 0.0, 10.0))
+							.color(LinSrgba::GREEN),
+						InstanceParams::new()
+							.rotated_x(self.rotation_x)
+							.rotated_y(self.rotation_x * 0.7)
+							.translated_3d(Vec3::new(3.0, 0.0, 10.0))
+							.color(LinSrgba::BLUE),
+					])
+					.shader(&self.shader),
 				);
 			},
 		);

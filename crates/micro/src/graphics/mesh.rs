@@ -1,7 +1,7 @@
 mod builder;
 
 pub use builder::*;
-use glam::{Vec2, Vec3};
+use glam::{Vec2, Vec3, Vec4};
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
@@ -17,7 +17,7 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::color_constants::ColorConstants;
+use super::{color_constants::ColorConstants, DrawInstancedSettings, InstanceParams};
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -230,7 +230,7 @@ impl Mesh {
 			ctx,
 			&ctx.graphics.default_texture,
 			range.into_offset_and_count(self.num_indices as usize),
-			params.into(),
+			params.into().into(),
 		);
 	}
 
@@ -254,8 +254,35 @@ impl Mesh {
 			ctx,
 			texture,
 			range.into_offset_and_count(self.num_indices as usize),
-			params.into(),
+			params.into().into(),
 		);
+	}
+
+	pub fn draw_instanced<'a>(
+		&self,
+		ctx: &Context,
+		settings: impl Into<DrawInstancedSettings<'a>>,
+	) {
+		self.draw_inner(
+			ctx,
+			&ctx.graphics.default_texture,
+			(..).into_offset_and_count(self.num_indices as usize),
+			settings.into(),
+		)
+	}
+
+	pub fn draw_instanced_textured<'a>(
+		&self,
+		ctx: &Context,
+		texture: &Texture,
+		settings: impl Into<DrawInstancedSettings<'a>>,
+	) {
+		self.draw_inner(
+			ctx,
+			texture,
+			(..).into_offset_and_count(self.num_indices as usize),
+			settings.into(),
+		)
 	}
 
 	fn draw_inner(
@@ -263,29 +290,129 @@ impl Mesh {
 		ctx: &Context,
 		texture: &Texture,
 		range: OffsetAndCount,
-		params: DrawParams,
+		settings: DrawInstancedSettings,
 	) {
 		let gl = &ctx.graphics.gl;
 		unsafe {
-			let shader = params.shader.unwrap_or(&ctx.graphics.default_shader);
-			shader.send_color("blendColor", params.color).ok();
+			let instance_buffer = gl.create_buffer().expect("error creating instance buffer");
+			gl.bind_vertex_array(Some(self.vertex_array));
+			gl.bind_buffer(glow::ARRAY_BUFFER, Some(instance_buffer));
+			gl.buffer_data_u8_slice(
+				glow::ARRAY_BUFFER,
+				bytemuck::cast_slice(&settings.instances),
+				glow::STATIC_DRAW,
+			);
+			gl.enable_vertex_attrib_array(4);
+			gl.vertex_attrib_pointer_f32(
+				4,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				0,
+			);
+			gl.enable_vertex_attrib_array(5);
+			gl.vertex_attrib_pointer_f32(
+				5,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				std::mem::size_of::<Vec4>() as i32,
+			);
+			gl.enable_vertex_attrib_array(6);
+			gl.vertex_attrib_pointer_f32(
+				6,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				2 * std::mem::size_of::<Vec4>() as i32,
+			);
+			gl.enable_vertex_attrib_array(7);
+			gl.vertex_attrib_pointer_f32(
+				7,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				3 * std::mem::size_of::<Vec4>() as i32,
+			);
+			gl.enable_vertex_attrib_array(8);
+			gl.vertex_attrib_pointer_f32(
+				8,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				4 * std::mem::size_of::<Vec4>() as i32,
+			);
+			gl.enable_vertex_attrib_array(9);
+			gl.vertex_attrib_pointer_f32(
+				9,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				5 * std::mem::size_of::<Vec4>() as i32,
+			);
+			gl.enable_vertex_attrib_array(10);
+			gl.vertex_attrib_pointer_f32(
+				10,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				6 * std::mem::size_of::<Vec4>() as i32,
+			);
+			gl.enable_vertex_attrib_array(11);
+			gl.vertex_attrib_pointer_f32(
+				11,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				7 * std::mem::size_of::<Vec4>() as i32,
+			);
+			gl.enable_vertex_attrib_array(12);
+			gl.vertex_attrib_pointer_f32(
+				12,
+				4,
+				glow::FLOAT,
+				false,
+				std::mem::size_of::<InstanceParams>() as i32,
+				8 * std::mem::size_of::<Vec4>() as i32,
+			);
+			gl.vertex_attrib_divisor(4, 1);
+			gl.vertex_attrib_divisor(5, 1);
+			gl.vertex_attrib_divisor(6, 1);
+			gl.vertex_attrib_divisor(7, 1);
+			gl.vertex_attrib_divisor(8, 1);
+			gl.vertex_attrib_divisor(9, 1);
+			gl.vertex_attrib_divisor(10, 1);
+			gl.vertex_attrib_divisor(11, 1);
+			gl.vertex_attrib_divisor(12, 1);
+			let shader = settings.shader.unwrap_or(&ctx.graphics.default_shader);
+			shader
+				.send_color("blendColor", settings.instances[0].color)
+				.ok();
 			shader
 				.send_mat4("globalTransform", ctx.graphics.global_transform())
 				.ok();
-			shader.send_mat4("localTransform", params.transform).ok();
-			shader
-				.send_mat4("normalTransform", params.transform.inverse().transpose())
-				.ok();
+			// shader.send_mat4("localTransform", params.transform).ok();
+			/* shader
+			.send_mat4("normalTransform", params.transform.inverse().transpose())
+			.ok(); */
 			shader.bind_sent_textures();
 			gl.use_program(Some(shader.program));
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
-			gl.bind_vertex_array(Some(self.vertex_array));
-			params.blend_mode.apply(gl);
-			gl.draw_elements(
+			settings.blend_mode.apply(gl);
+			gl.draw_elements_instanced(
 				glow::TRIANGLES,
 				range.count as i32,
 				glow::UNSIGNED_INT,
 				range.offset as i32 * 4,
+				settings.instances.len() as i32,
 			);
 		}
 	}

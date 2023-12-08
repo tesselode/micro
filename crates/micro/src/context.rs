@@ -243,7 +243,7 @@ impl Context {
 			self.graphics.gl.color_mask(false, false, false, false);
 			self.graphics.gl.enable(glow::STENCIL_TEST);
 			let op = action.as_glow_stencil_op();
-			self.graphics.gl.stencil_op(op, op, op);
+			self.graphics.gl.stencil_op(glow::KEEP, glow::KEEP, op);
 			let reference = match action {
 				StencilAction::Replace(value) => value,
 				_ => 0,

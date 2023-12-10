@@ -393,18 +393,6 @@ impl MeshBuilder {
 		Ok(self)
 	}
 
-	/* pub fn transform(&mut self, transform: Mat4) {
-		for vertex in &mut self.buffers.vertices {
-			vertex.position = transform.transform_point3(vertex.position);
-			vertex.normal = transform.transform_vector3(vertex.normal);
-		}
-	}
-
-	pub fn transformed(mut self, transform: Mat4) -> Self {
-		self.transform(transform);
-		self
-	} */
-
 	pub fn append(&mut self, mut other: Self) {
 		let num_vertices_before_append = self.buffers.vertices.len();
 		self.buffers.vertices.append(&mut other.buffers.vertices);

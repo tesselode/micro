@@ -11,6 +11,7 @@ pub mod sprite_batch;
 mod stencil;
 pub mod text;
 pub mod texture;
+mod vertex;
 
 pub use blend_mode::*;
 pub use camera_3d::*;
@@ -20,5 +21,6 @@ pub use draw_params::*;
 pub use image_data::*;
 pub use nine_slice::*;
 pub use stencil::*;
+pub use vertex::*;
 
 pub use sdl2::video::SwapInterval;

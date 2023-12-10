@@ -1,13 +1,12 @@
 mod builder;
 
 pub use builder::*;
-use glam::{Vec2, Vec3};
+use glam::Vec2;
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
-use std::{fmt::Debug, path::Path, rc::Rc};
+use std::{fmt::Debug, marker::PhantomData, rc::Rc};
 
-use bytemuck::{Pod, Zeroable};
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
 use crate::{
@@ -17,30 +16,24 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::color_constants::ColorConstants;
+use super::{color_constants::ColorConstants, configure_vertex_attributes, Vertex, Vertex2d};
 
 #[derive(Debug)]
-pub struct Mesh {
+pub struct Mesh<V: Vertex = Vertex2d> {
 	gl: Rc<glow::Context>,
 	vertex_array: NativeVertexArray,
 	vertex_buffer: NativeBuffer,
 	index_buffer: NativeBuffer,
 	num_indices: i32,
+	_phantom_data: PhantomData<V>,
 }
 
-impl Mesh {
-	pub fn new(ctx: &Context, vertices: &[Vertex], indices: &[u32]) -> Self {
+impl<V: Vertex> Mesh<V> {
+	pub fn new(ctx: &Context, vertices: &[V], indices: &[u32]) -> Self {
 		Self::new_from_gl(ctx.graphics.gl.clone(), vertices, indices)
 	}
 
-	pub fn from_obj_file(
-		ctx: &Context,
-		path: impl AsRef<Path> + Debug,
-	) -> Result<Self, tobj::LoadError> {
-		Ok(MeshBuilder::from_obj_file(path)?.build(ctx))
-	}
-
-	pub(crate) fn new_from_gl(gl: Rc<glow::Context>, vertices: &[Vertex], indices: &[u32]) -> Self {
+	pub(crate) fn new_from_gl(gl: Rc<glow::Context>, vertices: &[V], indices: &[u32]) -> Self {
 		let vertex_array = unsafe {
 			gl.create_vertex_array()
 				.expect("error creating vertex array")
@@ -61,42 +54,7 @@ impl Mesh {
 				bytemuck::cast_slice(indices),
 				glow::STATIC_DRAW,
 			);
-			gl.vertex_attrib_pointer_f32(
-				0,
-				3,
-				glow::FLOAT,
-				false,
-				std::mem::size_of::<Vertex>() as i32,
-				0,
-			);
-			gl.enable_vertex_attrib_array(0);
-			gl.vertex_attrib_pointer_f32(
-				1,
-				3,
-				glow::FLOAT,
-				false,
-				std::mem::size_of::<Vertex>() as i32,
-				3 * std::mem::size_of::<f32>() as i32,
-			);
-			gl.enable_vertex_attrib_array(1);
-			gl.vertex_attrib_pointer_f32(
-				2,
-				2,
-				glow::FLOAT,
-				false,
-				std::mem::size_of::<Vertex>() as i32,
-				6 * std::mem::size_of::<f32>() as i32,
-			);
-			gl.enable_vertex_attrib_array(2);
-			gl.vertex_attrib_pointer_f32(
-				3,
-				4,
-				glow::FLOAT,
-				false,
-				std::mem::size_of::<Vertex>() as i32,
-				8 * std::mem::size_of::<f32>() as i32,
-			);
-			gl.enable_vertex_attrib_array(3);
+			configure_vertex_attributes(&gl, V::ATTRIBUTES);
 		}
 		Self {
 			gl,
@@ -104,113 +62,18 @@ impl Mesh {
 			vertex_buffer,
 			index_buffer,
 			num_indices: indices.len() as i32,
+			_phantom_data: PhantomData,
 		}
 	}
 
-	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
-		Self::rectangle_with_texture_region(ctx, rect, Rect::from_xywh(0.0, 0.0, 1.0, 1.0))
-	}
-
-	pub fn rectangle_with_texture_region(
-		ctx: &Context,
-		display_rect: Rect,
-		texture_region: Rect,
-	) -> Self {
-		let vertices = display_rect
-			.corners()
-			.iter()
-			.copied()
-			.zip(texture_region.corners())
-			.map(|(position, texture_coords)| Vertex {
-				position: position.extend(0.0),
-				normal: Vec3::ZERO,
-				texture_coords,
-				color: LinSrgba::WHITE,
-			})
-			.collect::<Vec<_>>();
-		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
-	}
-
-	pub fn styled_rectangle(
-		ctx: &Context,
-		style: ShapeStyle,
-		rect: Rect,
-		color: LinSrgba,
-	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new()
-			.with_rectangle(style, rect, color)?
-			.build(ctx))
-	}
-
-	pub fn circle(
-		ctx: &Context,
-		style: ShapeStyle,
-		circle: Circle,
-		color: LinSrgba,
-	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new()
-			.with_circle(style, circle, color)?
-			.build(ctx))
-	}
-
-	pub fn ellipse(
-		ctx: &Context,
-		style: ShapeStyle,
-		center: Vec2,
-		radii: Vec2,
-		rotation: f32,
-		color: LinSrgba,
-	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new()
-			.with_ellipse(style, center, radii, rotation, color)?
-			.build(ctx))
-	}
-
-	pub fn filled_polygon(
-		ctx: &Context,
-		points: impl IntoIterator<Item = FilledPolygonPoint>,
-	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new().with_filled_polygon(points)?.build(ctx))
-	}
-
-	pub fn polyline(
-		ctx: &Context,
-		points: impl IntoIterator<Item = StrokePoint>,
-		closed: bool,
-	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
-	}
-
-	pub fn simple_polygon(
-		ctx: &Context,
-		style: ShapeStyle,
-		points: impl IntoIterator<Item = Vec2>,
-		color: LinSrgba,
-	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new()
-			.with_simple_polygon(style, points, color)?
-			.build(ctx))
-	}
-
-	pub fn simple_polyline(
-		ctx: &Context,
-		stroke_width: f32,
-		points: impl IntoIterator<Item = Vec2>,
-		color: LinSrgba,
-	) -> Result<Self, TessellationError> {
-		Ok(MeshBuilder::new()
-			.with_simple_polyline(stroke_width, points, color)?
-			.build(ctx))
-	}
-
-	pub fn set_vertex(&self, index: usize, vertex: Vertex) {
+	pub fn set_vertex(&self, index: usize, vertex: V) {
 		let gl = &self.gl;
 		unsafe {
 			gl.bind_vertex_array(Some(self.vertex_array));
 			gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vertex_buffer));
 			gl.buffer_sub_data_u8_slice(
 				glow::ARRAY_BUFFER,
-				(std::mem::size_of::<Vertex>() * index) as i32,
+				(std::mem::size_of::<V>() * index) as i32,
 				bytemuck::cast_slice(&[vertex]),
 			);
 		}
@@ -291,7 +154,104 @@ impl Mesh {
 	}
 }
 
-impl Drop for Mesh {
+impl Mesh<Vertex2d> {
+	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
+		Self::rectangle_with_texture_region(ctx, rect, Rect::from_xywh(0.0, 0.0, 1.0, 1.0))
+	}
+
+	pub fn rectangle_with_texture_region(
+		ctx: &Context,
+		display_rect: Rect,
+		texture_region: Rect,
+	) -> Self {
+		let vertices = display_rect
+			.corners()
+			.iter()
+			.copied()
+			.zip(texture_region.corners())
+			.map(|(position, texture_coords)| Vertex2d {
+				position,
+				texture_coords,
+				color: LinSrgba::WHITE,
+			})
+			.collect::<Vec<_>>();
+		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
+	}
+
+	pub fn styled_rectangle(
+		ctx: &Context,
+		style: ShapeStyle,
+		rect: Rect,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_rectangle(style, rect, color)?
+			.build(ctx))
+	}
+
+	pub fn circle(
+		ctx: &Context,
+		style: ShapeStyle,
+		circle: Circle,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_circle(style, circle, color)?
+			.build(ctx))
+	}
+
+	pub fn ellipse(
+		ctx: &Context,
+		style: ShapeStyle,
+		center: Vec2,
+		radii: Vec2,
+		rotation: f32,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_ellipse(style, center, radii, rotation, color)?
+			.build(ctx))
+	}
+
+	pub fn filled_polygon(
+		ctx: &Context,
+		points: impl IntoIterator<Item = FilledPolygonPoint>,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new().with_filled_polygon(points)?.build(ctx))
+	}
+
+	pub fn polyline(
+		ctx: &Context,
+		points: impl IntoIterator<Item = StrokePoint>,
+		closed: bool,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
+	}
+
+	pub fn simple_polygon(
+		ctx: &Context,
+		style: ShapeStyle,
+		points: impl IntoIterator<Item = Vec2>,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_simple_polygon(style, points, color)?
+			.build(ctx))
+	}
+
+	pub fn simple_polyline(
+		ctx: &Context,
+		stroke_width: f32,
+		points: impl IntoIterator<Item = Vec2>,
+		color: LinSrgba,
+	) -> Result<Self, TessellationError> {
+		Ok(MeshBuilder::new()
+			.with_simple_polyline(stroke_width, points, color)?
+			.build(ctx))
+	}
+}
+
+impl<V: Vertex> Drop for Mesh<V> {
 	fn drop(&mut self) {
 		unsafe {
 			self.gl.delete_vertex_array(self.vertex_array);
@@ -299,13 +259,4 @@ impl Drop for Mesh {
 			self.gl.delete_buffer(self.index_buffer);
 		}
 	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
-#[repr(C)]
-pub struct Vertex {
-	pub position: Vec3,
-	pub normal: Vec3,
-	pub texture_coords: Vec2,
-	pub color: LinSrgba,
 }

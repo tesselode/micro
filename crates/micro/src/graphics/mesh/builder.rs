@@ -1,9 +1,8 @@
 mod vertex_constructors;
 
-use std::{fmt::Debug, path::Path};
+use std::fmt::Debug;
 
-use glam::{Mat4, Vec2, Vec3};
-use itertools::{izip, Itertools};
+use glam::Vec2;
 use lyon_tessellation::{
 	geom::euclid::Point2D,
 	path::{
@@ -13,19 +12,19 @@ use lyon_tessellation::{
 	BuffersBuilder, FillOptions, FillTessellator, StrokeOptions, StrokeTessellator,
 	TessellationError, VertexBuffers,
 };
-use palette::{LinSrgb, LinSrgba, WithAlpha};
+use palette::LinSrgba;
 
 use crate::{
-	graphics::ColorConstants,
+	graphics::Vertex2d,
 	math::{Circle, Rect},
 	Context,
 };
 
-use super::{Mesh, Vertex};
+use super::Mesh;
 
 #[derive(Debug, Clone)]
 pub struct MeshBuilder {
-	pub(crate) buffers: VertexBuffers<Vertex, u32>,
+	pub(crate) buffers: VertexBuffers<Vertex2d, u32>,
 }
 
 impl MeshBuilder {
@@ -33,12 +32,6 @@ impl MeshBuilder {
 		Self {
 			buffers: VertexBuffers::new(),
 		}
-	}
-
-	pub fn from_obj_file(path: impl AsRef<Path> + Debug) -> Result<Self, tobj::LoadError> {
-		let (mut models, _) = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS)?;
-		let model = models.drain(..).next().expect("no models in obj file");
-		Ok(Self::from_tobj_model(model))
 	}
 
 	pub fn rectangle(
@@ -400,7 +393,7 @@ impl MeshBuilder {
 		Ok(self)
 	}
 
-	pub fn transform(&mut self, transform: Mat4) {
+	/* pub fn transform(&mut self, transform: Mat4) {
 		for vertex in &mut self.buffers.vertices {
 			vertex.position = transform.transform_point3(vertex.position);
 			vertex.normal = transform.transform_vector3(vertex.normal);
@@ -410,7 +403,7 @@ impl MeshBuilder {
 	pub fn transformed(mut self, transform: Mat4) -> Self {
 		self.transform(transform);
 		self
-	}
+	} */
 
 	pub fn append(&mut self, mut other: Self) {
 		let num_vertices_before_append = self.buffers.vertices.len();
@@ -431,45 +424,6 @@ impl MeshBuilder {
 
 	pub fn build(self, ctx: &Context) -> Mesh {
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
-	}
-
-	fn from_tobj_model(model: tobj::Model) -> Self {
-		let tobj_mesh = model.mesh;
-		let num_vertices = tobj_mesh.positions.len() / 3;
-		let positions = tobj_mesh
-			.positions
-			.chunks_exact(3)
-			.map(|coords| Vec3::new(coords[0], coords[1], coords[2]));
-		let normals = tobj_mesh
-			.normals
-			.chunks_exact(3)
-			.map(|coords| Vec3::new(coords[0], coords[1], coords[2]));
-		let texture_coords = tobj_mesh
-			.texcoords
-			.chunks_exact(2)
-			.map(|coords| Vec2::new(coords[0], coords[1]))
-			.pad_using(num_vertices, |_| Vec2::ZERO);
-		let colors = tobj_mesh
-			.vertex_color
-			.chunks_exact(3)
-			.map(|components| {
-				LinSrgb::new(components[0], components[1], components[2]).with_alpha(1.0)
-			})
-			.pad_using(num_vertices, |_| LinSrgba::WHITE);
-		let vertices = izip!(positions, normals, texture_coords, colors)
-			.map(|(position, normal, texture_coords, color)| Vertex {
-				position,
-				normal,
-				texture_coords,
-				color,
-			})
-			.collect::<Vec<_>>();
-		Self {
-			buffers: VertexBuffers {
-				vertices,
-				indices: tobj_mesh.indices,
-			},
-		}
 	}
 }
 

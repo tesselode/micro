@@ -4,21 +4,17 @@ use palette::LinSrgba;
 pub use sprite_params::SpriteParams;
 
 use generational_arena::{Arena, Index};
-use glam::{Vec2, Vec3};
+use glam::Vec2;
 use thiserror::Error;
 
 use crate::{
 	context::Context,
-	graphics::{
-		draw_params::DrawParams,
-		mesh::{Mesh, Vertex},
-		texture::Texture,
-	},
+	graphics::{draw_params::DrawParams, mesh::Mesh, texture::Texture},
 	math::Rect,
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::{color_constants::ColorConstants, NineSlice};
+use super::{color_constants::ColorConstants, NineSlice, Vertex2d};
 
 #[derive(Debug)]
 pub struct SpriteBatch {
@@ -31,9 +27,8 @@ pub struct SpriteBatch {
 impl SpriteBatch {
 	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
 		let vertices = vec![
-			Vertex {
-				position: Vec3::ZERO,
-				normal: Vec3::ZERO,
+			Vertex2d {
+				position: Vec2::ZERO,
 				texture_coords: Vec2::ZERO,
 				color: LinSrgba::WHITE,
 			};
@@ -93,9 +88,8 @@ impl SpriteBatch {
 			.iter()
 			.copied()
 			.zip(relative_texture_region.corners())
-			.map(|(position, texture_coords)| Vertex {
-				position: transform.transform_point2(position).extend(0.0),
-				normal: Vec3::ZERO,
+			.map(|(position, texture_coords)| Vertex2d {
+				position: transform.transform_point2(position),
 				texture_coords,
 				color: params.color,
 			})
@@ -136,9 +130,8 @@ impl SpriteBatch {
 		for i in 0..4 {
 			self.mesh.set_vertex(
 				start_vertex_index + i,
-				Vertex {
-					position: Vec3::ZERO,
-					normal: Vec3::ZERO,
+				Vertex2d {
+					position: Vec2::ZERO,
 					texture_coords: Vec2::ZERO,
 					color: LinSrgba::WHITE,
 				},

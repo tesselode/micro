@@ -17,8 +17,8 @@ use lyon_tessellation::{TessellationError, VertexBuffers};
 use palette::LinSrgba;
 
 use crate::graphics::{
-	mesh::{MeshBuilder, ShapeStyle, Vertex},
-	ColorConstants,
+	mesh::{MeshBuilder, ShapeStyle},
+	ColorConstants, Vertex2d,
 };
 
 pub fn triangulate_polygon(points: &[Vec2]) -> Result<Vec<Vec<Vec2>>, TessellationError> {
@@ -35,7 +35,7 @@ pub fn triangulate_polygon(points: &[Vec2]) -> Result<Vec<Vec<Vec2>>, Tessellati
 		.collect())
 }
 
-fn triangle_points(indices: &[u32], buffers: &VertexBuffers<Vertex, u32>) -> Vec<Vec2> {
+fn triangle_points(indices: &[u32], buffers: &VertexBuffers<Vertex2d, u32>) -> Vec<Vec2> {
 	indices
 		.iter()
 		.map(|index| {

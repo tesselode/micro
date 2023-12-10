@@ -1,14 +1,13 @@
-use std::{error::Error, f32::consts::FRAC_PI_4, time::Duration};
+use std::{error::Error, time::Duration};
 
-use glam::{Mat4, UVec2, Vec2, Vec3};
+use glam::Vec2;
 use micro::{
 	graphics::{
-		mesh::{Mesh, MeshBuilder, ShapeStyle},
-		shader::Shader,
-		Camera3d, ColorConstants, DrawParams,
+		mesh::{Mesh, ShapeStyle},
+		ColorConstants, DrawParams,
 	},
 	math::Circle,
-	Context, ContextSettings, ScalingMode, State,
+	Context, ContextSettings, State,
 };
 use palette::LinSrgba;
 
@@ -24,56 +23,32 @@ fn main() {
 
 struct MainState {
 	mesh: Mesh,
-	shader: Shader,
-	rotation_x: f32,
 }
 
 impl MainState {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			mesh: Mesh::from_obj_file(ctx, "resources/cube.obj")?,
-			shader: {
-				let shader =
-					Shader::from_file(ctx, "resources/vertex.glsl", "resources/fragment.glsl")?;
-				shader
-					.send_vec3("lightPosition", Vec3::new(0.0, 0.0, 1.0))
-					.unwrap();
-				shader
-			},
-			rotation_x: 0.0,
+			mesh: Mesh::circle(
+				ctx,
+				ShapeStyle::Stroke(7.0),
+				Circle {
+					center: Vec2::splat(200.0),
+					radius: 50.0,
+				},
+				LinSrgba::RED,
+			)?,
 		})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		self.rotation_x += delta_time.as_secs_f32();
 		Ok(())
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		ctx.set_depth_buffer_enabled(true);
 		ctx.clear(LinSrgba::BLACK);
-		ctx.with_transform(
-			Camera3d::perspective(
-				FRAC_PI_4,
-				ctx.window_size().x as f32 / ctx.window_size().y as f32,
-				0.1..=100.0,
-				Vec3::ZERO,
-				Vec3::new(0.0, 0.0, 1.0),
-			)
-			.transform(ctx),
-			|ctx| {
-				self.mesh.draw(
-					ctx,
-					DrawParams::new()
-						.rotated_y(self.rotation_x)
-						.rotated_x(self.rotation_x / 0.8)
-						.translated_3d(Vec3::new(0.0, 0.0, 10.0))
-						.shader(&self.shader),
-				);
-			},
-		);
+		self.mesh.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

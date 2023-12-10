@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
-use glam::{IVec2, Vec3};
+use glam::IVec2;
 use palette::{LinSrgba, Srgba};
 
 use crate::{
 	graphics::{
-		mesh::{Mesh, Vertex},
+		mesh::Mesh,
 		texture::{Texture, TextureSettings},
-		DrawParams, StencilAction, StencilTest,
+		DrawParams, StencilAction, StencilTest, Vertex2d,
 	},
 	input::Scancode,
 	Context,
@@ -286,10 +286,6 @@ fn egui_pos2_to_glam_vec2(v: egui::Pos2) -> glam::Vec2 {
 	glam::Vec2::new(v.x, v.y)
 }
 
-fn egui_pos2_to_glam_vec3(v: egui::Pos2) -> glam::Vec3 {
-	glam::Vec3::new(v.x, v.y, 0.0)
-}
-
 fn egui_color32_to_palette_lin_srgba(v: egui::epaint::Color32) -> LinSrgba {
 	Srgba::new(v.r(), v.g(), v.b(), v.a()).into_linear()
 }
@@ -298,20 +294,19 @@ fn egui_rect_to_micro_rect(v: egui::Rect) -> crate::math::Rect {
 	crate::math::Rect::new(egui_pos2_to_glam_vec2(v.min), egui_pos2_to_glam_vec2(v.max))
 }
 
-fn egui_mesh_to_micro_mesh(ctx: &Context, egui_mesh: egui::Mesh) -> Mesh {
+fn egui_mesh_to_micro_mesh(ctx: &Context, egui_mesh: egui::Mesh) -> Mesh<Vertex2d> {
 	let vertices = egui_mesh
 		.vertices
 		.iter()
 		.copied()
-		.map(egui_vertex_to_micro_vertex)
+		.map(egui_vertex_to_micro_vertex_2d)
 		.collect::<Vec<_>>();
 	Mesh::new(ctx, &vertices, &egui_mesh.indices)
 }
 
-fn egui_vertex_to_micro_vertex(vertex: egui::epaint::Vertex) -> Vertex {
-	Vertex {
-		position: egui_pos2_to_glam_vec3(vertex.pos),
-		normal: Vec3::ZERO,
+fn egui_vertex_to_micro_vertex_2d(vertex: egui::epaint::Vertex) -> Vertex2d {
+	Vertex2d {
+		position: egui_pos2_to_glam_vec2(vertex.pos),
 		texture_coords: egui_pos2_to_glam_vec2(vertex.uv),
 		color: egui_color32_to_palette_lin_srgba(vertex.color),
 	}

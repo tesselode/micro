@@ -12,6 +12,7 @@ mod stencil;
 pub mod text;
 pub mod texture;
 mod vertex;
+mod vertex_attributes;
 
 pub use blend_mode::*;
 pub use camera_3d::*;
@@ -22,5 +23,6 @@ pub use image_data::*;
 pub use nine_slice::*;
 pub use stencil::*;
 pub use vertex::*;
+pub use vertex_attributes::*;
 
 pub use sdl2::video::SwapInterval;

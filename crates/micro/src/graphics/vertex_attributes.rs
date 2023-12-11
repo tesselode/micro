@@ -1,0 +1,131 @@
+use std::rc::Rc;
+
+use bytemuck::{Pod, Zeroable};
+use glow::{HasContext, NativeBuffer};
+
+use crate::Context;
+
+pub struct VertexAttributeBuffer {
+	gl: Rc<glow::Context>,
+	pub(crate) buffer: NativeBuffer,
+	pub(crate) attribute_kinds: Vec<VertexAttributeKind>,
+	pub(crate) divisor: VertexAttributeDivisor,
+}
+
+impl VertexAttributeBuffer {
+	pub fn new<T: VertexAttributes>(ctx: &Context, data: &[T]) -> Self {
+		let gl = ctx.graphics.gl.clone();
+		let buffer = unsafe {
+			let buffer = gl
+				.create_buffer()
+				.expect("error creating vertex attribute buffer");
+			gl.bind_buffer(glow::ARRAY_BUFFER, Some(buffer));
+			gl.buffer_data_u8_slice(
+				glow::ARRAY_BUFFER,
+				bytemuck::cast_slice(data),
+				glow::STATIC_DRAW,
+			);
+			buffer
+		};
+		Self {
+			gl,
+			buffer,
+			attribute_kinds: T::ATTRIBUTE_KINDS.to_vec(),
+			divisor: T::DIVISOR,
+		}
+	}
+}
+
+impl Drop for VertexAttributeBuffer {
+	fn drop(&mut self) {
+		unsafe {
+			self.gl.delete_buffer(self.buffer);
+		}
+	}
+}
+
+pub trait VertexAttributes: Copy + Pod + Zeroable {
+	const ATTRIBUTE_KINDS: &'static [VertexAttributeKind];
+	const DIVISOR: VertexAttributeDivisor;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum VertexAttributeKind {
+	F32,
+	Vec2,
+	Vec3,
+	Vec4,
+	Mat4,
+}
+
+impl VertexAttributeKind {
+	pub(crate) fn num_locations(self) -> usize {
+		match self {
+			VertexAttributeKind::F32 => 1,
+			VertexAttributeKind::Vec2 => 1,
+			VertexAttributeKind::Vec3 => 1,
+			VertexAttributeKind::Vec4 => 1,
+			VertexAttributeKind::Mat4 => 4,
+		}
+	}
+
+	pub(crate) fn size(self) -> usize {
+		match self {
+			VertexAttributeKind::F32 => 1,
+			VertexAttributeKind::Vec2 => 2,
+			VertexAttributeKind::Vec3 => 3,
+			VertexAttributeKind::Vec4 => 4,
+			VertexAttributeKind::Mat4 => 4,
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum VertexAttributeDivisor {
+	PerVertex,
+	PerNInstances(u32),
+}
+
+impl VertexAttributeDivisor {
+	fn as_u32(self) -> u32 {
+		match self {
+			VertexAttributeDivisor::PerVertex => 0,
+			VertexAttributeDivisor::PerNInstances(n) => n,
+		}
+	}
+}
+
+pub(crate) fn configure_vertex_attributes_for_buffer(
+	gl: &glow::Context,
+	buffer: NativeBuffer,
+	attribute_kinds: &[VertexAttributeKind],
+	divisor: VertexAttributeDivisor,
+	mut next_attribute_index: u32,
+) -> u32 {
+	let num_f32s = attribute_kinds
+		.iter()
+		.map(|attribute| attribute.num_locations() * attribute.size())
+		.sum::<usize>();
+	let stride = num_f32s * std::mem::size_of::<f32>();
+	unsafe {
+		gl.bind_buffer(glow::ARRAY_BUFFER, Some(buffer));
+		let mut next_attribute_offset = 0;
+		for attribute in attribute_kinds {
+			for _ in 0..attribute.num_locations() {
+				gl.enable_vertex_attrib_array(next_attribute_index);
+				gl.vertex_attrib_pointer_f32(
+					next_attribute_index,
+					attribute.size() as i32,
+					glow::FLOAT,
+					false,
+					stride as i32,
+					next_attribute_offset as i32,
+				);
+				gl.vertex_attrib_divisor(next_attribute_index, divisor.as_u32());
+				next_attribute_index += 1;
+				next_attribute_offset += attribute.size() * std::mem::size_of::<f32>();
+			}
+		}
+	}
+	next_attribute_index
+}

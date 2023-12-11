@@ -16,7 +16,10 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::{color_constants::ColorConstants, configure_vertex_attributes, Vertex, Vertex2d};
+use super::{
+	color_constants::ColorConstants, configure_vertex_attributes_for_buffer, Vertex, Vertex2d,
+	VertexAttributeBuffer, VertexAttributeDivisor,
+};
 
 #[derive(Debug)]
 pub struct Mesh<V: Vertex = Vertex2d> {
@@ -54,7 +57,13 @@ impl<V: Vertex> Mesh<V> {
 				bytemuck::cast_slice(indices),
 				glow::STATIC_DRAW,
 			);
-			configure_vertex_attributes(&gl, V::ATTRIBUTES);
+			configure_vertex_attributes_for_buffer(
+				&gl,
+				vertex_buffer,
+				V::ATTRIBUTE_KINDS,
+				VertexAttributeDivisor::PerVertex,
+				0,
+			);
 		}
 		Self {
 			gl,
@@ -119,6 +128,72 @@ impl<V: Vertex> Mesh<V> {
 			range.into_offset_and_count(self.num_indices as usize),
 			params.into(),
 		);
+	}
+
+	pub fn draw_instanced(
+		&self,
+		ctx: &Context,
+		num_instances: usize,
+		vertex_attribute_buffers: &[&VertexAttributeBuffer],
+		params: DrawParams,
+	) {
+		self.draw_instanced_textured(
+			ctx,
+			&ctx.graphics.default_texture,
+			num_instances,
+			vertex_attribute_buffers,
+			params,
+		)
+	}
+
+	pub fn draw_instanced_textured(
+		&self,
+		ctx: &Context,
+		texture: &Texture,
+		num_instances: usize,
+		vertex_attribute_buffers: &[&VertexAttributeBuffer],
+		params: DrawParams,
+	) {
+		let gl = &ctx.graphics.gl;
+		unsafe {
+			let mut next_attribute_index = configure_vertex_attributes_for_buffer(
+				gl,
+				self.vertex_buffer,
+				V::ATTRIBUTE_KINDS,
+				VertexAttributeDivisor::PerVertex,
+				0,
+			);
+			for buffer in vertex_attribute_buffers {
+				next_attribute_index = configure_vertex_attributes_for_buffer(
+					gl,
+					buffer.buffer,
+					&buffer.attribute_kinds,
+					buffer.divisor,
+					next_attribute_index,
+				);
+			}
+			let shader = params.shader.unwrap_or(&ctx.graphics.default_shader);
+			shader.send_color("blendColor", params.color).ok();
+			shader
+				.send_mat4("globalTransform", ctx.graphics.global_transform())
+				.ok();
+			shader.send_mat4("localTransform", params.transform).ok();
+			shader
+				.send_mat4("normalTransform", params.transform.inverse().transpose())
+				.ok();
+			shader.bind_sent_textures();
+			gl.use_program(Some(shader.program));
+			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
+			gl.bind_vertex_array(Some(self.vertex_array));
+			params.blend_mode.apply(gl);
+			gl.draw_elements_instanced(
+				glow::TRIANGLES,
+				self.num_indices,
+				glow::UNSIGNED_INT,
+				0,
+				num_instances as i32,
+			);
+		}
 	}
 
 	fn draw_inner(

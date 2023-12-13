@@ -19,7 +19,7 @@ use crate::{
 	build_window,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	error::SdlError,
-	graphics::{Canvas, CanvasSettings, ColorConstants, StencilAction, StencilTest},
+	graphics::{Camera3d, Canvas, CanvasSettings, ColorConstants, StencilAction, StencilTest},
 	input::{Gamepad, MouseButton, Scancode},
 	log::setup_logging,
 	log_if_err,
@@ -230,14 +230,15 @@ impl Context {
 		returned_value
 	}
 
-	pub fn set_depth_buffer_enabled(&mut self, enabled: bool) {
+	pub fn with_3d_camera<T>(&mut self, camera: Camera3d, f: impl FnOnce(&mut Context) -> T) -> T {
 		unsafe {
-			if enabled {
-				self.graphics.gl.enable(glow::DEPTH_TEST);
-			} else {
-				self.graphics.gl.disable(glow::DEPTH_TEST);
-			}
+			self.graphics.gl.enable(glow::DEPTH_TEST);
 		}
+		let returned_value = self.with_transform(camera.transform(self), f);
+		unsafe {
+			self.graphics.gl.disable(glow::DEPTH_TEST);
+		}
+		returned_value
 	}
 
 	pub fn write_to_stencil<T>(

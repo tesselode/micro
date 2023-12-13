@@ -130,23 +130,40 @@ impl<V: Vertex> Mesh<V> {
 		);
 	}
 
-	pub fn draw_instanced(
+	pub fn draw_instanced<'a>(
 		&self,
 		ctx: &Context,
 		num_instances: usize,
 		vertex_attribute_buffers: &[&VertexAttributeBuffer],
-		params: DrawParams,
+		params: impl Into<DrawParams<'a>>,
 	) {
-		self.draw_instanced_textured(
+		self.draw_instanced_inner(
 			ctx,
 			&ctx.graphics.default_texture,
 			num_instances,
 			vertex_attribute_buffers,
-			params,
+			params.into(),
 		)
 	}
 
-	pub fn draw_instanced_textured(
+	pub fn draw_instanced_textured<'a>(
+		&self,
+		ctx: &Context,
+		texture: &Texture,
+		num_instances: usize,
+		vertex_attribute_buffers: &[&VertexAttributeBuffer],
+		params: impl Into<DrawParams<'a>>,
+	) {
+		self.draw_instanced_inner(
+			ctx,
+			texture,
+			num_instances,
+			vertex_attribute_buffers,
+			params.into(),
+		)
+	}
+
+	fn draw_instanced_inner(
 		&self,
 		ctx: &Context,
 		texture: &Texture,

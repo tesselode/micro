@@ -11,6 +11,7 @@ pub mod sprite_batch;
 mod stencil;
 pub mod text;
 pub mod texture;
+pub(crate) mod unused_resource;
 mod vertex;
 mod vertex_attributes;
 

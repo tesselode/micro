@@ -117,6 +117,7 @@ impl Text {
 				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
 			sprite_batches[glyph.font_index]
 				.add_region(
+					ctx,
 					texture_region,
 					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
 				)

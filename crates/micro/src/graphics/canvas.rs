@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::mpsc::Sender};
 
 use glam::UVec2;
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, PixelPackData};
@@ -7,21 +7,22 @@ use crate::{context::graphics::RenderTarget, math::Rect, Context};
 
 use super::{
 	texture::{Texture, TextureSettings},
+	unused_resource::UnusedGraphicsResource,
 	DrawParams,
 };
 
 #[derive(Debug)]
 pub struct Canvas {
-	gl: Rc<glow::Context>,
 	framebuffer: NativeFramebuffer,
 	texture: Texture,
 	depth_stencil_renderbuffer: NativeRenderbuffer,
 	multisample_framebuffer: Option<MultisampleFramebuffer>,
+	unused_resource_sender: Sender<UnusedGraphicsResource>,
 }
 
 impl Canvas {
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
-		let gl = ctx.graphics.gl.clone();
+		let gl = &ctx.graphics.gl;
 		let framebuffer = unsafe {
 			gl.create_framebuffer()
 				.expect("error creating canvas framebuffer")
@@ -30,7 +31,7 @@ impl Canvas {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
 		}
 		let mut texture = Texture::empty(ctx, size, settings.texture_settings);
-		texture.attach_to_framebuffer();
+		texture.attach_to_framebuffer(ctx);
 		let multisample_framebuffer = match settings.msaa {
 			Msaa::None => None,
 			_ => Some(MultisampleFramebuffer::new(
@@ -72,11 +73,11 @@ impl Canvas {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, None);
 		}
 		Self {
-			gl,
 			framebuffer,
 			texture,
 			depth_stencil_renderbuffer,
 			multisample_framebuffer,
+			unused_resource_sender: ctx.graphics.unused_resource_sender.clone(),
 		}
 	}
 
@@ -153,15 +154,15 @@ impl Canvas {
 		self.texture.draw_region(ctx, region, params)
 	}
 
-	pub fn read(&self, buffer: &mut [u8]) {
+	pub fn read(&self, ctx: &Context, buffer: &mut [u8]) {
 		if buffer.len() < (self.size().x * self.size().y * 4) as usize {
 			panic!("buffer not big enough");
 		}
+		let gl = &ctx.graphics.gl;
 		unsafe {
-			self.gl
-				.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(self.framebuffer));
-			self.gl.read_buffer(glow::COLOR_ATTACHMENT0);
-			self.gl.read_pixels(
+			gl.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(self.framebuffer));
+			gl.read_buffer(glow::COLOR_ATTACHMENT0);
+			gl.read_pixels(
 				0,
 				0,
 				self.size().x as i32,
@@ -176,17 +177,25 @@ impl Canvas {
 
 impl Drop for Canvas {
 	fn drop(&mut self) {
-		unsafe {
-			self.gl.delete_framebuffer(self.framebuffer);
-			self.gl.delete_renderbuffer(self.depth_stencil_renderbuffer);
-			if let Some(MultisampleFramebuffer {
-				framebuffer,
-				texture,
-			}) = self.multisample_framebuffer
-			{
-				self.gl.delete_texture(texture);
-				self.gl.delete_framebuffer(framebuffer);
-			}
+		self.unused_resource_sender
+			.send(UnusedGraphicsResource::Framebuffer(self.framebuffer))
+			.ok();
+		self.unused_resource_sender
+			.send(UnusedGraphicsResource::Renderbuffer(
+				self.depth_stencil_renderbuffer,
+			))
+			.ok();
+		if let Some(MultisampleFramebuffer {
+			framebuffer,
+			texture,
+		}) = self.multisample_framebuffer
+		{
+			self.unused_resource_sender
+				.send(UnusedGraphicsResource::Texture(texture))
+				.ok();
+			self.unused_resource_sender
+				.send(UnusedGraphicsResource::Framebuffer(framebuffer))
+				.ok();
 		}
 	}
 }

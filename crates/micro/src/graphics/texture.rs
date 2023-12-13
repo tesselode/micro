@@ -1,4 +1,4 @@
-use std::{path::Path, rc::Rc};
+use std::{path::Path, rc::Rc, sync::mpsc::Sender};
 
 use glam::{IVec2, UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
@@ -16,6 +16,7 @@ use crate::{
 
 use super::{
 	sprite_batch::{SpriteBatch, SpriteParams},
+	unused_resource::UnusedGraphicsResource,
 	NineSlice,
 };
 
@@ -26,14 +27,20 @@ pub struct Texture {
 
 #[derive(Debug)]
 pub(crate) struct TextureInner {
-	gl: Rc<glow::Context>,
 	pub texture: NativeTexture,
 	pub size: UVec2,
+	unused_resource_sender: Sender<UnusedGraphicsResource>,
 }
 
 impl Texture {
 	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
-		Self::new_from_gl(ctx.graphics.gl.clone(), size, None, settings)
+		Self::new_from_gl(
+			&ctx.graphics.gl,
+			ctx.graphics.unused_resource_sender.clone(),
+			size,
+			None,
+			settings,
+		)
 	}
 
 	pub fn from_image_data(
@@ -42,7 +49,8 @@ impl Texture {
 		settings: TextureSettings,
 	) -> Self {
 		Self::new_from_gl(
-			ctx.graphics.gl.clone(),
+			&ctx.graphics.gl,
+			ctx.graphics.unused_resource_sender.clone(),
 			image_data.size,
 			Some(&image_data.pixels),
 			settings,
@@ -50,7 +58,8 @@ impl Texture {
 	}
 
 	pub(crate) fn new_from_gl(
-		gl: Rc<glow::Context>,
+		gl: &glow::Context,
+		unused_resource_sender: Sender<UnusedGraphicsResource>,
 		size: UVec2,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
@@ -96,7 +105,11 @@ impl Texture {
 			gl.generate_mipmap(glow::TEXTURE_2D);
 		}
 		Self {
-			inner: Rc::new(TextureInner { gl, texture, size }),
+			inner: Rc::new(TextureInner {
+				texture,
+				size,
+				unused_resource_sender,
+			}),
 		}
 	}
 
@@ -121,12 +134,11 @@ impl Texture {
 		)
 	}
 
-	pub fn replace(&self, top_left: IVec2, image_data: &ImageData) {
+	pub fn replace(&self, ctx: &Context, top_left: IVec2, image_data: &ImageData) {
+		let gl = &ctx.graphics.gl;
 		unsafe {
-			self.inner
-				.gl
-				.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
-			self.inner.gl.tex_sub_image_2d(
+			gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
+			gl.tex_sub_image_2d(
 				glow::TEXTURE_2D,
 				0,
 				top_left.x,
@@ -163,17 +175,16 @@ impl Texture {
 	) {
 		let mut sprite_batch = SpriteBatch::new(ctx, self, 9);
 		sprite_batch
-			.add_nine_slice(nine_slice, display_rect, SpriteParams::default())
+			.add_nine_slice(ctx, nine_slice, display_rect, SpriteParams::default())
 			.unwrap();
 		sprite_batch.draw(ctx, params)
 	}
 
-	pub(crate) fn attach_to_framebuffer(&mut self) {
+	pub(crate) fn attach_to_framebuffer(&mut self, ctx: &Context) {
+		let gl = &ctx.graphics.gl;
 		unsafe {
-			self.inner
-				.gl
-				.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
-			self.inner.gl.framebuffer_texture_2d(
+			gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
+			gl.framebuffer_texture_2d(
 				glow::FRAMEBUFFER,
 				glow::COLOR_ATTACHMENT0,
 				glow::TEXTURE_2D,
@@ -186,9 +197,9 @@ impl Texture {
 
 impl Drop for TextureInner {
 	fn drop(&mut self) {
-		unsafe {
-			self.gl.delete_texture(self.texture);
-		}
+		self.unused_resource_sender
+			.send(UnusedGraphicsResource::Texture(self.texture))
+			.ok();
 	}
 }
 

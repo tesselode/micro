@@ -1,20 +1,22 @@
-use std::rc::Rc;
+use std::sync::mpsc::Sender;
 
 use bytemuck::{Pod, Zeroable};
 use glow::{HasContext, NativeBuffer};
 
 use crate::Context;
 
+use super::unused_resource::UnusedGraphicsResource;
+
 pub struct VertexAttributeBuffer {
-	gl: Rc<glow::Context>,
 	pub(crate) buffer: NativeBuffer,
 	pub(crate) attribute_kinds: Vec<VertexAttributeKind>,
 	pub(crate) divisor: VertexAttributeDivisor,
+	unused_resource_sender: Sender<UnusedGraphicsResource>,
 }
 
 impl VertexAttributeBuffer {
 	pub fn new<T: VertexAttributes>(ctx: &Context, data: &[T]) -> Self {
-		let gl = ctx.graphics.gl.clone();
+		let gl = &ctx.graphics.gl;
 		let buffer = unsafe {
 			let buffer = gl
 				.create_buffer()
@@ -28,19 +30,19 @@ impl VertexAttributeBuffer {
 			buffer
 		};
 		Self {
-			gl,
 			buffer,
 			attribute_kinds: T::ATTRIBUTE_KINDS.to_vec(),
 			divisor: T::DIVISOR,
+			unused_resource_sender: ctx.graphics.unused_resource_sender.clone(),
 		}
 	}
 }
 
 impl Drop for VertexAttributeBuffer {
 	fn drop(&mut self) {
-		unsafe {
-			self.gl.delete_buffer(self.buffer);
-		}
+		self.unused_resource_sender
+			.send(UnusedGraphicsResource::Buffer(self.buffer))
+			.ok();
 	}
 }
 

@@ -95,7 +95,11 @@ fn patch_textures(
 				.pos
 				.map(|[x, y]| IVec2::new(x as i32, y as i32))
 				.unwrap_or_default();
-			texture.replace(top_left, &egui_image_data_to_micro_image_data(&delta.image))
+			texture.replace(
+				ctx,
+				top_left,
+				&egui_image_data_to_micro_image_data(&delta.image),
+			)
 		} else {
 			textures.insert(
 				*texture_id,

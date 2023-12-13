@@ -124,6 +124,8 @@ where
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		ctx.window.gl_swap_window();
 
+		ctx.graphics.delete_unused_resources();
+
 		if ctx.should_quit {
 			break;
 		}

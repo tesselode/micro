@@ -41,12 +41,12 @@ impl ResourceLoader for TextureLoader {
 
 	fn reload(
 		&mut self,
-		_ctx: &mut Context,
+		ctx: &mut Context,
 		resource: &mut Self::Resource,
 		path: &std::path::Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		resource.replace(IVec2::ZERO, &ImageData::from_file(path)?);
+		resource.replace(ctx, IVec2::ZERO, &ImageData::from_file(path)?);
 		Ok(())
 	}
 

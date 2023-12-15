@@ -184,6 +184,7 @@ impl<V: Vertex> Mesh<V> {
 	) {
 		let gl = &ctx.graphics.gl;
 		unsafe {
+			gl.bind_vertex_array(Some(self.vertex_array));
 			let mut next_attribute_index = configure_vertex_attributes_for_buffer(
 				gl,
 				self.vertex_buffer,
@@ -218,7 +219,6 @@ impl<V: Vertex> Mesh<V> {
 			shader.bind_sent_textures(ctx);
 			gl.use_program(Some(shader.program));
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
-			gl.bind_vertex_array(Some(self.vertex_array));
 			params.blend_mode.apply(gl);
 			gl.draw_elements_instanced(
 				glow::TRIANGLES,

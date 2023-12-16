@@ -14,7 +14,7 @@ pub struct Camera3d {
 }
 
 impl Camera3d {
-	pub fn perspective(
+	pub const fn perspective(
 		field_of_view: f32,
 		aspect_ratio: f32,
 		z_bounds: RangeInclusive<f32>,
@@ -33,7 +33,7 @@ impl Camera3d {
 		}
 	}
 
-	pub fn orthographic(
+	pub const fn orthographic(
 		xy_bounds: Rect,
 		z_bounds: RangeInclusive<f32>,
 		position: Vec3,

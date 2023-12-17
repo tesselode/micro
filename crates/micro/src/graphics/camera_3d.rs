@@ -25,6 +25,27 @@ impl Camera3d {
 			kind: Camera3dKind::Perspective {
 				field_of_view,
 				aspect_ratio,
+				up_y: 1.0,
+			},
+			z_near: *z_bounds.start(),
+			z_far: *z_bounds.end(),
+			position,
+			look_at,
+		}
+	}
+
+	pub const fn perspective_up_y_negative(
+		field_of_view: f32,
+		aspect_ratio: f32,
+		z_bounds: RangeInclusive<f32>,
+		position: Vec3,
+		look_at: Vec3,
+	) -> Self {
+		Self {
+			kind: Camera3dKind::Perspective {
+				field_of_view,
+				aspect_ratio,
+				up_y: -1.0,
 			},
 			z_near: *z_bounds.start(),
 			z_far: *z_bounds.end(),
@@ -49,21 +70,28 @@ impl Camera3d {
 	}
 
 	pub fn transform(self, ctx: &Context) -> Mat4 {
-		let projection = match self.kind {
+		let (projection, up_y) = match self.kind {
 			Camera3dKind::Perspective {
 				field_of_view,
 				aspect_ratio,
-			} => Mat4::perspective_rh(field_of_view, aspect_ratio, self.z_near, self.z_far),
-			Camera3dKind::Orthographic { xy_bounds } => Mat4::orthographic_rh(
-				xy_bounds.left(),
-				xy_bounds.right(),
-				xy_bounds.bottom(),
-				xy_bounds.top(),
-				self.z_near,
-				self.z_far,
+				up_y,
+			} => (
+				Mat4::perspective_rh(field_of_view, aspect_ratio, self.z_near, self.z_far),
+				up_y,
+			),
+			Camera3dKind::Orthographic { xy_bounds } => (
+				Mat4::orthographic_rh(
+					xy_bounds.left(),
+					xy_bounds.right(),
+					xy_bounds.bottom(),
+					xy_bounds.top(),
+					self.z_near,
+					self.z_far,
+				),
+				1.0,
 			),
 		};
-		let view = Mat4::look_at_rh(self.position, self.look_at, Vec3::new(0.0, 1.0, 0.0));
+		let view = Mat4::look_at_rh(self.position, self.look_at, Vec3::new(0.0, up_y, 0.0));
 		Self::undo_2d_coordinate_system_transform(ctx) * projection * view
 	}
 
@@ -87,6 +115,7 @@ pub enum Camera3dKind {
 	Perspective {
 		field_of_view: f32,
 		aspect_ratio: f32,
+		up_y: f32,
 	},
 	Orthographic {
 		xy_bounds: Rect,

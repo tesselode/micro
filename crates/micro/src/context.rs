@@ -3,6 +3,7 @@ pub(crate) mod graphics;
 use std::{
 	collections::HashMap,
 	fmt::Debug,
+	ops::{Deref, DerefMut},
 	time::{Duration, Instant},
 };
 
@@ -106,20 +107,15 @@ where
 		// draw state and egui UI
 		if let Some(main_canvas) = &main_canvas {
 			ctx.clear(LinSrgba::BLACK);
-			main_canvas.render_to(&mut ctx, |ctx| -> Result<(), E> {
+			{
+				let ctx = &mut main_canvas.render_to(&mut ctx);
 				state.draw(ctx)?;
-				Ok(())
-			})?;
+			}
 			let transform = ctx.scaling_mode.transform_mat4(&ctx);
 			main_canvas.draw(&ctx, transform);
 		} else {
-			ctx.with_transform(
-				ctx.scaling_mode.transform_mat4(&ctx),
-				|ctx| -> Result<(), E> {
-					state.draw(ctx)?;
-					Ok(())
-				},
-			)?;
+			let mut ctx = ctx.transform(ctx.scaling_mode.transform_mat4(&ctx));
+			state.draw(&mut ctx)?;
 		}
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		ctx.window.gl_swap_window();
@@ -225,29 +221,33 @@ impl Context {
 		}
 	}
 
-	pub fn with_transform<T>(&mut self, transform: Mat4, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn transform(&mut self, transform: Mat4) -> OnDrop {
 		self.graphics.transform_stack.push(transform);
-		let returned_value = f(self);
-		self.graphics.transform_stack.pop();
-		returned_value
+		OnDrop {
+			ctx: self,
+			on_drop: |ctx| {
+				ctx.graphics.transform_stack.pop();
+			},
+		}
 	}
 
-	pub fn with_3d_camera<T>(&mut self, camera: Camera3d, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn use_3d_camera(&mut self, camera: Camera3d) -> OnDrop {
+		self.graphics.transform_stack.push(camera.transform(self));
 		unsafe {
 			self.graphics.gl.enable(glow::DEPTH_TEST);
 		}
-		let returned_value = self.with_transform(camera.transform(self), f);
-		unsafe {
-			self.graphics.gl.disable(glow::DEPTH_TEST);
+		OnDrop {
+			ctx: self,
+			on_drop: |ctx| {
+				ctx.graphics.transform_stack.pop();
+				unsafe {
+					ctx.graphics.gl.disable(glow::DEPTH_TEST);
+				}
+			},
 		}
-		returned_value
 	}
 
-	pub fn write_to_stencil<T>(
-		&mut self,
-		action: StencilAction,
-		f: impl FnOnce(&mut Context) -> T,
-	) -> T {
+	pub fn write_to_stencil(&mut self, action: StencilAction) -> OnDrop {
 		unsafe {
 			self.graphics.gl.color_mask(false, false, false, false);
 			self.graphics.gl.enable(glow::STENCIL_TEST);
@@ -262,20 +262,16 @@ impl Context {
 				.stencil_func(glow::ALWAYS, reference.into(), 0xFF);
 			self.graphics.gl.stencil_mask(0xFF);
 		}
-		let returned_value = f(self);
-		unsafe {
-			self.graphics.gl.color_mask(true, true, true, true);
-			self.graphics.gl.disable(glow::STENCIL_TEST);
+		OnDrop {
+			ctx: self,
+			on_drop: |ctx| unsafe {
+				ctx.graphics.gl.color_mask(true, true, true, true);
+				ctx.graphics.gl.disable(glow::STENCIL_TEST);
+			},
 		}
-		returned_value
 	}
 
-	pub fn with_stencil<T>(
-		&mut self,
-		test: StencilTest,
-		reference: u8,
-		f: impl FnOnce(&mut Context) -> T,
-	) -> T {
+	pub fn use_stencil(&mut self, test: StencilTest, reference: u8) -> OnDrop {
 		unsafe {
 			self.graphics.gl.enable(glow::STENCIL_TEST);
 			self.graphics
@@ -286,11 +282,12 @@ impl Context {
 				.stencil_func(test.as_glow_stencil_func(), reference.into(), 0xFF);
 			self.graphics.gl.stencil_mask(0x00);
 		}
-		let returned_value = f(self);
-		unsafe {
-			self.graphics.gl.disable(glow::STENCIL_TEST);
+		OnDrop {
+			ctx: self,
+			on_drop: |ctx| unsafe {
+				ctx.graphics.gl.disable(glow::STENCIL_TEST);
+			},
 		}
-		returned_value
 	}
 
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
@@ -468,5 +465,31 @@ impl ScalingMode {
 					* Mat4::from_translation((-base_size.as_vec2() / 2.0).extend(0.0))
 			}
 		}
+	}
+}
+
+#[must_use]
+pub struct OnDrop<'a> {
+	pub(crate) ctx: &'a mut Context,
+	pub(crate) on_drop: fn(&mut Context),
+}
+
+impl<'a> Deref for OnDrop<'a> {
+	type Target = Context;
+
+	fn deref(&self) -> &Self::Target {
+		self.ctx
+	}
+}
+
+impl<'a> DerefMut for OnDrop<'a> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		self.ctx
+	}
+}
+
+impl<'a> Drop for OnDrop<'a> {
+	fn drop(&mut self) {
+		(self.on_drop)(self.ctx);
 	}
 }

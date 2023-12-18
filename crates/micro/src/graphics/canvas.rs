@@ -1,4 +1,8 @@
-use std::{rc::Rc, sync::mpsc::Sender};
+use std::{
+	ops::{Deref, DerefMut},
+	rc::Rc,
+	sync::mpsc::Sender,
+};
 
 use glam::UVec2;
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, PixelPackData};
@@ -93,7 +97,7 @@ impl Canvas {
 		)
 	}
 
-	pub fn render_to<T>(&self, ctx: &mut Context, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn render_to<'a>(&'a self, ctx: &'a mut Context) -> OnDrop {
 		if let RenderTarget::Canvas { .. } = ctx.graphics.render_target {
 			unimplemented!("cannot nest render_to calls");
 		}
@@ -114,36 +118,42 @@ impl Canvas {
 		}
 		ctx.graphics
 			.set_render_target(RenderTarget::Canvas { size });
-		let returned_value = f(ctx);
-		if let Some(MultisampleFramebuffer { framebuffer, .. }) = self.multisample_framebuffer {
-			unsafe {
-				ctx.graphics
-					.gl
-					.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(framebuffer));
-				ctx.graphics
-					.gl
-					.bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(self.framebuffer));
-				let width = self.size().x as i32;
-				let height = self.size().y as i32;
-				ctx.graphics.gl.blit_framebuffer(
-					0,
-					0,
-					width,
-					height,
-					0,
-					0,
-					width,
-					height,
-					glow::COLOR_BUFFER_BIT,
-					glow::NEAREST,
-				);
-			}
+		OnDrop {
+			ctx,
+			canvas: self,
+			on_drop: |ctx, canvas| {
+				if let Some(MultisampleFramebuffer { framebuffer, .. }) =
+					canvas.multisample_framebuffer
+				{
+					unsafe {
+						ctx.graphics
+							.gl
+							.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(framebuffer));
+						ctx.graphics
+							.gl
+							.bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(canvas.framebuffer));
+						let width = canvas.size().x as i32;
+						let height = canvas.size().y as i32;
+						ctx.graphics.gl.blit_framebuffer(
+							0,
+							0,
+							width,
+							height,
+							0,
+							0,
+							width,
+							height,
+							glow::COLOR_BUFFER_BIT,
+							glow::NEAREST,
+						);
+					}
+				}
+				unsafe {
+					ctx.graphics.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+				}
+				ctx.graphics.set_render_target(RenderTarget::Window);
+			},
 		}
-		unsafe {
-			ctx.graphics.gl.bind_framebuffer(glow::FRAMEBUFFER, None);
-		}
-		ctx.graphics.set_render_target(RenderTarget::Window);
-		returned_value
 	}
 
 	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
@@ -230,6 +240,33 @@ impl Msaa {
 impl Default for Msaa {
 	fn default() -> Self {
 		Self::None
+	}
+}
+
+#[must_use]
+pub struct OnDrop<'a> {
+	pub(crate) ctx: &'a mut Context,
+	pub(crate) canvas: &'a Canvas,
+	pub(crate) on_drop: fn(&mut Context, &Canvas),
+}
+
+impl<'a> Deref for OnDrop<'a> {
+	type Target = Context;
+
+	fn deref(&self) -> &Self::Target {
+		self.ctx
+	}
+}
+
+impl<'a> DerefMut for OnDrop<'a> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		self.ctx
+	}
+}
+
+impl<'a> Drop for OnDrop<'a> {
+	fn drop(&mut self) {
+		(self.on_drop)(self.ctx, self.canvas);
 	}
 }
 

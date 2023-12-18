@@ -1,54 +1,62 @@
-use std::{error::Error, time::Duration};
+use std::error::Error;
 
-use glam::Vec2;
+use glam::{Mat4, UVec2, Vec2, Vec3};
 use micro::{
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
 		ColorConstants, DrawParams,
 	},
 	math::Circle,
-	Context, ContextSettings, State,
+	Context, ContextSettings, ScalingMode, State,
 };
 use palette::LinSrgba;
 
 fn main() {
 	micro::run(
 		ContextSettings {
-			resizable: true,
+			scaling_mode: ScalingMode::Pixelated {
+				base_size: UVec2::new(400, 300),
+				integer_scale: true,
+			},
 			..Default::default()
 		},
 		MainState::new,
-	)
+	);
 }
 
-struct MainState {
-	mesh: Mesh,
-}
+struct MainState;
 
 impl MainState {
-	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {
-			mesh: Mesh::circle(
-				ctx,
-				ShapeStyle::Stroke(7.0),
-				Circle {
-					center: Vec2::splat(200.0),
-					radius: 50.0,
-				},
-				LinSrgba::RED,
-			)?,
-		})
+	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		Ok(MainState)
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		Ok(())
-	}
-
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		ctx.clear(LinSrgba::BLACK);
-		self.mesh.draw(ctx, DrawParams::new());
+		{
+			let ctx = &mut ctx.transform(Mat4::from_scale(Vec3::splat(3.0)));
+			Mesh::circle(
+				ctx,
+				ShapeStyle::Fill,
+				Circle {
+					center: Vec2::ZERO,
+					radius: 100.0,
+				},
+				LinSrgba::RED,
+			)?
+			.draw(ctx, DrawParams::new());
+		}
+		Mesh::circle(
+			ctx,
+			ShapeStyle::Fill,
+			Circle {
+				center: Vec2::ZERO,
+				radius: 100.0,
+			},
+			LinSrgba::WHITE,
+		)?
+		.draw(ctx, DrawParams::new());
 		Ok(())
 	}
 }

@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use serde::Deserialize;
 
 use super::EntityRef;
@@ -14,6 +16,13 @@ impl Field {
 	pub fn float(&self) -> Option<f32> {
 		match &self.kind {
 			FieldKind::Float { value } => *value,
+			_ => None,
+		}
+	}
+
+	pub fn file_path(&self) -> Option<&Path> {
+		match &self.kind {
+			FieldKind::FilePath { value } => value.as_deref(),
 			_ => None,
 		}
 	}
@@ -39,6 +48,10 @@ pub enum FieldKind {
 	Float {
 		#[serde(rename = "__value")]
 		value: Option<f32>,
+	},
+	FilePath {
+		#[serde(rename = "__value")]
+		value: Option<PathBuf>,
 	},
 	#[serde(rename = "EntityRef")]
 	Entity {

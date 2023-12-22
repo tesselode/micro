@@ -33,6 +33,16 @@ impl Level {
 		let level = serde_json::from_str::<Level>(&level_string)?;
 		Ok(level)
 	}
+
+	pub fn layer_by_name(&self, name: impl AsRef<str>) -> Option<&Layer> {
+		self.layers.iter().find(|layer| layer.name == name.as_ref())
+	}
+
+	pub fn layer_by_name_mut(&mut self, name: impl AsRef<str>) -> Option<&mut Layer> {
+		self.layers
+			.iter_mut()
+			.find(|layer| layer.name == name.as_ref())
+	}
 }
 
 impl TryFrom<RawLevel> for Level {

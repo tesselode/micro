@@ -20,6 +20,18 @@ pub struct Entity {
 	pub fields: Vec<Field>,
 }
 
+impl Entity {
+	pub fn field_by_name(&self, name: impl AsRef<str>) -> Option<&Field> {
+		self.fields.iter().find(|field| field.name == name.as_ref())
+	}
+
+	pub fn field_by_name_mut(&mut self, name: impl AsRef<str>) -> Option<&mut Field> {
+		self.fields
+			.iter_mut()
+			.find(|field| field.name == name.as_ref())
+	}
+}
+
 impl TryFrom<RawEntity> for Entity {
 	type Error = Error;
 

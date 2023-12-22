@@ -6,6 +6,7 @@ use glam::Vec2;
 use super::{IRect, URect};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rect {
 	pub top_left: Vec2,
 	pub size: Vec2,

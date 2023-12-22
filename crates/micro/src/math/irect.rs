@@ -3,6 +3,7 @@ use glam::IVec2;
 use super::{Rect, URect};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct IRect {
 	pub top_left: IVec2,
 	pub size: IVec2,

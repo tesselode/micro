@@ -13,7 +13,7 @@ directories = "5.0.1"
 egui = "0.24.0"
 fontdue = "0.8.0"
 generational-arena = "0.2.8"
-glam = { version = "0.24.1", features = ["bytemuck"] }
+glam = { version = "0.25.0", features = ["bytemuck"] }
 glow = "0.13.0"
 image = { version = "0.24.2", default-features = false, features = ["png"] }
 indexmap = "2.0.2"

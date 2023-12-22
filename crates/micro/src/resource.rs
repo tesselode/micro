@@ -28,7 +28,7 @@ impl<L: ResourceLoader> Resources<L> {
 	pub fn new(ctx: &mut Context, base_dir: impl AsRef<Path>, mut loader: L) -> Self {
 		let placeholder = loader.placeholder(ctx);
 		Self {
-			base_dir: Self::base_resources_path().join(base_dir.as_ref()),
+			base_dir: base_resources_path().join(base_dir.as_ref()),
 			loader,
 			resources: IndexMap::new(),
 			placeholder,
@@ -137,21 +137,6 @@ impl<L: ResourceLoader> Resources<L> {
 		Ok(resource_paths)
 	}
 
-	pub fn base_resources_path() -> PathBuf {
-		#[cfg(debug_assertions)]
-		{
-			"resources".into()
-		}
-		#[cfg(not(debug_assertions))]
-		{
-			std::env::current_exe()
-				.expect("could not get current executable path")
-				.parent()
-				.expect("could not get current executable directory")
-				.join("resources")
-		}
-	}
-
 	fn hot_reload(&mut self, ctx: &mut Context) {
 		for resource in self.resources.values_mut() {
 			resource.reload(ctx, &mut self.loader);
@@ -221,5 +206,20 @@ impl<T: AsRef<Path>, L: ResourceLoader> Index<T> for Resources<L> {
 
 	fn index(&self, path: T) -> &Self::Output {
 		self.get(path).unwrap()
+	}
+}
+
+pub fn base_resources_path() -> PathBuf {
+	#[cfg(debug_assertions)]
+	{
+		"resources".into()
+	}
+	#[cfg(not(debug_assertions))]
+	{
+		std::env::current_exe()
+			.expect("could not get current executable path")
+			.parent()
+			.expect("could not get current executable directory")
+			.join("resources")
 	}
 }

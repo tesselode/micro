@@ -6,6 +6,7 @@ use std::{
 use super::{Easing, Tweenable};
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TweenSequence<T: Tweenable + Copy> {
 	starting_value: T,
 	tweens: Vec<Tween<T>>,
@@ -91,6 +92,7 @@ impl<T: Tweenable + Copy> TweenSequence<T> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 struct Tween<T: Tweenable> {
 	times: Range<Duration>,
 	values: Range<T>,

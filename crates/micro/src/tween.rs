@@ -24,6 +24,7 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum Easing {
 	Linear,
 	InSine,

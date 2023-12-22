@@ -26,7 +26,7 @@ pub use tiled::*;
 
 use serde::Deserialize;
 
-use std::{error::Error, path::Path};
+use std::{fmt::Debug, path::Path};
 
 use crate::Context;
 
@@ -34,7 +34,7 @@ use crate::Context;
 pub trait ResourceLoader {
 	type Resource;
 
-	type Error: Error;
+	type Error: Debug;
 
 	type Settings: for<'a> Deserialize<'a>;
 

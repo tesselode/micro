@@ -108,7 +108,7 @@ impl<L: ResourceLoader> Resources<L> {
 					Ok(None) => return,
 					Err(err) => {
 						tracing::error!(
-							"Error loading resource at path {}: {}",
+							"Error loading resource at path {}: {:?}",
 							full_resource_path.display(),
 							err
 						);

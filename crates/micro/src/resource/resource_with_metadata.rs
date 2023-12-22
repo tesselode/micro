@@ -105,7 +105,7 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 			self.settings.as_ref(),
 		) {
 			tracing::error!(
-				"Error loading resource at path {}: {}",
+				"Error loading resource at path {}: {:?}",
 				self.file_path.display(),
 				err
 			);

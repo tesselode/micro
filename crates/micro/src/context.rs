@@ -79,7 +79,7 @@ where
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
 
 		// create egui UI
-		let egui_input = egui_raw_input(&ctx, &events);
+		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_frame(egui_input);
 		state.ui(&mut ctx, &egui_ctx)?;
 		let egui_output = egui_ctx.end_frame();

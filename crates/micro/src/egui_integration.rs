@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
 use glam::IVec2;
@@ -14,7 +14,11 @@ use crate::{
 	Context,
 };
 
-pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput {
+pub fn egui_raw_input(
+	ctx: &Context,
+	events: &[sdl2::event::Event],
+	delta_time: Duration,
+) -> RawInput {
 	let modifiers = egui::Modifiers {
 		alt: ctx.is_key_down(Scancode::LAlt) || ctx.is_key_down(Scancode::RAlt),
 		ctrl: ctx.is_key_down(Scancode::LCtrl) || ctx.is_key_down(Scancode::RCtrl),
@@ -42,6 +46,7 @@ pub fn egui_raw_input(ctx: &Context, events: &[sdl2::event::Event]) -> RawInput 
 			.cloned()
 			.filter_map(|event| sdl2_event_to_egui_event(ctx, event, modifiers))
 			.collect(),
+		predicted_dt: delta_time.as_secs_f32(),
 		..Default::default()
 	}
 }

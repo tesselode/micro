@@ -41,6 +41,7 @@ impl GraphicsContext {
 		unsafe {
 			gl.enable(glow::BLEND);
 			gl.enable(glow::FRAMEBUFFER_SRGB);
+			gl.enable(glow::CLIP_DISTANCE0);
 			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 			gl.viewport(0, 0, viewport_size.x, viewport_size.y);
 		}

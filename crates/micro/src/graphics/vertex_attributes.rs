@@ -7,6 +7,7 @@ use crate::Context;
 
 use super::unused_resource::UnusedGraphicsResource;
 
+#[derive(Debug)]
 pub struct VertexAttributeBuffer {
 	pub(crate) buffer: NativeBuffer,
 	pub(crate) attribute_kinds: Vec<VertexAttributeKind>,

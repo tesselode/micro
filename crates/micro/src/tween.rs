@@ -86,11 +86,11 @@ impl Easing {
 		}
 	}
 
-	pub fn in_back() -> Self {
+	pub const fn in_back() -> Self {
 		Self::InBack { overshoot: 1.70158 }
 	}
 
-	pub fn out_back() -> Self {
+	pub const fn out_back() -> Self {
 		Self::OutBack { overshoot: 1.70158 }
 	}
 }

@@ -100,6 +100,8 @@ where
 			let transform = ctx.scaling_mode.transform_affine2(&ctx).inverse();
 			state.event(&mut ctx, event.transform_mouse_events(transform))?;
 		}
+		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
+		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
 
 		// update state
 		state.update(&mut ctx, delta_time)?;
@@ -135,6 +137,8 @@ pub struct Context {
 	window: Window,
 	controller: GameControllerSubsystem,
 	event_pump: EventPump,
+	egui_wants_keyboard_input: bool,
+	egui_wants_mouse_input: bool,
 	pub(crate) graphics: GraphicsContext,
 	scaling_mode: ScalingMode,
 	frame_time_tracker: FrameTimeTracker,
@@ -294,12 +298,14 @@ impl Context {
 		self.event_pump
 			.keyboard_state()
 			.is_scancode_pressed(scancode.into())
+			&& !self.egui_wants_keyboard_input
 	}
 
 	pub fn is_mouse_button_down(&self, mouse_button: MouseButton) -> bool {
 		self.event_pump
 			.mouse_state()
 			.is_mouse_button_pressed(mouse_button.into())
+			&& !self.egui_wants_mouse_input
 	}
 
 	pub fn mouse_position(&self) -> IVec2 {
@@ -362,6 +368,8 @@ impl Context {
 			window,
 			controller,
 			event_pump,
+			egui_wants_keyboard_input: false,
+			egui_wants_mouse_input: false,
 			graphics,
 			scaling_mode: settings.scaling_mode,
 			frame_time_tracker: FrameTimeTracker::new(),

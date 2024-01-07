@@ -24,6 +24,7 @@ pub struct Level {
 	pub world_position: IVec2,
 	pub pixel_size: UVec2,
 	pub background_color: LinSrgba,
+	pub fields: Vec<Field>,
 	pub layers: Vec<Layer>,
 }
 
@@ -32,6 +33,16 @@ impl Level {
 		let level_string = std::fs::read_to_string(path)?;
 		let level = serde_json::from_str::<Level>(&level_string)?;
 		Ok(level)
+	}
+
+	pub fn field_by_name(&self, name: impl AsRef<str>) -> Option<&Field> {
+		self.fields.iter().find(|field| field.name == name.as_ref())
+	}
+
+	pub fn field_by_name_mut(&mut self, name: impl AsRef<str>) -> Option<&mut Field> {
+		self.fields
+			.iter_mut()
+			.find(|field| field.name == name.as_ref())
 	}
 
 	pub fn layer_by_name(&self, name: impl AsRef<str>) -> Option<&Layer> {
@@ -56,6 +67,7 @@ impl TryFrom<RawLevel> for Level {
 			px_wid,
 			px_hei,
 			bg_color,
+			field_instances,
 			layer_instances,
 		}: RawLevel,
 	) -> Result<Self> {
@@ -64,6 +76,7 @@ impl TryFrom<RawLevel> for Level {
 			world_position: IVec2::new(world_x, world_y),
 			pixel_size: UVec2::new(px_wid, px_hei),
 			background_color: hex_string_to_lin_srgba(&bg_color)?,
+			fields: field_instances,
 			layers: layer_instances,
 		})
 	}
@@ -91,6 +104,7 @@ struct RawLevel {
 	px_hei: u32,
 	#[serde(rename = "__bgColor")]
 	bg_color: String,
+	field_instances: Vec<Field>,
 	layer_instances: Vec<Layer>,
 }
 

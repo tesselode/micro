@@ -12,6 +12,7 @@ pub struct EntityId(pub String);
 pub struct Entity {
 	pub id: EntityId,
 	pub name: String,
+	pub tags: Vec<String>,
 	pub grid_position: IVec2,
 	pub position: IVec2,
 	pub world_position: IVec2,
@@ -40,6 +41,7 @@ impl TryFrom<RawEntity> for Entity {
 			grid,
 			identifier,
 			pivot,
+			tags,
 			world_x,
 			world_y,
 			height,
@@ -52,6 +54,7 @@ impl TryFrom<RawEntity> for Entity {
 		Ok(Self {
 			id: iid,
 			name: identifier,
+			tags,
 			grid_position: grid.into(),
 			position: px.into(),
 			world_position: IVec2::new(world_x, world_y),
@@ -71,6 +74,8 @@ struct RawEntity {
 	identifier: String,
 	#[serde(rename = "__pivot")]
 	pivot: [f32; 2],
+	#[serde(rename = "__tags")]
+	tags: Vec<String>,
 	#[serde(rename = "__worldX")]
 	world_x: i32,
 	#[serde(rename = "__worldY")]

@@ -131,6 +131,7 @@ fn sdl2_event_to_egui_event(
 			scancode, repeat, ..
 		} => Some(egui::Event::Key {
 			key: sdl2_scancode_to_egui_key(scancode?)?,
+			physical_key: None,
 			pressed: true,
 			modifiers,
 			repeat,
@@ -139,6 +140,7 @@ fn sdl2_event_to_egui_event(
 			scancode, repeat, ..
 		} => Some(egui::Event::Key {
 			key: sdl2_scancode_to_egui_key(scancode?)?,
+			physical_key: None,
 			pressed: false,
 			modifiers,
 			repeat,
@@ -214,7 +216,7 @@ fn sdl2_scancode_to_egui_key(scancode: sdl2::keyboard::Scancode) -> Option<egui:
 		sdl2::keyboard::Scancode::Tab => Some(egui::Key::Tab),
 		sdl2::keyboard::Scancode::Space => Some(egui::Key::Space),
 		sdl2::keyboard::Scancode::Minus => Some(egui::Key::Minus),
-		sdl2::keyboard::Scancode::Equals => Some(egui::Key::PlusEquals),
+		sdl2::keyboard::Scancode::Equals => Some(egui::Key::Equals),
 		sdl2::keyboard::Scancode::F1 => Some(egui::Key::F1),
 		sdl2::keyboard::Scancode::F2 => Some(egui::Key::F2),
 		sdl2::keyboard::Scancode::F3 => Some(egui::Key::F3),
@@ -238,7 +240,7 @@ fn sdl2_scancode_to_egui_key(scancode: sdl2::keyboard::Scancode) -> Option<egui:
 		sdl2::keyboard::Scancode::Down => Some(egui::Key::ArrowDown),
 		sdl2::keyboard::Scancode::Up => Some(egui::Key::ArrowUp),
 		sdl2::keyboard::Scancode::KpMinus => Some(egui::Key::Minus),
-		sdl2::keyboard::Scancode::KpPlus => Some(egui::Key::PlusEquals),
+		sdl2::keyboard::Scancode::KpPlus => Some(egui::Key::Plus),
 		sdl2::keyboard::Scancode::KpEnter => Some(egui::Key::Enter),
 		sdl2::keyboard::Scancode::Kp1 => Some(egui::Key::Num1),
 		sdl2::keyboard::Scancode::Kp2 => Some(egui::Key::Num2),

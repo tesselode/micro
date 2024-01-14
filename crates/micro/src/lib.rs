@@ -17,7 +17,7 @@ pub mod time;
 pub mod tween;
 mod window;
 
-pub use context::{run, Context, ContextSettings, ScalingMode};
+pub use context::{run, Context, ContextSettings, OnDrop, ScalingMode};
 pub use error::*;
 pub use event::*;
 pub use offset_and_count::*;

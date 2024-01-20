@@ -3,7 +3,7 @@ use palette::LinSrgba;
 
 use crate::graphics::{blend_mode::BlendMode, shader::Shader};
 
-use super::color_constants::ColorConstants;
+use super::{color_constants::ColorConstants, Culling};
 
 #[derive(Debug, Clone, Copy)]
 pub struct DrawParams<'a> {
@@ -11,6 +11,7 @@ pub struct DrawParams<'a> {
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub blend_mode: BlendMode,
+	pub culling: Culling,
 }
 
 impl<'a> DrawParams<'a> {
@@ -20,6 +21,7 @@ impl<'a> DrawParams<'a> {
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
+			culling: Culling::default(),
 		}
 	}
 
@@ -96,6 +98,10 @@ impl<'a> DrawParams<'a> {
 	pub fn blend_mode(self, blend_mode: BlendMode) -> Self {
 		Self { blend_mode, ..self }
 	}
+
+	pub fn culling(self, culling: Culling) -> Self {
+		Self { culling, ..self }
+	}
 }
 
 impl<'a> Default for DrawParams<'a> {
@@ -137,5 +143,11 @@ impl<'a> From<LinSrgba> for DrawParams<'a> {
 impl<'a> From<BlendMode> for DrawParams<'a> {
 	fn from(blend_mode: BlendMode) -> Self {
 		Self::new().blend_mode(blend_mode)
+	}
+}
+
+impl<'a> From<Culling> for DrawParams<'a> {
+	fn from(culling: Culling) -> Self {
+		Self::new().culling(culling)
 	}
 }

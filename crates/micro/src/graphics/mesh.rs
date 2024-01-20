@@ -259,6 +259,7 @@ impl<V: Vertex> Mesh<V> {
 			gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
 			gl.bind_vertex_array(Some(self.vertex_array));
 			params.blend_mode.apply(gl);
+			params.culling.apply(gl);
 			gl.draw_elements(
 				glow::TRIANGLES,
 				range.count as i32,

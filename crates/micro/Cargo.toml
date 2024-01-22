@@ -18,7 +18,7 @@ glow = "0.13.0"
 image = { version = "0.24.2", default-features = false, features = ["png"] }
 indexmap = "2.0.2"
 itertools = "0.12.0"
-kira = { version = "0.8.5", optional = true, default-features = false, features = [
+kira = { git = "https://github.com/tesselode/kira/", rev = "22979b4", optional = true, default-features = false, features = [
 	"symphonia",
 ] }
 lyon_tessellation = "1.0.0"

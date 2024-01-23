@@ -40,6 +40,7 @@ impl Texture {
 			size,
 			None,
 			settings,
+			false,
 		)
 	}
 
@@ -54,6 +55,7 @@ impl Texture {
 			image_data.size,
 			Some(&image_data.pixels),
 			settings,
+			false,
 		)
 	}
 
@@ -63,6 +65,7 @@ impl Texture {
 		size: UVec2,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
+		float: bool,
 	) -> Self {
 		let texture = unsafe { gl.create_texture().expect("error creating texture") };
 		unsafe {
@@ -94,12 +97,20 @@ impl Texture {
 			gl.tex_image_2d(
 				glow::TEXTURE_2D,
 				0,
-				glow::SRGB8_ALPHA8 as i32,
+				if float {
+					glow::RGBA16F
+				} else {
+					glow::SRGB8_ALPHA8
+				} as i32,
 				size.x as i32,
 				size.y as i32,
 				0,
 				glow::RGBA,
-				glow::UNSIGNED_BYTE,
+				if float {
+					glow::FLOAT
+				} else {
+					glow::UNSIGNED_BYTE
+				},
 				pixels,
 			);
 			gl.generate_mipmap(glow::TEXTURE_2D);

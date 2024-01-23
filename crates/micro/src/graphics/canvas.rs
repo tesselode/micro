@@ -34,7 +34,14 @@ impl Canvas {
 		unsafe {
 			gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
 		}
-		let mut texture = Texture::empty(ctx, size, settings.texture_settings);
+		let mut texture = Texture::new_from_gl(
+			&ctx.graphics.gl,
+			ctx.graphics.unused_resource_sender.clone(),
+			size,
+			None,
+			settings.texture_settings,
+			settings.hdr,
+		);
 		texture.attach_to_framebuffer(ctx);
 		let multisample_framebuffer = match settings.msaa {
 			Msaa::None => None,
@@ -42,6 +49,7 @@ impl Canvas {
 				gl.clone(),
 				size,
 				settings.msaa.num_samples(),
+				settings.hdr,
 			)),
 		};
 		let depth_stencil_renderbuffer = unsafe {
@@ -214,6 +222,7 @@ impl Drop for Canvas {
 pub struct CanvasSettings {
 	pub texture_settings: TextureSettings,
 	pub msaa: Msaa,
+	pub hdr: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -277,7 +286,7 @@ struct MultisampleFramebuffer {
 }
 
 impl MultisampleFramebuffer {
-	fn new(gl: Rc<glow::Context>, size: UVec2, num_samples: u8) -> Self {
+	fn new(gl: Rc<glow::Context>, size: UVec2, num_samples: u8, float: bool) -> Self {
 		let framebuffer = unsafe {
 			gl.create_framebuffer()
 				.expect("error creating multisample framebuffer")
@@ -294,7 +303,11 @@ impl MultisampleFramebuffer {
 			gl.tex_image_2d_multisample(
 				glow::TEXTURE_2D_MULTISAMPLE,
 				num_samples.into(),
-				glow::SRGB8_ALPHA8 as i32,
+				if float {
+					glow::RGBA16F
+				} else {
+					glow::SRGB8_ALPHA8
+				} as i32,
 				size.x as i32,
 				size.y as i32,
 				true,

@@ -52,6 +52,7 @@ impl GraphicsContext {
 			UVec2::new(1, 1),
 			Some(&[255, 255, 255, 255]),
 			TextureSettings::default(),
+			false,
 		);
 		let default_shader = Shader::new_from_gl(
 			&gl,

@@ -135,6 +135,23 @@ impl Shader {
 		Ok(())
 	}
 
+	pub fn send_i32_slice(
+		&self,
+		ctx: &Context,
+		name: &str,
+		value: &[i32],
+	) -> Result<(), UniformNotFound> {
+		let gl = &ctx.graphics.gl;
+		unsafe {
+			gl.use_program(Some(self.program));
+			let location = gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			gl.uniform_1_i32_slice(Some(&location), value);
+		}
+		Ok(())
+	}
+
 	pub fn send_f32(&self, ctx: &Context, name: &str, value: f32) -> Result<(), UniformNotFound> {
 		let gl = &ctx.graphics.gl;
 		unsafe {
@@ -143,6 +160,23 @@ impl Shader {
 				.get_uniform_location(self.program, name)
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_1_f32(Some(&location), value);
+		}
+		Ok(())
+	}
+
+	pub fn send_f32_slice(
+		&self,
+		ctx: &Context,
+		name: &str,
+		value: &[f32],
+	) -> Result<(), UniformNotFound> {
+		let gl = &ctx.graphics.gl;
+		unsafe {
+			gl.use_program(Some(self.program));
+			let location = gl
+				.get_uniform_location(self.program, name)
+				.ok_or_else(|| UniformNotFound(name.to_string()))?;
+			gl.uniform_1_f32_slice(Some(&location), value);
 		}
 		Ok(())
 	}

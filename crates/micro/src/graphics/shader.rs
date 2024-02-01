@@ -1,3 +1,5 @@
+mod preprocess;
+
 use std::{collections::HashMap, path::Path, sync::mpsc::Sender};
 
 use glam::{Mat3, Mat4, Vec2, Vec3, Vec4};
@@ -5,7 +7,7 @@ use glow::{HasContext, NativeProgram};
 use palette::LinSrgba;
 use thiserror::Error;
 
-use crate::context::Context;
+use crate::{context::Context, graphics::shader::preprocess::SplitShaderCode};
 
 use super::{texture::Texture, unused_resource::UnusedGraphicsResource};
 
@@ -21,12 +23,12 @@ pub struct Shader {
 }
 
 impl Shader {
-	pub fn from_file(
+	pub fn from_files(
 		ctx: &Context,
 		vertex: impl AsRef<Path>,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Self::from_str(
+		Self::from_strs(
 			ctx,
 			&std::fs::read_to_string(vertex)?,
 			&std::fs::read_to_string(fragment)?,
@@ -47,7 +49,12 @@ impl Shader {
 		Self::from_fragment_str(ctx, &std::fs::read_to_string(fragment)?)
 	}
 
-	pub fn from_str(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
+	pub fn from_combined_str(ctx: &Context, combined: &str) -> Result<Self, LoadShaderError> {
+		let SplitShaderCode { vertex, fragment } = Self::split_combined(combined);
+		Self::from_strs(ctx, &vertex, &fragment)
+	}
+
+	pub fn from_strs(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
 		Self::new_from_gl(
 			&ctx.graphics.gl,
 			ctx.graphics.unused_resource_sender.clone(),
@@ -58,11 +65,11 @@ impl Shader {
 	}
 
 	pub fn from_vertex_str(ctx: &Context, vertex: &str) -> Result<Self, LoadShaderError> {
-		Self::from_str(ctx, vertex, DEFAULT_FRAGMENT_SHADER)
+		Self::from_strs(ctx, vertex, DEFAULT_FRAGMENT_SHADER)
 	}
 
 	pub fn from_fragment_str(ctx: &Context, fragment: &str) -> Result<Self, LoadShaderError> {
-		Self::from_str(ctx, DEFAULT_VERTEX_SHADER, fragment)
+		Self::from_strs(ctx, DEFAULT_VERTEX_SHADER, fragment)
 	}
 
 	pub(crate) fn new_from_gl(

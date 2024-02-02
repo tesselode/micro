@@ -1,4 +1,4 @@
-mod preprocess;
+pub(crate) mod preprocess;
 
 use std::{collections::HashMap, path::Path, sync::mpsc::Sender};
 
@@ -8,6 +8,8 @@ use palette::LinSrgba;
 use thiserror::Error;
 
 use crate::{context::Context, graphics::shader::preprocess::SplitShaderCode};
+
+use self::preprocess::{CombinedShaderCode, RawShaderCode, VersionedShaderCode};
 
 use super::{texture::Texture, unused_resource::UnusedGraphicsResource};
 
@@ -23,15 +25,36 @@ pub struct Shader {
 }
 
 impl Shader {
+	pub fn from_combined_file(
+		ctx: &Context,
+		path: impl AsRef<Path>,
+	) -> Result<Self, LoadShaderError> {
+		let path = path.as_ref();
+		let SplitShaderCode { vertex, fragment } = CombinedShaderCode::from_file(path)?.split();
+		Self::new_inner(
+			&ctx.graphics.gl,
+			ctx.graphics.unused_resource_sender.clone(),
+			vertex,
+			fragment,
+			Some(path),
+			Some(path),
+		)
+	}
+
 	pub fn from_files(
 		ctx: &Context,
 		vertex: impl AsRef<Path>,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Self::from_strs(
-			ctx,
-			&std::fs::read_to_string(vertex)?,
-			&std::fs::read_to_string(fragment)?,
+		let vertex = vertex.as_ref();
+		let fragment = fragment.as_ref();
+		Self::new_inner(
+			&ctx.graphics.gl,
+			ctx.graphics.unused_resource_sender.clone(),
+			RawShaderCode::from_file(vertex)?,
+			RawShaderCode::from_file(fragment)?,
+			Some(vertex),
+			Some(fragment),
 		)
 	}
 
@@ -39,29 +62,55 @@ impl Shader {
 		ctx: &Context,
 		vertex: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Self::from_vertex_str(ctx, &std::fs::read_to_string(vertex)?)
+		let vertex = vertex.as_ref();
+		Self::new_inner(
+			&ctx.graphics.gl,
+			ctx.graphics.unused_resource_sender.clone(),
+			RawShaderCode::from_file(vertex)?,
+			RawShaderCode(DEFAULT_FRAGMENT_SHADER.to_string()),
+			Some(vertex),
+			None,
+		)
 	}
 
 	pub fn from_fragment_file(
 		ctx: &Context,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Self::from_fragment_str(ctx, &std::fs::read_to_string(fragment)?)
+		let fragment = fragment.as_ref();
+		Self::new_inner(
+			&ctx.graphics.gl,
+			ctx.graphics.unused_resource_sender.clone(),
+			RawShaderCode(DEFAULT_VERTEX_SHADER.to_string()),
+			RawShaderCode::from_file(fragment)?,
+			None,
+			Some(fragment),
+		)
 	}
 
 	pub fn from_combined_str(ctx: &Context, combined: &str) -> Result<Self, LoadShaderError> {
-		let SplitShaderCode { vertex, fragment } = Self::split_combined(combined);
-		Self::from_strs(ctx, &vertex, &fragment)
-	}
-
-	pub fn from_strs(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
-		Self::new_from_gl(
+		let SplitShaderCode { vertex, fragment } = CombinedShaderCode::from_str(combined).split();
+		Self::new_inner(
 			&ctx.graphics.gl,
 			ctx.graphics.unused_resource_sender.clone(),
 			vertex,
 			fragment,
+			None,
+			None,
 		)
-		.map_err(LoadShaderError::ShaderError)
+	}
+
+	pub fn from_strs(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
+		let vertex = RawShaderCode(vertex.to_owned());
+		let fragment = RawShaderCode(fragment.to_owned());
+		Self::new_inner(
+			&ctx.graphics.gl,
+			ctx.graphics.unused_resource_sender.clone(),
+			vertex,
+			fragment,
+			None,
+			None,
+		)
 	}
 
 	pub fn from_vertex_str(ctx: &Context, vertex: &str) -> Result<Self, LoadShaderError> {
@@ -70,52 +119,6 @@ impl Shader {
 
 	pub fn from_fragment_str(ctx: &Context, fragment: &str) -> Result<Self, LoadShaderError> {
 		Self::from_strs(ctx, DEFAULT_VERTEX_SHADER, fragment)
-	}
-
-	pub(crate) fn new_from_gl(
-		gl: &glow::Context,
-		unused_resource_sender: Sender<UnusedGraphicsResource>,
-		vertex: &str,
-		fragment: &str,
-	) -> Result<Self, String> {
-		let vertex_shader = unsafe {
-			gl.create_shader(glow::VERTEX_SHADER)
-				.expect("error creating vertex shader")
-		};
-		unsafe {
-			gl.shader_source(vertex_shader, &Self::preprocess_shader_code(vertex));
-			gl.compile_shader(vertex_shader);
-			if !gl.get_shader_compile_status(vertex_shader) {
-				return Err(gl.get_shader_info_log(vertex_shader));
-			}
-		}
-		let fragment_shader = unsafe {
-			gl.create_shader(glow::FRAGMENT_SHADER)
-				.expect("error creating fragment shader")
-		};
-		unsafe {
-			gl.shader_source(fragment_shader, &Self::preprocess_shader_code(fragment));
-			gl.compile_shader(fragment_shader);
-			if !gl.get_shader_compile_status(fragment_shader) {
-				return Err(gl.get_shader_info_log(fragment_shader));
-			}
-		}
-		let program = unsafe { gl.create_program().expect("error creating shader program") };
-		unsafe {
-			gl.attach_shader(program, vertex_shader);
-			gl.attach_shader(program, fragment_shader);
-			gl.link_program(program);
-			if !gl.get_program_link_status(program) {
-				return Err(gl.get_program_info_log(program));
-			}
-			gl.delete_shader(vertex_shader);
-			gl.delete_shader(fragment_shader);
-		}
-		Ok(Self {
-			unused_resource_sender,
-			program,
-			sent_textures: HashMap::new(),
-		})
 	}
 
 	pub fn send_bool(&self, ctx: &Context, name: &str, value: bool) -> Result<(), UniformNotFound> {
@@ -297,6 +300,62 @@ impl Shader {
 		Ok(())
 	}
 
+	pub(crate) fn new_inner(
+		gl: &glow::Context,
+		unused_resource_sender: Sender<UnusedGraphicsResource>,
+		vertex: RawShaderCode,
+		fragment: RawShaderCode,
+		vertex_path: Option<&Path>,
+		fragment_path: Option<&Path>,
+	) -> Result<Self, LoadShaderError> {
+		let VersionedShaderCode(vertex) = vertex.preprocess(vertex_path)?.into();
+		let VersionedShaderCode(fragment) = fragment.preprocess(fragment_path)?.into();
+		let vertex_shader = unsafe {
+			gl.create_shader(glow::VERTEX_SHADER)
+				.expect("error creating vertex shader")
+		};
+		unsafe {
+			gl.shader_source(vertex_shader, &vertex);
+			gl.compile_shader(vertex_shader);
+			if !gl.get_shader_compile_status(vertex_shader) {
+				return Err(LoadShaderError::ShaderError(
+					gl.get_shader_info_log(vertex_shader),
+				));
+			}
+		}
+		let fragment_shader = unsafe {
+			gl.create_shader(glow::FRAGMENT_SHADER)
+				.expect("error creating fragment shader")
+		};
+		unsafe {
+			gl.shader_source(fragment_shader, &fragment);
+			gl.compile_shader(fragment_shader);
+			if !gl.get_shader_compile_status(fragment_shader) {
+				return Err(LoadShaderError::ShaderError(
+					gl.get_shader_info_log(fragment_shader),
+				));
+			}
+		}
+		let program = unsafe { gl.create_program().expect("error creating shader program") };
+		unsafe {
+			gl.attach_shader(program, vertex_shader);
+			gl.attach_shader(program, fragment_shader);
+			gl.link_program(program);
+			if !gl.get_program_link_status(program) {
+				return Err(LoadShaderError::ShaderError(
+					gl.get_program_info_log(program),
+				));
+			}
+			gl.delete_shader(vertex_shader);
+			gl.delete_shader(fragment_shader);
+		}
+		Ok(Self {
+			unused_resource_sender,
+			program,
+			sent_textures: HashMap::new(),
+		})
+	}
+
 	pub(crate) fn bind_sent_textures(&self, ctx: &Context) {
 		let gl = &ctx.graphics.gl;
 		unsafe {
@@ -325,6 +384,8 @@ struct SentTextureInfo {
 
 #[derive(Debug, Error)]
 pub enum LoadShaderError {
+	#[error("cannot use the #include directive when loading shaders from a str")]
+	IncludeFromStrError,
 	#[error("{0}")]
 	IoError(#[from] std::io::Error),
 	#[error("{0}")]

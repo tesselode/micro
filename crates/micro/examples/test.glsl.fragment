@@ -1,0 +1,6 @@
+void main()
+{
+    gl_Position = globalTransform * localTransform * vec4(aPos, 0.0, 1.0);
+    TexCoord = aTexCoord;
+    Color = aColor;
+}

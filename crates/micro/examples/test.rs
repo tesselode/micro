@@ -32,7 +32,7 @@ struct MainState {
 impl MainState {
 	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(MainState {
-			shader: Shader::from_combined_str(ctx, include_str!("test.glsl"))?,
+			shader: Shader::from_combined_file(ctx, "crates/micro/examples/test.glsl")?,
 		})
 	}
 }

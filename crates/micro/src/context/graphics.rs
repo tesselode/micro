@@ -11,7 +11,7 @@ use sdl2::{
 };
 
 use crate::graphics::{
-	shader::{Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
+	shader::{preprocess::RawShaderCode, Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
 	texture::{Texture, TextureSettings},
 	unused_resource::UnusedGraphicsResource,
 };
@@ -54,11 +54,13 @@ impl GraphicsContext {
 			TextureSettings::default(),
 			false,
 		);
-		let default_shader = Shader::new_from_gl(
+		let default_shader = Shader::new_inner(
 			&gl,
 			unused_resource_sender.clone(),
-			DEFAULT_VERTEX_SHADER,
-			DEFAULT_FRAGMENT_SHADER,
+			RawShaderCode(DEFAULT_VERTEX_SHADER.to_owned()),
+			RawShaderCode(DEFAULT_FRAGMENT_SHADER.to_owned()),
+			None,
+			None,
 		)
 		.expect("Error compiling default shader");
 		Self {

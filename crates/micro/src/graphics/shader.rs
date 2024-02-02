@@ -83,7 +83,7 @@ impl Shader {
 				.expect("error creating vertex shader")
 		};
 		unsafe {
-			gl.shader_source(vertex_shader, vertex);
+			gl.shader_source(vertex_shader, &Self::preprocess_shader_code(vertex));
 			gl.compile_shader(vertex_shader);
 			if !gl.get_shader_compile_status(vertex_shader) {
 				return Err(gl.get_shader_info_log(vertex_shader));
@@ -94,7 +94,7 @@ impl Shader {
 				.expect("error creating fragment shader")
 		};
 		unsafe {
-			gl.shader_source(fragment_shader, fragment);
+			gl.shader_source(fragment_shader, &Self::preprocess_shader_code(fragment));
 			gl.compile_shader(fragment_shader);
 			if !gl.get_shader_compile_status(fragment_shader) {
 				return Err(gl.get_shader_info_log(fragment_shader));

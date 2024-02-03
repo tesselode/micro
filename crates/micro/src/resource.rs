@@ -66,10 +66,23 @@ impl<L: ResourceLoader> Resources<L> {
 			.or(self.placeholder.as_ref())
 	}
 
+	pub fn get_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut L::Resource> {
+		self.resources
+			.get_mut(path.as_ref())
+			.map(|resource| &mut resource.resource)
+			.or(self.placeholder.as_mut())
+	}
+
 	pub fn iter(&self) -> impl Iterator<Item = (&Path, &L::Resource)> {
 		self.resources
 			.iter()
 			.map(|(path, resource)| (path.as_ref(), &resource.resource))
+	}
+
+	pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Path, &mut L::Resource)> {
+		self.resources
+			.iter_mut()
+			.map(|(path, resource)| (path.as_ref(), &mut resource.resource))
 	}
 
 	#[cfg(debug_assertions)]

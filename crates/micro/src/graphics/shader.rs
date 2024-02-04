@@ -2,7 +2,9 @@ use std::{collections::HashMap, path::Path, sync::mpsc::Sender};
 
 use glam::{Mat3, Mat4, Vec2, Vec3, Vec4};
 use glow::{HasContext, NativeProgram};
+use once_cell::sync::Lazy;
 use palette::LinSrgba;
+use regex_lite::{Captures, Regex};
 use thiserror::Error;
 
 use crate::context::Context;
@@ -26,10 +28,12 @@ impl Shader {
 		vertex: impl AsRef<Path>,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
+		let vertex = vertex.as_ref();
+		let fragment = fragment.as_ref();
 		Self::from_str(
 			ctx,
-			&std::fs::read_to_string(vertex)?,
-			&std::fs::read_to_string(fragment)?,
+			&resolve_includes(&std::fs::read_to_string(vertex)?, vertex)?,
+			&resolve_includes(&std::fs::read_to_string(fragment)?, fragment)?,
 		)
 	}
 
@@ -37,14 +41,22 @@ impl Shader {
 		ctx: &Context,
 		vertex: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Self::from_vertex_str(ctx, &std::fs::read_to_string(vertex)?)
+		let vertex = vertex.as_ref();
+		Self::from_vertex_str(
+			ctx,
+			&resolve_includes(&std::fs::read_to_string(vertex)?, vertex)?,
+		)
 	}
 
 	pub fn from_fragment_file(
 		ctx: &Context,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Self::from_fragment_str(ctx, &std::fs::read_to_string(fragment)?)
+		let fragment = fragment.as_ref();
+		Self::from_fragment_str(
+			ctx,
+			&resolve_includes(&std::fs::read_to_string(fragment)?, fragment)?,
+		)
 	}
 
 	pub fn from_str(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
@@ -276,12 +288,6 @@ impl Drop for Shader {
 	}
 }
 
-#[derive(Debug, Clone)]
-struct SentTextureInfo {
-	pub texture: Texture,
-	pub unit: u32,
-}
-
 #[derive(Debug, Error)]
 pub enum LoadShaderError {
 	#[error("{0}")]
@@ -306,4 +312,44 @@ pub enum SendTextureError {
 	TooManyTextures,
 	#[error("This shader does not have a uniform called {0}")]
 	UniformNotFound(String),
+}
+
+#[derive(Debug, Clone)]
+struct SentTextureInfo {
+	pub texture: Texture,
+	pub unit: u32,
+}
+
+fn resolve_includes(code: &str, path: &Path) -> Result<String, LoadShaderError> {
+	static INCLUDE_REGEX: Lazy<Regex> =
+		Lazy::new(|| Regex::new("#include \"(.*)\"").expect("error compiling include regex"));
+	replace_fallible(
+		&INCLUDE_REGEX,
+		code,
+		|captures| -> Result<String, LoadShaderError> {
+			let relative_path = &captures[1];
+			let full_path = path
+				.parent()
+				.expect("shader path has no parent")
+				.join(relative_path);
+			resolve_includes(&std::fs::read_to_string(&full_path)?, &full_path)
+		},
+	)
+}
+
+fn replace_fallible<E>(
+	re: &Regex,
+	haystack: &str,
+	replacement: impl Fn(&Captures) -> Result<String, E>,
+) -> Result<String, E> {
+	let mut new = String::with_capacity(haystack.len());
+	let mut last_match = 0;
+	for caps in re.captures_iter(haystack) {
+		let m = caps.get(0).unwrap();
+		new.push_str(&haystack[last_match..m.start()]);
+		new.push_str(&replacement(&caps)?);
+		last_match = m.end();
+	}
+	new.push_str(&haystack[last_match..]);
+	Ok(new)
 }

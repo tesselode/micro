@@ -4,6 +4,7 @@ use glam::{Mat4, UVec2, Vec2, Vec3};
 use micro::{
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
+		shader::Shader,
 		ColorConstants, DrawParams,
 	},
 	math::Circle,
@@ -24,11 +25,15 @@ fn main() {
 	);
 }
 
-struct MainState;
+struct MainState {
+	shader: Shader,
+}
 
 impl MainState {
 	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(MainState)
+		Ok(MainState {
+			shader: Shader::from_fragment_file(ctx, "crates/micro/examples/fragment.glsl")?,
+		})
 	}
 }
 
@@ -56,7 +61,7 @@ impl State<Box<dyn Error>> for MainState {
 			},
 			LinSrgba::WHITE,
 		)?
-		.draw(ctx, DrawParams::new());
+		.draw(ctx, &self.shader);
 		Ok(())
 	}
 }

@@ -3,7 +3,7 @@ mod resource_with_metadata;
 
 use std::{
 	fmt::Debug,
-	ops::Index,
+	ops::{Index, IndexMut},
 	path::{Path, PathBuf},
 	time::Duration,
 };
@@ -219,6 +219,12 @@ impl<T: AsRef<Path>, L: ResourceLoader> Index<T> for Resources<L> {
 
 	fn index(&self, path: T) -> &Self::Output {
 		self.get(path).unwrap()
+	}
+}
+
+impl<T: AsRef<Path>, L: ResourceLoader> IndexMut<T> for Resources<L> {
+	fn index_mut(&mut self, path: T) -> &mut Self::Output {
+		self.get_mut(path).unwrap()
 	}
 }
 

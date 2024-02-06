@@ -265,12 +265,14 @@ impl Context {
 				.gl
 				.stencil_func(glow::ALWAYS, reference.into(), 0xFF);
 			self.graphics.gl.stencil_mask(0xFF);
+			self.graphics.gl.depth_mask(false);
 		}
 		OnDrop {
 			ctx: self,
 			on_drop: |ctx| unsafe {
 				ctx.graphics.gl.color_mask(true, true, true, true);
 				ctx.graphics.gl.disable(glow::STENCIL_TEST);
+				ctx.graphics.gl.depth_mask(true);
 			},
 		}
 	}

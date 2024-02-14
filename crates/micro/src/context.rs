@@ -31,6 +31,7 @@ use crate::{
 
 use self::graphics::GraphicsContext;
 
+/// Runs the game. Call this in your `main` function.
 pub fn run<S, F, E>(settings: ContextSettings, state_constructor: F)
 where
 	S: State<E>,
@@ -131,6 +132,8 @@ where
 	Ok(())
 }
 
+/// The main interface between your game code and functionality provided
+/// by the framework.
 pub struct Context {
 	_sdl: Sdl,
 	video: VideoSubsystem,
@@ -146,11 +149,13 @@ pub struct Context {
 }
 
 impl Context {
+	/// Gets the drawable size of the window (in pixels).
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.size();
 		UVec2::new(width, height)
 	}
 
+	/// Returns the current window mode (windowed or fullscreen).
 	pub fn window_mode(&self) -> WindowMode {
 		match self.window.fullscreen_state() {
 			FullscreenType::Off => WindowMode::Windowed {
@@ -161,16 +166,19 @@ impl Context {
 		}
 	}
 
+	/// Returns the current swap interval (vsync on or off).
 	pub fn swap_interval(&self) -> SwapInterval {
 		self.video.gl_get_swap_interval()
 	}
 
+	/// Returns the resolution of the monitor the window is on.
 	pub fn monitor_resolution(&self) -> Result<UVec2, SdlError> {
 		let display_index = self.window.display_index()?;
 		let display_mode = self.video.desktop_display_mode(display_index)?;
 		Ok(UVec2::new(display_mode.w as u32, display_mode.h as u32))
 	}
 
+	/// Sets the window mode (windowed or fullscreen).
 	pub fn set_window_mode(&mut self, window_mode: WindowMode) -> Result<(), SdlError> {
 		match window_mode {
 			WindowMode::Fullscreen => {
@@ -191,11 +199,13 @@ impl Context {
 		Ok(())
 	}
 
+	/// Sets the swap interval (vsync on or off).
 	pub fn set_swap_interval(&mut self, swap_interval: SwapInterval) -> Result<(), SdlError> {
 		self.video.gl_set_swap_interval(swap_interval)?;
 		Ok(())
 	}
 
+	/// Clears the window surface to the given color. Also clears the stencil buffer and depth buffer.
 	pub fn clear(&self, color: LinSrgba) {
 		unsafe {
 			self.graphics
@@ -210,6 +220,7 @@ impl Context {
 		}
 	}
 
+	/// Clears the stencil buffer.
 	pub fn clear_stencil(&self) {
 		unsafe {
 			self.graphics.gl.stencil_mask(0xFF);
@@ -219,12 +230,30 @@ impl Context {
 		}
 	}
 
+	/// Clears the depth buffer.
 	pub fn clear_depth_buffer(&self) {
 		unsafe {
 			self.graphics.gl.clear(glow::DEPTH_BUFFER_BIT);
 		}
 	}
 
+	/// Creates a scope where all drawing operations have the given transform
+	/// applied.
+	///
+	/// Calls to `transform` can be nested.
+	///
+	/// ```rust
+	/// use glam::{Mat4, Vec3};
+	///
+	/// # fn fake(ctx: &mut micro::Context) {
+	/// {
+	///     let ctx = &mut ctx.transform(Mat4::from_scale(Vec3::new(2.0, 2.0, 1.0)));
+	///     // the next drawing operations will have a transform applied
+	///     // ...
+	/// }
+	/// // the following drawing operations will be back to normal
+	/// # }
+	/// ```
 	pub fn transform(&mut self, transform: Mat4) -> OnDrop {
 		self.graphics.transform_stack.push(transform);
 		OnDrop {
@@ -235,6 +264,25 @@ impl Context {
 		}
 	}
 
+	/// Creates a scope where all drawing operations use the given 3D camera.
+	///
+	/// This also turns on the depth buffer.
+	///
+	/// ```rust
+	/// use micro::graphics::Camera3d;
+	/// use glam::Vec3;
+	///
+	/// # fn fake(ctx: &mut micro::Context) {
+	/// {
+	///     let ctx = &mut ctx.use_3d_camera(
+	///         Camera3d::perspective(90.0, 16.0 / 9.0, 0.01..=1000.0, Vec3::ZERO, Vec3::new(0.0, 0.0, 1.0))
+	///     );
+	///     // the next drawing operations will use the 3d camera
+	///     // ...
+	/// }
+	/// // the following drawing operations will be back to normal
+	/// # }
+	/// ```
 	pub fn use_3d_camera(&mut self, camera: Camera3d) -> OnDrop {
 		self.graphics.transform_stack.push(camera.transform(self));
 		unsafe {
@@ -296,6 +344,7 @@ impl Context {
 		}
 	}
 
+	/// Returns `true` if the given keyboard key is currently held down.
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
 		self.event_pump
 			.keyboard_state()
@@ -303,6 +352,7 @@ impl Context {
 			&& !self.egui_wants_keyboard_input
 	}
 
+	/// Returns `true` if the given mouse button is currently held down.
 	pub fn is_mouse_button_down(&self, mouse_button: MouseButton) -> bool {
 		self.event_pump
 			.mouse_state()
@@ -310,6 +360,8 @@ impl Context {
 			&& !self.egui_wants_mouse_input
 	}
 
+	/// Returns the current mouse position (in pixels, relative to the top-left
+	/// corner of the window).
 	pub fn mouse_position(&self) -> IVec2 {
 		let mouse_state = self.event_pump.mouse_state();
 		let untransformed = IVec2::new(mouse_state.x(), mouse_state.y());
@@ -320,6 +372,7 @@ impl Context {
 			.as_ivec2()
 	}
 
+	/// Gets the game controller with the given index if it's connected.
 	pub fn game_controller(&self, index: u32) -> Option<Gamepad> {
 		match self.controller.open(index) {
 			Ok(controller) => Some(Gamepad(controller)),
@@ -332,14 +385,17 @@ impl Context {
 		}
 	}
 
+	/// Returns the average duration of a frame over the past 30 frames.
 	pub fn average_frame_time(&self) -> Duration {
 		self.frame_time_tracker.average()
 	}
 
+	/// Returns the current frames per second the game is running at.
 	pub fn fps(&self) -> f32 {
 		1.0 / self.average_frame_time().as_secs_f32()
 	}
 
+	/// Quits the game.
 	pub fn quit(&mut self) {
 		self.should_quit = true;
 	}

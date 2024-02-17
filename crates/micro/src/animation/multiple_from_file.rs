@@ -39,7 +39,7 @@ fn frames_grouped_by_filename(
 		let (filename, frame_index) = filename_and_frame_index_from_frame_name(frame_name)?;
 		frames
 			.entry(filename.to_string())
-			.or_insert_with(Vec::new)
+			.or_default()
 			.push((frame_index, (*frame).into()))
 	}
 	// sort each list of frames by the frame index, then discard the frame index
@@ -64,7 +64,7 @@ fn animations_grouped_by_filename(
 			filename_and_animation_name_from_tag_name(&frame_tag.name)?;
 		animations
 			.entry(filename.to_string())
-			.or_insert_with(HashMap::new)
+			.or_default()
 			.insert(animation_name.to_string(), frame_tag.clone().try_into()?);
 	}
 	Ok(animations)

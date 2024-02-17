@@ -2,15 +2,13 @@ use std::{path::Path, rc::Rc, sync::mpsc::Sender};
 
 use glam::{IVec2, UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
+use image::{ImageBuffer, ImageError};
 use palette::LinSrgba;
+use thiserror::Error;
 
 use crate::{
 	context::Context,
-	graphics::{
-		draw_params::DrawParams,
-		image_data::{ImageData, LoadImageDataError},
-		mesh::Mesh,
-	},
+	graphics::{draw_params::DrawParams, mesh::Mesh},
 	math::Rect,
 };
 
@@ -44,19 +42,91 @@ impl Texture {
 		)
 	}
 
-	pub fn from_image_data(
+	pub fn from_image(
 		ctx: &Context,
-		image_data: &ImageData,
+		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 		settings: TextureSettings,
 	) -> Self {
 		Self::new_from_gl(
 			&ctx.graphics.gl,
 			ctx.graphics.unused_resource_sender.clone(),
-			image_data.size,
-			Some(&image_data.pixels),
+			UVec2::new(image.width(), image.height()),
+			Some(image.as_raw()),
 			settings,
 			false,
 		)
+	}
+
+	pub fn from_file(
+		ctx: &Context,
+		path: impl AsRef<Path>,
+		settings: TextureSettings,
+	) -> Result<Self, LoadTextureError> {
+		let image = image::io::Reader::open(path)?.decode()?.to_rgba8();
+		Ok(Self::from_image(ctx, &image, settings))
+	}
+
+	pub fn size(&self) -> UVec2 {
+		self.inner.size
+	}
+
+	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
+		let size = self.inner.size.as_vec2();
+		Rect::from_top_left_and_bottom_right(
+			absolute_rect.top_left / size,
+			absolute_rect.bottom_right() / size,
+		)
+	}
+
+	pub fn replace(
+		&self,
+		ctx: &Context,
+		top_left: IVec2,
+		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+	) {
+		let gl = &ctx.graphics.gl;
+		unsafe {
+			gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
+			gl.tex_sub_image_2d(
+				glow::TEXTURE_2D,
+				0,
+				top_left.x,
+				top_left.y,
+				image.width() as i32,
+				image.height() as i32,
+				glow::RGBA,
+				glow::UNSIGNED_BYTE,
+				PixelUnpackData::Slice(image.as_raw()),
+			);
+		}
+	}
+
+	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
+		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.inner.size.as_vec2()))
+			.draw_textured(ctx, self, params);
+	}
+
+	pub fn draw_region<'a>(&self, ctx: &Context, region: Rect, params: impl Into<DrawParams<'a>>) {
+		Mesh::rectangle_with_texture_region(
+			ctx,
+			Rect::new(Vec2::ZERO, region.size),
+			self.relative_rect(region),
+		)
+		.draw_textured(ctx, self, params);
+	}
+
+	pub fn draw_nine_slice<'a>(
+		&self,
+		ctx: &Context,
+		nine_slice: NineSlice,
+		display_rect: Rect,
+		params: impl Into<DrawParams<'a>>,
+	) {
+		let mut sprite_batch = SpriteBatch::new(ctx, self, 9);
+		sprite_batch
+			.add_nine_slice(ctx, nine_slice, display_rect, SpriteParams::default())
+			.unwrap();
+		sprite_batch.draw(ctx, params)
 	}
 
 	pub(crate) fn new_from_gl(
@@ -122,73 +192,6 @@ impl Texture {
 				unused_resource_sender,
 			}),
 		}
-	}
-
-	pub fn from_file(
-		ctx: &Context,
-		path: impl AsRef<Path>,
-		settings: TextureSettings,
-	) -> Result<Self, LoadImageDataError> {
-		let image_data = ImageData::from_file(path)?;
-		Ok(Self::from_image_data(ctx, &image_data, settings))
-	}
-
-	pub fn size(&self) -> UVec2 {
-		self.inner.size
-	}
-
-	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
-		let size = self.inner.size.as_vec2();
-		Rect::from_top_left_and_bottom_right(
-			absolute_rect.top_left / size,
-			absolute_rect.bottom_right() / size,
-		)
-	}
-
-	pub fn replace(&self, ctx: &Context, top_left: IVec2, image_data: &ImageData) {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
-			gl.tex_sub_image_2d(
-				glow::TEXTURE_2D,
-				0,
-				top_left.x,
-				top_left.y,
-				image_data.size.x as i32,
-				image_data.size.y as i32,
-				glow::RGBA,
-				glow::UNSIGNED_BYTE,
-				PixelUnpackData::Slice(&image_data.pixels),
-			);
-		}
-	}
-
-	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
-		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.inner.size.as_vec2()))
-			.draw_textured(ctx, self, params);
-	}
-
-	pub fn draw_region<'a>(&self, ctx: &Context, region: Rect, params: impl Into<DrawParams<'a>>) {
-		Mesh::rectangle_with_texture_region(
-			ctx,
-			Rect::new(Vec2::ZERO, region.size),
-			self.relative_rect(region),
-		)
-		.draw_textured(ctx, self, params);
-	}
-
-	pub fn draw_nine_slice<'a>(
-		&self,
-		ctx: &Context,
-		nine_slice: NineSlice,
-		display_rect: Rect,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		let mut sprite_batch = SpriteBatch::new(ctx, self, 9);
-		sprite_batch
-			.add_nine_slice(ctx, nine_slice, display_rect, SpriteParams::default())
-			.unwrap();
-		sprite_batch.draw(ctx, params)
 	}
 
 	pub(crate) fn attach_to_framebuffer(&mut self, ctx: &Context) {
@@ -269,4 +272,12 @@ impl Default for TextureFilter {
 	fn default() -> Self {
 		Self::Nearest
 	}
+}
+
+#[derive(Debug, Error)]
+pub enum LoadTextureError {
+	#[error("{0}")]
+	IoError(#[from] std::io::Error),
+	#[error("{0}")]
+	ImageError(#[from] ImageError),
 }

@@ -1,11 +1,9 @@
 use glam::{IVec2, UVec2};
+use image::ImageBuffer;
 use palette::{rgb::channels::Rgba, Srgba};
 
 use crate::{
-	graphics::{
-		texture::{Texture, TextureSettings},
-		ImageData, LoadImageDataError,
-	},
+	graphics::texture::{LoadTextureError, Texture, TextureSettings},
 	Context,
 };
 
@@ -20,7 +18,7 @@ pub struct TextureLoader {
 impl ResourceLoader for TextureLoader {
 	type Resource = Texture;
 
-	type Error = LoadImageDataError;
+	type Error = LoadTextureError;
 
 	type Settings = TextureSettings;
 
@@ -46,27 +44,19 @@ impl ResourceLoader for TextureLoader {
 		path: &std::path::Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		resource.replace(ctx, IVec2::ZERO, &ImageData::from_file(path)?);
+		let image = image::io::Reader::open(path)?.decode()?.to_rgba8();
+		resource.replace(ctx, IVec2::ZERO, &image);
 		Ok(())
 	}
 
 	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Resource> {
 		let color = Srgba::from_u32::<Rgba>(0xe93cfcff);
-		let num_pixels = self.placeholder_texture_size.x * self.placeholder_texture_size.y;
-		let image_data = ImageData {
-			size: self.placeholder_texture_size,
-			pixels: [color.red, color.green, color.blue, color.alpha]
-				.iter()
-				.copied()
-				.cycle()
-				.take(num_pixels as usize * 4)
-				.collect(),
-		};
-		Some(Texture::from_image_data(
-			ctx,
-			&image_data,
-			self.default_settings,
-		))
+		let image = ImageBuffer::from_pixel(
+			self.placeholder_texture_size.x,
+			self.placeholder_texture_size.y,
+			image::Rgba(color.into()),
+		);
+		Some(Texture::from_image(ctx, &image, self.default_settings))
 	}
 }
 

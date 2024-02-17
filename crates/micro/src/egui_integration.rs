@@ -2,6 +2,7 @@ use std::{collections::HashMap, time::Duration};
 
 use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
 use glam::IVec2;
+use image::ImageBuffer;
 use palette::{LinSrgba, Srgba};
 
 use crate::{
@@ -105,14 +106,14 @@ fn patch_textures(
 			texture.replace(
 				ctx,
 				top_left,
-				&egui_image_data_to_micro_image_data(&delta.image),
+				&egui_image_data_to_image_buffer(&delta.image),
 			)
 		} else {
 			textures.insert(
 				*texture_id,
-				Texture::from_image_data(
+				Texture::from_image(
 					ctx,
-					&egui_image_data_to_micro_image_data(&delta.image),
+					&egui_image_data_to_image_buffer(&delta.image),
 					TextureSettings::default(),
 				),
 			);
@@ -325,28 +326,30 @@ fn egui_vertex_to_micro_vertex_2d(vertex: egui::epaint::Vertex) -> Vertex2d {
 	}
 }
 
-fn egui_image_data_to_micro_image_data(image_data: &egui::ImageData) -> crate::graphics::ImageData {
-	let size = glam::UVec2::new(image_data.width() as u32, image_data.height() as u32);
-	let mut pixels = vec![];
+fn egui_image_data_to_image_buffer(
+	image_data: &egui::ImageData,
+) -> ImageBuffer<image::Rgba<u8>, Vec<u8>> {
 	match image_data {
-		egui::ImageData::Color(color_image) => {
-			for pixel in &color_image.pixels {
-				pixels.push(pixel.r());
-				pixels.push(pixel.g());
-				pixels.push(pixel.b());
-				pixels.push(pixel.a());
-			}
-		}
+		egui::ImageData::Color(color_image) => ImageBuffer::from_fn(
+			image_data.width() as u32,
+			image_data.height() as u32,
+			|x, y| {
+				image::Rgba(
+					color_image.pixels[coords_to_index(x, y, image_data.width() as u32)].to_array(),
+				)
+			},
+		),
 		egui::ImageData::Font(font_image) => {
-			for pixel in font_image.srgba_pixels(None) {
-				pixels.push(pixel.r());
-				pixels.push(pixel.g());
-				pixels.push(pixel.b());
-				pixels.push(pixel.a());
-			}
+			let pixels = font_image.srgba_pixels(None).collect::<Vec<_>>();
+			ImageBuffer::from_fn(
+				image_data.width() as u32,
+				image_data.height() as u32,
+				|x, y| {
+					image::Rgba(pixels[coords_to_index(x, y, image_data.width() as u32)].to_array())
+				},
+			)
 		}
 	}
-	crate::graphics::ImageData { size, pixels }
 }
 
 fn egui_scaling_factor(ctx: &Context) -> f32 {
@@ -354,4 +357,8 @@ fn egui_scaling_factor(ctx: &Context) -> f32 {
 		return 1.0;
 	};
 	(monitor_resolution.y as f32 / 1080.0).max(1.0)
+}
+
+fn coords_to_index(x: u32, y: u32, width: u32) -> usize {
+	(x + width * y) as usize
 }

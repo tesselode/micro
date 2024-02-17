@@ -2,14 +2,12 @@ use std::{collections::HashMap, path::Path};
 
 use crunch::{pack_into_po2, PackedItem, PackedItems};
 use glam::{UVec2, Vec2};
+use image::ImageBuffer;
 use thiserror::Error;
 
 use crate::{
 	context::Context,
-	graphics::{
-		image_data::ImageData,
-		texture::{Texture, TextureSettings},
-	},
+	graphics::texture::{Texture, TextureSettings},
 	math::Rect,
 };
 
@@ -91,7 +89,10 @@ pub enum LoadFontError {
 	FontError(&'static str),
 }
 
-fn rasterize_chars(font: &fontdue::Font, settings: FontSettings) -> HashMap<char, ImageData> {
+fn rasterize_chars(
+	font: &fontdue::Font,
+	settings: FontSettings,
+) -> HashMap<char, ImageBuffer<image::Rgba<u8>, Vec<u8>>> {
 	settings
 		.chars
 		.chars()
@@ -103,16 +104,15 @@ fn rasterize_chars(font: &fontdue::Font, settings: FontSettings) -> HashMap<char
 			}
 			(
 				char,
-				ImageData {
-					size: UVec2::new(metrics.width as u32, metrics.height as u32),
-					pixels,
-				},
+				ImageBuffer::from_vec(metrics.width as u32, metrics.height as u32, pixels).unwrap(),
 			)
 		})
 		.collect()
 }
 
-fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, HashMap<char, Rect>) {
+fn pack_glyphs(
+	glyph_image_data: &HashMap<char, ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
+) -> (usize, usize, HashMap<char, Rect>) {
 	let PackedItems {
 		w: width,
 		h: height,
@@ -120,8 +120,8 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 	} = pack_into_po2(
 		usize::MAX,
 		glyph_image_data.iter().map(|(char, image_data)| {
-			let base_width: usize = image_data.size.x as usize;
-			let base_height: usize = image_data.size.y as usize;
+			let base_width: usize = image_data.width() as usize;
+			let base_height: usize = image_data.height() as usize;
 			crunch::Item {
 				data: char,
 				w: base_width + GLYPH_PADDING * 2,
@@ -158,7 +158,7 @@ fn pack_glyphs(glyph_image_data: &HashMap<char, ImageData>) -> (usize, usize, Ha
 fn create_texture(
 	ctx: &Context,
 	size: UVec2,
-	glyph_image_data: &HashMap<char, ImageData>,
+	glyph_image_data: &HashMap<char, ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
 	glyph_rects: &HashMap<char, Rect>,
 	texture_settings: TextureSettings,
 ) -> Texture {

@@ -15,6 +15,8 @@ use crate::{
 	Context,
 };
 
+const SCROLL_SPEED: f32 = 25.0;
+
 pub fn egui_raw_input(
 	ctx: &Context,
 	events: &[sdl2::event::Event],
@@ -166,9 +168,10 @@ fn sdl2_event_to_egui_event(
 			pressed: false,
 			modifiers,
 		}),
-		sdl2::event::Event::MouseWheel { x, y, .. } => {
-			Some(egui::Event::Scroll(egui::vec2(x as f32, y as f32)))
-		}
+		sdl2::event::Event::MouseWheel { x, y, .. } => Some(egui::Event::Scroll(egui::vec2(
+			x as f32 * SCROLL_SPEED,
+			y as f32 * SCROLL_SPEED,
+		))),
 		_ => None,
 	}
 }

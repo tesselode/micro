@@ -69,7 +69,7 @@ pub fn draw_egui_output(
 				{
 					let ctx = &mut ctx.write_to_stencil(StencilAction::Replace(1));
 					let clip_rect_points = egui_rect_to_micro_rect(clipped_primitive.clip_rect);
-					let clip_rect_pixels = crate::math::Rect::new(
+					let clip_rect_pixels = crate::math::Rect::from_top_left_and_bottom_right(
 						clip_rect_points.top_left * scaling_factor,
 						clip_rect_points.bottom_right() * scaling_factor,
 					);
@@ -308,7 +308,10 @@ fn egui_color32_to_palette_lin_srgba(v: egui::epaint::Color32) -> LinSrgba {
 }
 
 fn egui_rect_to_micro_rect(v: egui::Rect) -> crate::math::Rect {
-	crate::math::Rect::new(egui_pos2_to_glam_vec2(v.min), egui_pos2_to_glam_vec2(v.max))
+	crate::math::Rect::from_top_left_and_bottom_right(
+		egui_pos2_to_glam_vec2(v.min),
+		egui_pos2_to_glam_vec2(v.max),
+	)
 }
 
 fn egui_mesh_to_micro_mesh(ctx: &Context, egui_mesh: egui::Mesh) -> Mesh<Vertex2d> {

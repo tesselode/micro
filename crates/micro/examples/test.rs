@@ -1,18 +1,31 @@
 use std::error::Error;
 
 use egui::ComboBox;
-use micro::{graphics::ColorConstants, Context, ContextSettings, State};
+use glam::Vec2;
+use micro::{
+	graphics::{
+		mesh::{Mesh, ShapeStyle},
+		shader::Shader,
+		ColorConstants,
+	},
+	math::Circle,
+	Context, ContextSettings, State,
+};
 use palette::LinSrgba;
 
 fn main() {
 	micro::run(ContextSettings::default(), MainState::new);
 }
 
-struct MainState;
+struct MainState {
+	shader: Shader,
+}
 
 impl MainState {
 	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self)
+		Ok(Self {
+			shader: Shader::from_combined_str(ctx, include_str!("shader.glsl"))?,
+		})
 	}
 }
 
@@ -27,6 +40,16 @@ impl State<Box<dyn Error>> for MainState {
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(LinSrgba::BLACK);
+		Mesh::circle(
+			ctx,
+			ShapeStyle::Fill,
+			Circle {
+				center: Vec2::new(50.0, 50.0),
+				radius: 20.0,
+			},
+			LinSrgba::WHITE,
+		)?
+		.draw(ctx, &self.shader);
 		Ok(())
 	}
 }

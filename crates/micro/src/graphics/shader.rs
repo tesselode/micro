@@ -2,7 +2,9 @@ use std::{collections::HashMap, path::Path, sync::mpsc::Sender};
 
 use glam::{Mat3, Mat4, Vec2, Vec3, Vec4};
 use glow::{HasContext, NativeProgram};
+use once_cell::sync::Lazy;
 use palette::LinSrgba;
+use regex_lite::Regex;
 use thiserror::Error;
 
 use crate::context::Context;
@@ -12,6 +14,10 @@ use super::{texture::Texture, unused_resource::UnusedGraphicsResource};
 const TEXTURE_UNITS: u32 = 32;
 pub(crate) const DEFAULT_FRAGMENT_SHADER: &str = include_str!("shader/fragment.glsl");
 pub(crate) const DEFAULT_VERTEX_SHADER: &str = include_str!("shader/vertex.glsl");
+static COMBINED_SHADER_SECTION_REGEX: Lazy<Regex> =
+	Lazy::new(|| Regex::new(r"// @(\w*)").expect("error compiling combined shader section regex"));
+const COMBINED_SHADER_VERTEX_SECTION_NAME: &str = "VERTEX";
+const COMBINED_SHADER_FRAGMENT_SECTION_NAME: &str = "FRAGMENT";
 
 #[derive(Debug)]
 pub struct Shader {
@@ -21,16 +27,23 @@ pub struct Shader {
 }
 
 impl Shader {
-	pub fn from_file(
+	pub fn from_files(
 		ctx: &Context,
 		vertex: impl AsRef<Path>,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
-		Self::from_str(
+		Self::from_strs(
 			ctx,
 			&std::fs::read_to_string(vertex)?,
 			&std::fs::read_to_string(fragment)?,
 		)
+	}
+
+	pub fn from_combined_file(
+		ctx: &Context,
+		combined: impl AsRef<Path>,
+	) -> Result<Self, LoadShaderError> {
+		Self::from_combined_str(ctx, &std::fs::read_to_string(combined)?)
 	}
 
 	pub fn from_vertex_file(
@@ -47,7 +60,7 @@ impl Shader {
 		Self::from_fragment_str(ctx, &std::fs::read_to_string(fragment)?)
 	}
 
-	pub fn from_str(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
+	pub fn from_strs(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
 		Self::new_from_gl(
 			&ctx.graphics.gl,
 			ctx.graphics.unused_resource_sender.clone(),
@@ -57,12 +70,34 @@ impl Shader {
 		.map_err(LoadShaderError::ShaderError)
 	}
 
+	pub fn from_combined_str(ctx: &Context, combined: &str) -> Result<Self, LoadShaderError> {
+		let split_code = COMBINED_SHADER_SECTION_REGEX
+			.captures_iter(combined)
+			.zip(COMBINED_SHADER_SECTION_REGEX.split(combined).skip(1))
+			.map(|(section_delimiter_captures, code)| {
+				let section_name = section_delimiter_captures[1].to_string();
+				(section_name, code.to_string())
+			})
+			.collect::<HashMap<_, _>>();
+		Self::from_strs(
+			ctx,
+			split_code
+				.get(COMBINED_SHADER_VERTEX_SECTION_NAME)
+				.map(String::as_str)
+				.unwrap_or(DEFAULT_VERTEX_SHADER),
+			split_code
+				.get(COMBINED_SHADER_FRAGMENT_SECTION_NAME)
+				.map(String::as_str)
+				.unwrap_or(DEFAULT_FRAGMENT_SHADER),
+		)
+	}
+
 	pub fn from_vertex_str(ctx: &Context, vertex: &str) -> Result<Self, LoadShaderError> {
-		Self::from_str(ctx, vertex, DEFAULT_FRAGMENT_SHADER)
+		Self::from_strs(ctx, vertex, DEFAULT_FRAGMENT_SHADER)
 	}
 
 	pub fn from_fragment_str(ctx: &Context, fragment: &str) -> Result<Self, LoadShaderError> {
-		Self::from_str(ctx, DEFAULT_VERTEX_SHADER, fragment)
+		Self::from_strs(ctx, DEFAULT_VERTEX_SHADER, fragment)
 	}
 
 	pub(crate) fn new_from_gl(

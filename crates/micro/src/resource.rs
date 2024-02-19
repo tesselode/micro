@@ -3,7 +3,7 @@ mod resource_with_metadata;
 
 use std::{
 	fmt::Debug,
-	ops::Index,
+	ops::{Index, IndexMut},
 	path::{Path, PathBuf},
 	time::Duration,
 };
@@ -64,6 +64,13 @@ impl<L: ResourceLoader> Resources<L> {
 			.get(path.as_ref())
 			.map(|resource| &resource.resource)
 			.or(self.placeholder.as_ref())
+	}
+
+	pub fn get_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut L::Resource> {
+		self.resources
+			.get_mut(path.as_ref())
+			.map(|resource| &mut resource.resource)
+			.or(self.placeholder.as_mut())
 	}
 
 	pub fn iter(&self) -> impl Iterator<Item = (&Path, &L::Resource)> {
@@ -206,6 +213,12 @@ impl<T: AsRef<Path>, L: ResourceLoader> Index<T> for Resources<L> {
 
 	fn index(&self, path: T) -> &Self::Output {
 		self.get(path).unwrap()
+	}
+}
+
+impl<T: AsRef<Path>, L: ResourceLoader> IndexMut<T> for Resources<L> {
+	fn index_mut(&mut self, path: T) -> &mut Self::Output {
+		self.get_mut(path).unwrap()
 	}
 }
 

@@ -9,10 +9,11 @@ out vec4 Color;
 
 uniform mat4 globalTransform;
 uniform mat4 localTransform;
+uniform float scale = 1.0;
 
 void main()
 {
-    gl_Position = globalTransform * localTransform * vec4(aPos, 0.0, 1.0);
+    gl_Position = globalTransform * localTransform * vec4(aPos * scale, 0.0, 1.0);
     TexCoord = aTexCoord;
     Color = aColor;
 }

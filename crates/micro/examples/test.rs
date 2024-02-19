@@ -24,7 +24,11 @@ struct MainState {
 impl MainState {
 	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			shaders: Resources::autoloaded(ctx, "", ShaderLoader),
+			shaders: {
+				let mut shaders = Resources::autoloaded(ctx, "", ShaderLoader);
+				shaders["shader"].send_f32(ctx, "scale", 2.0)?;
+				shaders
+			},
 		})
 	}
 }
@@ -35,6 +39,15 @@ impl State<Box<dyn Error>> for MainState {
 			ComboBox::new("test_box", "Test combo box")
 				.show_index(ui, &mut 0, 100, |i| i.to_string())
 		});
+		Ok(())
+	}
+
+	fn update(
+		&mut self,
+		ctx: &mut Context,
+		delta_time: std::time::Duration,
+	) -> Result<(), Box<dyn Error>> {
+		self.shaders.update_hot_reload(ctx, delta_time);
 		Ok(())
 	}
 

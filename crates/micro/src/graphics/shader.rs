@@ -1,7 +1,12 @@
-use std::{collections::HashMap, path::Path, sync::mpsc::Sender};
+use std::{
+	collections::HashMap,
+	path::Path,
+	sync::{mpsc::Sender, Mutex},
+};
 
 use glam::{Mat3, Mat4, Vec2, Vec3, Vec4};
 use glow::{HasContext, NativeProgram};
+use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use palette::LinSrgba;
 use regex_lite::Regex;
@@ -23,6 +28,7 @@ const COMBINED_SHADER_FRAGMENT_SECTION_NAME: &str = "FRAGMENT";
 pub struct Shader {
 	pub(crate) program: NativeProgram,
 	sent_textures: HashMap<String, SentTextureInfo>,
+	uniform_values: Mutex<IndexMap<String, UniformValue>>,
 	unused_resource_sender: Sender<UnusedGraphicsResource>,
 }
 
@@ -140,10 +146,19 @@ impl Shader {
 			gl.delete_shader(fragment_shader);
 		}
 		Ok(Self {
-			unused_resource_sender,
 			program,
 			sent_textures: HashMap::new(),
+			uniform_values: Mutex::new(IndexMap::new()),
+			unused_resource_sender,
 		})
+	}
+
+	pub fn uniform_value(&self, name: &str) -> Option<UniformValue> {
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.get(name)
+			.cloned()
 	}
 
 	pub fn send_bool(&self, ctx: &Context, name: &str, value: bool) -> Result<(), UniformNotFound> {
@@ -155,6 +170,10 @@ impl Shader {
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_1_i32(Some(&location), value.into());
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::Bool(value));
 		Ok(())
 	}
 
@@ -167,6 +186,10 @@ impl Shader {
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_1_i32(Some(&location), value);
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::I32(value));
 		Ok(())
 	}
 
@@ -179,6 +202,10 @@ impl Shader {
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_1_f32(Some(&location), value);
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::F32(value));
 		Ok(())
 	}
 
@@ -191,6 +218,11 @@ impl Shader {
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_2_f32(Some(&location), vec2.x, vec2.y);
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::Vec2(vec2));
+
 		Ok(())
 	}
 
@@ -203,6 +235,10 @@ impl Shader {
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_3_f32(Some(&location), vec3.x, vec3.y, vec3.z);
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::Vec3(vec3));
 		Ok(())
 	}
 
@@ -215,6 +251,10 @@ impl Shader {
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_4_f32(Some(&location), vec4.x, vec4.y, vec4.z, vec4.w);
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::Vec4(vec4));
 		Ok(())
 	}
 
@@ -227,6 +267,10 @@ impl Shader {
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_matrix_3_f32_slice(Some(&location), false, &mat3.to_cols_array());
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::Mat3(mat3));
 		Ok(())
 	}
 
@@ -239,6 +283,10 @@ impl Shader {
 				.ok_or_else(|| UniformNotFound(name.to_string()))?;
 			gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::Mat4(mat4));
 		Ok(())
 	}
 
@@ -262,6 +310,10 @@ impl Shader {
 				color.alpha,
 			);
 		}
+		self.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::Color(color));
 		Ok(())
 	}
 
@@ -288,6 +340,10 @@ impl Shader {
 			self.send_i32(ctx, name, unit as i32)
 				.map_err(|_| SendTextureError::UniformNotFound(name.to_string()))?;
 		}
+		self.uniform_values
+			.get_mut()
+			.expect("uniform mutex poisoned")
+			.insert(name.to_string(), UniformValue::Texture(texture.clone()));
 		Ok(())
 	}
 
@@ -301,6 +357,28 @@ impl Shader {
 			gl.active_texture(glow::TEXTURE0);
 		}
 	}
+
+	pub(crate) fn import_uniforms(&mut self, ctx: &Context, other: &Self) {
+		for (name, value) in other
+			.uniform_values
+			.lock()
+			.expect("uniform mutex poisoned")
+			.iter()
+		{
+			match value {
+				UniformValue::Bool(value) => self.send_bool(ctx, name, *value).ok(),
+				UniformValue::I32(value) => self.send_i32(ctx, name, *value).ok(),
+				UniformValue::F32(value) => self.send_f32(ctx, name, *value).ok(),
+				UniformValue::Vec2(value) => self.send_vec2(ctx, name, *value).ok(),
+				UniformValue::Vec3(value) => self.send_vec3(ctx, name, *value).ok(),
+				UniformValue::Vec4(value) => self.send_vec4(ctx, name, *value).ok(),
+				UniformValue::Mat3(value) => self.send_mat3(ctx, name, *value).ok(),
+				UniformValue::Mat4(value) => self.send_mat4(ctx, name, *value).ok(),
+				UniformValue::Color(value) => self.send_color(ctx, name, *value).ok(),
+				UniformValue::Texture(value) => self.send_texture(ctx, name, value).ok(),
+			};
+		}
+	}
 }
 
 impl Drop for Shader {
@@ -312,9 +390,17 @@ impl Drop for Shader {
 }
 
 #[derive(Debug, Clone)]
-struct SentTextureInfo {
-	pub texture: Texture,
-	pub unit: u32,
+pub enum UniformValue {
+	Bool(bool),
+	I32(i32),
+	F32(f32),
+	Vec2(Vec2),
+	Vec3(Vec3),
+	Vec4(Vec4),
+	Mat3(Mat3),
+	Mat4(Mat4),
+	Color(LinSrgba),
+	Texture(Texture),
 }
 
 #[derive(Debug, Error)]
@@ -341,4 +427,10 @@ pub enum SendTextureError {
 	TooManyTextures,
 	#[error("This shader does not have a uniform called {0}")]
 	UniformNotFound(String),
+}
+
+#[derive(Debug, Clone)]
+struct SentTextureInfo {
+	pub texture: Texture,
+	pub unit: u32,
 }

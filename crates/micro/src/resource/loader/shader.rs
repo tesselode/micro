@@ -27,4 +27,17 @@ impl ResourceLoader for ShaderLoader {
 	) -> Result<Self::Resource, Self::Error> {
 		Shader::from_combined_file(ctx, path)
 	}
+
+	fn reload(
+		&mut self,
+		ctx: &mut Context,
+		resource: &mut Self::Resource,
+		path: &Path,
+		_settings: Option<&Self::Settings>,
+	) -> Result<(), Self::Error> {
+		let mut new_shader = Shader::from_combined_file(ctx, path)?;
+		new_shader.import_uniforms(ctx, &resource);
+		*resource = new_shader;
+		Ok(())
+	}
 }

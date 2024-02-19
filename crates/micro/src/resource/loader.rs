@@ -3,6 +3,7 @@ mod animation_data;
 mod font;
 #[cfg(feature = "ldtk")]
 mod ldtk;
+mod shader;
 #[cfg(feature = "kira")]
 mod static_sound_data;
 #[cfg(feature = "kira")]
@@ -16,6 +17,7 @@ pub use animation_data::*;
 pub use font::*;
 #[cfg(feature = "ldtk")]
 pub use ldtk::*;
+pub use shader::*;
 #[cfg(feature = "kira")]
 pub use static_sound_data::*;
 #[cfg(feature = "kira")]

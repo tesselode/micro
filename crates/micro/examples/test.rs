@@ -5,10 +5,10 @@ use glam::Vec2;
 use micro::{
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
-		shader::Shader,
 		ColorConstants,
 	},
 	math::Circle,
+	resource::{loader::ShaderLoader, Resources},
 	Context, ContextSettings, State,
 };
 use palette::LinSrgba;
@@ -18,13 +18,13 @@ fn main() {
 }
 
 struct MainState {
-	shader: Shader,
+	shaders: Resources<ShaderLoader>,
 }
 
 impl MainState {
 	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			shader: Shader::from_combined_str(ctx, include_str!("shader.glsl"))?,
+			shaders: Resources::autoloaded(ctx, "", ShaderLoader),
 		})
 	}
 }
@@ -49,7 +49,7 @@ impl State<Box<dyn Error>> for MainState {
 			},
 			LinSrgba::WHITE,
 		)?
-		.draw(ctx, &self.shader);
+		.draw(ctx, &self.shaders["shader"]);
 		Ok(())
 	}
 }

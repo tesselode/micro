@@ -8,6 +8,7 @@ pub mod input;
 #[cfg(feature = "ldtk")]
 pub mod ldtk;
 mod log;
+mod macros;
 pub mod math;
 mod offset_and_count;
 #[cfg(feature = "resource_management")]
@@ -17,24 +18,25 @@ pub mod time;
 pub mod tween;
 mod window;
 
-use std::time::Duration;
-
-use context::Context;
 pub use context::{run, ContextSettings, OnDrop, ScalingMode};
 pub use error::*;
 pub use event::*;
+pub use offset_and_count::*;
+pub use state::*;
+pub use window::*;
+
+use std::time::Duration;
+
+use context::Context;
 use glam::{IVec2, Mat4, UVec2};
 use glow::HasContext;
 use graphics::{Camera3d, StencilAction, StencilTest};
 use input::{Gamepad, MouseButton, Scancode};
-pub use offset_and_count::*;
 use palette::LinSrgba;
 use sdl2::{
 	video::{FullscreenType, SwapInterval, WindowPos},
 	IntegerOrSdlError,
 };
-pub use state::*;
-pub use window::*;
 
 /// Gets the drawable size of the window (in pixels).
 pub fn window_size() -> UVec2 {

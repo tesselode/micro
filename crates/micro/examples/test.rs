@@ -1,16 +1,17 @@
 use std::error::Error;
 
 use egui::ComboBox;
-use glam::Vec2;
+use glam::{Mat4, Vec2, Vec3};
 use micro::{
 	clear,
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
-		ColorConstants,
+		Canvas, CanvasSettings, ColorConstants, DrawParams, StencilAction, StencilTest,
 	},
-	math::Circle,
+	math::{Circle, Rect},
 	resource::{loader::ShaderLoader, Resources},
-	ContextSettings, State,
+	use_stencil, window_size, with_canvas, with_transform, write_to_stencil, ContextSettings,
+	State,
 };
 use palette::LinSrgba;
 
@@ -19,46 +20,42 @@ fn main() {
 }
 
 struct MainState {
-	shaders: Resources<ShaderLoader>,
+	canvas: Canvas,
 }
 
 impl MainState {
 	pub fn new() -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			shaders: {
-				let shaders = Resources::autoloaded("", ShaderLoader);
-				shaders["shader"].send_f32("scale", 2.0)?;
-				shaders
-			},
+			canvas: Canvas::new(window_size(), CanvasSettings::default()),
 		})
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
-	fn ui(&mut self, egui_ctx: &egui::Context) -> Result<(), Box<dyn Error>> {
-		egui::Window::new("test").show(egui_ctx, |ui| {
-			ComboBox::new("test_box", "Test combo box")
-				.show_index(ui, &mut 0, 100, |i| i.to_string())
-		});
-		Ok(())
-	}
-
-	fn update(&mut self, delta_time: std::time::Duration) -> Result<(), Box<dyn Error>> {
-		self.shaders.update_hot_reload(delta_time);
-		Ok(())
-	}
-
 	fn draw(&mut self) -> Result<(), Box<dyn Error>> {
+		with_canvas!(self.canvas, {
+			clear(LinSrgba::BLACK);
+			write_to_stencil!(StencilAction::Replace(1), {
+				with_transform!(Mat4::from_scale(Vec3::splat(2.0)), {
+					Mesh::circle(
+						ShapeStyle::Fill,
+						Circle {
+							center: Vec2::splat(50.0),
+							radius: 50.0,
+						},
+						LinSrgba::WHITE,
+					)?
+					.draw(DrawParams::new());
+				});
+			});
+			use_stencil!(StencilTest::Equal, 1, {
+				Mesh::rectangle(Rect::from_xywh(50.0, 50.0, 100.0, 150.0)).draw(DrawParams::new());
+			});
+		});
+
 		clear(LinSrgba::BLACK);
-		Mesh::circle(
-			ShapeStyle::Fill,
-			Circle {
-				center: Vec2::new(50.0, 50.0),
-				radius: 20.0,
-			},
-			LinSrgba::WHITE,
-		)?
-		.draw(&self.shaders["shader"]);
+		self.canvas.draw(DrawParams::new());
+
 		Ok(())
 	}
 }

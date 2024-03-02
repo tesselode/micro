@@ -3,13 +3,14 @@ use std::error::Error;
 use egui::ComboBox;
 use glam::Vec2;
 use micro::{
+	clear,
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
 		ColorConstants,
 	},
 	math::Circle,
 	resource::{loader::ShaderLoader, Resources},
-	Context, ContextSettings, State,
+	ContextSettings, State,
 };
 use palette::LinSrgba;
 
@@ -22,11 +23,11 @@ struct MainState {
 }
 
 impl MainState {
-	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+	pub fn new() -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
 			shaders: {
-				let mut shaders = Resources::autoloaded(ctx, "", ShaderLoader);
-				shaders["shader"].send_f32(ctx, "scale", 2.0)?;
+				let shaders = Resources::autoloaded("", ShaderLoader);
+				shaders["shader"].send_f32("scale", 2.0)?;
 				shaders
 			},
 		})
@@ -34,7 +35,7 @@ impl MainState {
 }
 
 impl State<Box<dyn Error>> for MainState {
-	fn ui(&mut self, _ctx: &mut Context, egui_ctx: &egui::Context) -> Result<(), Box<dyn Error>> {
+	fn ui(&mut self, egui_ctx: &egui::Context) -> Result<(), Box<dyn Error>> {
 		egui::Window::new("test").show(egui_ctx, |ui| {
 			ComboBox::new("test_box", "Test combo box")
 				.show_index(ui, &mut 0, 100, |i| i.to_string())
@@ -42,19 +43,14 @@ impl State<Box<dyn Error>> for MainState {
 		Ok(())
 	}
 
-	fn update(
-		&mut self,
-		ctx: &mut Context,
-		delta_time: std::time::Duration,
-	) -> Result<(), Box<dyn Error>> {
-		self.shaders.update_hot_reload(ctx, delta_time);
+	fn update(&mut self, delta_time: std::time::Duration) -> Result<(), Box<dyn Error>> {
+		self.shaders.update_hot_reload(delta_time);
 		Ok(())
 	}
 
-	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		ctx.clear(LinSrgba::BLACK);
+	fn draw(&mut self) -> Result<(), Box<dyn Error>> {
+		clear(LinSrgba::BLACK);
 		Mesh::circle(
-			ctx,
 			ShapeStyle::Fill,
 			Circle {
 				center: Vec2::new(50.0, 50.0),
@@ -62,7 +58,7 @@ impl State<Box<dyn Error>> for MainState {
 			},
 			LinSrgba::WHITE,
 		)?
-		.draw(ctx, &self.shaders["shader"]);
+		.draw(&self.shaders["shader"]);
 		Ok(())
 	}
 }

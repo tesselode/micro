@@ -9,8 +9,6 @@ pub use traits::*;
 
 use std::{collections::HashMap, hash::Hash};
 
-use crate::Context;
-
 use super::Gamepad;
 
 #[derive(Debug)]
@@ -39,10 +37,10 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 		}
 	}
 
-	pub fn update(&mut self, ctx: &Context) {
-		self.update_active_input_kind(ctx);
+	pub fn update(&mut self) {
+		self.update_active_input_kind();
 		if let Some(active_input_kind) = self.active_input_kind {
-			self.update_control_state(ctx, active_input_kind);
+			self.update_control_state(active_input_kind);
 		}
 		self.update_stick_state();
 	}
@@ -59,15 +57,15 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 		self.active_input_kind
 	}
 
-	fn update_active_input_kind(&mut self, ctx: &Context) {
-		if self.any_input_of_kind_used(ctx, InputKind::KeyboardMouse) {
+	fn update_active_input_kind(&mut self) {
+		if self.any_input_of_kind_used(InputKind::KeyboardMouse) {
 			self.active_input_kind = Some(InputKind::KeyboardMouse);
-		} else if self.any_input_of_kind_used(ctx, InputKind::Gamepad) {
+		} else if self.any_input_of_kind_used(InputKind::Gamepad) {
 			self.active_input_kind = Some(InputKind::Gamepad);
 		}
 	}
 
-	fn any_input_of_kind_used(&self, ctx: &Context, kind: InputKind) -> bool {
+	fn any_input_of_kind_used(&self, kind: InputKind) -> bool {
 		self.config
 			.control_mapping
 			.iter()
@@ -76,18 +74,17 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 					.iter()
 					.filter(|real_control| real_control.kind() == kind)
 					.any(|real_control| {
-						real_control.value(ctx, self.controller.as_ref()) > self.config.deadzone
+						real_control.value(self.controller.as_ref()) > self.config.deadzone
 					})
 			})
 	}
 
-	fn update_control_state(&mut self, ctx: &Context, active_input_kind: InputKind) {
+	fn update_control_state(&mut self, active_input_kind: InputKind) {
 		for (control, state) in &mut self.control_state {
 			let down_previous = state.down;
 			let raw_value = Self::control_raw_value(
 				&self.config,
 				self.controller.as_ref(),
-				ctx,
 				*control,
 				active_input_kind,
 			);
@@ -134,7 +131,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 	fn control_raw_value(
 		config: &VirtualControllerConfig<C>,
 		controller: Option<&Gamepad>,
-		ctx: &Context,
+
 		control: C,
 		active_input_kind: InputKind,
 	) -> f32 {
@@ -146,7 +143,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 					.iter()
 					.filter(|control| control.kind() == active_input_kind)
 					.fold(0.0, |previous, control| {
-						previous + control.value(ctx, controller)
+						previous + control.value(controller)
 					})
 					.min(1.0)
 			})

@@ -31,39 +31,41 @@ pub(crate) struct TextureInner {
 }
 
 impl Texture {
-	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
-		Self::new_from_gl(
-			&ctx.graphics.gl,
-			ctx.graphics.unused_resource_sender.clone(),
-			size,
-			None,
-			settings,
-			false,
-		)
+	pub fn empty(size: UVec2, settings: TextureSettings) -> Self {
+		Context::with(|ctx| {
+			Self::new_from_gl(
+				&ctx.graphics.gl,
+				ctx.graphics.unused_resource_sender.clone(),
+				size,
+				None,
+				settings,
+				false,
+			)
+		})
 	}
 
 	pub fn from_image(
-		ctx: &Context,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 		settings: TextureSettings,
 	) -> Self {
-		Self::new_from_gl(
-			&ctx.graphics.gl,
-			ctx.graphics.unused_resource_sender.clone(),
-			UVec2::new(image.width(), image.height()),
-			Some(image.as_raw()),
-			settings,
-			false,
-		)
+		Context::with(|ctx| {
+			Self::new_from_gl(
+				&ctx.graphics.gl,
+				ctx.graphics.unused_resource_sender.clone(),
+				UVec2::new(image.width(), image.height()),
+				Some(image.as_raw()),
+				settings,
+				false,
+			)
+		})
 	}
 
 	pub fn from_file(
-		ctx: &Context,
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
 		let image = image::io::Reader::open(path)?.decode()?.to_rgba8();
-		Ok(Self::from_image(ctx, &image, settings))
+		Ok(Self::from_image(&image, settings))
 	}
 
 	pub fn size(&self) -> UVec2 {
@@ -78,55 +80,50 @@ impl Texture {
 		)
 	}
 
-	pub fn replace(
-		&self,
-		ctx: &Context,
-		top_left: IVec2,
-		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
-	) {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
-			gl.tex_sub_image_2d(
-				glow::TEXTURE_2D,
-				0,
-				top_left.x,
-				top_left.y,
-				image.width() as i32,
-				image.height() as i32,
-				glow::RGBA,
-				glow::UNSIGNED_BYTE,
-				PixelUnpackData::Slice(image.as_raw()),
-			);
-		}
+	pub fn replace(&self, top_left: IVec2, image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>) {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
+				gl.tex_sub_image_2d(
+					glow::TEXTURE_2D,
+					0,
+					top_left.x,
+					top_left.y,
+					image.width() as i32,
+					image.height() as i32,
+					glow::RGBA,
+					glow::UNSIGNED_BYTE,
+					PixelUnpackData::Slice(image.as_raw()),
+				);
+			}
+		});
 	}
 
-	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
-		Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.inner.size.as_vec2()))
-			.draw_textured(ctx, self, params);
+	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
+		Mesh::rectangle(Rect::new(Vec2::ZERO, self.inner.size.as_vec2()))
+			.draw_textured(self, params);
 	}
 
-	pub fn draw_region<'a>(&self, ctx: &Context, region: Rect, params: impl Into<DrawParams<'a>>) {
+	pub fn draw_region<'a>(&self, region: Rect, params: impl Into<DrawParams<'a>>) {
 		Mesh::rectangle_with_texture_region(
-			ctx,
 			Rect::new(Vec2::ZERO, region.size),
 			self.relative_rect(region),
 		)
-		.draw_textured(ctx, self, params);
+		.draw_textured(self, params);
 	}
 
 	pub fn draw_nine_slice<'a>(
 		&self,
-		ctx: &Context,
 		nine_slice: NineSlice,
 		display_rect: Rect,
 		params: impl Into<DrawParams<'a>>,
 	) {
-		let mut sprite_batch = SpriteBatch::new(ctx, self, 9);
+		let mut sprite_batch = SpriteBatch::new(self, 9);
 		sprite_batch
-			.add_nine_slice(ctx, nine_slice, display_rect, SpriteParams::default())
+			.add_nine_slice(nine_slice, display_rect, SpriteParams::default())
 			.unwrap();
-		sprite_batch.draw(ctx, params)
+		sprite_batch.draw(params)
 	}
 
 	pub(crate) fn new_from_gl(
@@ -194,18 +191,20 @@ impl Texture {
 		}
 	}
 
-	pub(crate) fn attach_to_framebuffer(&mut self, ctx: &Context) {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
-			gl.framebuffer_texture_2d(
-				glow::FRAMEBUFFER,
-				glow::COLOR_ATTACHMENT0,
-				glow::TEXTURE_2D,
-				Some(self.inner.texture),
-				0,
-			);
-		}
+	pub(crate) fn attach_to_framebuffer(&mut self) {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
+				gl.framebuffer_texture_2d(
+					glow::FRAMEBUFFER,
+					glow::COLOR_ATTACHMENT0,
+					glow::TEXTURE_2D,
+					Some(self.inner.texture),
+					0,
+				);
+			}
+		});
 	}
 }
 

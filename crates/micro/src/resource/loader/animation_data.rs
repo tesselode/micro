@@ -1,9 +1,6 @@
 use std::{collections::HashMap, path::Path};
 
-use crate::{
-	animation::{AnimationData, LoadAnimationDataError},
-	Context,
-};
+use crate::animation::{AnimationData, LoadAnimationDataError};
 
 use super::ResourceLoader;
 
@@ -21,7 +18,6 @@ impl ResourceLoader for AnimationDataLoader {
 
 	fn load(
 		&mut self,
-		_ctx: &mut Context,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
@@ -43,7 +39,6 @@ impl ResourceLoader for MultipleAnimationDataLoader {
 
 	fn load(
 		&mut self,
-		_ctx: &mut Context,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {

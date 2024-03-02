@@ -17,7 +17,6 @@ use palette::LinSrgba;
 use crate::{
 	graphics::Vertex2d,
 	math::{Circle, Rect},
-	Context,
 };
 
 use super::Mesh;
@@ -410,8 +409,8 @@ impl MeshBuilder {
 		self
 	}
 
-	pub fn build(self, ctx: &Context) -> Mesh {
-		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
+	pub fn build(self) -> Mesh {
+		Mesh::new(&self.buffers.vertices, &self.buffers.indices)
 	}
 }
 

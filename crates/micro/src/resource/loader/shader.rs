@@ -1,9 +1,6 @@
 use std::path::Path;
 
-use crate::{
-	graphics::shader::{LoadShaderError, Shader},
-	Context,
-};
+use crate::graphics::shader::{LoadShaderError, Shader};
 
 use super::ResourceLoader;
 
@@ -21,22 +18,20 @@ impl ResourceLoader for ShaderLoader {
 
 	fn load(
 		&mut self,
-		ctx: &mut Context,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
-		Shader::from_combined_file(ctx, path)
+		Shader::from_combined_file(path)
 	}
 
 	fn reload(
 		&mut self,
-		ctx: &mut Context,
 		resource: &mut Self::Resource,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		let mut new_shader = Shader::from_combined_file(ctx, path)?;
-		new_shader.import_uniforms(ctx, &resource);
+		let mut new_shader = Shader::from_combined_file(path)?;
+		new_shader.import_uniforms(resource);
 		*resource = new_shader;
 		Ok(())
 	}

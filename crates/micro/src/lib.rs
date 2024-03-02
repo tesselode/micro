@@ -177,8 +177,9 @@ pub fn push_transform(transform: Mat4) -> OnDrop {
 /// # }
 /// ```
 pub fn use_3d_camera(camera: Camera3d) -> OnDrop {
+	let transform = camera.transform();
 	Context::with_mut(|ctx| {
-		ctx.graphics.transform_stack.push(camera.transform());
+		ctx.graphics.transform_stack.push(transform);
 		unsafe {
 			ctx.graphics.gl.enable(glow::DEPTH_TEST);
 		}

@@ -96,10 +96,10 @@ impl Camera3d {
 	}
 
 	fn undo_2d_coordinate_system_transform() -> Mat4 {
-		let viewport_size = Context::with(|ctx| match ctx.graphics.render_target {
+		let viewport_size = match Context::with(|ctx| ctx.graphics.render_target) {
 			RenderTarget::Window => window_size(),
 			RenderTarget::Canvas { size } => size,
-		});
+		};
 		(Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
 			* Mat4::from_scale(Vec3::new(
 				2.0 / viewport_size.x as f32,

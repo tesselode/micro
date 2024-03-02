@@ -20,9 +20,8 @@ use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	graphics::{Canvas, CanvasSettings, ColorConstants},
 	log::setup_logging,
-	log_if_err,
+	log_if_err, push_transform,
 	time::FrameTimeTracker,
-	transform,
 	window::WindowMode,
 	window_size, Event, State,
 };
@@ -126,7 +125,7 @@ where
 			let transform = Context::with(|ctx| ctx.scaling_mode.transform_mat4());
 			main_canvas.draw(transform);
 		} else {
-			let _scope = transform(Context::with(|ctx| ctx.scaling_mode.transform_mat4()));
+			let _scope = push_transform(Context::with(|ctx| ctx.scaling_mode.transform_mat4()));
 			state.draw()?;
 		}
 		draw_egui_output(&egui_ctx, egui_output, &mut egui_textures);

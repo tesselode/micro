@@ -148,7 +148,7 @@ pub fn clear_depth_buffer() {
 /// // the following drawing operations will be back to normal
 /// # }
 /// ```
-pub fn transform(transform: Mat4) -> OnDrop {
+pub fn push_transform(transform: Mat4) -> OnDrop {
 	Context::with_mut(|ctx| ctx.graphics.transform_stack.push(transform));
 	OnDrop {
 		on_drop: || {

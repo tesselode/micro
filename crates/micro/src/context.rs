@@ -1,41 +1,42 @@
 pub(crate) mod graphics;
 
 use std::{
+	cell::{OnceCell, RefCell},
 	collections::HashMap,
 	fmt::Debug,
-	ops::{Deref, DerefMut},
-	time::{Duration, Instant},
+	time::Instant,
 };
 
 use backtrace::Backtrace;
-use glam::{Affine2, IVec2, Mat4, UVec2, Vec2};
-use glow::HasContext;
+use glam::{Affine2, Mat4, UVec2, Vec2};
 use palette::LinSrgba;
 use sdl2::{
-	video::{FullscreenType, GLProfile, SwapInterval, Window, WindowPos},
-	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
+	video::{GLProfile, SwapInterval, Window},
+	EventPump, GameControllerSubsystem, Sdl, VideoSubsystem,
 };
 
 use crate::{
-	build_window,
+	build_window, clear,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	error::SdlError,
-	graphics::{Camera3d, Canvas, CanvasSettings, ColorConstants, StencilAction, StencilTest},
-	input::{Gamepad, MouseButton, Scancode},
+	graphics::{Canvas, CanvasSettings, ColorConstants},
 	log::setup_logging,
-	log_if_err,
+	log_if_err, push_transform,
 	time::FrameTimeTracker,
 	window::WindowMode,
-	Event, State,
+	window_size, Event, State,
 };
 
 use self::graphics::GraphicsContext;
+
+thread_local! {
+	static CONTEXT: OnceCell<RefCell<Context>> = OnceCell::new();
+}
 
 /// Runs the game. Call this in your `main` function.
 pub fn run<S, F, E>(settings: ContextSettings, state_constructor: F)
 where
 	S: State<E>,
-	F: FnMut(&mut Context) -> Result<S, E>,
+	F: FnMut() -> Result<S, E>,
 	E: Debug,
 {
 	#[cfg(debug_assertions)]
@@ -51,18 +52,21 @@ where
 fn run_inner<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
 where
 	S: State<E>,
-	F: FnMut(&mut Context) -> Result<S, E>,
+	F: FnMut() -> Result<S, E>,
 {
 	// create contexts and resources
-	let mut ctx = Context::new(&settings);
+	CONTEXT.with(|ctx| {
+		ctx.set(RefCell::new(Context::new(&settings)))
+			.unwrap_or_else(|_| panic!("context already initialized"));
+	});
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
-	let mut state = state_constructor(&mut ctx)?;
+	let mut state = state_constructor()?;
 	let main_canvas = if let ScalingMode::Pixelated {
 		base_size: size, ..
 	} = settings.scaling_mode
 	{
-		Some(Canvas::new(&ctx, size, CanvasSettings::default()))
+		Some(Canvas::new(size, CanvasSettings::default()))
 	} else {
 		None
 	};
@@ -74,15 +78,17 @@ where
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
 		last_update_time = now;
-		ctx.frame_time_tracker.record(delta_time);
+		Context::with_mut(|ctx| {
+			ctx.frame_time_tracker.record(delta_time);
+		});
 
 		// poll for events
-		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
+		let mut events = Context::with_mut(|ctx| ctx.event_pump.poll_iter().collect::<Vec<_>>());
 
 		// create egui UI
-		let egui_input = egui_raw_input(&ctx, &events, delta_time);
+		let egui_input = egui_raw_input(&events, delta_time);
 		egui_ctx.begin_frame(egui_input);
-		state.ui(&mut ctx, &egui_ctx)?;
+		state.ui(&egui_ctx)?;
 		let egui_output = egui_ctx.end_frame();
 
 		// dispatch events to state
@@ -92,40 +98,42 @@ where
 			.filter_map(Event::from_sdl2_event)
 		{
 			match event {
-				Event::WindowSizeChanged(size) => ctx.graphics.resize(size),
-				Event::Exited => {
-					ctx.should_quit = true;
+				Event::WindowSizeChanged(size) => {
+					Context::with_mut(|ctx| ctx.graphics.resize(size))
 				}
+				Event::Exited => Context::with_mut(|ctx| ctx.should_quit = true),
 				_ => {}
 			}
-			let transform = ctx.scaling_mode.transform_affine2(&ctx).inverse();
-			state.event(&mut ctx, event.transform_mouse_events(transform))?;
+			let transform = Context::with(|ctx| ctx.scaling_mode.transform_affine2().inverse());
+			state.event(event.transform_mouse_events(transform))?;
 		}
-		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
-		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
+		Context::with_mut(|ctx| {
+			ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
+			ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
+		});
 
 		// update state
-		state.update(&mut ctx, delta_time)?;
+		state.update(delta_time)?;
 
 		// draw state and egui UI
 		if let Some(main_canvas) = &main_canvas {
-			ctx.clear(LinSrgba::BLACK);
+			clear(LinSrgba::BLACK);
 			{
-				let ctx = &mut main_canvas.render_to(&mut ctx);
-				state.draw(ctx)?;
+				let _scope = main_canvas.render_to();
+				state.draw()?;
 			}
-			let transform = ctx.scaling_mode.transform_mat4(&ctx);
-			main_canvas.draw(&ctx, transform);
+			let transform = Context::with(|ctx| ctx.scaling_mode.transform_mat4());
+			main_canvas.draw(transform);
 		} else {
-			let mut ctx = ctx.transform(ctx.scaling_mode.transform_mat4(&ctx));
-			state.draw(&mut ctx)?;
+			let _scope = push_transform(Context::with(|ctx| ctx.scaling_mode.transform_mat4()));
+			state.draw()?;
 		}
-		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
-		ctx.window.gl_swap_window();
+		draw_egui_output(&egui_ctx, egui_output, &mut egui_textures);
+		Context::with(|ctx| ctx.window.gl_swap_window());
 
-		ctx.graphics.delete_unused_resources();
+		Context::with_mut(|ctx| ctx.graphics.delete_unused_resources());
 
-		if ctx.should_quit {
+		if Context::with(|ctx| ctx.should_quit) {
 			break;
 		}
 	}
@@ -134,270 +142,39 @@ where
 
 /// The main interface between your game code and functionality provided
 /// by the framework.
-pub struct Context {
+pub(crate) struct Context {
 	_sdl: Sdl,
-	video: VideoSubsystem,
-	window: Window,
-	controller: GameControllerSubsystem,
-	event_pump: EventPump,
-	egui_wants_keyboard_input: bool,
-	egui_wants_mouse_input: bool,
+	pub(crate) video: VideoSubsystem,
+	pub(crate) window: Window,
+	pub(crate) controller: GameControllerSubsystem,
+	pub(crate) event_pump: EventPump,
+	pub(crate) egui_wants_keyboard_input: bool,
+	pub(crate) egui_wants_mouse_input: bool,
 	pub(crate) graphics: GraphicsContext,
-	scaling_mode: ScalingMode,
-	frame_time_tracker: FrameTimeTracker,
-	should_quit: bool,
+	pub(crate) scaling_mode: ScalingMode,
+	pub(crate) frame_time_tracker: FrameTimeTracker,
+	pub(crate) should_quit: bool,
 }
 
 impl Context {
-	/// Gets the drawable size of the window (in pixels).
-	pub fn window_size(&self) -> UVec2 {
-		let (width, height) = self.window.size();
-		UVec2::new(width, height)
+	pub(crate) fn with<T>(mut f: impl FnMut(&Self) -> T) -> T {
+		CONTEXT.with(|ctx| {
+			let ctx = &ctx
+				.get()
+				.unwrap_or_else(|| panic!("context not initialized"))
+				.borrow();
+			f(ctx)
+		})
 	}
 
-	/// Returns the current window mode (windowed or fullscreen).
-	pub fn window_mode(&self) -> WindowMode {
-		match self.window.fullscreen_state() {
-			FullscreenType::Off => WindowMode::Windowed {
-				size: self.window_size(),
-			},
-			FullscreenType::True => WindowMode::Fullscreen,
-			FullscreenType::Desktop => WindowMode::Fullscreen,
-		}
-	}
-
-	/// Returns the current swap interval (vsync on or off).
-	pub fn swap_interval(&self) -> SwapInterval {
-		self.video.gl_get_swap_interval()
-	}
-
-	/// Returns the resolution of the monitor the window is on.
-	pub fn monitor_resolution(&self) -> Result<UVec2, SdlError> {
-		let display_index = self.window.display_index()?;
-		let display_mode = self.video.desktop_display_mode(display_index)?;
-		Ok(UVec2::new(display_mode.w as u32, display_mode.h as u32))
-	}
-
-	/// Sets the window mode (windowed or fullscreen).
-	pub fn set_window_mode(&mut self, window_mode: WindowMode) -> Result<(), SdlError> {
-		match window_mode {
-			WindowMode::Fullscreen => {
-				self.window.set_fullscreen(FullscreenType::Desktop)?;
-			}
-			WindowMode::Windowed { size } => {
-				self.window.set_fullscreen(FullscreenType::Off)?;
-				self.window
-					.set_size(size.x, size.y)
-					.map_err(|err| match err {
-						IntegerOrSdlError::IntegerOverflows(_, _) => panic!("integer overflow"),
-						IntegerOrSdlError::SdlError(err) => SdlError(err),
-					})?;
-				self.window
-					.set_position(WindowPos::Centered, WindowPos::Centered);
-			}
-		}
-		Ok(())
-	}
-
-	/// Sets the swap interval (vsync on or off).
-	pub fn set_swap_interval(&mut self, swap_interval: SwapInterval) -> Result<(), SdlError> {
-		self.video.gl_set_swap_interval(swap_interval)?;
-		Ok(())
-	}
-
-	/// Clears the window surface to the given color. Also clears the stencil buffer and depth buffer.
-	pub fn clear(&self, color: LinSrgba) {
-		unsafe {
-			self.graphics
-				.gl
-				.clear_color(color.red, color.green, color.blue, color.alpha);
-			self.graphics.gl.stencil_mask(0xFF);
-			self.graphics.gl.clear_stencil(0);
-			self.graphics
-				.gl
-				.clear(glow::COLOR_BUFFER_BIT | glow::STENCIL_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
-			self.graphics.gl.stencil_mask(0x00);
-		}
-	}
-
-	/// Clears the stencil buffer.
-	pub fn clear_stencil(&self) {
-		unsafe {
-			self.graphics.gl.stencil_mask(0xFF);
-			self.graphics.gl.clear_stencil(0);
-			self.graphics.gl.clear(glow::STENCIL_BUFFER_BIT);
-			self.graphics.gl.stencil_mask(0x00);
-		}
-	}
-
-	/// Clears the depth buffer.
-	pub fn clear_depth_buffer(&self) {
-		unsafe {
-			self.graphics.gl.clear(glow::DEPTH_BUFFER_BIT);
-		}
-	}
-
-	/// Creates a scope where all drawing operations have the given transform
-	/// applied.
-	///
-	/// Calls to `transform` can be nested.
-	///
-	/// ```rust
-	/// use glam::{Mat4, Vec3};
-	///
-	/// # fn fake(ctx: &mut micro::Context) {
-	/// {
-	///     let ctx = &mut ctx.transform(Mat4::from_scale(Vec3::new(2.0, 2.0, 1.0)));
-	///     // the next drawing operations will have a transform applied
-	///     // ...
-	/// }
-	/// // the following drawing operations will be back to normal
-	/// # }
-	/// ```
-	pub fn transform(&mut self, transform: Mat4) -> OnDrop {
-		self.graphics.transform_stack.push(transform);
-		OnDrop {
-			ctx: self,
-			on_drop: |ctx| {
-				ctx.graphics.transform_stack.pop();
-			},
-		}
-	}
-
-	/// Creates a scope where all drawing operations use the given 3D camera.
-	///
-	/// This also turns on the depth buffer.
-	///
-	/// ```rust
-	/// use micro::graphics::Camera3d;
-	/// use glam::Vec3;
-	///
-	/// # fn fake(ctx: &mut micro::Context) {
-	/// {
-	///     let ctx = &mut ctx.use_3d_camera(
-	///         Camera3d::perspective(90.0, 16.0 / 9.0, 0.01..=1000.0, Vec3::ZERO, Vec3::new(0.0, 0.0, 1.0))
-	///     );
-	///     // the next drawing operations will use the 3d camera
-	///     // ...
-	/// }
-	/// // the following drawing operations will be back to normal
-	/// # }
-	/// ```
-	pub fn use_3d_camera(&mut self, camera: Camera3d) -> OnDrop {
-		self.graphics.transform_stack.push(camera.transform(self));
-		unsafe {
-			self.graphics.gl.enable(glow::DEPTH_TEST);
-		}
-		OnDrop {
-			ctx: self,
-			on_drop: |ctx| {
-				ctx.graphics.transform_stack.pop();
-				unsafe {
-					ctx.graphics.gl.disable(glow::DEPTH_TEST);
-				}
-			},
-		}
-	}
-
-	pub fn write_to_stencil(&mut self, action: StencilAction) -> OnDrop {
-		unsafe {
-			self.graphics.gl.color_mask(false, false, false, false);
-			self.graphics.gl.enable(glow::STENCIL_TEST);
-			let op = action.as_glow_stencil_op();
-			self.graphics.gl.stencil_op(glow::KEEP, glow::KEEP, op);
-			let reference = match action {
-				StencilAction::Replace(value) => value,
-				_ => 0,
-			};
-			self.graphics
-				.gl
-				.stencil_func(glow::ALWAYS, reference.into(), 0xFF);
-			self.graphics.gl.stencil_mask(0xFF);
-			self.graphics.gl.depth_mask(false);
-		}
-		OnDrop {
-			ctx: self,
-			on_drop: |ctx| unsafe {
-				ctx.graphics.gl.color_mask(true, true, true, true);
-				ctx.graphics.gl.disable(glow::STENCIL_TEST);
-				ctx.graphics.gl.depth_mask(true);
-			},
-		}
-	}
-
-	pub fn use_stencil(&mut self, test: StencilTest, reference: u8) -> OnDrop {
-		unsafe {
-			self.graphics.gl.enable(glow::STENCIL_TEST);
-			self.graphics
-				.gl
-				.stencil_op(glow::KEEP, glow::KEEP, glow::KEEP);
-			self.graphics
-				.gl
-				.stencil_func(test.as_glow_stencil_func(), reference.into(), 0xFF);
-			self.graphics.gl.stencil_mask(0x00);
-		}
-		OnDrop {
-			ctx: self,
-			on_drop: |ctx| unsafe {
-				ctx.graphics.gl.disable(glow::STENCIL_TEST);
-			},
-		}
-	}
-
-	/// Returns `true` if the given keyboard key is currently held down.
-	pub fn is_key_down(&self, scancode: Scancode) -> bool {
-		self.event_pump
-			.keyboard_state()
-			.is_scancode_pressed(scancode.into())
-			&& !self.egui_wants_keyboard_input
-	}
-
-	/// Returns `true` if the given mouse button is currently held down.
-	pub fn is_mouse_button_down(&self, mouse_button: MouseButton) -> bool {
-		self.event_pump
-			.mouse_state()
-			.is_mouse_button_pressed(mouse_button.into())
-			&& !self.egui_wants_mouse_input
-	}
-
-	/// Returns the current mouse position (in pixels, relative to the top-left
-	/// corner of the window).
-	pub fn mouse_position(&self) -> IVec2 {
-		let mouse_state = self.event_pump.mouse_state();
-		let untransformed = IVec2::new(mouse_state.x(), mouse_state.y());
-		self.scaling_mode
-			.transform_affine2(self)
-			.inverse()
-			.transform_point2(untransformed.as_vec2())
-			.as_ivec2()
-	}
-
-	/// Gets the game controller with the given index if it's connected.
-	pub fn game_controller(&self, index: u32) -> Option<Gamepad> {
-		match self.controller.open(index) {
-			Ok(controller) => Some(Gamepad(controller)),
-			Err(error) => match error {
-				IntegerOrSdlError::IntegerOverflows(_, _) => {
-					panic!("integer overflow when getting controller")
-				}
-				IntegerOrSdlError::SdlError(_) => None,
-			},
-		}
-	}
-
-	/// Returns the average duration of a frame over the past 30 frames.
-	pub fn average_frame_time(&self) -> Duration {
-		self.frame_time_tracker.average()
-	}
-
-	/// Returns the current frames per second the game is running at.
-	pub fn fps(&self) -> f32 {
-		1.0 / self.average_frame_time().as_secs_f32()
-	}
-
-	/// Quits the game.
-	pub fn quit(&mut self) {
-		self.should_quit = true;
+	pub(crate) fn with_mut<T>(mut f: impl FnMut(&mut Self) -> T) -> T {
+		CONTEXT.with(|ctx| {
+			let ctx = &mut ctx
+				.get()
+				.unwrap_or_else(|| panic!("context not initialized"))
+				.borrow_mut();
+			f(ctx)
+		})
 	}
 
 	fn new(settings: &ContextSettings) -> Self {
@@ -477,14 +254,14 @@ pub enum ScalingMode {
 }
 
 impl ScalingMode {
-	fn transform_affine2(&self, ctx: &Context) -> Affine2 {
+	pub(crate) fn transform_affine2(&self) -> Affine2 {
 		match self {
 			ScalingMode::None => Affine2::IDENTITY,
 			ScalingMode::Smooth { base_size } => {
-				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
-				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
+				let max_horizontal_scale = window_size().x as f32 / base_size.x as f32;
+				let max_vertical_scale = window_size().y as f32 / base_size.y as f32;
 				let scale = max_horizontal_scale.min(max_vertical_scale);
-				Affine2::from_translation(ctx.window_size().as_vec2() / 2.0)
+				Affine2::from_translation(window_size().as_vec2() / 2.0)
 					* Affine2::from_scale(Vec2::splat(scale))
 					* Affine2::from_translation(-base_size.as_vec2() / 2.0)
 			}
@@ -492,27 +269,27 @@ impl ScalingMode {
 				base_size,
 				integer_scale,
 			} => {
-				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
-				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
+				let max_horizontal_scale = window_size().x as f32 / base_size.x as f32;
+				let max_vertical_scale = window_size().y as f32 / base_size.y as f32;
 				let mut scale = max_horizontal_scale.min(max_vertical_scale);
 				if *integer_scale {
 					scale = scale.floor();
 				}
-				Affine2::from_translation((ctx.window_size().as_vec2() / 2.0).round())
+				Affine2::from_translation((window_size().as_vec2() / 2.0).round())
 					* Affine2::from_scale(Vec2::splat(scale))
 					* Affine2::from_translation((-base_size.as_vec2() / 2.0).round())
 			}
 		}
 	}
 
-	fn transform_mat4(&self, ctx: &Context) -> Mat4 {
+	fn transform_mat4(&self) -> Mat4 {
 		match self {
 			ScalingMode::None => Mat4::IDENTITY,
 			ScalingMode::Smooth { base_size } => {
-				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
-				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
+				let max_horizontal_scale = window_size().x as f32 / base_size.x as f32;
+				let max_vertical_scale = window_size().y as f32 / base_size.y as f32;
 				let scale = max_horizontal_scale.min(max_vertical_scale);
-				Mat4::from_translation((ctx.window_size().as_vec2() / 2.0).extend(0.0))
+				Mat4::from_translation((window_size().as_vec2() / 2.0).extend(0.0))
 					* Mat4::from_scale(Vec2::splat(scale).extend(1.0))
 					* Mat4::from_translation((-base_size.as_vec2() / 2.0).extend(0.0))
 			}
@@ -520,13 +297,13 @@ impl ScalingMode {
 				base_size,
 				integer_scale,
 			} => {
-				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
-				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
+				let max_horizontal_scale = window_size().x as f32 / base_size.x as f32;
+				let max_vertical_scale = window_size().y as f32 / base_size.y as f32;
 				let mut scale = max_horizontal_scale.min(max_vertical_scale);
 				if *integer_scale {
 					scale = scale.floor();
 				}
-				Mat4::from_translation((ctx.window_size().as_vec2() / 2.0).extend(0.0))
+				Mat4::from_translation((window_size().as_vec2() / 2.0).extend(0.0))
 					* Mat4::from_scale(Vec2::splat(scale).extend(1.0))
 					* Mat4::from_translation((-base_size.as_vec2() / 2.0).extend(0.0))
 			}
@@ -535,27 +312,12 @@ impl ScalingMode {
 }
 
 #[must_use]
-pub struct OnDrop<'a> {
-	pub(crate) ctx: &'a mut Context,
-	pub(crate) on_drop: fn(&mut Context),
+pub struct OnDrop {
+	pub(crate) on_drop: fn(),
 }
 
-impl<'a> Deref for OnDrop<'a> {
-	type Target = Context;
-
-	fn deref(&self) -> &Self::Target {
-		self.ctx
-	}
-}
-
-impl<'a> DerefMut for OnDrop<'a> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		self.ctx
-	}
-}
-
-impl<'a> Drop for OnDrop<'a> {
+impl Drop for OnDrop {
 	fn drop(&mut self) {
-		(self.on_drop)(self.ctx);
+		(self.on_drop)();
 	}
 }

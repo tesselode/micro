@@ -18,12 +18,10 @@ impl ResourceLoader for FontLoader {
 
 	fn load(
 		&mut self,
-		ctx: &mut crate::Context,
 		path: &std::path::Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
 		Font::from_file(
-			ctx,
 			path,
 			settings.cloned().unwrap_or(self.default_settings.clone()),
 		)

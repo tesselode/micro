@@ -16,25 +16,29 @@ pub struct VertexAttributeBuffer {
 }
 
 impl VertexAttributeBuffer {
-	pub fn new<T: VertexAttributes>(ctx: &Context, data: &[T]) -> Self {
-		let gl = &ctx.graphics.gl;
-		let buffer = unsafe {
-			let buffer = gl
-				.create_buffer()
-				.expect("error creating vertex attribute buffer");
-			gl.bind_buffer(glow::ARRAY_BUFFER, Some(buffer));
-			gl.buffer_data_u8_slice(
-				glow::ARRAY_BUFFER,
-				bytemuck::cast_slice(data),
-				glow::STATIC_DRAW,
-			);
-			buffer
-		};
+	pub fn new<T: VertexAttributes>(data: &[T]) -> Self {
+		let buffer = Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				let buffer = gl
+					.create_buffer()
+					.expect("error creating vertex attribute buffer");
+				gl.bind_buffer(glow::ARRAY_BUFFER, Some(buffer));
+				gl.buffer_data_u8_slice(
+					glow::ARRAY_BUFFER,
+					bytemuck::cast_slice(data),
+					glow::STATIC_DRAW,
+				);
+				buffer
+			}
+		});
 		Self {
 			buffer,
 			attribute_kinds: T::ATTRIBUTE_KINDS.to_vec(),
 			divisor: T::DIVISOR,
-			unused_resource_sender: ctx.graphics.unused_resource_sender.clone(),
+			unused_resource_sender: Context::with(|ctx| {
+				ctx.graphics.unused_resource_sender.clone()
+			}),
 		}
 	}
 }

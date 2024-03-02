@@ -6,7 +6,7 @@ pub use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::Vec2;
 
-use crate::{context::Context, math::Rect, IntoOffsetAndCount};
+use crate::{math::Rect, IntoOffsetAndCount};
 
 use super::{
 	draw_params::DrawParams,
@@ -19,9 +19,8 @@ pub struct Text {
 }
 
 impl Text {
-	pub fn new(ctx: &Context, font: &Font, text: &str, layout_settings: LayoutSettings) -> Self {
+	pub fn new(font: &Font, text: &str, layout_settings: LayoutSettings) -> Self {
 		Self::with_multiple_fonts(
-			ctx,
 			&[font],
 			&[TextFragment {
 				font_index: 0,
@@ -32,7 +31,6 @@ impl Text {
 	}
 
 	pub fn with_multiple_fonts<'a>(
-		ctx: &Context,
 		fonts: &[&Font],
 		text_fragments: impl IntoIterator<Item = &'a TextFragment<'a>>,
 		layout_settings: LayoutSettings,
@@ -51,7 +49,7 @@ impl Text {
 				},
 			);
 		}
-		Self::from_layout(layout, fonts, ctx)
+		Self::from_layout(layout, fonts)
 	}
 
 	pub fn num_glyphs(&self) -> usize {
@@ -65,33 +63,31 @@ impl Text {
 		self.bounds
 	}
 
-	pub fn draw<'a>(&self, ctx: &mut Context, params: impl Into<DrawParams<'a>>) {
+	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
 		let params = params.into();
 		for sprite_batch in &self.sprite_batches {
-			sprite_batch.draw(ctx, params);
+			sprite_batch.draw(params);
 		}
 	}
 
 	pub fn draw_range<'a>(
 		&self,
-		ctx: &mut Context,
 		range: impl IntoOffsetAndCount,
 		params: impl Into<DrawParams<'a>>,
 	) {
 		if self.sprite_batches.len() != 1 {
 			unimplemented!("draw_range is only implemented for text with exactly 1 font");
 		}
-		self.sprite_batches[0].draw_range(ctx, range, params);
+		self.sprite_batches[0].draw_range(range, params);
 	}
 
-	fn from_layout(layout: Layout, fonts: &[&Font], ctx: &Context) -> Text {
+	fn from_layout(layout: Layout, fonts: &[&Font]) -> Text {
 		let glyphs = layout.glyphs();
 		let mut sprite_batches = fonts
 			.iter()
 			.enumerate()
 			.map(|(i, font)| {
 				SpriteBatch::new(
-					ctx,
 					&font.texture,
 					glyphs.iter().filter(|glyph| glyph.font_index == i).count(),
 				)
@@ -117,7 +113,6 @@ impl Text {
 				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
 			sprite_batches[glyph.font_index]
 				.add_region(
-					ctx,
 					texture_region,
 					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
 				)

@@ -2,8 +2,6 @@ use std::path::Path;
 
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 
-use crate::Context;
-
 use super::ResourceLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -22,7 +20,6 @@ impl ResourceLoader for StaticSoundDataLoader {
 
 	fn load(
 		&mut self,
-		_ctx: &mut Context,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {

@@ -1,9 +1,6 @@
 use std::time::Duration;
 
-use crate::{
-	graphics::{texture::Texture, DrawParams},
-	Context,
-};
+use crate::graphics::{texture::Texture, DrawParams};
 
 use super::{AnimationData, Frame, Repeats};
 
@@ -77,14 +74,8 @@ impl AnimationPlayer {
 		}
 	}
 
-	pub fn draw<'a>(
-		&self,
-		ctx: &mut Context,
-		texture: &Texture,
-		params: impl Into<DrawParams<'a>>,
-	) {
+	pub fn draw<'a>(&self, texture: &Texture, params: impl Into<DrawParams<'a>>) {
 		texture.draw_region(
-			ctx,
 			self.animation_data.frames[self.current_frame_index].texture_region,
 			params,
 		)

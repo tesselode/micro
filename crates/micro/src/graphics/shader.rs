@@ -34,49 +34,40 @@ pub struct Shader {
 
 impl Shader {
 	pub fn from_files(
-		ctx: &Context,
 		vertex: impl AsRef<Path>,
 		fragment: impl AsRef<Path>,
 	) -> Result<Self, LoadShaderError> {
 		Self::from_strs(
-			ctx,
 			&std::fs::read_to_string(vertex)?,
 			&std::fs::read_to_string(fragment)?,
 		)
 	}
 
-	pub fn from_combined_file(
-		ctx: &Context,
-		combined: impl AsRef<Path>,
-	) -> Result<Self, LoadShaderError> {
-		Self::from_combined_str(ctx, &std::fs::read_to_string(combined)?)
+	pub fn from_combined_file(combined: impl AsRef<Path>) -> Result<Self, LoadShaderError> {
+		Self::from_combined_str(&std::fs::read_to_string(combined)?)
 	}
 
-	pub fn from_vertex_file(
-		ctx: &Context,
-		vertex: impl AsRef<Path>,
-	) -> Result<Self, LoadShaderError> {
-		Self::from_vertex_str(ctx, &std::fs::read_to_string(vertex)?)
+	pub fn from_vertex_file(vertex: impl AsRef<Path>) -> Result<Self, LoadShaderError> {
+		Self::from_vertex_str(&std::fs::read_to_string(vertex)?)
 	}
 
-	pub fn from_fragment_file(
-		ctx: &Context,
-		fragment: impl AsRef<Path>,
-	) -> Result<Self, LoadShaderError> {
-		Self::from_fragment_str(ctx, &std::fs::read_to_string(fragment)?)
+	pub fn from_fragment_file(fragment: impl AsRef<Path>) -> Result<Self, LoadShaderError> {
+		Self::from_fragment_str(&std::fs::read_to_string(fragment)?)
 	}
 
-	pub fn from_strs(ctx: &Context, vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
-		Self::new_from_gl(
-			&ctx.graphics.gl,
-			ctx.graphics.unused_resource_sender.clone(),
-			vertex,
-			fragment,
-		)
-		.map_err(LoadShaderError::ShaderError)
+	pub fn from_strs(vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
+		Context::with(|ctx| {
+			Self::new_from_gl(
+				&ctx.graphics.gl,
+				ctx.graphics.unused_resource_sender.clone(),
+				vertex,
+				fragment,
+			)
+			.map_err(LoadShaderError::ShaderError)
+		})
 	}
 
-	pub fn from_combined_str(ctx: &Context, combined: &str) -> Result<Self, LoadShaderError> {
+	pub fn from_combined_str(combined: &str) -> Result<Self, LoadShaderError> {
 		let split_code = COMBINED_SHADER_SECTION_REGEX
 			.captures_iter(combined)
 			.zip(COMBINED_SHADER_SECTION_REGEX.split(combined).skip(1))
@@ -86,7 +77,6 @@ impl Shader {
 			})
 			.collect::<HashMap<_, _>>();
 		Self::from_strs(
-			ctx,
 			split_code
 				.get(COMBINED_SHADER_VERTEX_SECTION_NAME)
 				.map(String::as_str)
@@ -98,12 +88,12 @@ impl Shader {
 		)
 	}
 
-	pub fn from_vertex_str(ctx: &Context, vertex: &str) -> Result<Self, LoadShaderError> {
-		Self::from_strs(ctx, vertex, DEFAULT_FRAGMENT_SHADER)
+	pub fn from_vertex_str(vertex: &str) -> Result<Self, LoadShaderError> {
+		Self::from_strs(vertex, DEFAULT_FRAGMENT_SHADER)
 	}
 
-	pub fn from_fragment_str(ctx: &Context, fragment: &str) -> Result<Self, LoadShaderError> {
-		Self::from_strs(ctx, DEFAULT_VERTEX_SHADER, fragment)
+	pub fn from_fragment_str(fragment: &str) -> Result<Self, LoadShaderError> {
+		Self::from_strs(DEFAULT_VERTEX_SHADER, fragment)
 	}
 
 	pub(crate) fn new_from_gl(
@@ -161,15 +151,18 @@ impl Shader {
 			.cloned()
 	}
 
-	pub fn send_bool(&self, ctx: &Context, name: &str, value: bool) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_1_i32(Some(&location), value.into());
-		}
+	pub fn send_bool(&self, name: &str, value: bool) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_1_i32(Some(&location), value.into());
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -177,15 +170,18 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_i32(&self, ctx: &Context, name: &str, value: i32) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_1_i32(Some(&location), value);
-		}
+	pub fn send_i32(&self, name: &str, value: i32) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_1_i32(Some(&location), value);
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -193,15 +189,18 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_f32(&self, ctx: &Context, name: &str, value: f32) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_1_f32(Some(&location), value);
-		}
+	pub fn send_f32(&self, name: &str, value: f32) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_1_f32(Some(&location), value);
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -209,15 +208,18 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_vec2(&self, ctx: &Context, name: &str, vec2: Vec2) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_2_f32(Some(&location), vec2.x, vec2.y);
-		}
+	pub fn send_vec2(&self, name: &str, vec2: Vec2) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_2_f32(Some(&location), vec2.x, vec2.y);
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -226,15 +228,18 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_vec3(&self, ctx: &Context, name: &str, vec3: Vec3) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_3_f32(Some(&location), vec3.x, vec3.y, vec3.z);
-		}
+	pub fn send_vec3(&self, name: &str, vec3: Vec3) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_3_f32(Some(&location), vec3.x, vec3.y, vec3.z);
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -242,15 +247,18 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_vec4(&self, ctx: &Context, name: &str, vec4: Vec4) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_4_f32(Some(&location), vec4.x, vec4.y, vec4.z, vec4.w);
-		}
+	pub fn send_vec4(&self, name: &str, vec4: Vec4) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_4_f32(Some(&location), vec4.x, vec4.y, vec4.z, vec4.w);
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -258,15 +266,18 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_mat3(&self, ctx: &Context, name: &str, mat3: Mat3) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_matrix_3_f32_slice(Some(&location), false, &mat3.to_cols_array());
-		}
+	pub fn send_mat3(&self, name: &str, mat3: Mat3) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_matrix_3_f32_slice(Some(&location), false, &mat3.to_cols_array());
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -274,15 +285,18 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_mat4(&self, ctx: &Context, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
-		}
+	pub fn send_mat4(&self, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -290,26 +304,24 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_color(
-		&self,
-		ctx: &Context,
-		name: &str,
-		color: LinSrgba,
-	) -> Result<(), UniformNotFound> {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			gl.use_program(Some(self.program));
-			let location = gl
-				.get_uniform_location(self.program, name)
-				.ok_or_else(|| UniformNotFound(name.to_string()))?;
-			gl.uniform_4_f32(
-				Some(&location),
-				color.red,
-				color.green,
-				color.blue,
-				color.alpha,
-			);
-		}
+	pub fn send_color(&self, name: &str, color: LinSrgba) -> Result<(), UniformNotFound> {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				gl.use_program(Some(self.program));
+				let location = gl
+					.get_uniform_location(self.program, name)
+					.ok_or_else(|| UniformNotFound(name.to_string()))?;
+				gl.uniform_4_f32(
+					Some(&location),
+					color.red,
+					color.green,
+					color.blue,
+					color.alpha,
+				);
+			}
+			Ok(())
+		})?;
 		self.uniform_values
 			.lock()
 			.expect("uniform mutex poisoned")
@@ -317,12 +329,7 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_texture(
-		&mut self,
-		ctx: &Context,
-		name: &str,
-		texture: &Texture,
-	) -> Result<(), SendTextureError> {
+	pub fn send_texture(&mut self, name: &str, texture: &Texture) -> Result<(), SendTextureError> {
 		if let Some(SentTextureInfo { texture, .. }) = self.sent_textures.get_mut(name) {
 			*texture = texture.clone();
 		} else {
@@ -337,7 +344,7 @@ impl Shader {
 					unit,
 				},
 			);
-			self.send_i32(ctx, name, unit as i32)
+			self.send_i32(name, unit as i32)
 				.map_err(|_| SendTextureError::UniformNotFound(name.to_string()))?;
 		}
 		self.uniform_values
@@ -347,18 +354,20 @@ impl Shader {
 		Ok(())
 	}
 
-	pub(crate) fn bind_sent_textures(&self, ctx: &Context) {
-		let gl = &ctx.graphics.gl;
-		unsafe {
-			for SentTextureInfo { texture, unit } in self.sent_textures.values() {
-				gl.active_texture(glow::TEXTURE0 + *unit);
-				gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
+	pub(crate) fn bind_sent_textures(&self) {
+		Context::with(|ctx| {
+			let gl = &ctx.graphics.gl;
+			unsafe {
+				for SentTextureInfo { texture, unit } in self.sent_textures.values() {
+					gl.active_texture(glow::TEXTURE0 + *unit);
+					gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
+				}
+				gl.active_texture(glow::TEXTURE0);
 			}
-			gl.active_texture(glow::TEXTURE0);
-		}
+		});
 	}
 
-	pub(crate) fn import_uniforms(&mut self, ctx: &Context, other: &Self) {
+	pub(crate) fn import_uniforms(&mut self, other: &Self) {
 		for (name, value) in other
 			.uniform_values
 			.lock()
@@ -366,16 +375,16 @@ impl Shader {
 			.iter()
 		{
 			match value {
-				UniformValue::Bool(value) => self.send_bool(ctx, name, *value).ok(),
-				UniformValue::I32(value) => self.send_i32(ctx, name, *value).ok(),
-				UniformValue::F32(value) => self.send_f32(ctx, name, *value).ok(),
-				UniformValue::Vec2(value) => self.send_vec2(ctx, name, *value).ok(),
-				UniformValue::Vec3(value) => self.send_vec3(ctx, name, *value).ok(),
-				UniformValue::Vec4(value) => self.send_vec4(ctx, name, *value).ok(),
-				UniformValue::Mat3(value) => self.send_mat3(ctx, name, *value).ok(),
-				UniformValue::Mat4(value) => self.send_mat4(ctx, name, *value).ok(),
-				UniformValue::Color(value) => self.send_color(ctx, name, *value).ok(),
-				UniformValue::Texture(value) => self.send_texture(ctx, name, value).ok(),
+				UniformValue::Bool(value) => self.send_bool(name, *value).ok(),
+				UniformValue::I32(value) => self.send_i32(name, *value).ok(),
+				UniformValue::F32(value) => self.send_f32(name, *value).ok(),
+				UniformValue::Vec2(value) => self.send_vec2(name, *value).ok(),
+				UniformValue::Vec3(value) => self.send_vec3(name, *value).ok(),
+				UniformValue::Vec4(value) => self.send_vec4(name, *value).ok(),
+				UniformValue::Mat3(value) => self.send_mat3(name, *value).ok(),
+				UniformValue::Mat4(value) => self.send_mat4(name, *value).ok(),
+				UniformValue::Color(value) => self.send_color(name, *value).ok(),
+				UniformValue::Texture(value) => self.send_texture(name, value).ok(),
 			};
 		}
 	}

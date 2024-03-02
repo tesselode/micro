@@ -6,30 +6,27 @@ use image::ImageBuffer;
 use palette::{LinSrgba, Srgba};
 
 use crate::{
+	clear_stencil,
 	graphics::{
 		mesh::Mesh,
 		texture::{Texture, TextureSettings},
 		DrawParams, StencilAction, StencilTest, Vertex2d,
 	},
 	input::Scancode,
-	Context,
+	is_key_down, monitor_resolution, use_stencil, window_size, write_to_stencil,
 };
 
 const SCROLL_SPEED: f32 = 25.0;
 
-pub fn egui_raw_input(
-	ctx: &Context,
-	events: &[sdl2::event::Event],
-	delta_time: Duration,
-) -> RawInput {
+pub fn egui_raw_input(events: &[sdl2::event::Event], delta_time: Duration) -> RawInput {
 	let modifiers = egui::Modifiers {
-		alt: ctx.is_key_down(Scancode::LAlt) || ctx.is_key_down(Scancode::RAlt),
-		ctrl: ctx.is_key_down(Scancode::LCtrl) || ctx.is_key_down(Scancode::RCtrl),
-		shift: ctx.is_key_down(Scancode::LShift) || ctx.is_key_down(Scancode::RShift),
-		mac_cmd: ctx.is_key_down(Scancode::LGui) || ctx.is_key_down(Scancode::RGui),
-		command: ctx.is_key_down(Scancode::LGui) || ctx.is_key_down(Scancode::RGui),
+		alt: is_key_down(Scancode::LAlt) || is_key_down(Scancode::RAlt),
+		ctrl: is_key_down(Scancode::LCtrl) || is_key_down(Scancode::RCtrl),
+		shift: is_key_down(Scancode::LShift) || is_key_down(Scancode::RShift),
+		mac_cmd: is_key_down(Scancode::LGui) || is_key_down(Scancode::RGui),
+		command: is_key_down(Scancode::LGui) || is_key_down(Scancode::RGui),
 	};
-	let scaling_factor = egui_scaling_factor(ctx);
+	let scaling_factor = egui_scaling_factor();
 	RawInput {
 		viewports: std::iter::once((
 			ViewportId::ROOT,
@@ -41,13 +38,13 @@ pub fn egui_raw_input(
 		.collect(),
 		screen_rect: Some(egui::Rect::from_min_size(
 			Default::default(),
-			glam_vec2_to_egui_vec2(ctx.window_size().as_vec2()) / scaling_factor,
+			glam_vec2_to_egui_vec2(window_size().as_vec2()) / scaling_factor,
 		)),
 		modifiers,
 		events: events
 			.iter()
 			.cloned()
-			.filter_map(|event| sdl2_event_to_egui_event(ctx, event, modifiers))
+			.filter_map(|event| sdl2_event_to_egui_event(event, modifiers))
 			.collect(),
 		predicted_dt: delta_time.as_secs_f32(),
 		..Default::default()
@@ -55,36 +52,34 @@ pub fn egui_raw_input(
 }
 
 pub fn draw_egui_output(
-	ctx: &mut Context,
 	egui_ctx: &egui::Context,
 	output: FullOutput,
 	textures: &mut HashMap<egui::TextureId, Texture>,
 ) {
-	patch_textures(&output, textures, ctx);
-	let scaling_factor = egui_scaling_factor(ctx);
-	ctx.clear_stencil();
+	patch_textures(&output, textures);
+	let scaling_factor = egui_scaling_factor();
+	clear_stencil();
 	for clipped_primitive in egui_ctx.tessellate(output.shapes, scaling_factor) {
 		match clipped_primitive.primitive {
 			egui::epaint::Primitive::Mesh(mesh) => {
 				{
-					let ctx = &mut ctx.write_to_stencil(StencilAction::Replace(1));
+					let _scope = write_to_stencil(StencilAction::Replace(1));
 					let clip_rect_points = egui_rect_to_micro_rect(clipped_primitive.clip_rect);
 					let clip_rect_pixels = crate::math::Rect::from_top_left_and_bottom_right(
 						clip_rect_points.top_left * scaling_factor,
 						clip_rect_points.bottom_right() * scaling_factor,
 					);
-					Mesh::rectangle(ctx, clip_rect_pixels).draw(ctx, DrawParams::new());
+					Mesh::rectangle(clip_rect_pixels).draw(DrawParams::new());
 				}
 				{
-					let ctx = &mut ctx.use_stencil(StencilTest::Equal, 1);
+					let _scope = use_stencil(StencilTest::Equal, 1);
 					let texture_id = mesh.texture_id;
-					egui_mesh_to_micro_mesh(ctx, mesh).draw_textured(
-						ctx,
+					egui_mesh_to_micro_mesh(mesh).draw_textured(
 						textures.get(&texture_id).expect("missing egui texture"),
 						DrawParams::new().scaled_2d(glam::Vec2::splat(scaling_factor)),
 					);
 				}
-				ctx.clear_stencil();
+				clear_stencil();
 			}
 			egui::epaint::Primitive::Callback(_) => unimplemented!(),
 		}
@@ -94,27 +89,18 @@ pub fn draw_egui_output(
 	}
 }
 
-fn patch_textures(
-	output: &FullOutput,
-	textures: &mut HashMap<egui::TextureId, Texture>,
-	ctx: &mut Context,
-) {
+fn patch_textures(output: &FullOutput, textures: &mut HashMap<egui::TextureId, Texture>) {
 	for (texture_id, delta) in &output.textures_delta.set {
 		if let Some(texture) = textures.get(texture_id) {
 			let top_left = delta
 				.pos
 				.map(|[x, y]| IVec2::new(x as i32, y as i32))
 				.unwrap_or_default();
-			texture.replace(
-				ctx,
-				top_left,
-				&egui_image_data_to_image_buffer(&delta.image),
-			)
+			texture.replace(top_left, &egui_image_data_to_image_buffer(&delta.image))
 		} else {
 			textures.insert(
 				*texture_id,
 				Texture::from_image(
-					ctx,
 					&egui_image_data_to_image_buffer(&delta.image),
 					TextureSettings::default(),
 				),
@@ -124,11 +110,10 @@ fn patch_textures(
 }
 
 fn sdl2_event_to_egui_event(
-	ctx: &Context,
 	event: sdl2::event::Event,
 	modifiers: egui::Modifiers,
 ) -> Option<egui::Event> {
-	let scaling_factor = egui_scaling_factor(ctx);
+	let scaling_factor = egui_scaling_factor();
 	match event {
 		sdl2::event::Event::KeyDown {
 			scancode, repeat, ..
@@ -314,14 +299,14 @@ fn egui_rect_to_micro_rect(v: egui::Rect) -> crate::math::Rect {
 	)
 }
 
-fn egui_mesh_to_micro_mesh(ctx: &Context, egui_mesh: egui::Mesh) -> Mesh<Vertex2d> {
+fn egui_mesh_to_micro_mesh(egui_mesh: egui::Mesh) -> Mesh<Vertex2d> {
 	let vertices = egui_mesh
 		.vertices
 		.iter()
 		.copied()
 		.map(egui_vertex_to_micro_vertex_2d)
 		.collect::<Vec<_>>();
-	Mesh::new(ctx, &vertices, &egui_mesh.indices)
+	Mesh::new(&vertices, &egui_mesh.indices)
 }
 
 fn egui_vertex_to_micro_vertex_2d(vertex: egui::epaint::Vertex) -> Vertex2d {
@@ -358,8 +343,8 @@ fn egui_image_data_to_image_buffer(
 	}
 }
 
-fn egui_scaling_factor(ctx: &Context) -> f32 {
-	let Ok(monitor_resolution) = ctx.monitor_resolution() else {
+fn egui_scaling_factor() -> f32 {
+	let Ok(monitor_resolution) = monitor_resolution() else {
 		return 1.0;
 	};
 	(monitor_resolution.y as f32 / 1080.0).max(1.0)

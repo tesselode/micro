@@ -8,7 +8,6 @@ use glam::Vec2;
 use thiserror::Error;
 
 use crate::{
-	context::Context,
 	graphics::{draw_params::DrawParams, mesh::Mesh, texture::Texture},
 	math::Rect,
 	IntoOffsetAndCount, OffsetAndCount,
@@ -25,7 +24,7 @@ pub struct SpriteBatch {
 }
 
 impl SpriteBatch {
-	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
+	pub fn new(texture: &Texture, capacity: usize) -> Self {
 		let vertices = vec![
 			Vertex2d {
 				position: Vec2::ZERO,
@@ -49,7 +48,7 @@ impl SpriteBatch {
 		Self {
 			texture: texture.clone(),
 			sprites: Arena::with_capacity(capacity),
-			mesh: Mesh::new(ctx, &vertices, &indices),
+			mesh: Mesh::new(&vertices, &indices),
 			capacity,
 		}
 	}
@@ -63,21 +62,13 @@ impl SpriteBatch {
 		self.len() == 0
 	}
 
-	pub fn add(
-		&mut self,
-		ctx: &Context,
-		params: impl Into<SpriteParams>,
-	) -> Result<SpriteId, SpriteLimitReached> {
-		self.add_region(
-			ctx,
-			Rect::new(Vec2::ZERO, self.texture.size().as_vec2()),
-			params,
-		)
+	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
+		self.add_region(Rect::new(Vec2::ZERO, self.texture.size().as_vec2()), params)
 	}
 
 	pub fn add_region(
 		&mut self,
-		ctx: &Context,
+
 		texture_region: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<SpriteId, SpriteLimitReached> {
@@ -104,14 +95,14 @@ impl SpriteBatch {
 			})
 			.enumerate();
 		for (i, vertex) in vertices {
-			self.mesh.set_vertex(ctx, start_vertex_index + i, vertex);
+			self.mesh.set_vertex(start_vertex_index + i, vertex);
 		}
 		Ok(id)
 	}
 
 	pub fn add_nine_slice(
 		&mut self,
-		ctx: &Context,
+
 		nine_slice: NineSlice,
 		display_rect: Rect,
 		params: impl Into<SpriteParams>,
@@ -122,7 +113,6 @@ impl SpriteBatch {
 		let params: SpriteParams = params.into();
 		Ok(nine_slice.slices(display_rect).map(|slice| {
 			self.add_region(
-				ctx,
 				slice.texture_region,
 				params
 					.scaled(slice.display_rect.size / slice.texture_region.size)
@@ -132,7 +122,7 @@ impl SpriteBatch {
 		}))
 	}
 
-	pub fn remove(&mut self, ctx: &Context, id: SpriteId) -> Result<(), InvalidSpriteId> {
+	pub fn remove(&mut self, id: SpriteId) -> Result<(), InvalidSpriteId> {
 		if self.sprites.remove(id.0).is_none() {
 			return Err(InvalidSpriteId);
 		}
@@ -140,7 +130,6 @@ impl SpriteBatch {
 		let start_vertex_index = sprite_index * 4;
 		for i in 0..4 {
 			self.mesh.set_vertex(
-				ctx,
 				start_vertex_index + i,
 				Vertex2d {
 					position: Vec2::ZERO,
@@ -152,19 +141,18 @@ impl SpriteBatch {
 		Ok(())
 	}
 
-	pub fn draw<'a>(&self, ctx: &Context, params: impl Into<DrawParams<'a>>) {
-		self.mesh.draw_textured(ctx, &self.texture, params);
+	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
+		self.mesh.draw_textured(&self.texture, params);
 	}
 
 	pub fn draw_range<'a>(
 		&self,
-		ctx: &Context,
+
 		range: impl IntoOffsetAndCount,
 		params: impl Into<DrawParams<'a>>,
 	) {
 		let offset_and_count = range.into_offset_and_count(self.sprites.len());
 		self.mesh.draw_range_textured(
-			ctx,
 			&self.texture,
 			OffsetAndCount {
 				offset: offset_and_count.offset * 6,

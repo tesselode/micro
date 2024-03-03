@@ -1,14 +1,17 @@
 use std::{rc::Rc, sync::mpsc::Sender};
 
-use glam::UVec2;
+use glam::{Mat4, UVec2, Vec2};
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, PixelPackData};
+use palette::LinSrgba;
 
 use crate::{context::graphics::RenderTarget, math::Rect, Context};
 
 use super::{
+	shader::Shader,
+	standard_draw_command_methods,
 	texture::{Texture, TextureSettings},
 	unused_resource::UnusedGraphicsResource,
-	DrawParams,
+	BlendMode, ColorConstants,
 };
 
 #[derive(Debug)]
@@ -167,12 +170,17 @@ impl Canvas {
 		}
 	}
 
-	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
-		self.texture.draw(params)
-	}
-
-	pub fn draw_region<'a>(&self, region: Rect, params: impl Into<DrawParams<'a>>) {
-		self.texture.draw_region(region, params)
+	pub fn draw(&self) -> DrawCanvasCommand {
+		DrawCanvasCommand {
+			canvas: self,
+			params: DrawCanvasParams {
+				region: Rect::new(Vec2::ZERO, self.size().as_vec2()),
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+			},
+		}
 	}
 
 	pub fn read(&self, buffer: &mut [u8]) {
@@ -195,6 +203,16 @@ impl Canvas {
 				);
 			}
 		});
+	}
+
+	fn draw_inner(&self, params: &DrawCanvasParams) {
+		self.texture
+			.draw()
+			.region(params.region)
+			.shader(params.shader)
+			.transformed(params.transform)
+			.color(params.color)
+			.blend_mode(params.blend_mode);
 	}
 }
 
@@ -317,5 +335,33 @@ pub struct OnDrop<'a> {
 impl<'a> Drop for OnDrop<'a> {
 	fn drop(&mut self) {
 		(self.on_drop)(self.canvas);
+	}
+}
+
+pub struct DrawCanvasParams<'a> {
+	pub region: Rect,
+	pub shader: Option<&'a Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
+}
+
+pub struct DrawCanvasCommand<'a> {
+	canvas: &'a Canvas,
+	params: DrawCanvasParams<'a>,
+}
+
+impl<'a> DrawCanvasCommand<'a> {
+	pub fn region(mut self, region: Rect) -> Self {
+		self.params.region = region;
+		self
+	}
+
+	standard_draw_command_methods!();
+}
+
+impl<'a> Drop for DrawCanvasCommand<'a> {
+	fn drop(&mut self) {
+		self.canvas.draw_inner(&self.params);
 	}
 }

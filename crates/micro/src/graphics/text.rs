@@ -4,13 +4,15 @@ pub use font::*;
 pub use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
-use glam::Vec2;
+use glam::{Mat4, Vec2};
+use palette::LinSrgba;
 
-use crate::{math::Rect, IntoOffsetAndCount};
+use crate::math::Rect;
 
 use super::{
-	draw_params::DrawParams,
+	shader::Shader,
 	sprite_batch::{SpriteBatch, SpriteParams},
+	standard_draw_command_methods, BlendMode, ColorConstants,
 };
 
 pub struct Text {
@@ -63,22 +65,16 @@ impl Text {
 		self.bounds
 	}
 
-	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
-		let params = params.into();
-		for sprite_batch in &self.sprite_batches {
-			sprite_batch.draw(params);
+	pub fn draw(&self) -> DrawTextCommand {
+		DrawTextCommand {
+			text: self,
+			params: DrawTextParams {
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+			},
 		}
-	}
-
-	pub fn draw_range<'a>(
-		&self,
-		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		if self.sprite_batches.len() != 1 {
-			unimplemented!("draw_range is only implemented for text with exactly 1 font");
-		}
-		self.sprite_batches[0].draw_range(range, params);
 	}
 
 	fn from_layout(layout: Layout, fonts: &[&Font]) -> Text {
@@ -121,6 +117,17 @@ impl Text {
 		Self {
 			sprite_batches,
 			bounds,
+		}
+	}
+
+	fn draw_inner(&self, params: &DrawTextParams) {
+		for sprite_batch in &self.sprite_batches {
+			sprite_batch
+				.draw()
+				.shader(params.shader)
+				.transformed(params.transform)
+				.color(params.color)
+				.blend_mode(params.blend_mode);
 		}
 	}
 }
@@ -185,4 +192,26 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 pub struct TextFragment<'a> {
 	pub font_index: usize,
 	pub text: &'a str,
+}
+
+pub struct DrawTextParams<'a> {
+	pub shader: Option<&'a Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
+}
+
+pub struct DrawTextCommand<'a> {
+	text: &'a Text,
+	params: DrawTextParams<'a>,
+}
+
+impl<'a> DrawTextCommand<'a> {
+	standard_draw_command_methods!();
+}
+
+impl<'a> Drop for DrawTextCommand<'a> {
+	fn drop(&mut self) {
+		self.text.draw_inner(&self.params);
+	}
 }

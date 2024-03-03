@@ -123,7 +123,7 @@ where
 				state.draw()?;
 			}
 			let transform = Context::with(|ctx| ctx.scaling_mode.transform_mat4());
-			main_canvas.draw(transform);
+			main_canvas.draw().transformed(transform);
 		} else {
 			let _scope = push_transform(Context::with(|ctx| ctx.scaling_mode.transform_mat4()));
 			state.draw()?;

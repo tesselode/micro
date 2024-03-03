@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use crate::graphics::{texture::Texture, DrawParams};
+use glam::Mat4;
+use palette::LinSrgba;
+
+use crate::graphics::{shader::Shader, standard_draw_command_methods, texture::Texture, BlendMode};
 
 use super::{AnimationData, Frame, Repeats};
 
@@ -74,11 +77,14 @@ impl AnimationPlayer {
 		}
 	}
 
-	pub fn draw<'a>(&self, texture: &Texture, params: impl Into<DrawParams<'a>>) {
-		texture.draw_region(
-			self.animation_data.frames[self.current_frame_index].texture_region,
-			params,
-		)
+	fn draw_inner(&self, texture: &Texture, params: &DrawAnimationParams) {
+		texture
+			.draw()
+			.region(self.animation_data.frames[self.current_frame_index].texture_region)
+			.shader(params.shader)
+			.transformed(params.transform)
+			.color(params.color)
+			.blend_mode(params.blend_mode);
 	}
 
 	fn advance_one_frame(&mut self) -> AdvancedFrame {
@@ -118,3 +124,27 @@ impl AnimationPlayer {
 }
 
 type AdvancedFrame = bool;
+
+pub struct DrawAnimationParams<'a> {
+	pub shader: Option<&'a Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
+}
+
+pub struct DrawAnimationCommand<'a> {
+	animation_player: &'a AnimationPlayer,
+	params: DrawAnimationParams<'a>,
+	texture: Texture,
+}
+
+impl<'a> DrawAnimationCommand<'a> {
+	standard_draw_command_methods!();
+}
+
+impl<'a> Drop for DrawAnimationCommand<'a> {
+	fn drop(&mut self) {
+		self.animation_player
+			.draw_inner(&self.texture, &self.params);
+	}
+}

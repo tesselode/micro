@@ -1,21 +1,19 @@
 use std::{path::Path, rc::Rc, sync::mpsc::Sender};
 
-use glam::{IVec2, UVec2, Vec2};
+use glam::{IVec2, Mat4, UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
 use image::{ImageBuffer, ImageError};
 use palette::LinSrgba;
 use thiserror::Error;
 
-use crate::{
-	context::Context,
-	graphics::{draw_params::DrawParams, mesh::Mesh},
-	math::Rect,
-};
+use crate::{context::Context, graphics::mesh::Mesh, math::Rect};
 
 use super::{
+	shader::Shader,
 	sprite_batch::{SpriteBatch, SpriteParams},
+	standard_draw_command_methods,
 	unused_resource::UnusedGraphicsResource,
-	NineSlice,
+	BlendMode, ColorConstants, NineSlice,
 };
 
 #[derive(Debug, Clone)]
@@ -100,30 +98,35 @@ impl Texture {
 		});
 	}
 
-	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
-		Mesh::rectangle(Rect::new(Vec2::ZERO, self.inner.size.as_vec2()))
-			.draw_textured(self, params);
+	pub fn draw(&self) -> DrawTextureCommand {
+		DrawTextureCommand {
+			texture: self,
+			params: DrawTextureParams {
+				region: Rect::new(Vec2::ZERO, self.size().as_vec2()),
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+			},
+		}
 	}
 
-	pub fn draw_region<'a>(&self, region: Rect, params: impl Into<DrawParams<'a>>) {
-		Mesh::rectangle_with_texture_region(
-			Rect::new(Vec2::ZERO, region.size),
-			self.relative_rect(region),
-		)
-		.draw_textured(self, params);
-	}
-
-	pub fn draw_nine_slice<'a>(
+	pub fn draw_nine_slice(
 		&self,
 		nine_slice: NineSlice,
 		display_rect: Rect,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		let mut sprite_batch = SpriteBatch::new(self, 9);
-		sprite_batch
-			.add_nine_slice(nine_slice, display_rect, SpriteParams::default())
-			.unwrap();
-		sprite_batch.draw(params)
+	) -> DrawNineSliceCommand {
+		DrawNineSliceCommand {
+			texture: self,
+			nine_slice,
+			display_rect,
+			params: DrawNineSliceParams {
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+			},
+		}
 	}
 
 	pub(crate) fn new_from_gl(
@@ -206,6 +209,37 @@ impl Texture {
 			}
 		});
 	}
+
+	fn draw_inner(&self, params: &DrawTextureParams) {
+		Mesh::rectangle_with_texture_region(
+			Rect::new(Vec2::ZERO, params.region.size),
+			self.relative_rect(params.region),
+		)
+		.draw()
+		.texture(self)
+		.shader(params.shader)
+		.transformed(params.transform)
+		.color(params.color)
+		.blend_mode(params.blend_mode);
+	}
+
+	fn draw_nine_slice_inner(
+		&self,
+		nine_slice: NineSlice,
+		display_rect: Rect,
+		params: &DrawNineSliceParams,
+	) {
+		let mut sprite_batch = SpriteBatch::new(self, 9);
+		sprite_batch
+			.add_nine_slice(nine_slice, display_rect, SpriteParams::default())
+			.unwrap();
+		sprite_batch
+			.draw()
+			.shader(params.shader)
+			.transformed(params.transform)
+			.color(params.color)
+			.blend_mode(params.blend_mode);
+	}
 }
 
 impl Drop for TextureInner {
@@ -279,4 +313,57 @@ pub enum LoadTextureError {
 	IoError(#[from] std::io::Error),
 	#[error("{0}")]
 	ImageError(#[from] ImageError),
+}
+
+pub struct DrawTextureParams<'a> {
+	pub region: Rect,
+	pub shader: Option<&'a Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
+}
+
+pub struct DrawTextureCommand<'a> {
+	texture: &'a Texture,
+	params: DrawTextureParams<'a>,
+}
+
+impl<'a> DrawTextureCommand<'a> {
+	pub fn region(mut self, region: Rect) -> Self {
+		self.params.region = region;
+		self
+	}
+
+	standard_draw_command_methods!();
+}
+
+impl<'a> Drop for DrawTextureCommand<'a> {
+	fn drop(&mut self) {
+		self.texture.draw_inner(&self.params);
+	}
+}
+
+pub struct DrawNineSliceParams<'a> {
+	pub shader: Option<&'a Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
+}
+
+pub struct DrawNineSliceCommand<'a> {
+	texture: &'a Texture,
+	nine_slice: NineSlice,
+	params: DrawNineSliceParams<'a>,
+	display_rect: Rect,
+}
+
+impl<'a> DrawNineSliceCommand<'a> {
+	standard_draw_command_methods!();
+}
+
+impl<'a> Drop for DrawNineSliceCommand<'a> {
+	fn drop(&mut self) {
+		self.texture
+			.draw_nine_slice_inner(self.nine_slice, self.display_rect, &self.params);
+	}
 }

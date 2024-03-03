@@ -1,15 +1,15 @@
 use std::error::Error;
 
-use egui::ComboBox;
 use glam::{Mat4, Vec2, Vec3};
 use micro::{
 	clear,
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
-		Canvas, CanvasSettings, ColorConstants, DrawParams, StencilAction, StencilTest,
+		text::{Font, FontSettings, LayoutSettings, Text},
+		texture::{Texture, TextureSettings},
+		Canvas, CanvasSettings, ColorConstants, StencilAction, StencilTest,
 	},
 	math::{Circle, Rect},
-	resource::{loader::ShaderLoader, Resources},
 	use_stencil, window_size, with_canvas, with_transform, write_to_stencil, ContextSettings,
 	State,
 };
@@ -20,12 +20,19 @@ fn main() {
 }
 
 struct MainState {
+	texture: Texture,
+	font: Font,
 	canvas: Canvas,
 }
 
 impl MainState {
 	pub fn new() -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
+			texture: Texture::from_file(
+				"resources/spritesheet_default.png",
+				TextureSettings::default(),
+			)?,
+			font: Font::from_file("resources/Abaddon Bold.ttf", FontSettings::default())?,
 			canvas: Canvas::new(window_size(), CanvasSettings::default()),
 		})
 	}
@@ -45,16 +52,22 @@ impl State<Box<dyn Error>> for MainState {
 						},
 						LinSrgba::WHITE,
 					)?
-					.draw(DrawParams::new());
+					.draw();
 				});
 			});
 			use_stencil!(StencilTest::Equal, 1, {
-				Mesh::rectangle(Rect::from_xywh(50.0, 50.0, 100.0, 150.0)).draw(DrawParams::new());
+				self.texture
+					.draw()
+					.region(Rect::new(Vec2::ZERO, Vec2::splat(50.0)));
 			});
+			Text::new(&self.font, "Hello, world!", LayoutSettings::default())
+				.draw()
+				.color(LinSrgba::RED)
+				.scaled_2d(Vec2::splat(5.0));
 		});
 
 		clear(LinSrgba::BLACK);
-		self.canvas.draw(DrawParams::new());
+		self.canvas.draw();
 
 		Ok(())
 	}

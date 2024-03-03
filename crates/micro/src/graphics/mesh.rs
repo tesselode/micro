@@ -1,7 +1,7 @@
 mod builder;
 
 pub use builder::*;
-use glam::Vec2;
+use glam::{Mat4, Vec2};
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
@@ -11,15 +11,15 @@ use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
 use crate::{
 	context::Context,
-	graphics::{draw_params::DrawParams, texture::Texture},
+	graphics::texture::Texture,
 	math::{Circle, Rect},
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
 use super::{
-	color_constants::ColorConstants, configure_vertex_attributes_for_buffer,
-	unused_resource::UnusedGraphicsResource, Vertex, Vertex2d, VertexAttributeBuffer,
-	VertexAttributeDivisor,
+	color_constants::ColorConstants, configure_vertex_attributes_for_buffer, shader::Shader,
+	standard_draw_command_methods, unused_resource::UnusedGraphicsResource, BlendMode, Culling,
+	Vertex, Vertex2d, VertexAttributeBuffer, VertexAttributeDivisor,
 };
 
 #[derive(Debug)]
@@ -103,80 +103,66 @@ impl<V: Vertex> Mesh<V> {
 		});
 	}
 
-	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
-		self.draw_range(.., params.into());
+	pub fn draw(&self) -> DrawMeshCommand<V> {
+		DrawMeshCommand {
+			mesh: self,
+			params: DrawMeshParams {
+				texture: None,
+				range: (..).into_offset_and_count(self.num_indices as usize),
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+				culling: Culling::default(),
+			},
+		}
 	}
 
-	pub fn draw_range<'a>(
-		&self,
-		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		let range = range.into_offset_and_count(self.num_indices as usize);
-		let params = params.into();
+	fn draw_inner(&self, params: &DrawMeshParams) {
 		Context::with(|ctx| {
-			self.draw_inner(&ctx.graphics.default_texture, range, params);
+			let gl = &ctx.graphics.gl;
+			let texture = params
+				.texture
+				.as_ref()
+				.unwrap_or(&ctx.graphics.default_texture);
+			unsafe {
+				let shader = params.shader.unwrap_or(&ctx.graphics.default_shader);
+				shader.send_color("blendColor", params.color).ok();
+				shader
+					.send_mat4("globalTransform", ctx.graphics.global_transform())
+					.ok();
+				shader.send_mat4("localTransform", params.transform).ok();
+				shader
+					.send_mat4("normalTransform", params.transform.inverse().transpose())
+					.ok();
+				shader.bind_sent_textures();
+				gl.use_program(Some(shader.program));
+				gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
+				gl.bind_vertex_array(Some(self.vertex_array));
+				params.blend_mode.apply(gl);
+				params.culling.apply(gl);
+				gl.draw_elements(
+					glow::TRIANGLES,
+					params.range.count as i32,
+					glow::UNSIGNED_INT,
+					params.range.offset as i32 * 4,
+				);
+			}
 		});
-	}
-
-	pub fn draw_textured<'a>(&self, texture: &Texture, params: impl Into<DrawParams<'a>>) {
-		self.draw_range_textured(texture, .., params.into());
-	}
-
-	pub fn draw_range_textured<'a>(
-		&self,
-		texture: &Texture,
-		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		self.draw_inner(
-			texture,
-			range.into_offset_and_count(self.num_indices as usize),
-			params.into(),
-		);
-	}
-
-	pub fn draw_instanced<'a>(
-		&self,
-		num_instances: usize,
-		vertex_attribute_buffers: &[&VertexAttributeBuffer],
-		params: impl Into<DrawParams<'a>>,
-	) {
-		let params = params.into();
-		Context::with(|ctx| {
-			self.draw_instanced_inner(
-				&ctx.graphics.default_texture,
-				num_instances,
-				vertex_attribute_buffers,
-				params,
-			)
-		});
-	}
-
-	pub fn draw_instanced_textured<'a>(
-		&self,
-		texture: &Texture,
-		num_instances: usize,
-		vertex_attribute_buffers: &[&VertexAttributeBuffer],
-		params: impl Into<DrawParams<'a>>,
-	) {
-		self.draw_instanced_inner(
-			texture,
-			num_instances,
-			vertex_attribute_buffers,
-			params.into(),
-		)
 	}
 
 	fn draw_instanced_inner(
 		&self,
-		texture: &Texture,
 		num_instances: usize,
 		vertex_attribute_buffers: &[&VertexAttributeBuffer],
-		params: DrawParams,
+		params: &DrawMeshInstancedParams,
 	) {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let texture = params
+				.texture
+				.as_ref()
+				.unwrap_or(&ctx.graphics.default_texture);
 			unsafe {
 				gl.bind_vertex_array(Some(self.vertex_array));
 				let mut next_attribute_index = configure_vertex_attributes_for_buffer(
@@ -214,35 +200,6 @@ impl<V: Vertex> Mesh<V> {
 					glow::UNSIGNED_INT,
 					0,
 					num_instances as i32,
-				);
-			}
-		});
-	}
-
-	fn draw_inner(&self, texture: &Texture, range: OffsetAndCount, params: DrawParams) {
-		Context::with(|ctx| {
-			let gl = &ctx.graphics.gl;
-			unsafe {
-				let shader = params.shader.unwrap_or(&ctx.graphics.default_shader);
-				shader.send_color("blendColor", params.color).ok();
-				shader
-					.send_mat4("globalTransform", ctx.graphics.global_transform())
-					.ok();
-				shader.send_mat4("localTransform", params.transform).ok();
-				shader
-					.send_mat4("normalTransform", params.transform.inverse().transpose())
-					.ok();
-				shader.bind_sent_textures();
-				gl.use_program(Some(shader.program));
-				gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
-				gl.bind_vertex_array(Some(self.vertex_array));
-				params.blend_mode.apply(gl);
-				params.culling.apply(gl);
-				gl.draw_elements(
-					glow::TRIANGLES,
-					range.count as i32,
-					glow::UNSIGNED_INT,
-					range.offset as i32 * 4,
 				);
 			}
 		});
@@ -346,5 +303,85 @@ impl<V: Vertex> Drop for Mesh<V> {
 		self.unused_resource_sender
 			.send(UnusedGraphicsResource::Buffer(self.index_buffer))
 			.ok();
+	}
+}
+
+pub struct DrawMeshParams<'a> {
+	pub texture: Option<Texture>,
+	pub range: OffsetAndCount,
+	pub shader: Option<&'a Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
+	pub culling: Culling,
+}
+
+pub struct DrawMeshCommand<'a, V: Vertex> {
+	mesh: &'a Mesh<V>,
+	params: DrawMeshParams<'a>,
+}
+
+impl<'a, V: Vertex> DrawMeshCommand<'a, V> {
+	pub fn texture(mut self, texture: impl Into<Option<&'a Texture>>) -> Self {
+		self.params.texture = texture.into().cloned();
+		self
+	}
+
+	pub fn range(mut self, range: impl IntoOffsetAndCount) -> Self {
+		self.params.range = range.into_offset_and_count(self.mesh.num_indices as usize);
+		self
+	}
+
+	pub fn culling(mut self, culling: Culling) -> Self {
+		self.params.culling = culling;
+		self
+	}
+
+	standard_draw_command_methods!();
+}
+
+impl<'a, V: Vertex> Drop for DrawMeshCommand<'a, V> {
+	fn drop(&mut self) {
+		self.mesh.draw_inner(&self.params)
+	}
+}
+
+pub struct DrawMeshInstancedParams<'a> {
+	pub texture: Option<Texture>,
+	pub shader: Option<&'a Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
+	pub culling: Culling,
+}
+
+pub struct DrawMeshInstancedCommand<'a, V: Vertex> {
+	mesh: &'a Mesh<V>,
+	params: DrawMeshInstancedParams<'a>,
+	num_instances: usize,
+	vertex_attribute_buffers: &'a [&'a VertexAttributeBuffer],
+}
+
+impl<'a, V: Vertex> DrawMeshInstancedCommand<'a, V> {
+	pub fn texture(mut self, texture: impl Into<Option<&'a Texture>>) -> Self {
+		self.params.texture = texture.into().cloned();
+		self
+	}
+
+	pub fn culling(mut self, culling: Culling) -> Self {
+		self.params.culling = culling;
+		self
+	}
+
+	standard_draw_command_methods!();
+}
+
+impl<'a, V: Vertex> Drop for DrawMeshInstancedCommand<'a, V> {
+	fn drop(&mut self) {
+		self.mesh.draw_instanced_inner(
+			self.num_instances,
+			self.vertex_attribute_buffers,
+			&self.params,
+		)
 	}
 }

@@ -4,16 +4,19 @@ use palette::LinSrgba;
 pub use sprite_params::SpriteParams;
 
 use generational_arena::{Arena, Index};
-use glam::Vec2;
+use glam::{Mat4, Vec2};
 use thiserror::Error;
 
 use crate::{
-	graphics::{draw_params::DrawParams, mesh::Mesh, texture::Texture},
+	graphics::{mesh::Mesh, texture::Texture},
 	math::Rect,
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::{color_constants::ColorConstants, NineSlice, Vertex2d};
+use super::{
+	color_constants::ColorConstants, shader::Shader, standard_draw_command_methods, BlendMode,
+	NineSlice, Vertex2d,
+};
 
 #[derive(Debug)]
 pub struct SpriteBatch {
@@ -141,25 +144,31 @@ impl SpriteBatch {
 		Ok(())
 	}
 
-	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
-		self.mesh.draw_textured(&self.texture, params);
+	pub fn draw(&self) -> DrawSpriteBatchCommand {
+		DrawSpriteBatchCommand {
+			sprite_batch: self,
+			params: DrawSpriteBatchParams {
+				range: (..).into_offset_and_count(self.sprites.len()),
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+			},
+		}
 	}
 
-	pub fn draw_range<'a>(
-		&self,
-
-		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		let offset_and_count = range.into_offset_and_count(self.sprites.len());
-		self.mesh.draw_range_textured(
-			&self.texture,
-			OffsetAndCount {
-				offset: offset_and_count.offset * 6,
-				count: offset_and_count.count * 6,
-			},
-			params,
-		);
+	fn draw_inner(&self, params: &DrawSpriteBatchParams) {
+		self.mesh
+			.draw()
+			.texture(&self.texture)
+			.range(OffsetAndCount {
+				offset: params.range.offset * 6,
+				count: params.range.count * 6,
+			})
+			.shader(params.shader)
+			.transformed(params.transform)
+			.color(params.color)
+			.blend_mode(params.blend_mode);
 	}
 }
 
@@ -173,3 +182,31 @@ pub struct SpriteLimitReached;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]
 #[error("No sprite with this ID exists")]
 pub struct InvalidSpriteId;
+
+pub struct DrawSpriteBatchParams<'a> {
+	pub range: OffsetAndCount,
+	pub shader: Option<&'a Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
+}
+
+pub struct DrawSpriteBatchCommand<'a> {
+	sprite_batch: &'a SpriteBatch,
+	params: DrawSpriteBatchParams<'a>,
+}
+
+impl<'a> DrawSpriteBatchCommand<'a> {
+	pub fn range(mut self, range: impl IntoOffsetAndCount) -> Self {
+		self.params.range = range.into_offset_and_count(self.sprite_batch.sprites.len());
+		self
+	}
+
+	standard_draw_command_methods!();
+}
+
+impl<'a> Drop for DrawSpriteBatchCommand<'a> {
+	fn drop(&mut self) {
+		self.sprite_batch.draw_inner(&self.params);
+	}
+}

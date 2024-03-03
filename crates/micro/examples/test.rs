@@ -50,7 +50,6 @@ impl State<Box<dyn Error>> for MainState {
 							center: Vec2::splat(50.0),
 							radius: 50.0,
 						},
-						LinSrgba::WHITE,
 					)?
 					.draw();
 				});

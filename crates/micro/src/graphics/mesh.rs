@@ -226,23 +226,15 @@ impl Mesh<Vertex2d> {
 		Self::new(&vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
-	pub fn styled_rectangle(
-		style: ShapeStyle,
-		rect: Rect,
-		color: LinSrgba,
-	) -> Result<Self, TessellationError> {
+	pub fn outlined_rectangle(stroke_width: f32, rect: Rect) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
-			.with_rectangle(style, rect, color)?
+			.with_rectangle(ShapeStyle::Stroke(stroke_width), rect, LinSrgba::WHITE)?
 			.build())
 	}
 
-	pub fn circle(
-		style: ShapeStyle,
-		circle: Circle,
-		color: LinSrgba,
-	) -> Result<Self, TessellationError> {
+	pub fn circle(style: ShapeStyle, circle: Circle) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
-			.with_circle(style, circle, color)?
+			.with_circle(style, circle, LinSrgba::WHITE)?
 			.build())
 	}
 
@@ -251,10 +243,9 @@ impl Mesh<Vertex2d> {
 		center: Vec2,
 		radii: Vec2,
 		rotation: f32,
-		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
-			.with_ellipse(style, center, radii, rotation, color)?
+			.with_ellipse(style, center, radii, rotation, LinSrgba::WHITE)?
 			.build())
 	}
 
@@ -274,20 +265,18 @@ impl Mesh<Vertex2d> {
 	pub fn simple_polygon(
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = Vec2>,
-		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
-			.with_simple_polygon(style, points, color)?
+			.with_simple_polygon(style, points, LinSrgba::WHITE)?
 			.build())
 	}
 
 	pub fn simple_polyline(
 		stroke_width: f32,
 		points: impl IntoIterator<Item = Vec2>,
-		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
-			.with_simple_polyline(stroke_width, points, color)?
+			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)?
 			.build())
 	}
 }

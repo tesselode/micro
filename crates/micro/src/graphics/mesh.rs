@@ -1,7 +1,7 @@
 mod builder;
 
 pub use builder::*;
-use glam::Vec2;
+use glam::{Mat4, Vec2, Vec3};
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
@@ -17,9 +17,9 @@ use crate::{
 };
 
 use super::{
-	color_constants::ColorConstants, configure_vertex_attributes_for_buffer,
-	unused_resource::UnusedGraphicsResource, Vertex, Vertex2d, VertexAttributeBuffer,
-	VertexAttributeDivisor,
+	color_constants::ColorConstants, configure_vertex_attributes_for_buffer, shader::Shader,
+	unused_resource::UnusedGraphicsResource, BlendMode, Culling, Vertex, Vertex2d,
+	VertexAttributeBuffer, VertexAttributeDivisor,
 };
 
 #[derive(Debug)]
@@ -103,37 +103,13 @@ impl<V: Vertex> Mesh<V> {
 		});
 	}
 
-	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
-		self.draw_range(.., params.into());
-	}
-
-	pub fn draw_range<'a>(
-		&self,
-		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		let range = range.into_offset_and_count(self.num_indices as usize);
-		let params = params.into();
-		Context::with(|ctx| {
-			self.draw_inner(&ctx.graphics.default_texture, range, params);
-		});
-	}
-
-	pub fn draw_textured<'a>(&self, texture: &Texture, params: impl Into<DrawParams<'a>>) {
-		self.draw_range_textured(texture, .., params.into());
-	}
-
-	pub fn draw_range_textured<'a>(
-		&self,
-		texture: &Texture,
-		range: impl IntoOffsetAndCount,
-		params: impl Into<DrawParams<'a>>,
-	) {
-		self.draw_inner(
-			texture,
-			range.into_offset_and_count(self.num_indices as usize),
-			params.into(),
-		);
+	pub fn draw(&self) -> MeshDrawCommand<V> {
+		MeshDrawCommand {
+			mesh: self,
+			params: DrawParams::default(),
+			texture: None,
+			range: (..).into_offset_and_count(self.num_indices as usize),
+		}
 	}
 
 	pub fn draw_instanced<'a>(
@@ -219,9 +195,10 @@ impl<V: Vertex> Mesh<V> {
 		});
 	}
 
-	fn draw_inner(&self, texture: &Texture, range: OffsetAndCount, params: DrawParams) {
+	fn draw_inner(&self, texture: Option<&Texture>, range: OffsetAndCount, params: DrawParams) {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let texture = texture.unwrap_or(&ctx.graphics.default_texture);
 			unsafe {
 				let shader = params.shader.unwrap_or(&ctx.graphics.default_shader);
 				shader.send_color("blendColor", params.color).ok();
@@ -346,5 +323,98 @@ impl<V: Vertex> Drop for Mesh<V> {
 		self.unused_resource_sender
 			.send(UnusedGraphicsResource::Buffer(self.index_buffer))
 			.ok();
+	}
+}
+
+pub struct MeshDrawCommand<'a, V: Vertex> {
+	mesh: &'a Mesh<V>,
+	params: DrawParams<'a>,
+	texture: Option<Texture>,
+	range: OffsetAndCount,
+}
+
+impl<'a, V: Vertex> MeshDrawCommand<'a, V> {
+	pub fn texture(self, texture: impl Into<Option<&'a Texture>>) -> Self {
+		Self {
+			texture: texture.into().cloned(),
+			..self
+		}
+	}
+
+	pub fn range(mut self, range: impl Into<OffsetAndCount>) -> Self {
+		self.range = range.into();
+		self
+	}
+
+	pub fn params(mut self, params: DrawParams<'a>) -> Self {
+		self.params = params;
+		self
+	}
+
+	pub fn shader(mut self, shader: &'a Shader) -> Self {
+		self.params = self.params.shader(shader);
+		self
+	}
+
+	pub fn transformed(mut self, transform: Mat4) -> Self {
+		self.params = self.params.transformed(transform);
+		self
+	}
+
+	pub fn translated_2d(mut self, translation: Vec2) -> Self {
+		self.params = self.params.translated_2d(translation);
+		self
+	}
+
+	pub fn translated_3d(mut self, translation: Vec3) -> Self {
+		self.params = self.params.translated_3d(translation);
+		self
+	}
+
+	pub fn scaled_2d(mut self, scale: Vec2) -> Self {
+		self.params = self.params.scaled_2d(scale);
+		self
+	}
+
+	pub fn scaled_3d(mut self, scale: Vec3) -> Self {
+		self.params = self.params.scaled_3d(scale);
+		self
+	}
+
+	pub fn rotated_x(mut self, rotation: f32) -> Self {
+		self.params = self.params.rotated_x(rotation);
+		self
+	}
+
+	pub fn rotated_y(mut self, rotation: f32) -> Self {
+		self.params = self.params.rotated_y(rotation);
+		self
+	}
+
+	pub fn rotated_z(mut self, rotation: f32) -> Self {
+		self.params = self.params.rotated_z(rotation);
+		self
+	}
+
+	pub fn color(mut self, color: impl Into<LinSrgba>) -> Self {
+		self.params = self.params.color(color);
+		self
+	}
+
+	pub fn blend_mode(mut self, blend_mode: BlendMode) -> Self {
+		self.params = self.params.blend_mode(blend_mode);
+		self
+	}
+
+	pub fn culling(mut self, culling: Culling) -> Self {
+		self.params = self.params.culling(culling);
+		self
+	}
+}
+
+impl<'a, V: Vertex> Drop for MeshDrawCommand<'a, V> {
+	fn drop(&mut self) {
+		self.mesh
+			.draw_inner(self.texture.as_ref(), self.range, self.params);
 	}
 }

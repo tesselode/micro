@@ -10,7 +10,7 @@ use crate::{
 	graphics::{
 		mesh::Mesh,
 		texture::{Texture, TextureSettings},
-		DrawParams, StencilAction, StencilTest, Vertex2d,
+		StencilAction, StencilTest, Vertex2d,
 	},
 	input::Scancode,
 	is_key_down, monitor_resolution, use_stencil, window_size, write_to_stencil,
@@ -69,15 +69,15 @@ pub fn draw_egui_output(
 						clip_rect_points.top_left * scaling_factor,
 						clip_rect_points.bottom_right() * scaling_factor,
 					);
-					Mesh::rectangle(clip_rect_pixels).draw(DrawParams::new());
+					Mesh::rectangle(clip_rect_pixels).draw();
 				}
 				{
 					let _scope = use_stencil(StencilTest::Equal, 1);
 					let texture_id = mesh.texture_id;
-					egui_mesh_to_micro_mesh(mesh).draw_textured(
-						textures.get(&texture_id).expect("missing egui texture"),
-						DrawParams::new().scaled_2d(glam::Vec2::splat(scaling_factor)),
-					);
+					egui_mesh_to_micro_mesh(mesh)
+						.draw()
+						.texture(textures.get(&texture_id).expect("missing egui texture"))
+						.scaled_2d(glam::Vec2::splat(scaling_factor));
 				}
 				clear_stencil();
 			}

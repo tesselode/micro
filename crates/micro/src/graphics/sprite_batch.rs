@@ -142,7 +142,10 @@ impl SpriteBatch {
 	}
 
 	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
-		self.mesh.draw_textured(&self.texture, params);
+		self.mesh
+			.draw()
+			.texture(&self.texture)
+			.params(params.into());
 	}
 
 	pub fn draw_range<'a>(
@@ -152,14 +155,14 @@ impl SpriteBatch {
 		params: impl Into<DrawParams<'a>>,
 	) {
 		let offset_and_count = range.into_offset_and_count(self.sprites.len());
-		self.mesh.draw_range_textured(
-			&self.texture,
-			OffsetAndCount {
+		self.mesh
+			.draw()
+			.texture(&self.texture)
+			.range(OffsetAndCount {
 				offset: offset_and_count.offset * 6,
 				count: offset_and_count.count * 6,
-			},
-			params,
-		);
+			})
+			.params(params.into());
 	}
 }
 

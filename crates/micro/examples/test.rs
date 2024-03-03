@@ -45,11 +45,14 @@ impl State<Box<dyn Error>> for MainState {
 						},
 						LinSrgba::WHITE,
 					)?
-					.draw(DrawParams::new());
+					.draw();
 				});
 			});
 			use_stencil!(StencilTest::Equal, 1, {
-				Mesh::rectangle(Rect::from_xywh(50.0, 50.0, 100.0, 150.0)).draw(DrawParams::new());
+				Mesh::rectangle(Rect::from_xywh(50.0, 50.0, 100.0, 150.0))
+					.draw()
+					.color(LinSrgba::RED)
+					.translated_2d(Vec2::splat(100.0));
 			});
 		});
 

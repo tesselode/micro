@@ -102,7 +102,9 @@ impl Texture {
 
 	pub fn draw<'a>(&self, params: impl Into<DrawParams<'a>>) {
 		Mesh::rectangle(Rect::new(Vec2::ZERO, self.inner.size.as_vec2()))
-			.draw_textured(self, params);
+			.draw()
+			.texture(self)
+			.params(params.into());
 	}
 
 	pub fn draw_region<'a>(&self, region: Rect, params: impl Into<DrawParams<'a>>) {
@@ -110,7 +112,9 @@ impl Texture {
 			Rect::new(Vec2::ZERO, region.size),
 			self.relative_rect(region),
 		)
-		.draw_textured(self, params);
+		.draw()
+		.texture(self)
+		.params(params.into());
 	}
 
 	pub fn draw_nine_slice<'a>(

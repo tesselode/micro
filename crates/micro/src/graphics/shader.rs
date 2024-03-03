@@ -367,6 +367,7 @@ impl Shader {
 		});
 	}
 
+	#[cfg(feature = "resource_management")]
 	pub(crate) fn import_uniforms(&mut self, other: &Self) {
 		for (name, value) in other
 			.uniform_values

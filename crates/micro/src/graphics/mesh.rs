@@ -118,6 +118,26 @@ impl<V: Vertex> Mesh<V> {
 		}
 	}
 
+	pub fn draw_instanced<'a>(
+		&'a self,
+		num_instances: usize,
+		vertex_attribute_buffers: &'a [&VertexAttributeBuffer],
+	) -> DrawMeshInstancedCommand<V> {
+		DrawMeshInstancedCommand {
+			mesh: self,
+			num_instances,
+			vertex_attribute_buffers,
+			params: DrawMeshInstancedParams {
+				texture: None,
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+				culling: Culling::default(),
+			},
+		}
+	}
+
 	fn draw_inner(&self, params: &DrawMeshParams) {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;

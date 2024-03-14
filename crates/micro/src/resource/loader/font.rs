@@ -14,7 +14,7 @@ impl ResourceLoader for FontLoader {
 
 	type Settings = FontSettings;
 
-	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["ttf"];
+	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["ttf", "ttc", "otf"];
 
 	fn load(
 		&mut self,

@@ -23,8 +23,8 @@ fn repositioned() {
 #[test]
 fn padded() {
 	assert_eq!(
-		Rect::from_top_left_and_bottom_right(Vec2::new(50.0, 50.0), Vec2::new(100.0, 100.0))
+		Rect::from_corners(Vec2::new(50.0, 50.0), Vec2::new(100.0, 100.0))
 			.padded(Vec2::new(10.0, 20.0)),
-		Rect::from_top_left_and_bottom_right(Vec2::new(40.0, 30.0), Vec2::new(110.0, 120.0))
+		Rect::from_corners(Vec2::new(40.0, 30.0), Vec2::new(110.0, 120.0))
 	)
 }

@@ -17,7 +17,7 @@ impl Rect {
 		Self { top_left, size }
 	}
 
-	pub fn from_top_left_and_bottom_right(top_left: Vec2, bottom_right: Vec2) -> Self {
+	pub fn from_corners(top_left: Vec2, bottom_right: Vec2) -> Self {
 		Self::new(top_left, bottom_right - top_left)
 	}
 
@@ -201,7 +201,7 @@ impl Rect {
 			self.bottom_right().x.max(other.bottom_right().x),
 			self.bottom_right().y.max(other.bottom_right().y),
 		);
-		Self::from_top_left_and_bottom_right(top_left, bottom_right)
+		Self::from_corners(top_left, bottom_right)
 	}
 
 	pub fn contains_point(&self, point: Vec2) -> bool {

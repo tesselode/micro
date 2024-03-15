@@ -103,11 +103,11 @@ impl NineSlice {
 			),
 		};
 		let center = Slice {
-			display_rect: Rect::from_top_left_and_bottom_right(
+			display_rect: Rect::from_corners(
 				display_rect.top_left + Vec2::new(self.left, self.top),
 				display_rect.bottom_right() - Vec2::new(self.right, self.bottom),
 			),
-			texture_region: Rect::from_top_left_and_bottom_right(
+			texture_region: Rect::from_corners(
 				self.texture_region.top_left + Vec2::new(self.left, self.top),
 				self.texture_region.bottom_right() - Vec2::new(self.right, self.bottom),
 			),

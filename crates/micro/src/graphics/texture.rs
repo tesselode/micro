@@ -72,7 +72,7 @@ impl Texture {
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
 		let size = self.inner.size.as_vec2();
-		Rect::from_top_left_and_bottom_right(
+		Rect::from_corners(
 			absolute_rect.top_left / size,
 			absolute_rect.bottom_right() / size,
 		)

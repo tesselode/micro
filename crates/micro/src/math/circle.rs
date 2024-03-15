@@ -14,9 +14,20 @@ impl Circle {
 		Self { center, radius }
 	}
 
+	pub fn centered_around_zero(radius: f32) -> Self {
+		Self::new(Vec2::ZERO, radius)
+	}
+
 	pub fn translated(self, translation: Vec2) -> Self {
 		Self {
 			center: self.center + translation,
+			..self
+		}
+	}
+
+	pub fn scaled(self, scale: f32) -> Self {
+		Self {
+			radius: self.radius * scale,
 			..self
 		}
 	}

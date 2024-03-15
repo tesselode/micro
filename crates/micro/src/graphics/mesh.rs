@@ -29,7 +29,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 
 	// draw params
 	pub texture: Option<Texture>,
-	pub range: OffsetAndCount,
+	pub range: Option<OffsetAndCount>,
 	pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
@@ -91,6 +91,10 @@ impl<V: Vertex> Mesh<V> {
 				.texture
 				.as_ref()
 				.unwrap_or(&ctx.graphics.default_texture);
+			let range = self.range.unwrap_or(OffsetAndCount {
+				offset: 0,
+				count: self.inner.num_indices as usize,
+			});
 			unsafe {
 				let shader = self.shader.as_ref().unwrap_or(&ctx.graphics.default_shader);
 				shader.send_color("blendColor", self.color).ok();
@@ -109,9 +113,9 @@ impl<V: Vertex> Mesh<V> {
 				self.culling.apply(gl);
 				gl.draw_elements(
 					glow::TRIANGLES,
-					self.range.count as i32,
+					range.count as i32,
 					glow::UNSIGNED_INT,
-					self.range.offset as i32 * 4,
+					range.offset as i32 * 4,
 				);
 			}
 		});
@@ -215,7 +219,7 @@ impl<V: Vertex> Mesh<V> {
 			}),
 			_phantom_data: PhantomData,
 			texture: None,
-			range: (..).into_offset_and_count(num_indices as usize),
+			range: None,
 			shader: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,

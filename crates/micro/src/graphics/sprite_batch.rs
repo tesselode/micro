@@ -23,7 +23,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
 	inner: Rc<RefCell<SpriteBatchInner>>,
-	pub range: OffsetAndCount,
+	pub range: Option<OffsetAndCount>,
 	pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
@@ -63,7 +63,7 @@ impl SpriteBatch {
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
-			range: (..).into_offset_and_count(0),
+			range: None,
 		}
 	}
 
@@ -173,10 +173,10 @@ impl SpriteBatch {
 			.borrow()
 			.mesh
 			.texture(&self.inner.borrow().texture)
-			.range(OffsetAndCount {
-				offset: self.range.offset * 6,
-				count: self.range.count * 6,
-			})
+			.range(self.range.map(|range| OffsetAndCount {
+				offset: range.offset * 6,
+				count: range.count * 6,
+			}))
 			.shader(&self.shader)
 			.transformed(self.transform)
 			.color(self.color)

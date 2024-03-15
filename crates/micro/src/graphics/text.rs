@@ -9,7 +9,7 @@ use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
-use crate::math::Rect;
+use crate::{math::Rect, IntoOffsetAndCount, OffsetAndCount};
 
 use super::{
 	shader::Shader,
@@ -26,6 +26,7 @@ pub struct Text {
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub blend_mode: BlendMode,
+	pub range: Option<OffsetAndCount>,
 }
 
 impl Text {
@@ -64,6 +65,12 @@ impl Text {
 
 	standard_draw_param_methods!();
 
+	pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
+		let mut new = self.clone();
+		new.range = range.into_offset_and_count(self.inner.num_glyphs);
+		new
+	}
+
 	pub fn num_glyphs(&self) -> usize {
 		self.inner
 			.sprite_batches
@@ -77,12 +84,18 @@ impl Text {
 	}
 
 	pub fn draw(&self) {
+		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
+			unimplemented!(
+				"drawing a text range is not implemented for text with more than one font"
+			);
+		}
 		for sprite_batch in &self.inner.sprite_batches {
 			sprite_batch
 				.shader(&self.shader)
 				.transformed(self.transform)
 				.color(self.color)
 				.blend_mode(self.blend_mode)
+				.range(self.range)
 				.draw();
 		}
 	}
@@ -100,6 +113,7 @@ impl Text {
 			})
 			.collect::<Vec<_>>();
 		let mut bounds: Option<Rect> = None;
+		let mut num_glyphs = 0;
 		for glyph in glyphs {
 			if !glyph.char_data.rasterize() {
 				continue;
@@ -123,16 +137,19 @@ impl Text {
 					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
 				)
 				.expect("Not enough capacity in the sprite batch");
+			num_glyphs += 1;
 		}
 		Self {
 			inner: Rc::new(TextInner {
 				sprite_batches,
 				bounds,
+				num_glyphs,
 			}),
 			shader: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
+			range: None,
 		}
 	}
 }
@@ -141,6 +158,7 @@ impl Text {
 struct TextInner {
 	pub(crate) sprite_batches: Vec<SpriteBatch>,
 	pub(crate) bounds: Option<Rect>,
+	pub(crate) num_glyphs: usize,
 }
 
 #[derive(Clone, Copy, PartialEq)]

@@ -1,10 +1,12 @@
 mod font;
 
+use std::rc::Rc;
+
 pub use font::*;
 pub use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
 
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
-use glam::{Mat4, Vec2};
+use glam::{Mat4, Vec2, Vec3};
 use palette::LinSrgba;
 
 use crate::math::Rect;
@@ -12,12 +14,18 @@ use crate::math::Rect;
 use super::{
 	shader::Shader,
 	sprite_batch::{SpriteBatch, SpriteParams},
-	standard_draw_command_methods, BlendMode, ColorConstants,
+	BlendMode, ColorConstants,
 };
 
+#[derive(Debug, Clone)]
 pub struct Text {
-	pub(crate) sprite_batches: Vec<SpriteBatch>,
-	pub(crate) bounds: Option<Rect>,
+	inner: Rc<TextInner>,
+
+	// params
+	pub shader: Option<Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
 }
 
 impl Text {
@@ -54,26 +62,78 @@ impl Text {
 		Self::from_layout(layout, fonts)
 	}
 
+	pub fn shader<'a>(&self, shader: impl Into<Option<&'a Shader>>) -> Self {
+		let mut new = self.clone();
+		new.shader = shader.into().cloned();
+		new
+	}
+
+	pub fn transformed(&self, transform: impl Into<Mat4>) -> Self {
+		let mut new = self.clone();
+		new.transform = transform.into() * self.transform;
+		new
+	}
+
+	pub fn translated_2d(&self, translation: impl Into<Vec2>) -> Self {
+		self.transformed(Mat4::from_translation(translation.into().extend(0.0)))
+	}
+
+	pub fn translated_3d(&self, translation: impl Into<Vec3>) -> Self {
+		self.transformed(Mat4::from_translation(translation.into()))
+	}
+
+	pub fn scaled_2d(&self, scale: impl Into<Vec2>) -> Self {
+		self.transformed(Mat4::from_scale(scale.into().extend(1.0)))
+	}
+
+	pub fn scaled_3d(&self, scale: impl Into<Vec3>) -> Self {
+		self.transformed(Mat4::from_scale(scale.into()))
+	}
+
+	pub fn rotated_x(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_x(rotation))
+	}
+
+	pub fn rotated_y(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_y(rotation))
+	}
+
+	pub fn rotated_z(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_z(rotation))
+	}
+
+	pub fn color(&self, color: impl Into<LinSrgba>) -> Self {
+		let mut new = self.clone();
+		new.color = color.into();
+		new
+	}
+
+	pub fn blend_mode(&self, blend_mode: BlendMode) -> Self {
+		let mut new = self.clone();
+		new.blend_mode = blend_mode;
+		new
+	}
+
 	pub fn num_glyphs(&self) -> usize {
-		self.sprite_batches
+		self.inner
+			.sprite_batches
 			.iter()
 			.map(|sprite_batch| sprite_batch.len())
 			.sum()
 	}
 
 	pub fn bounds(&self) -> Option<Rect> {
-		self.bounds
+		self.inner.bounds
 	}
 
-	pub fn draw(&self) -> DrawTextCommand {
-		DrawTextCommand {
-			text: self,
-			params: DrawTextParams {
-				shader: None,
-				transform: Mat4::IDENTITY,
-				color: LinSrgba::WHITE,
-				blend_mode: BlendMode::default(),
-			},
+	pub fn draw(&self) {
+		for sprite_batch in &self.inner.sprite_batches {
+			sprite_batch
+				.shader(&self.shader)
+				.transformed(self.transform)
+				.color(self.color)
+				.blend_mode(self.blend_mode)
+				.draw();
 		}
 	}
 
@@ -115,21 +175,22 @@ impl Text {
 				.expect("Not enough capacity in the sprite batch");
 		}
 		Self {
-			sprite_batches,
-			bounds,
+			inner: Rc::new(TextInner {
+				sprite_batches,
+				bounds,
+			}),
+			shader: None,
+			transform: Mat4::IDENTITY,
+			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
 		}
 	}
+}
 
-	fn draw_inner(&self, params: &DrawTextParams) {
-		for sprite_batch in &self.sprite_batches {
-			sprite_batch
-				.draw()
-				.shader(params.shader)
-				.transformed(params.transform)
-				.color(params.color)
-				.blend_mode(params.blend_mode);
-		}
-	}
+#[derive(Debug)]
+struct TextInner {
+	pub(crate) sprite_batches: Vec<SpriteBatch>,
+	pub(crate) bounds: Option<Rect>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -192,26 +253,4 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 pub struct TextFragment<'a> {
 	pub font_index: usize,
 	pub text: &'a str,
-}
-
-pub struct DrawTextParams<'a> {
-	pub shader: Option<&'a Shader>,
-	pub transform: Mat4,
-	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
-}
-
-pub struct DrawTextCommand<'a> {
-	text: &'a Text,
-	params: DrawTextParams<'a>,
-}
-
-impl<'a> DrawTextCommand<'a> {
-	standard_draw_command_methods!();
-}
-
-impl<'a> Drop for DrawTextCommand<'a> {
-	fn drop(&mut self) {
-		self.text.draw_inner(&self.params);
-	}
 }

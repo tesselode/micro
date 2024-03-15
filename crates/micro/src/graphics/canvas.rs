@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::mpsc::Sender};
 
-use glam::{Mat4, UVec2, Vec2};
+use glam::{Mat4, UVec2, Vec2, Vec3};
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, PixelPackData};
 use palette::LinSrgba;
 
@@ -8,19 +8,21 @@ use crate::{context::graphics::RenderTarget, math::Rect, Context};
 
 use super::{
 	shader::Shader,
-	standard_draw_command_methods,
 	texture::{Texture, TextureSettings},
 	unused_resource::UnusedGraphicsResource,
 	BlendMode, ColorConstants,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Canvas {
-	framebuffer: NativeFramebuffer,
-	texture: Texture,
-	depth_stencil_renderbuffer: NativeRenderbuffer,
-	multisample_framebuffer: Option<MultisampleFramebuffer>,
-	unused_resource_sender: Sender<UnusedGraphicsResource>,
+	inner: Rc<CanvasInner>,
+
+	// draw params
+	pub region: Rect,
+	pub shader: Option<Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
 }
 
 impl Canvas {
@@ -85,17 +87,82 @@ impl Canvas {
 				gl.bind_framebuffer(glow::FRAMEBUFFER, None);
 			}
 			Self {
-				framebuffer,
-				texture,
-				depth_stencil_renderbuffer,
-				multisample_framebuffer,
-				unused_resource_sender: ctx.graphics.unused_resource_sender.clone(),
+				inner: Rc::new(CanvasInner {
+					framebuffer,
+					texture,
+					depth_stencil_renderbuffer,
+					multisample_framebuffer,
+					unused_resource_sender: ctx.graphics.unused_resource_sender.clone(),
+				}),
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+				region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			}
 		})
 	}
 
+	pub fn region(&self, region: Rect) -> Self {
+		let mut new = self.clone();
+		new.region = region;
+		new
+	}
+
+	pub fn shader<'a>(&self, shader: impl Into<Option<&'a Shader>>) -> Self {
+		let mut new = self.clone();
+		new.shader = shader.into().cloned();
+		new
+	}
+
+	pub fn transformed(&self, transform: impl Into<Mat4>) -> Self {
+		let mut new = self.clone();
+		new.transform = transform.into() * self.transform;
+		new
+	}
+
+	pub fn translated_2d(&self, translation: impl Into<Vec2>) -> Self {
+		self.transformed(Mat4::from_translation(translation.into().extend(0.0)))
+	}
+
+	pub fn translated_3d(&self, translation: impl Into<Vec3>) -> Self {
+		self.transformed(Mat4::from_translation(translation.into()))
+	}
+
+	pub fn scaled_2d(&self, scale: impl Into<Vec2>) -> Self {
+		self.transformed(Mat4::from_scale(scale.into().extend(1.0)))
+	}
+
+	pub fn scaled_3d(&self, scale: impl Into<Vec3>) -> Self {
+		self.transformed(Mat4::from_scale(scale.into()))
+	}
+
+	pub fn rotated_x(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_x(rotation))
+	}
+
+	pub fn rotated_y(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_y(rotation))
+	}
+
+	pub fn rotated_z(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_z(rotation))
+	}
+
+	pub fn color(&self, color: impl Into<LinSrgba>) -> Self {
+		let mut new = self.clone();
+		new.color = color.into();
+		new
+	}
+
+	pub fn blend_mode(&self, blend_mode: BlendMode) -> Self {
+		let mut new = self.clone();
+		new.blend_mode = blend_mode;
+		new
+	}
+
 	pub fn size(&self) -> UVec2 {
-		self.texture.size()
+		self.inner.texture.size()
 	}
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
@@ -117,11 +184,11 @@ impl Canvas {
 					glow::FRAMEBUFFER,
 					Some(
 						if let Some(MultisampleFramebuffer { framebuffer, .. }) =
-							self.multisample_framebuffer
+							self.inner.multisample_framebuffer
 						{
 							framebuffer
 						} else {
-							self.framebuffer
+							self.inner.framebuffer
 						},
 					),
 				);
@@ -135,16 +202,17 @@ impl Canvas {
 			canvas: self,
 			on_drop: |canvas| {
 				if let Some(MultisampleFramebuffer { framebuffer, .. }) =
-					canvas.multisample_framebuffer
+					canvas.inner.multisample_framebuffer
 				{
 					unsafe {
 						Context::with(|ctx| {
 							ctx.graphics
 								.gl
 								.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(framebuffer));
-							ctx.graphics
-								.gl
-								.bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(canvas.framebuffer));
+							ctx.graphics.gl.bind_framebuffer(
+								glow::DRAW_FRAMEBUFFER,
+								Some(canvas.inner.framebuffer),
+							);
 							let width = canvas.size().x as i32;
 							let height = canvas.size().y as i32;
 							ctx.graphics.gl.blit_framebuffer(
@@ -170,17 +238,15 @@ impl Canvas {
 		}
 	}
 
-	pub fn draw(&self) -> DrawCanvasCommand {
-		DrawCanvasCommand {
-			canvas: self,
-			params: DrawCanvasParams {
-				region: Rect::new(Vec2::ZERO, self.size().as_vec2()),
-				shader: None,
-				transform: Mat4::IDENTITY,
-				color: LinSrgba::WHITE,
-				blend_mode: BlendMode::default(),
-			},
-		}
+	pub fn draw(&self) {
+		self.inner
+			.texture
+			.region(self.region)
+			.shader(&self.shader)
+			.transformed(self.transform)
+			.color(self.color)
+			.blend_mode(self.blend_mode)
+			.draw();
 	}
 
 	pub fn read(&self, buffer: &mut [u8]) {
@@ -190,7 +256,7 @@ impl Canvas {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(self.framebuffer));
+				gl.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(self.inner.framebuffer));
 				gl.read_buffer(glow::COLOR_ATTACHMENT0);
 				gl.read_pixels(
 					0,
@@ -204,19 +270,18 @@ impl Canvas {
 			}
 		});
 	}
-
-	fn draw_inner(&self, params: &DrawCanvasParams) {
-		self.texture
-			.region(params.region)
-			.shader(params.shader)
-			.transformed(params.transform)
-			.color(params.color)
-			.blend_mode(params.blend_mode)
-			.draw();
-	}
 }
 
-impl Drop for Canvas {
+#[derive(Debug)]
+struct CanvasInner {
+	framebuffer: NativeFramebuffer,
+	texture: Texture,
+	depth_stencil_renderbuffer: NativeRenderbuffer,
+	multisample_framebuffer: Option<MultisampleFramebuffer>,
+	unused_resource_sender: Sender<UnusedGraphicsResource>,
+}
+
+impl Drop for CanvasInner {
 	fn drop(&mut self) {
 		self.unused_resource_sender
 			.send(UnusedGraphicsResource::Framebuffer(self.framebuffer))
@@ -335,33 +400,5 @@ pub struct OnDrop<'a> {
 impl<'a> Drop for OnDrop<'a> {
 	fn drop(&mut self) {
 		(self.on_drop)(self.canvas);
-	}
-}
-
-pub struct DrawCanvasParams<'a> {
-	pub region: Rect,
-	pub shader: Option<&'a Shader>,
-	pub transform: Mat4,
-	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
-}
-
-pub struct DrawCanvasCommand<'a> {
-	canvas: &'a Canvas,
-	params: DrawCanvasParams<'a>,
-}
-
-impl<'a> DrawCanvasCommand<'a> {
-	pub fn region(mut self, region: Rect) -> Self {
-		self.params.region = region;
-		self
-	}
-
-	standard_draw_command_methods!();
-}
-
-impl<'a> Drop for DrawCanvasCommand<'a> {
-	fn drop(&mut self) {
-		self.canvas.draw_inner(&self.params);
 	}
 }

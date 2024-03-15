@@ -1,10 +1,12 @@
 mod sprite_params;
 
+use std::{cell::RefCell, rc::Rc};
+
 use palette::LinSrgba;
 pub use sprite_params::SpriteParams;
 
 use generational_arena::{Arena, Index};
-use glam::{Mat4, Vec2};
+use glam::{Mat4, Vec2, Vec3};
 use thiserror::Error;
 
 use crate::{
@@ -13,17 +15,16 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::{
-	color_constants::ColorConstants, shader::Shader, standard_draw_command_methods, BlendMode,
-	NineSlice, Vertex2d,
-};
+use super::{color_constants::ColorConstants, shader::Shader, BlendMode, NineSlice, Vertex2d};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SpriteBatch {
-	texture: Texture,
-	sprites: Arena<()>,
-	mesh: Mesh,
-	capacity: usize,
+	inner: Rc<RefCell<SpriteBatchInner>>,
+	pub range: OffsetAndCount,
+	pub shader: Option<Shader>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
 }
 
 impl SpriteBatch {
@@ -49,15 +50,80 @@ impl SpriteBatch {
 			]);
 		}
 		Self {
-			texture: texture.clone(),
-			sprites: Arena::with_capacity(capacity),
-			mesh: Mesh::new(&vertices, &indices),
-			capacity,
+			inner: Rc::new(RefCell::new(SpriteBatchInner {
+				texture: texture.clone(),
+				sprites: Arena::with_capacity(capacity),
+				mesh: Mesh::new(&vertices, &indices),
+				capacity,
+			})),
+			shader: None,
+			transform: Mat4::IDENTITY,
+			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
+			range: (..).into_offset_and_count(0),
 		}
 	}
 
+	pub fn shader<'a>(&self, shader: impl Into<Option<&'a Shader>>) -> Self {
+		let mut new = self.clone();
+		new.shader = shader.into().cloned();
+		new
+	}
+
+	pub fn transformed(&self, transform: impl Into<Mat4>) -> Self {
+		let mut new = self.clone();
+		new.transform = transform.into() * self.transform;
+		new
+	}
+
+	pub fn translated_2d(&self, translation: impl Into<Vec2>) -> Self {
+		self.transformed(Mat4::from_translation(translation.into().extend(0.0)))
+	}
+
+	pub fn translated_3d(&self, translation: impl Into<Vec3>) -> Self {
+		self.transformed(Mat4::from_translation(translation.into()))
+	}
+
+	pub fn scaled_2d(&self, scale: impl Into<Vec2>) -> Self {
+		self.transformed(Mat4::from_scale(scale.into().extend(1.0)))
+	}
+
+	pub fn scaled_3d(&self, scale: impl Into<Vec3>) -> Self {
+		self.transformed(Mat4::from_scale(scale.into()))
+	}
+
+	pub fn rotated_x(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_x(rotation))
+	}
+
+	pub fn rotated_y(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_y(rotation))
+	}
+
+	pub fn rotated_z(&self, rotation: f32) -> Self {
+		self.transformed(Mat4::from_rotation_z(rotation))
+	}
+
+	pub fn color(&self, color: impl Into<LinSrgba>) -> Self {
+		let mut new = self.clone();
+		new.color = color.into();
+		new
+	}
+
+	pub fn blend_mode(&self, blend_mode: BlendMode) -> Self {
+		let mut new = self.clone();
+		new.blend_mode = blend_mode;
+		new
+	}
+
+	pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
+		let mut new = self.clone();
+		new.range = range.into_offset_and_count(self.inner.borrow().sprites.len());
+		new
+	}
+
 	pub fn len(&self) -> usize {
-		self.sprites.len()
+		self.inner.borrow().sprites.len()
 	}
 
 	#[must_use]
@@ -66,16 +132,18 @@ impl SpriteBatch {
 	}
 
 	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
-		self.add_region(Rect::new(Vec2::ZERO, self.texture.size().as_vec2()), params)
+		let size = self.inner.borrow_mut().texture.size().as_vec2();
+		self.add_region(Rect::new(Vec2::ZERO, size), params)
 	}
 
 	pub fn add_region(
 		&mut self,
-
 		texture_region: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<SpriteId, SpriteLimitReached> {
 		let id = self
+			.inner
+			.borrow_mut()
 			.sprites
 			.try_insert(())
 			.map(SpriteId)
@@ -84,7 +152,7 @@ impl SpriteBatch {
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_region.size);
-		let relative_texture_region = self.texture.relative_rect(texture_region);
+		let relative_texture_region = self.inner.borrow().texture.relative_rect(texture_region);
 		let transform = params.transform;
 		let corners = untransformed_display_rect.corners();
 		let vertices = corners
@@ -98,7 +166,10 @@ impl SpriteBatch {
 			})
 			.enumerate();
 		for (i, vertex) in vertices {
-			self.mesh.set_vertex(start_vertex_index + i, vertex);
+			self.inner
+				.borrow()
+				.mesh
+				.set_vertex(start_vertex_index + i, vertex);
 		}
 		Ok(id)
 	}
@@ -110,7 +181,7 @@ impl SpriteBatch {
 		display_rect: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<[SpriteId; 9], SpriteLimitReached> {
-		if self.sprites.len() + 9 > self.capacity {
+		if self.inner.borrow().sprites.len() + 9 > self.inner.borrow().capacity {
 			return Err(SpriteLimitReached);
 		}
 		let params: SpriteParams = params.into();
@@ -126,13 +197,13 @@ impl SpriteBatch {
 	}
 
 	pub fn remove(&mut self, id: SpriteId) -> Result<(), InvalidSpriteId> {
-		if self.sprites.remove(id.0).is_none() {
+		if self.inner.borrow_mut().sprites.remove(id.0).is_none() {
 			return Err(InvalidSpriteId);
 		}
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		for i in 0..4 {
-			self.mesh.set_vertex(
+			self.inner.borrow().mesh.set_vertex(
 				start_vertex_index + i,
 				Vertex2d {
 					position: Vec2::ZERO,
@@ -144,32 +215,29 @@ impl SpriteBatch {
 		Ok(())
 	}
 
-	pub fn draw(&self) -> DrawSpriteBatchCommand {
-		DrawSpriteBatchCommand {
-			sprite_batch: self,
-			params: DrawSpriteBatchParams {
-				range: (..).into_offset_and_count(self.sprites.len()),
-				shader: None,
-				transform: Mat4::IDENTITY,
-				color: LinSrgba::WHITE,
-				blend_mode: BlendMode::default(),
-			},
-		}
-	}
-
-	fn draw_inner(&self, params: &DrawSpriteBatchParams) {
-		self.mesh
-			.texture(&self.texture)
+	pub fn draw(&self) {
+		self.inner
+			.borrow()
+			.mesh
+			.texture(&self.inner.borrow().texture)
 			.range(OffsetAndCount {
-				offset: params.range.offset * 6,
-				count: params.range.count * 6,
+				offset: self.range.offset * 6,
+				count: self.range.count * 6,
 			})
-			.shader(params.shader)
-			.transformed(params.transform)
-			.color(params.color)
-			.blend_mode(params.blend_mode)
+			.shader(&self.shader)
+			.transformed(self.transform)
+			.color(self.color)
+			.blend_mode(self.blend_mode)
 			.draw();
 	}
+}
+
+#[derive(Debug)]
+struct SpriteBatchInner {
+	texture: Texture,
+	sprites: Arena<()>,
+	mesh: Mesh,
+	capacity: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -182,31 +250,3 @@ pub struct SpriteLimitReached;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]
 #[error("No sprite with this ID exists")]
 pub struct InvalidSpriteId;
-
-pub struct DrawSpriteBatchParams<'a> {
-	pub range: OffsetAndCount,
-	pub shader: Option<&'a Shader>,
-	pub transform: Mat4,
-	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
-}
-
-pub struct DrawSpriteBatchCommand<'a> {
-	sprite_batch: &'a SpriteBatch,
-	params: DrawSpriteBatchParams<'a>,
-}
-
-impl<'a> DrawSpriteBatchCommand<'a> {
-	pub fn range(mut self, range: impl IntoOffsetAndCount) -> Self {
-		self.params.range = range.into_offset_and_count(self.sprite_batch.sprites.len());
-		self
-	}
-
-	standard_draw_command_methods!();
-}
-
-impl<'a> Drop for DrawSpriteBatchCommand<'a> {
-	fn drop(&mut self) {
-		self.sprite_batch.draw_inner(&self.params);
-	}
-}

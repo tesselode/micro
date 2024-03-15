@@ -179,11 +179,11 @@ impl Texture {
 			.add_nine_slice(nine_slice, display_rect, SpriteParams::default())
 			.unwrap();
 		sprite_batch
-			.draw()
 			.shader(&self.shader)
 			.transformed(self.transform)
 			.color(self.color)
-			.blend_mode(self.blend_mode);
+			.blend_mode(self.blend_mode)
+			.draw();
 	}
 
 	pub(crate) fn new_from_gl(

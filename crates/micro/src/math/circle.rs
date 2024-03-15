@@ -14,7 +14,7 @@ impl Circle {
 		Self { center, radius }
 	}
 
-	pub fn centered_around_zero(radius: f32) -> Self {
+	pub fn around_zero(radius: f32) -> Self {
 		Self::new(Vec2::ZERO, radius)
 	}
 

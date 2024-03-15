@@ -336,8 +336,17 @@ impl Shader {
 					unit,
 				},
 			);
-			self.send_i32(name, unit as i32)
-				.map_err(|_| SendTextureError::UniformNotFound(name.to_string()))?;
+			Context::with(|ctx| {
+				let gl = &ctx.graphics.gl;
+				unsafe {
+					gl.use_program(Some(inner.program));
+					let location = gl
+						.get_uniform_location(inner.program, name)
+						.ok_or_else(|| SendTextureError::UniformNotFound(name.to_string()))?;
+					gl.uniform_1_i32(Some(&location), unit as i32);
+				}
+				Ok(())
+			})?;
 		}
 		inner
 			.uniform_values

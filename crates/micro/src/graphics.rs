@@ -36,25 +36,25 @@ macro_rules! standard_draw_command_methods {
 			self
 		}
 
-		pub fn transformed(mut self, transform: glam::Mat4) -> Self {
-			self.params.transform = transform * self.params.transform;
+		pub fn transformed(mut self, transform: impl Into<glam::Mat4>) -> Self {
+			self.params.transform = transform.into() * self.params.transform;
 			self
 		}
 
-		pub fn translated_2d(self, translation: glam::Vec2) -> Self {
-			self.transformed(glam::Mat4::from_translation(translation.extend(0.0)))
+		pub fn translated_2d(self, translation: impl Into<glam::Vec2>) -> Self {
+			self.transformed(glam::Mat4::from_translation(translation.into().extend(0.0)))
 		}
 
-		pub fn translated_3d(self, translation: glam::Vec3) -> Self {
-			self.transformed(glam::Mat4::from_translation(translation))
+		pub fn translated_3d(self, translation: impl Into<glam::Vec3>) -> Self {
+			self.transformed(glam::Mat4::from_translation(translation.into()))
 		}
 
-		pub fn scaled_2d(self, scale: glam::Vec2) -> Self {
-			self.transformed(glam::Mat4::from_scale(scale.extend(1.0)))
+		pub fn scaled_2d(self, scale: impl Into<glam::Vec2>) -> Self {
+			self.transformed(glam::Mat4::from_scale(scale.into().extend(1.0)))
 		}
 
-		pub fn scaled_3d(self, scale: glam::Vec3) -> Self {
-			self.transformed(glam::Mat4::from_scale(scale))
+		pub fn scaled_3d(self, scale: impl Into<glam::Vec3>) -> Self {
+			self.transformed(glam::Mat4::from_scale(scale.into()))
 		}
 
 		pub fn rotated_x(self, rotation: f32) -> Self {

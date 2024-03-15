@@ -1,17 +1,15 @@
 use std::error::Error;
 
-use glam::{Mat4, Vec2, Vec3};
 use micro::{
 	clear,
 	graphics::{
 		mesh::{Mesh, ShapeStyle},
-		text::{Font, FontSettings, LayoutSettings, Text},
+		text::{Font, FontSettings},
 		texture::{Texture, TextureSettings},
-		Canvas, CanvasSettings, ColorConstants, StencilAction, StencilTest,
+		Canvas, CanvasSettings, ColorConstants,
 	},
-	math::{Circle, Rect},
-	use_stencil, window_size, with_canvas, with_transform, write_to_stencil, ContextSettings,
-	State,
+	math::Circle,
+	push_translation_2d, push_translation_y, window_size, ContextSettings, State,
 };
 use palette::LinSrgba;
 
@@ -40,33 +38,11 @@ impl MainState {
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self) -> Result<(), Box<dyn Error>> {
-		with_canvas!(self.canvas, {
-			clear(LinSrgba::BLACK);
-			write_to_stencil!(StencilAction::Replace(1), {
-				with_transform!(Mat4::from_scale(Vec3::splat(2.0)), {
-					Mesh::circle(
-						ShapeStyle::Fill,
-						Circle {
-							center: Vec2::splat(50.0),
-							radius: 50.0,
-						},
-					)?
-					.draw();
-				});
-			});
-			use_stencil!(StencilTest::Equal, 1, {
-				self.texture
-					.draw()
-					.region(Rect::new(Vec2::ZERO, Vec2::splat(50.0)));
-			});
-			Text::new(&self.font, "Hello, world!", LayoutSettings::default())
-				.draw()
-				.color(LinSrgba::RED)
-				.scaled_2d(Vec2::splat(5.0));
-		});
-
 		clear(LinSrgba::BLACK);
-		self.canvas.draw();
+
+		push_translation_2d!((100.0, 50.0), {
+			Mesh::circle(ShapeStyle::Fill, Circle::centered_around_zero(40.0))?.draw();
+		});
 
 		Ok(())
 	}

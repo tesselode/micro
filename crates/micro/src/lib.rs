@@ -28,7 +28,7 @@ pub use window::*;
 use std::time::Duration;
 
 use context::Context;
-use glam::{IVec2, Mat4, UVec2};
+use glam::{IVec2, Mat4, UVec2, Vec2, Vec3};
 use glow::HasContext;
 use graphics::{Camera3d, StencilAction, StencilTest};
 use input::{Gamepad, MouseButton, Scancode};
@@ -98,7 +98,8 @@ pub fn set_swap_interval(swap_interval: SwapInterval) -> Result<(), SdlError> {
 }
 
 /// Clears the window surface to the given color. Also clears the stencil buffer and depth buffer.
-pub fn clear(color: LinSrgba) {
+pub fn clear(color: impl Into<LinSrgba>) {
+	let color = color.into();
 	unsafe {
 		Context::with(|ctx| {
 			ctx.graphics
@@ -150,13 +151,54 @@ pub fn clear_depth_buffer() {
 /// // the following drawing operations will be back to normal
 /// # }
 /// ```
-pub fn push_transform(transform: Mat4) -> OnDrop {
+pub fn push_transform(transform: impl Into<Mat4>) -> OnDrop {
+	let transform = transform.into();
 	Context::with_mut(|ctx| ctx.graphics.transform_stack.push(transform));
 	OnDrop {
 		on_drop: || {
 			Context::with_mut(|ctx| ctx.graphics.transform_stack.pop());
 		},
 	}
+}
+
+pub fn push_translation_2d(translation: impl Into<Vec2>) -> OnDrop {
+	push_transform(Mat4::from_translation(translation.into().extend(0.0)))
+}
+
+pub fn push_translation_3d(translation: impl Into<Vec3>) -> OnDrop {
+	push_transform(Mat4::from_translation(translation.into()))
+}
+
+pub fn push_translation_x(translation: f32) -> OnDrop {
+	push_transform(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
+}
+
+pub fn push_translation_y(translation: f32) -> OnDrop {
+	push_transform(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
+}
+
+pub fn push_translation_z(translation: f32) -> OnDrop {
+	push_transform(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
+}
+
+pub fn push_scale_2d(scale: impl Into<Vec2>) -> OnDrop {
+	push_transform(Mat4::from_scale(scale.into().extend(0.0)))
+}
+
+pub fn push_scale_3d(scale: impl Into<Vec3>) -> OnDrop {
+	push_transform(Mat4::from_scale(scale.into()))
+}
+
+pub fn push_rotation_x(rotation: f32) -> OnDrop {
+	push_transform(Mat4::from_rotation_x(rotation))
+}
+
+pub fn push_rotation_y(rotation: f32) -> OnDrop {
+	push_transform(Mat4::from_rotation_y(rotation))
+}
+
+pub fn push_rotation_z(rotation: f32) -> OnDrop {
+	push_transform(Mat4::from_rotation_z(rotation))
 }
 
 /// Creates a scope where all drawing operations use the given 3D camera.

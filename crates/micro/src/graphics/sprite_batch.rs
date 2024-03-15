@@ -6,7 +6,7 @@ use palette::LinSrgba;
 pub use sprite_params::SpriteParams;
 
 use generational_arena::{Arena, Index};
-use glam::{Mat4, Vec2, Vec3};
+use glam::{Mat4, Vec2};
 use thiserror::Error;
 
 use crate::{
@@ -15,7 +15,10 @@ use crate::{
 	IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::{color_constants::ColorConstants, shader::Shader, BlendMode, NineSlice, Vertex2d};
+use super::{
+	color_constants::ColorConstants, shader::Shader, standard_draw_param_methods, BlendMode,
+	NineSlice, Vertex2d,
+};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
@@ -64,57 +67,7 @@ impl SpriteBatch {
 		}
 	}
 
-	pub fn shader<'a>(&self, shader: impl Into<Option<&'a Shader>>) -> Self {
-		let mut new = self.clone();
-		new.shader = shader.into().cloned();
-		new
-	}
-
-	pub fn transformed(&self, transform: impl Into<Mat4>) -> Self {
-		let mut new = self.clone();
-		new.transform = transform.into() * self.transform;
-		new
-	}
-
-	pub fn translated_2d(&self, translation: impl Into<Vec2>) -> Self {
-		self.transformed(Mat4::from_translation(translation.into().extend(0.0)))
-	}
-
-	pub fn translated_3d(&self, translation: impl Into<Vec3>) -> Self {
-		self.transformed(Mat4::from_translation(translation.into()))
-	}
-
-	pub fn scaled_2d(&self, scale: impl Into<Vec2>) -> Self {
-		self.transformed(Mat4::from_scale(scale.into().extend(1.0)))
-	}
-
-	pub fn scaled_3d(&self, scale: impl Into<Vec3>) -> Self {
-		self.transformed(Mat4::from_scale(scale.into()))
-	}
-
-	pub fn rotated_x(&self, rotation: f32) -> Self {
-		self.transformed(Mat4::from_rotation_x(rotation))
-	}
-
-	pub fn rotated_y(&self, rotation: f32) -> Self {
-		self.transformed(Mat4::from_rotation_y(rotation))
-	}
-
-	pub fn rotated_z(&self, rotation: f32) -> Self {
-		self.transformed(Mat4::from_rotation_z(rotation))
-	}
-
-	pub fn color(&self, color: impl Into<LinSrgba>) -> Self {
-		let mut new = self.clone();
-		new.color = color.into();
-		new
-	}
-
-	pub fn blend_mode(&self, blend_mode: BlendMode) -> Self {
-		let mut new = self.clone();
-		new.blend_mode = blend_mode;
-		new
-	}
+	standard_draw_param_methods!();
 
 	pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
 		let mut new = self.clone();

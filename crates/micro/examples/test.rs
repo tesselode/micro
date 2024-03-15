@@ -41,7 +41,7 @@ impl State<Box<dyn Error>> for MainState {
 		clear(LinSrgba::BLACK);
 
 		push_translation_2d!((100.0, 50.0), {
-			Mesh::circle(ShapeStyle::Fill, Circle::centered_around_zero(40.0))?.draw();
+			Mesh::circle(ShapeStyle::Fill, Circle::around_zero(40.0))?.draw();
 		});
 
 		Ok(())

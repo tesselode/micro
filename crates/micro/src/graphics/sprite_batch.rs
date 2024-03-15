@@ -159,7 +159,6 @@ impl SpriteBatch {
 
 	fn draw_inner(&self, params: &DrawSpriteBatchParams) {
 		self.mesh
-			.draw()
 			.texture(&self.texture)
 			.range(OffsetAndCount {
 				offset: params.range.offset * 6,
@@ -168,7 +167,8 @@ impl SpriteBatch {
 			.shader(params.shader)
 			.transformed(params.transform)
 			.color(params.color)
-			.blend_mode(params.blend_mode);
+			.blend_mode(params.blend_mode)
+			.draw();
 	}
 }
 

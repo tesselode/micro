@@ -79,12 +79,12 @@ impl AnimationPlayer {
 
 	fn draw_inner(&self, texture: &Texture, params: &DrawAnimationParams) {
 		texture
-			.draw()
 			.region(self.animation_data.frames[self.current_frame_index].texture_region)
 			.shader(params.shader)
 			.transformed(params.transform)
 			.color(params.color)
-			.blend_mode(params.blend_mode);
+			.blend_mode(params.blend_mode)
+			.draw();
 	}
 
 	fn advance_one_frame(&mut self) -> AdvancedFrame {

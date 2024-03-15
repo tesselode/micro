@@ -1,8 +1,4 @@
-use std::{
-	collections::HashMap,
-	path::Path,
-	sync::{mpsc::Sender, Mutex},
-};
+use std::{cell::RefCell, collections::HashMap, path::Path, rc::Rc, sync::mpsc::Sender};
 
 use glam::{Mat3, Mat4, Vec2, Vec3, Vec4};
 use glow::{HasContext, NativeProgram};
@@ -24,12 +20,9 @@ static COMBINED_SHADER_SECTION_REGEX: Lazy<Regex> =
 const COMBINED_SHADER_VERTEX_SECTION_NAME: &str = "VERTEX";
 const COMBINED_SHADER_FRAGMENT_SECTION_NAME: &str = "FRAGMENT";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Shader {
-	pub(crate) program: NativeProgram,
-	sent_textures: HashMap<String, SentTextureInfo>,
-	uniform_values: Mutex<IndexMap<String, UniformValue>>,
-	unused_resource_sender: Sender<UnusedGraphicsResource>,
+	pub(crate) inner: Rc<RefCell<ShaderInner>>,
 }
 
 impl Shader {
@@ -136,36 +129,34 @@ impl Shader {
 			gl.delete_shader(fragment_shader);
 		}
 		Ok(Self {
-			program,
-			sent_textures: HashMap::new(),
-			uniform_values: Mutex::new(IndexMap::new()),
-			unused_resource_sender,
+			inner: Rc::new(RefCell::new(ShaderInner {
+				program,
+				sent_textures: HashMap::new(),
+				uniform_values: IndexMap::new(),
+				unused_resource_sender,
+			})),
 		})
 	}
 
 	pub fn uniform_value(&self, name: &str) -> Option<UniformValue> {
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
-			.get(name)
-			.cloned()
+		self.inner.borrow().uniform_values.get(name).cloned()
 	}
 
 	pub fn send_bool(&self, name: &str, value: bool) -> Result<(), UniformNotFound> {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_1_i32(Some(&location), value.into());
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::Bool(value));
 		Ok(())
 	}
@@ -174,17 +165,17 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_1_i32(Some(&location), value);
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::I32(value));
 		Ok(())
 	}
@@ -193,17 +184,17 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_1_f32(Some(&location), value);
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::F32(value));
 		Ok(())
 	}
@@ -212,17 +203,17 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_2_f32(Some(&location), vec2.x, vec2.y);
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::Vec2(vec2));
 
 		Ok(())
@@ -232,17 +223,17 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_3_f32(Some(&location), vec3.x, vec3.y, vec3.z);
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::Vec3(vec3));
 		Ok(())
 	}
@@ -251,17 +242,17 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_4_f32(Some(&location), vec4.x, vec4.y, vec4.z, vec4.w);
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::Vec4(vec4));
 		Ok(())
 	}
@@ -270,17 +261,17 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_matrix_3_f32_slice(Some(&location), false, &mat3.to_cols_array());
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::Mat3(mat3));
 		Ok(())
 	}
@@ -289,17 +280,17 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::Mat4(mat4));
 		Ok(())
 	}
@@ -308,9 +299,9 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				gl.use_program(Some(self.program));
+				gl.use_program(Some(self.inner.borrow().program));
 				let location = gl
-					.get_uniform_location(self.program, name)
+					.get_uniform_location(self.inner.borrow().program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_4_f32(
 					Some(&location),
@@ -322,22 +313,23 @@ impl Shader {
 			}
 			Ok(())
 		})?;
-		self.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
+		self.inner
+			.borrow_mut()
+			.uniform_values
 			.insert(name.to_string(), UniformValue::Color(color));
 		Ok(())
 	}
 
-	pub fn send_texture(&mut self, name: &str, texture: &Texture) -> Result<(), SendTextureError> {
-		if let Some(SentTextureInfo { texture, .. }) = self.sent_textures.get_mut(name) {
+	pub fn send_texture(&self, name: &str, texture: &Texture) -> Result<(), SendTextureError> {
+		let inner = &mut self.inner.borrow_mut();
+		if let Some(SentTextureInfo { texture, .. }) = inner.sent_textures.get_mut(name) {
 			*texture = texture.clone();
 		} else {
-			let unit = self.sent_textures.len() as u32 + 1;
+			let unit = inner.sent_textures.len() as u32 + 1;
 			if unit >= TEXTURE_UNITS {
 				return Err(SendTextureError::TooManyTextures);
 			}
-			self.sent_textures.insert(
+			inner.sent_textures.insert(
 				name.to_string(),
 				SentTextureInfo {
 					texture: texture.clone(),
@@ -347,9 +339,8 @@ impl Shader {
 			self.send_i32(name, unit as i32)
 				.map_err(|_| SendTextureError::UniformNotFound(name.to_string()))?;
 		}
-		self.uniform_values
-			.get_mut()
-			.expect("uniform mutex poisoned")
+		inner
+			.uniform_values
 			.insert(name.to_string(), UniformValue::Texture(texture.clone()));
 		Ok(())
 	}
@@ -358,7 +349,8 @@ impl Shader {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
-				for SentTextureInfo { texture, unit } in self.sent_textures.values() {
+				for SentTextureInfo { texture, unit } in self.inner.borrow().sent_textures.values()
+				{
 					gl.active_texture(glow::TEXTURE0 + *unit);
 					gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
 				}
@@ -369,12 +361,7 @@ impl Shader {
 
 	#[cfg(feature = "resource_management")]
 	pub(crate) fn import_uniforms(&mut self, other: &Self) {
-		for (name, value) in other
-			.uniform_values
-			.lock()
-			.expect("uniform mutex poisoned")
-			.iter()
-		{
+		for (name, value) in other.inner.borrow().uniform_values.iter() {
 			match value {
 				UniformValue::Bool(value) => self.send_bool(name, *value).ok(),
 				UniformValue::I32(value) => self.send_i32(name, *value).ok(),
@@ -391,7 +378,15 @@ impl Shader {
 	}
 }
 
-impl Drop for Shader {
+#[derive(Debug)]
+pub(crate) struct ShaderInner {
+	pub(crate) program: NativeProgram,
+	sent_textures: HashMap<String, SentTextureInfo>,
+	uniform_values: IndexMap<String, UniformValue>,
+	unused_resource_sender: Sender<UnusedGraphicsResource>,
+}
+
+impl Drop for ShaderInner {
 	fn drop(&mut self) {
 		self.unused_resource_sender
 			.send(UnusedGraphicsResource::Program(self.program))

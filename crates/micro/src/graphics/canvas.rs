@@ -207,12 +207,12 @@ impl Canvas {
 
 	fn draw_inner(&self, params: &DrawCanvasParams) {
 		self.texture
-			.draw()
 			.region(params.region)
 			.shader(params.shader)
 			.transformed(params.transform)
 			.color(params.color)
-			.blend_mode(params.blend_mode);
+			.blend_mode(params.blend_mode)
+			.draw();
 	}
 }
 

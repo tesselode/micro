@@ -30,7 +30,11 @@ impl MainState {
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self) -> Result<(), Box<dyn Error>> {
 		clear(LinSrgba::BLACK);
-		self.text.color(LinSrgba::RED).range(2..=4).draw();
+		self.text
+			.color(LinSrgba::RED)
+			.translated_x(100.0)
+			.range(2..=4)
+			.draw();
 		Ok(())
 	}
 }

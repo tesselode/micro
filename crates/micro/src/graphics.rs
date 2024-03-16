@@ -51,6 +51,18 @@ macro_rules! standard_draw_param_methods {
 			self.transformed(Mat4::from_translation(translation.into()))
 		}
 
+		pub fn translated_x(&self, translation: f32) -> Self {
+			self.translated_2d(glam::Vec2::new(translation, 0.0))
+		}
+
+		pub fn translated_y(&self, translation: f32) -> Self {
+			self.translated_2d(glam::Vec2::new(0.0, translation))
+		}
+
+		pub fn translated_z(&self, translation: f32) -> Self {
+			self.translated_3d(glam::Vec3::new(0.0, 0.0, translation))
+		}
+
 		pub fn scaled_2d(&self, scale: impl Into<glam::Vec2>) -> Self {
 			self.transformed(Mat4::from_scale(scale.into().extend(1.0)))
 		}

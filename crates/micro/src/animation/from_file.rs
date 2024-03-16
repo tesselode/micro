@@ -78,11 +78,9 @@ pub(super) struct RawFrame {
 impl From<RawFrame> for Frame {
 	fn from(raw: RawFrame) -> Self {
 		Self {
-			texture_region: Rect::from_xywh(
-				raw.frame.x as f32,
-				raw.frame.y as f32,
-				raw.frame.w as f32,
-				raw.frame.h as f32,
+			texture_region: Rect::new(
+				(raw.frame.x as f32, raw.frame.y as f32),
+				(raw.frame.w as f32, raw.frame.h as f32),
 			),
 			duration: Duration::from_millis(raw.duration),
 		}

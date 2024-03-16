@@ -51,8 +51,8 @@ impl MeshBuilder {
 
 	pub fn ellipse(
 		style: ShapeStyle,
-		center: Vec2,
-		radii: Vec2,
+		center: impl Into<Vec2>,
+		radii: impl Into<Vec2>,
 		rotation: f32,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
@@ -183,11 +183,13 @@ impl MeshBuilder {
 	pub fn add_ellipse(
 		&mut self,
 		style: ShapeStyle,
-		center: Vec2,
-		radii: Vec2,
+		center: impl Into<Vec2>,
+		radii: impl Into<Vec2>,
 		rotation: f32,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
+		let center = center.into();
+		let radii = radii.into();
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_ellipse(
@@ -222,8 +224,8 @@ impl MeshBuilder {
 	pub fn with_ellipse(
 		mut self,
 		style: ShapeStyle,
-		center: Vec2,
-		radii: Vec2,
+		center: impl Into<Vec2>,
+		radii: impl Into<Vec2>,
 		rotation: f32,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {

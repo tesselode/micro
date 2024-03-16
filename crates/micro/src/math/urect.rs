@@ -10,16 +10,20 @@ pub struct URect {
 }
 
 impl URect {
-	pub const fn new(top_left: UVec2, size: UVec2) -> Self {
-		Self { top_left, size }
+	pub fn new(top_left: impl Into<UVec2>, size: impl Into<UVec2>) -> Self {
+		Self {
+			top_left: top_left.into(),
+			size: size.into(),
+		}
 	}
 
-	pub fn from_top_left_and_bottom_right(top_left: UVec2, bottom_right: UVec2) -> Self {
+	pub fn from_top_left_and_bottom_right(
+		top_left: impl Into<UVec2>,
+		bottom_right: impl Into<UVec2>,
+	) -> Self {
+		let top_left = top_left.into();
+		let bottom_right = bottom_right.into();
 		Self::new(top_left, bottom_right - top_left)
-	}
-
-	pub const fn from_xywh(x: u32, y: u32, width: u32, height: u32) -> Self {
-		Self::new(UVec2::new(x, y), UVec2::new(width, height))
 	}
 
 	pub fn as_rect(self) -> Rect {
@@ -72,7 +76,8 @@ impl URect {
 		self.top() + (self.bottom() - self.top()) * fraction
 	}
 
-	pub const fn fractional_point(&self, fraction: UVec2) -> UVec2 {
+	pub fn fractional_point(&self, fraction: impl Into<UVec2>) -> UVec2 {
+		let fraction = fraction.into();
 		UVec2::new(self.fractional_x(fraction.x), self.fractional_y(fraction.y))
 	}
 
@@ -85,14 +90,16 @@ impl URect {
 		]
 	}
 
-	pub fn translated(&self, translation: UVec2) -> Self {
+	pub fn translated(&self, translation: impl Into<UVec2>) -> Self {
+		let translation = translation.into();
 		Self {
 			top_left: self.top_left + translation,
 			size: self.size,
 		}
 	}
 
-	pub fn padded(&self, padding: UVec2) -> Self {
+	pub fn padded(&self, padding: impl Into<UVec2>) -> Self {
+		let padding = padding.into();
 		Self {
 			top_left: self.top_left - padding,
 			size: self.size + padding * 2,
@@ -111,7 +118,8 @@ impl URect {
 		Self::from_top_left_and_bottom_right(top_left, bottom_right)
 	}
 
-	pub const fn contains_point(&self, point: UVec2) -> bool {
+	pub fn contains_point(&self, point: impl Into<UVec2>) -> bool {
+		let point = point.into();
 		point.x >= self.left()
 			&& point.x <= self.right()
 			&& point.y >= self.top()

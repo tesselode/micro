@@ -10,16 +10,19 @@ pub struct IRect {
 }
 
 impl IRect {
-	pub const fn new(top_left: IVec2, size: IVec2) -> Self {
+	pub fn new(top_left: impl Into<IVec2>, size: impl Into<IVec2>) -> Self {
+		let top_left = top_left.into();
+		let size = size.into();
 		Self { top_left, size }
 	}
 
-	pub fn from_top_left_and_bottom_right(top_left: IVec2, bottom_right: IVec2) -> Self {
+	pub fn from_top_left_and_bottom_right(
+		top_left: impl Into<IVec2>,
+		bottom_right: impl Into<IVec2>,
+	) -> Self {
+		let top_left = top_left.into();
+		let bottom_right = bottom_right.into();
 		Self::new(top_left, bottom_right - top_left)
-	}
-
-	pub const fn from_xywh(x: i32, y: i32, width: i32, height: i32) -> Self {
-		Self::new(IVec2::new(x, y), IVec2::new(width, height))
 	}
 
 	pub fn as_rect(self) -> Rect {
@@ -72,7 +75,8 @@ impl IRect {
 		self.top() + (self.bottom() - self.top()) * fraction
 	}
 
-	pub const fn fractional_point(&self, fraction: IVec2) -> IVec2 {
+	pub fn fractional_point(&self, fraction: impl Into<IVec2>) -> IVec2 {
+		let fraction = fraction.into();
 		IVec2::new(self.fractional_x(fraction.x), self.fractional_y(fraction.y))
 	}
 
@@ -85,14 +89,16 @@ impl IRect {
 		]
 	}
 
-	pub fn translated(&self, translation: IVec2) -> Self {
+	pub fn translated(&self, translation: impl Into<IVec2>) -> Self {
+		let translation = translation.into();
 		Self {
 			top_left: self.top_left + translation,
 			size: self.size,
 		}
 	}
 
-	pub fn padded(&self, padding: IVec2) -> Self {
+	pub fn padded(&self, padding: impl Into<IVec2>) -> Self {
+		let padding = padding.into();
 		Self {
 			top_left: self.top_left - padding,
 			size: self.size + padding * 2,
@@ -111,7 +117,8 @@ impl IRect {
 		Self::from_top_left_and_bottom_right(top_left, bottom_right)
 	}
 
-	pub const fn contains_point(&self, point: IVec2) -> bool {
+	pub fn contains_point(&self, point: impl Into<IVec2>) -> bool {
+		let point = point.into();
 		point.x >= self.left()
 			&& point.x <= self.right()
 			&& point.y >= self.top()

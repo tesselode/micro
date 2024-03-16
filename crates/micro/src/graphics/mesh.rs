@@ -231,7 +231,7 @@ impl<V: Vertex> Mesh<V> {
 
 impl Mesh<Vertex2d> {
 	pub fn rectangle(rect: Rect) -> Self {
-		Self::rectangle_with_texture_region(rect, Rect::from_xywh(0.0, 0.0, 1.0, 1.0))
+		Self::rectangle_with_texture_region(rect, Rect::new((0.0, 0.0), (1.0, 1.0)))
 	}
 
 	pub fn rectangle_with_texture_region(display_rect: Rect, texture_region: Rect) -> Self {
@@ -263,8 +263,8 @@ impl Mesh<Vertex2d> {
 
 	pub fn ellipse(
 		style: ShapeStyle,
-		center: Vec2,
-		radii: Vec2,
+		center: impl Into<Vec2>,
+		radii: impl Into<Vec2>,
 		rotation: f32,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()

@@ -199,7 +199,8 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_vec2(&self, name: &str, vec2: Vec2) -> Result<(), UniformNotFound> {
+	pub fn send_vec2(&self, name: &str, vec2: impl Into<Vec2>) -> Result<(), UniformNotFound> {
+		let vec2 = vec2.into();
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
@@ -219,7 +220,8 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_vec3(&self, name: &str, vec3: Vec3) -> Result<(), UniformNotFound> {
+	pub fn send_vec3(&self, name: &str, vec3: impl Into<Vec3>) -> Result<(), UniformNotFound> {
+		let vec3 = vec3.into();
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
@@ -238,7 +240,8 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_vec4(&self, name: &str, vec4: Vec4) -> Result<(), UniformNotFound> {
+	pub fn send_vec4(&self, name: &str, vec4: impl Into<Vec4>) -> Result<(), UniformNotFound> {
+		let vec4 = vec4.into();
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
@@ -257,7 +260,8 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_mat3(&self, name: &str, mat3: Mat3) -> Result<(), UniformNotFound> {
+	pub fn send_mat3(&self, name: &str, mat3: impl Into<Mat3>) -> Result<(), UniformNotFound> {
+		let mat3 = mat3.into();
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
@@ -276,7 +280,8 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_mat4(&self, name: &str, mat4: Mat4) -> Result<(), UniformNotFound> {
+	pub fn send_mat4(&self, name: &str, mat4: impl Into<Mat4>) -> Result<(), UniformNotFound> {
+		let mat4 = mat4.into();
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {
@@ -295,7 +300,12 @@ impl Shader {
 		Ok(())
 	}
 
-	pub fn send_color(&self, name: &str, color: LinSrgba) -> Result<(), UniformNotFound> {
+	pub fn send_color(
+		&self,
+		name: &str,
+		color: impl Into<LinSrgba>,
+	) -> Result<(), UniformNotFound> {
+		let color = color.into();
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
 			unsafe {

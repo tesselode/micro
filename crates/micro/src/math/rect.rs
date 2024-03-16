@@ -13,23 +13,26 @@ pub struct Rect {
 }
 
 impl Rect {
-	pub const fn new(top_left: Vec2, size: Vec2) -> Self {
-		Self { top_left, size }
+	pub fn new(top_left: impl Into<Vec2>, size: impl Into<Vec2>) -> Self {
+		Self {
+			top_left: top_left.into(),
+			size: size.into(),
+		}
 	}
 
-	pub fn from_corners(top_left: Vec2, bottom_right: Vec2) -> Self {
+	pub fn from_corners(top_left: impl Into<Vec2>, bottom_right: impl Into<Vec2>) -> Self {
+		let top_left = top_left.into();
+		let bottom_right = bottom_right.into();
 		Self::new(top_left, bottom_right - top_left)
 	}
 
-	pub const fn from_xywh(x: f32, y: f32, width: f32, height: f32) -> Self {
-		Self::new(Vec2::new(x, y), Vec2::new(width, height))
-	}
-
-	pub fn centered_around(center: Vec2, size: Vec2) -> Self {
+	pub fn centered_around(center: impl Into<Vec2>, size: impl Into<Vec2>) -> Self {
+		let center = center.into();
+		let size = size.into();
 		Self::new(center - size / 2.0, size)
 	}
 
-	pub fn centered_around_zero(size: Vec2) -> Self {
+	pub fn centered_around_zero(size: impl Into<Vec2>) -> Self {
 		Self::centered_around(Vec2::ZERO, size)
 	}
 
@@ -108,9 +111,9 @@ impl Rect {
 		]
 	}
 
-	pub fn translated(&self, translation: Vec2) -> Self {
+	pub fn translated(&self, translation: impl Into<Vec2>) -> Self {
 		Self {
-			top_left: self.top_left + translation,
+			top_left: self.top_left + translation.into(),
 			size: self.size,
 		}
 	}
@@ -131,9 +134,9 @@ impl Rect {
 		}
 	}
 
-	pub fn positioned(&self, position: Vec2, anchor: Vec2) -> Self {
+	pub fn positioned(&self, position: impl Into<Vec2>, anchor: impl Into<Vec2>) -> Self {
 		Self {
-			top_left: position - self.size * anchor,
+			top_left: position.into() - self.size * anchor.into(),
 			size: self.size,
 		}
 	}
@@ -154,7 +157,9 @@ impl Rect {
 		}
 	}
 
-	pub fn resized(&self, size: Vec2, anchor: Vec2) -> Self {
+	pub fn resized(&self, size: impl Into<Vec2>, anchor: impl Into<Vec2>) -> Self {
+		let size = size.into();
+		let anchor = anchor.into();
 		Self {
 			top_left: self.top_left - (size - self.size) * anchor,
 			size,
@@ -169,8 +174,8 @@ impl Rect {
 		self.resized_y(self.size.y + amount, anchor)
 	}
 
-	pub fn expanded(&self, amount: Vec2, anchor: Vec2) -> Self {
-		self.resized(self.size + amount, anchor)
+	pub fn expanded(&self, amount: impl Into<Vec2>, anchor: impl Into<Vec2>) -> Self {
+		self.resized(self.size + amount.into(), anchor.into())
 	}
 
 	pub fn scaled_x(&self, scale: f32, anchor: f32) -> Self {
@@ -181,11 +186,12 @@ impl Rect {
 		self.resized_y(self.size.y * scale, anchor)
 	}
 
-	pub fn scaled(&self, scale: Vec2, anchor: Vec2) -> Self {
-		self.resized(self.size * scale, anchor)
+	pub fn scaled(&self, scale: impl Into<Vec2>, anchor: impl Into<Vec2>) -> Self {
+		self.resized(self.size * scale.into(), anchor.into())
 	}
 
-	pub fn padded(&self, padding: Vec2) -> Self {
+	pub fn padded(&self, padding: impl Into<Vec2>) -> Self {
+		let padding = padding.into();
 		Self {
 			top_left: self.top_left - padding,
 			size: self.size + padding * 2.0,
@@ -204,7 +210,8 @@ impl Rect {
 		Self::from_corners(top_left, bottom_right)
 	}
 
-	pub fn contains_point(&self, point: Vec2) -> bool {
+	pub fn contains_point(&self, point: impl Into<Vec2>) -> bool {
+		let point = point.into();
 		point.x >= self.left()
 			&& point.x <= self.right()
 			&& point.y >= self.top()

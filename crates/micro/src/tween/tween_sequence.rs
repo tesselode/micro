@@ -22,13 +22,17 @@ impl<T: Tweenable + Copy> TweenSequence<T> {
 		}
 	}
 
-	pub fn simple(duration: Duration, values: RangeInclusive<T>, easing: Easing) -> Self {
-		let mut tween_sequence = TweenSequence::new(*values.start());
-		tween_sequence = tween_sequence.tween(duration, *values.end(), easing);
+	pub fn simple<U: Copy + Into<T>>(
+		duration: Duration,
+		values: RangeInclusive<U>,
+		easing: Easing,
+	) -> Self {
+		let mut tween_sequence = TweenSequence::new((*values.start()).into());
+		tween_sequence = tween_sequence.tween(duration, (*values.end()).into(), easing);
 		tween_sequence
 	}
 
-	pub fn tween(mut self, duration: Duration, target: T, easing: Easing) -> Self {
+	pub fn tween(mut self, duration: Duration, target: impl Into<T>, easing: Easing) -> Self {
 		let (last_time, last_value) = self
 			.tweens
 			.last()
@@ -36,7 +40,7 @@ impl<T: Tweenable + Copy> TweenSequence<T> {
 			.unwrap_or((Duration::ZERO, self.starting_value));
 		self.tweens.push(Tween {
 			times: last_time..last_time + duration,
-			values: last_value..target,
+			values: last_value..target.into(),
 			easing,
 		});
 		self

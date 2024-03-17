@@ -9,6 +9,8 @@ pub use traits::*;
 
 use std::{collections::HashMap, hash::Hash};
 
+use crate::math::CardinalDirection;
+
 #[derive(Debug)]
 pub struct VirtualController<C: VirtualControls, S: VirtualAnalogSticks<C> = ()> {
 	pub config: VirtualControllerConfig<C>,
@@ -106,12 +108,11 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 
 	fn update_stick_state(&mut self) {
 		for (stick, VirtualAnalogStickState { value, raw_value }) in &mut self.stick_state {
-			let VirtualAnalogStickControls {
-				left,
-				right,
-				up,
-				down,
-			} = stick.controls();
+			let controls = stick.controls();
+			let left = controls(CardinalDirection::Left);
+			let right = controls(CardinalDirection::Right);
+			let up = controls(CardinalDirection::Up);
+			let down = controls(CardinalDirection::Down);
 			*raw_value = Vec2 {
 				x: self.control_state[&right].raw_value - self.control_state[&left].raw_value,
 				y: self.control_state[&down].raw_value - self.control_state[&up].raw_value,
@@ -167,4 +168,13 @@ pub struct VirtualAnalogStickState {
 pub enum InputKind {
 	KeyboardMouse,
 	Gamepad,
+}
+
+#[macro_export]
+macro_rules! control_mapping {
+	($($virtual:expr => [$($real:expr),*]),*) => {{
+		let mut mapping = HashMap::new();
+		$(mapping.insert($virtual, vec![$($real.into()),*]);)*
+		mapping
+	}};
 }

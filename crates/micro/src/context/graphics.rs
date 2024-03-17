@@ -1,7 +1,4 @@
-use std::{
-	rc::Rc,
-	sync::mpsc::{Receiver, Sender},
-};
+use std::rc::Rc;
 
 use glam::{IVec2, Mat4, UVec2, Vec3};
 use glow::HasContext;
@@ -11,19 +8,19 @@ use sdl2::{
 };
 
 use crate::graphics::{
-	shader::{Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
-	texture::{Texture, TextureSettings},
-	unused_resource::UnusedGraphicsResource,
+	mesh::RawMesh, resource::GraphicsResources, shader::RawShader, texture::RawTexture, RawCanvas,
+	RawVertexAttributeBuffer,
 };
 
 pub(crate) struct GraphicsContext {
 	pub(crate) gl: Rc<glow::Context>,
-	pub(crate) default_texture: Texture,
-	pub(crate) default_shader: Shader,
+	pub(crate) meshes: GraphicsResources<RawMesh>,
+	pub(crate) textures: GraphicsResources<RawTexture>,
+	pub(crate) shaders: GraphicsResources<RawShader>,
+	pub(crate) canvases: GraphicsResources<RawCanvas>,
+	pub(crate) vertex_attribute_buffers: GraphicsResources<RawVertexAttributeBuffer>,
 	pub(crate) transform_stack: Vec<Mat4>,
 	pub(crate) render_target: RenderTarget,
-	pub(crate) unused_resource_sender: Sender<UnusedGraphicsResource>,
-	pub(crate) unused_resource_receiver: Receiver<UnusedGraphicsResource>,
 	viewport_size: IVec2,
 	_sdl_gl_ctx: GLContext,
 }
@@ -45,30 +42,15 @@ impl GraphicsContext {
 			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 			gl.viewport(0, 0, viewport_size.x, viewport_size.y);
 		}
-		let (unused_resource_sender, unused_resource_receiver) = std::sync::mpsc::channel();
-		let default_texture = Texture::new_from_gl(
-			&gl,
-			unused_resource_sender.clone(),
-			UVec2::new(1, 1),
-			Some(&[255, 255, 255, 255]),
-			TextureSettings::default(),
-			false,
-		);
-		let default_shader = Shader::new_from_gl(
-			&gl,
-			unused_resource_sender.clone(),
-			DEFAULT_VERTEX_SHADER,
-			DEFAULT_FRAGMENT_SHADER,
-		)
-		.expect("Error compiling default shader");
 		Self {
 			gl,
-			default_texture,
-			default_shader,
+			meshes: GraphicsResources::new(),
+			textures: GraphicsResources::new(),
+			shaders: GraphicsResources::new(),
+			canvases: GraphicsResources::new(),
+			vertex_attribute_buffers: GraphicsResources::new(),
 			transform_stack: vec![],
 			render_target: RenderTarget::Window,
-			unused_resource_sender,
-			unused_resource_receiver,
 			viewport_size,
 			_sdl_gl_ctx,
 		}
@@ -94,26 +76,11 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn delete_unused_resources(&mut self) {
-		for unused_resource in self.unused_resource_receiver.try_iter() {
-			match unused_resource {
-				UnusedGraphicsResource::VertexArray(vertex_array) => unsafe {
-					self.gl.delete_vertex_array(vertex_array)
-				},
-				UnusedGraphicsResource::Buffer(buffer) => unsafe { self.gl.delete_buffer(buffer) },
-				UnusedGraphicsResource::Framebuffer(framebuffer) => unsafe {
-					self.gl.delete_framebuffer(framebuffer)
-				},
-				UnusedGraphicsResource::Renderbuffer(renderbuffer) => unsafe {
-					self.gl.delete_renderbuffer(renderbuffer)
-				},
-				UnusedGraphicsResource::Texture(texture) => unsafe {
-					self.gl.delete_texture(texture)
-				},
-				UnusedGraphicsResource::Program(program) => unsafe {
-					self.gl.delete_program(program)
-				},
-			}
-		}
+		self.meshes.delete_unused();
+		self.textures.delete_unused();
+		self.shaders.delete_unused();
+		self.canvases.delete_unused();
+		self.vertex_attribute_buffers.delete_unused();
 	}
 
 	pub(crate) fn global_transform(&self) -> Mat4 {

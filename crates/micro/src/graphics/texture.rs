@@ -1,24 +1,42 @@
-use std::{path::Path, rc::Rc, sync::mpsc::Sender};
+use std::{
+	path::Path,
+	rc::Rc,
+	sync::{
+		atomic::{AtomicU64, Ordering},
+		Weak,
+	},
+};
 
 use glam::{IVec2, Mat4, UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
 use image::{ImageBuffer, ImageError};
+use once_cell::sync::Lazy;
 use palette::LinSrgba;
 use thiserror::Error;
 
 use crate::{context::Context, graphics::mesh::Mesh, math::Rect};
 
 use super::{
+	resource::{GraphicsResource, GraphicsResourceId},
 	shader::Shader,
 	sprite_batch::{SpriteBatch, SpriteParams},
-	standard_draw_param_methods,
-	unused_resource::UnusedGraphicsResource,
-	BlendMode, ColorConstants, NineSlice,
+	standard_draw_param_methods, BlendMode, ColorConstants, NineSlice,
 };
+
+pub(crate) static DEFAULT_TEXTURE: Lazy<Texture> = Lazy::new(|| {
+	Texture::new(
+		UVec2::new(1, 1),
+		Some(&[255, 255, 255, 255]),
+		TextureSettings::default(),
+		false,
+	)
+});
 
 #[derive(Debug, Clone)]
 pub struct Texture {
-	pub(crate) inner: Rc<TextureInner>,
+	pub(crate) id: TextureId,
+	_weak: Weak<()>,
+	size: UVec2,
 	pub region: Rect,
 	pub shader: Option<Shader>,
 	pub transform: Mat4,
@@ -26,41 +44,21 @@ pub struct Texture {
 	pub blend_mode: BlendMode,
 }
 
-#[derive(Debug)]
-pub(crate) struct TextureInner {
-	pub texture: NativeTexture,
-	pub size: UVec2,
-	unused_resource_sender: Sender<UnusedGraphicsResource>,
-}
-
 impl Texture {
 	pub fn empty(size: UVec2, settings: TextureSettings) -> Self {
-		Context::with(|ctx| {
-			Self::new_from_gl(
-				&ctx.graphics.gl,
-				ctx.graphics.unused_resource_sender.clone(),
-				size,
-				None,
-				settings,
-				false,
-			)
-		})
+		Self::new(size, None, settings, false)
 	}
 
 	pub fn from_image(
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 		settings: TextureSettings,
 	) -> Self {
-		Context::with(|ctx| {
-			Self::new_from_gl(
-				&ctx.graphics.gl,
-				ctx.graphics.unused_resource_sender.clone(),
-				UVec2::new(image.width(), image.height()),
-				Some(image.as_raw()),
-				settings,
-				false,
-			)
-		})
+		Self::new(
+			UVec2::new(image.width(), image.height()),
+			Some(image.as_raw()),
+			settings,
+			false,
+		)
 	}
 
 	pub fn from_file(
@@ -80,11 +78,11 @@ impl Texture {
 	standard_draw_param_methods!();
 
 	pub fn size(&self) -> UVec2 {
-		self.inner.size
+		self.size
 	}
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
-		let size = self.inner.size.as_vec2();
+		let size = self.size.as_vec2();
 		Rect::from_corners(
 			absolute_rect.top_left / size,
 			absolute_rect.bottom_right() / size,
@@ -94,8 +92,9 @@ impl Texture {
 	pub fn replace(&self, top_left: IVec2, image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>) {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let texture = &ctx.graphics.textures.get(self.id);
 			unsafe {
-				gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
+				gl.bind_texture(glow::TEXTURE_2D, Some(texture.texture));
 				gl.tex_sub_image_2d(
 					glow::TEXTURE_2D,
 					0,
@@ -137,98 +136,81 @@ impl Texture {
 			.draw();
 	}
 
-	pub(crate) fn new_from_gl(
-		gl: &glow::Context,
-		unused_resource_sender: Sender<UnusedGraphicsResource>,
+	pub(crate) fn new(
 		size: UVec2,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
 		float: bool,
 	) -> Self {
-		let texture = unsafe { gl.create_texture().expect("error creating texture") };
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
-			gl.tex_parameter_i32(
-				glow::TEXTURE_2D,
-				glow::TEXTURE_WRAP_S,
-				settings.wrapping.as_u32() as i32,
-			);
-			gl.tex_parameter_i32(
-				glow::TEXTURE_2D,
-				glow::TEXTURE_WRAP_T,
-				settings.wrapping.as_u32() as i32,
-			);
-			if let TextureWrapping::ClampToBorder(color) = settings.wrapping {
-				let color: [f32; 4] = color.into();
-				gl.tex_parameter_f32_slice(glow::TEXTURE_2D, glow::TEXTURE_BORDER_COLOR, &color);
-			}
-			gl.tex_parameter_i32(
-				glow::TEXTURE_2D,
-				glow::TEXTURE_MIN_FILTER,
-				settings.minifying_filter.as_u32() as i32,
-			);
-			gl.tex_parameter_i32(
-				glow::TEXTURE_2D,
-				glow::TEXTURE_MAG_FILTER,
-				settings.magnifying_filter.as_u32() as i32,
-			);
-			gl.tex_image_2d(
-				glow::TEXTURE_2D,
-				0,
-				if float {
-					glow::RGBA16F
-				} else {
-					glow::SRGB8_ALPHA8
-				} as i32,
-				size.x as i32,
-				size.y as i32,
-				0,
-				glow::RGBA,
-				if float {
-					glow::FLOAT
-				} else {
-					glow::UNSIGNED_BYTE
-				},
-				pixels,
-			);
-			gl.generate_mipmap(glow::TEXTURE_2D);
-		}
-		Self {
-			inner: Rc::new(TextureInner {
-				texture,
-				size,
-				unused_resource_sender,
-			}),
-			region: Rect::new(Vec2::ZERO, size.as_vec2()),
-			shader: None,
-			transform: Mat4::IDENTITY,
-			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
-		}
-	}
-
-	pub(crate) fn attach_to_framebuffer(&mut self) {
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let texture = unsafe { gl.create_texture().expect("error creating texture") };
 			unsafe {
-				gl.bind_texture(glow::TEXTURE_2D, Some(self.inner.texture));
-				gl.framebuffer_texture_2d(
-					glow::FRAMEBUFFER,
-					glow::COLOR_ATTACHMENT0,
+				gl.bind_texture(glow::TEXTURE_2D, Some(texture));
+				gl.tex_parameter_i32(
 					glow::TEXTURE_2D,
-					Some(self.inner.texture),
-					0,
+					glow::TEXTURE_WRAP_S,
+					settings.wrapping.as_u32() as i32,
 				);
+				gl.tex_parameter_i32(
+					glow::TEXTURE_2D,
+					glow::TEXTURE_WRAP_T,
+					settings.wrapping.as_u32() as i32,
+				);
+				if let TextureWrapping::ClampToBorder(color) = settings.wrapping {
+					let color: [f32; 4] = color.into();
+					gl.tex_parameter_f32_slice(
+						glow::TEXTURE_2D,
+						glow::TEXTURE_BORDER_COLOR,
+						&color,
+					);
+				}
+				gl.tex_parameter_i32(
+					glow::TEXTURE_2D,
+					glow::TEXTURE_MIN_FILTER,
+					settings.minifying_filter.as_u32() as i32,
+				);
+				gl.tex_parameter_i32(
+					glow::TEXTURE_2D,
+					glow::TEXTURE_MAG_FILTER,
+					settings.magnifying_filter.as_u32() as i32,
+				);
+				gl.tex_image_2d(
+					glow::TEXTURE_2D,
+					0,
+					if float {
+						glow::RGBA16F
+					} else {
+						glow::SRGB8_ALPHA8
+					} as i32,
+					size.x as i32,
+					size.y as i32,
+					0,
+					glow::RGBA,
+					if float {
+						glow::FLOAT
+					} else {
+						glow::UNSIGNED_BYTE
+					},
+					pixels,
+				);
+				gl.generate_mipmap(glow::TEXTURE_2D);
 			}
-		});
-	}
-}
-
-impl Drop for TextureInner {
-	fn drop(&mut self) {
-		self.unused_resource_sender
-			.send(UnusedGraphicsResource::Texture(self.texture))
-			.ok();
+			let (id, weak) = ctx.graphics.textures.insert(RawTexture {
+				gl: gl.clone(),
+				texture,
+			});
+			Self {
+				id,
+				_weak: weak,
+				size,
+				region: Rect::new(Vec2::ZERO, size.as_vec2()),
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+			}
+		})
 	}
 }
 
@@ -295,4 +277,33 @@ pub enum LoadTextureError {
 	IoError(#[from] std::io::Error),
 	#[error("{0}")]
 	ImageError(#[from] ImageError),
+}
+
+#[derive(Debug)]
+pub(crate) struct RawTexture {
+	gl: Rc<glow::Context>,
+	pub texture: NativeTexture,
+}
+
+impl Drop for RawTexture {
+	fn drop(&mut self) {
+		unsafe {
+			self.gl.delete_texture(self.texture);
+		}
+	}
+}
+
+impl GraphicsResource for RawTexture {
+	type Id = TextureId;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct TextureId(pub u64);
+
+static NEXT_TEXTURE_ID: AtomicU64 = AtomicU64::new(0);
+
+impl GraphicsResourceId for TextureId {
+	fn next() -> Self {
+		TextureId(NEXT_TEXTURE_ID.fetch_add(1, Ordering::SeqCst))
+	}
 }

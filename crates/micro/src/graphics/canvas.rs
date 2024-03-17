@@ -1,4 +1,10 @@
-use std::{rc::Rc, sync::mpsc::Sender};
+use std::{
+	rc::Rc,
+	sync::{
+		atomic::{AtomicU64, Ordering},
+		Weak,
+	},
+};
 
 use glam::{Mat4, UVec2, Vec2};
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, PixelPackData};
@@ -7,16 +13,18 @@ use palette::LinSrgba;
 use crate::{context::graphics::RenderTarget, math::Rect, Context};
 
 use super::{
+	resource::{GraphicsResource, GraphicsResourceId},
 	shader::Shader,
 	standard_draw_param_methods,
 	texture::{Texture, TextureSettings},
-	unused_resource::UnusedGraphicsResource,
 	BlendMode, ColorConstants,
 };
 
 #[derive(Debug, Clone)]
 pub struct Canvas {
-	inner: Rc<CanvasInner>,
+	id: CanvasId,
+	_weak: Weak<()>,
+	texture: Texture,
 
 	// draw params
 	pub region: Rect,
@@ -28,7 +36,8 @@ pub struct Canvas {
 
 impl Canvas {
 	pub fn new(size: UVec2, settings: CanvasSettings) -> Self {
-		Context::with(|ctx| {
+		let texture = Texture::new(size, None, settings.texture_settings, settings.hdr);
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
 			let framebuffer = unsafe {
 				gl.create_framebuffer()
@@ -36,16 +45,16 @@ impl Canvas {
 			};
 			unsafe {
 				gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
+				let raw_texture = ctx.graphics.textures.get(texture.id);
+				gl.bind_texture(glow::TEXTURE_2D, Some(raw_texture.texture));
+				gl.framebuffer_texture_2d(
+					glow::FRAMEBUFFER,
+					glow::COLOR_ATTACHMENT0,
+					glow::TEXTURE_2D,
+					Some(raw_texture.texture),
+					0,
+				);
 			}
-			let mut texture = Texture::new_from_gl(
-				&ctx.graphics.gl,
-				Context::with(|ctx| ctx.graphics.unused_resource_sender.clone()),
-				size,
-				None,
-				settings.texture_settings,
-				settings.hdr,
-			);
-			texture.attach_to_framebuffer();
 			let multisample_framebuffer = match settings.msaa {
 				Msaa::None => None,
 				_ => Some(MultisampleFramebuffer::new(
@@ -87,14 +96,16 @@ impl Canvas {
 			unsafe {
 				gl.bind_framebuffer(glow::FRAMEBUFFER, None);
 			}
+			let (id, weak) = ctx.graphics.canvases.insert(RawCanvas {
+				gl: gl.clone(),
+				framebuffer,
+				depth_stencil_renderbuffer,
+				multisample_framebuffer,
+			});
 			Self {
-				inner: Rc::new(CanvasInner {
-					framebuffer,
-					texture,
-					depth_stencil_renderbuffer,
-					multisample_framebuffer,
-					unused_resource_sender: ctx.graphics.unused_resource_sender.clone(),
-				}),
+				id,
+				_weak: weak,
+				texture: texture.clone(),
 				shader: None,
 				transform: Mat4::IDENTITY,
 				color: LinSrgba::WHITE,
@@ -113,7 +124,7 @@ impl Canvas {
 	standard_draw_param_methods!();
 
 	pub fn size(&self) -> UVec2 {
-		self.inner.texture.size()
+		self.texture.size()
 	}
 
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
@@ -129,40 +140,40 @@ impl Canvas {
 			unimplemented!("cannot nest render_to calls");
 		}
 		let size = self.size();
-		unsafe {
-			Context::with(|ctx| {
+		Context::with_mut(|ctx| {
+			let canvas = ctx.graphics.canvases.get(self.id);
+			unsafe {
 				ctx.graphics.gl.bind_framebuffer(
 					glow::FRAMEBUFFER,
 					Some(
 						if let Some(MultisampleFramebuffer { framebuffer, .. }) =
-							self.inner.multisample_framebuffer
+							canvas.multisample_framebuffer
 						{
 							framebuffer
 						} else {
-							self.inner.framebuffer
+							canvas.framebuffer
 						},
 					),
 				);
-			});
-		}
-		Context::with_mut(|ctx| {
+			}
 			ctx.graphics
 				.set_render_target(RenderTarget::Canvas { size })
 		});
 		OnDrop {
 			canvas: self,
 			on_drop: |canvas| {
-				if let Some(MultisampleFramebuffer { framebuffer, .. }) =
-					canvas.inner.multisample_framebuffer
-				{
-					unsafe {
-						Context::with(|ctx| {
+				Context::with_mut(|ctx| {
+					let raw_canvas = ctx.graphics.canvases.get(canvas.id);
+					if let Some(MultisampleFramebuffer { framebuffer, .. }) =
+						raw_canvas.multisample_framebuffer
+					{
+						unsafe {
 							ctx.graphics
 								.gl
 								.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(framebuffer));
 							ctx.graphics.gl.bind_framebuffer(
 								glow::DRAW_FRAMEBUFFER,
-								Some(canvas.inner.framebuffer),
+								Some(raw_canvas.framebuffer),
 							);
 							let width = canvas.size().x as i32;
 							let height = canvas.size().y as i32;
@@ -178,20 +189,17 @@ impl Canvas {
 								glow::COLOR_BUFFER_BIT,
 								glow::NEAREST,
 							);
-						});
+						}
 					}
-				}
-				unsafe {
-					Context::with(|ctx| ctx.graphics.gl.bind_framebuffer(glow::FRAMEBUFFER, None));
-				}
-				Context::with_mut(|ctx| ctx.graphics.set_render_target(RenderTarget::Window));
+					unsafe { ctx.graphics.gl.bind_framebuffer(glow::FRAMEBUFFER, None) }
+					ctx.graphics.set_render_target(RenderTarget::Window);
+				});
 			},
 		}
 	}
 
 	pub fn draw(&self) {
-		self.inner
-			.texture
+		self.texture
 			.region(self.region)
 			.shader(&self.shader)
 			.transformed(self.transform)
@@ -206,8 +214,9 @@ impl Canvas {
 		}
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let canvas = ctx.graphics.canvases.get(self.id);
 			unsafe {
-				gl.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(self.inner.framebuffer));
+				gl.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(canvas.framebuffer));
 				gl.read_buffer(glow::COLOR_ATTACHMENT0);
 				gl.read_pixels(
 					0,
@@ -220,40 +229,6 @@ impl Canvas {
 				);
 			}
 		});
-	}
-}
-
-#[derive(Debug)]
-struct CanvasInner {
-	framebuffer: NativeFramebuffer,
-	texture: Texture,
-	depth_stencil_renderbuffer: NativeRenderbuffer,
-	multisample_framebuffer: Option<MultisampleFramebuffer>,
-	unused_resource_sender: Sender<UnusedGraphicsResource>,
-}
-
-impl Drop for CanvasInner {
-	fn drop(&mut self) {
-		self.unused_resource_sender
-			.send(UnusedGraphicsResource::Framebuffer(self.framebuffer))
-			.ok();
-		self.unused_resource_sender
-			.send(UnusedGraphicsResource::Renderbuffer(
-				self.depth_stencil_renderbuffer,
-			))
-			.ok();
-		if let Some(MultisampleFramebuffer {
-			framebuffer,
-			texture,
-		}) = self.multisample_framebuffer
-		{
-			self.unused_resource_sender
-				.send(UnusedGraphicsResource::Texture(texture))
-				.ok();
-			self.unused_resource_sender
-				.send(UnusedGraphicsResource::Framebuffer(framebuffer))
-				.ok();
-		}
 	}
 }
 
@@ -342,7 +317,6 @@ impl MultisampleFramebuffer {
 }
 
 #[must_use]
-
 pub struct OnDrop<'a> {
 	pub(crate) canvas: &'a Canvas,
 	pub(crate) on_drop: fn(&Canvas),
@@ -351,5 +325,45 @@ pub struct OnDrop<'a> {
 impl<'a> Drop for OnDrop<'a> {
 	fn drop(&mut self) {
 		(self.on_drop)(self.canvas);
+	}
+}
+
+#[derive(Debug)]
+pub(crate) struct RawCanvas {
+	gl: Rc<glow::Context>,
+	framebuffer: NativeFramebuffer,
+	depth_stencil_renderbuffer: NativeRenderbuffer,
+	multisample_framebuffer: Option<MultisampleFramebuffer>,
+}
+
+impl Drop for RawCanvas {
+	fn drop(&mut self) {
+		unsafe {
+			self.gl.delete_framebuffer(self.framebuffer);
+			self.gl.delete_renderbuffer(self.depth_stencil_renderbuffer);
+			if let Some(MultisampleFramebuffer {
+				framebuffer,
+				texture,
+			}) = self.multisample_framebuffer
+			{
+				self.gl.delete_texture(texture);
+				self.gl.delete_framebuffer(framebuffer);
+			}
+		}
+	}
+}
+
+impl GraphicsResource for RawCanvas {
+	type Id = CanvasId;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct CanvasId(pub u64);
+
+static NEXT_CANVAS_ID: AtomicU64 = AtomicU64::new(0);
+
+impl GraphicsResourceId for CanvasId {
+	fn next() -> Self {
+		CanvasId(NEXT_CANVAS_ID.fetch_add(1, Ordering::SeqCst))
 	}
 }

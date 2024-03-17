@@ -5,7 +5,14 @@ use glam::{Mat4, Vec2};
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
-use std::{fmt::Debug, marker::PhantomData, rc::Rc, sync::mpsc::Sender};
+use std::{
+	marker::PhantomData,
+	rc::Rc,
+	sync::{
+		atomic::{AtomicU64, Ordering},
+		Weak,
+	},
+};
 
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
@@ -17,14 +24,20 @@ use crate::{
 };
 
 use super::{
-	color_constants::ColorConstants, configure_vertex_attributes_for_buffer,
-	standard_draw_param_methods, unused_resource::UnusedGraphicsResource, Culling, Vertex,
-	Vertex2d, VertexAttributeBuffer, VertexAttributeDivisor,
+	color_constants::ColorConstants,
+	configure_vertex_attributes_for_buffer,
+	resource::{GraphicsResource, GraphicsResourceId},
+	shader::DEFAULT_SHADER,
+	standard_draw_param_methods,
+	texture::DEFAULT_TEXTURE,
+	Culling, Vertex, Vertex2d, VertexAttributeBuffer, VertexAttributeDivisor,
 };
 
 #[derive(Debug, Clone)]
 pub struct Mesh<V: Vertex = Vertex2d> {
-	inner: Rc<MeshInner>,
+	id: MeshId,
+	_weak: Weak<()>,
+	num_indices: i32,
 	_phantom_data: PhantomData<V>,
 
 	// draw params
@@ -39,13 +52,57 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 
 impl<V: Vertex> Mesh<V> {
 	pub fn new(vertices: &[V], indices: &[u32]) -> Self {
-		Context::with(|ctx| {
-			Self::new_from_gl(
-				&ctx.graphics.gl,
-				Context::with(|ctx| ctx.graphics.unused_resource_sender.clone()),
-				vertices,
-				indices,
-			)
+		Context::with_mut(|ctx| {
+			let gl = &ctx.graphics.gl;
+			let vertex_array = unsafe {
+				gl.create_vertex_array()
+					.expect("error creating vertex array")
+			};
+			let vertex_buffer =
+				unsafe { gl.create_buffer().expect("error creating vertex buffer") };
+			let index_buffer = unsafe { gl.create_buffer().expect("error creating index buffer") };
+			unsafe {
+				gl.bind_vertex_array(Some(vertex_array));
+				gl.bind_buffer(glow::ARRAY_BUFFER, Some(vertex_buffer));
+				gl.buffer_data_u8_slice(
+					glow::ARRAY_BUFFER,
+					bytemuck::cast_slice(vertices),
+					glow::STATIC_DRAW,
+				);
+				gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(index_buffer));
+				gl.buffer_data_u8_slice(
+					glow::ELEMENT_ARRAY_BUFFER,
+					bytemuck::cast_slice(indices),
+					glow::STATIC_DRAW,
+				);
+				configure_vertex_attributes_for_buffer(
+					gl,
+					vertex_buffer,
+					V::ATTRIBUTE_KINDS,
+					VertexAttributeDivisor::PerVertex,
+					0,
+				);
+			}
+			let num_indices = indices.len() as i32;
+			let (id, weak) = ctx.graphics.meshes.insert(RawMesh {
+				gl: gl.clone(),
+				vertex_array,
+				vertex_buffer,
+				index_buffer,
+			});
+			Self {
+				id,
+				_weak: weak,
+				num_indices,
+				_phantom_data: PhantomData,
+				texture: None,
+				range: None,
+				shader: None,
+				transform: Mat4::IDENTITY,
+				color: LinSrgba::WHITE,
+				blend_mode: BlendMode::default(),
+				culling: Culling::default(),
+			}
 		})
 	}
 
@@ -65,16 +122,17 @@ impl<V: Vertex> Mesh<V> {
 
 	pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_offset_and_count(self.inner.num_indices as usize);
+		new.range = range.into_offset_and_count(self.num_indices as usize);
 		new
 	}
 
 	pub fn set_vertex(&self, index: usize, vertex: V) {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let mesh = ctx.graphics.meshes.get(self.id);
 			unsafe {
-				gl.bind_vertex_array(Some(self.inner.vertex_array));
-				gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.inner.vertex_buffer));
+				gl.bind_vertex_array(Some(mesh.vertex_array));
+				gl.bind_buffer(glow::ARRAY_BUFFER, Some(mesh.vertex_buffer));
 				gl.buffer_sub_data_u8_slice(
 					glow::ARRAY_BUFFER,
 					(std::mem::size_of::<V>() * index) as i32,
@@ -85,30 +143,29 @@ impl<V: Vertex> Mesh<V> {
 	}
 
 	pub fn draw(&self) {
+		let global_transform = Context::with(|ctx| ctx.graphics.global_transform());
+		let texture = self.texture.as_ref().unwrap_or(&DEFAULT_TEXTURE);
+		let shader = self.shader.as_ref().unwrap_or(&DEFAULT_SHADER);
+		shader.send_color("blendColor", self.color).ok();
+		shader.send_mat4("globalTransform", global_transform).ok();
+		shader.send_mat4("localTransform", self.transform).ok();
+		shader
+			.send_mat4("normalTransform", self.transform.inverse().transpose())
+			.ok();
+		shader.bind_sent_textures();
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
-			let texture = self
-				.texture
-				.as_ref()
-				.unwrap_or(&ctx.graphics.default_texture);
+			let mesh = ctx.graphics.meshes.get(self.id);
+			let raw_texture = ctx.graphics.textures.get(texture.id);
+			let raw_shader = ctx.graphics.shaders.get(shader.id);
 			let range = self.range.unwrap_or(OffsetAndCount {
 				offset: 0,
-				count: self.inner.num_indices as usize,
+				count: self.num_indices as usize,
 			});
 			unsafe {
-				let shader = self.shader.as_ref().unwrap_or(&ctx.graphics.default_shader);
-				shader.send_color("blendColor", self.color).ok();
-				shader
-					.send_mat4("globalTransform", ctx.graphics.global_transform())
-					.ok();
-				shader.send_mat4("localTransform", self.transform).ok();
-				shader
-					.send_mat4("normalTransform", self.transform.inverse().transpose())
-					.ok();
-				shader.bind_sent_textures();
-				gl.use_program(Some(shader.inner.borrow().program));
-				gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
-				gl.bind_vertex_array(Some(self.inner.vertex_array));
+				gl.use_program(Some(raw_shader.program));
+				gl.bind_texture(glow::TEXTURE_2D, Some(raw_texture.texture));
+				gl.bind_vertex_array(Some(mesh.vertex_array));
 				self.blend_mode.apply(gl);
 				self.culling.apply(gl);
 				gl.draw_elements(
@@ -126,106 +183,52 @@ impl<V: Vertex> Mesh<V> {
 		num_instances: usize,
 		vertex_attribute_buffers: &[&VertexAttributeBuffer],
 	) {
+		let global_transform = Context::with(|ctx| ctx.graphics.global_transform());
+		let texture = self.texture.as_ref().unwrap_or(&DEFAULT_TEXTURE);
+		let shader = self.shader.as_ref().unwrap_or(&DEFAULT_SHADER);
+		shader.send_color("blendColor", self.color).ok();
+		shader.send_mat4("globalTransform", global_transform).ok();
+		shader.send_mat4("localTransform", self.transform).ok();
+		shader
+			.send_mat4("normalTransform", self.transform.inverse().transpose())
+			.ok();
+		shader.bind_sent_textures();
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
-			let texture = self
-				.texture
-				.as_ref()
-				.unwrap_or(&ctx.graphics.default_texture);
+			let mesh = ctx.graphics.meshes.get(self.id);
+			let raw_texture = ctx.graphics.textures.get(texture.id);
+			let raw_shader = ctx.graphics.shaders.get(shader.id);
 			unsafe {
-				gl.bind_vertex_array(Some(self.inner.vertex_array));
+				gl.bind_vertex_array(Some(mesh.vertex_array));
 				let mut next_attribute_index = configure_vertex_attributes_for_buffer(
 					gl,
-					self.inner.vertex_buffer,
+					mesh.vertex_buffer,
 					V::ATTRIBUTE_KINDS,
 					VertexAttributeDivisor::PerVertex,
 					0,
 				);
 				for buffer in vertex_attribute_buffers {
+					let raw_buffer = ctx.graphics.vertex_attribute_buffers.get(buffer.id);
 					next_attribute_index = configure_vertex_attributes_for_buffer(
 						gl,
-						buffer.buffer,
-						&buffer.attribute_kinds,
-						buffer.divisor,
+						raw_buffer.buffer,
+						&raw_buffer.attribute_kinds,
+						raw_buffer.divisor,
 						next_attribute_index,
 					);
 				}
-				let shader = self.shader.as_ref().unwrap_or(&ctx.graphics.default_shader);
-				shader.send_color("blendColor", self.color).ok();
-				shader
-					.send_mat4("globalTransform", ctx.graphics.global_transform())
-					.ok();
-				shader.send_mat4("localTransform", self.transform).ok();
-				shader
-					.send_mat4("normalTransform", self.transform.inverse().transpose())
-					.ok();
-				shader.bind_sent_textures();
-				gl.use_program(Some(shader.inner.borrow().program));
-				gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
+				gl.use_program(Some(raw_shader.program));
+				gl.bind_texture(glow::TEXTURE_2D, Some(raw_texture.texture));
 				self.blend_mode.apply(gl);
 				gl.draw_elements_instanced(
 					glow::TRIANGLES,
-					self.inner.num_indices,
+					self.num_indices,
 					glow::UNSIGNED_INT,
 					0,
 					num_instances as i32,
 				);
 			}
 		});
-	}
-
-	pub(crate) fn new_from_gl(
-		gl: &glow::Context,
-		unused_resource_sender: Sender<UnusedGraphicsResource>,
-		vertices: &[V],
-		indices: &[u32],
-	) -> Self {
-		let vertex_array = unsafe {
-			gl.create_vertex_array()
-				.expect("error creating vertex array")
-		};
-		let vertex_buffer = unsafe { gl.create_buffer().expect("error creating vertex buffer") };
-		let index_buffer = unsafe { gl.create_buffer().expect("error creating index buffer") };
-		unsafe {
-			gl.bind_vertex_array(Some(vertex_array));
-			gl.bind_buffer(glow::ARRAY_BUFFER, Some(vertex_buffer));
-			gl.buffer_data_u8_slice(
-				glow::ARRAY_BUFFER,
-				bytemuck::cast_slice(vertices),
-				glow::STATIC_DRAW,
-			);
-			gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(index_buffer));
-			gl.buffer_data_u8_slice(
-				glow::ELEMENT_ARRAY_BUFFER,
-				bytemuck::cast_slice(indices),
-				glow::STATIC_DRAW,
-			);
-			configure_vertex_attributes_for_buffer(
-				gl,
-				vertex_buffer,
-				V::ATTRIBUTE_KINDS,
-				VertexAttributeDivisor::PerVertex,
-				0,
-			);
-		}
-		let num_indices = indices.len() as i32;
-		Self {
-			inner: Rc::new(MeshInner {
-				vertex_array,
-				vertex_buffer,
-				index_buffer,
-				num_indices,
-				unused_resource_sender,
-			}),
-			_phantom_data: PhantomData,
-			texture: None,
-			range: None,
-			shader: None,
-			transform: Mat4::IDENTITY,
-			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
-			culling: Culling::default(),
-		}
 	}
 }
 
@@ -305,24 +308,34 @@ impl Mesh<Vertex2d> {
 }
 
 #[derive(Debug)]
-struct MeshInner {
+pub(crate) struct RawMesh {
+	gl: Rc<glow::Context>,
 	vertex_array: NativeVertexArray,
 	vertex_buffer: NativeBuffer,
 	index_buffer: NativeBuffer,
-	num_indices: i32,
-	unused_resource_sender: Sender<UnusedGraphicsResource>,
 }
 
-impl Drop for MeshInner {
+impl GraphicsResource for RawMesh {
+	type Id = MeshId;
+}
+
+impl Drop for RawMesh {
 	fn drop(&mut self) {
-		self.unused_resource_sender
-			.send(UnusedGraphicsResource::VertexArray(self.vertex_array))
-			.ok();
-		self.unused_resource_sender
-			.send(UnusedGraphicsResource::Buffer(self.vertex_buffer))
-			.ok();
-		self.unused_resource_sender
-			.send(UnusedGraphicsResource::Buffer(self.index_buffer))
-			.ok();
+		unsafe {
+			self.gl.delete_vertex_array(self.vertex_array);
+			self.gl.delete_buffer(self.vertex_buffer);
+			self.gl.delete_buffer(self.index_buffer);
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct MeshId(pub u64);
+
+static NEXT_MESH_ID: AtomicU64 = AtomicU64::new(0);
+
+impl GraphicsResourceId for MeshId {
+	fn next() -> Self {
+		MeshId(NEXT_MESH_ID.fetch_add(1, Ordering::SeqCst))
 	}
 }

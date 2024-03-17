@@ -1,25 +1,29 @@
-use std::sync::mpsc::Sender;
+use std::{
+	rc::Rc,
+	sync::{
+		atomic::{AtomicU64, Ordering},
+		Weak,
+	},
+};
 
 use bytemuck::{Pod, Zeroable};
 use glow::{HasContext, NativeBuffer};
 
 use crate::Context;
 
-use super::unused_resource::UnusedGraphicsResource;
+use super::resource::{GraphicsResource, GraphicsResourceId};
 
 #[derive(Debug)]
 pub struct VertexAttributeBuffer {
-	pub(crate) buffer: NativeBuffer,
-	pub(crate) attribute_kinds: Vec<VertexAttributeKind>,
-	pub(crate) divisor: VertexAttributeDivisor,
-	unused_resource_sender: Sender<UnusedGraphicsResource>,
+	pub(crate) id: VertexAttributeBufferId,
+	_weak: Weak<()>,
 }
 
 impl VertexAttributeBuffer {
 	pub fn new<T: VertexAttributes>(data: &[T]) -> Self {
-		let buffer = Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
-			unsafe {
+			let buffer = unsafe {
 				let buffer = gl
 					.create_buffer()
 					.expect("error creating vertex attribute buffer");
@@ -30,24 +34,34 @@ impl VertexAttributeBuffer {
 					glow::STATIC_DRAW,
 				);
 				buffer
-			}
-		});
-		Self {
-			buffer,
-			attribute_kinds: T::ATTRIBUTE_KINDS.to_vec(),
-			divisor: T::DIVISOR,
-			unused_resource_sender: Context::with(|ctx| {
-				ctx.graphics.unused_resource_sender.clone()
-			}),
-		}
+			};
+			let (id, weak) =
+				ctx.graphics
+					.vertex_attribute_buffers
+					.insert(RawVertexAttributeBuffer {
+						gl: gl.clone(),
+						buffer,
+						attribute_kinds: T::ATTRIBUTE_KINDS.to_vec(),
+						divisor: T::DIVISOR,
+					});
+			Self { id, _weak: weak }
+		})
 	}
 }
 
-impl Drop for VertexAttributeBuffer {
+#[derive(Debug)]
+pub(crate) struct RawVertexAttributeBuffer {
+	gl: Rc<glow::Context>,
+	pub buffer: NativeBuffer,
+	pub attribute_kinds: Vec<VertexAttributeKind>,
+	pub divisor: VertexAttributeDivisor,
+}
+
+impl Drop for RawVertexAttributeBuffer {
 	fn drop(&mut self) {
-		self.unused_resource_sender
-			.send(UnusedGraphicsResource::Buffer(self.buffer))
-			.ok();
+		unsafe {
+			self.gl.delete_buffer(self.buffer);
+		}
 	}
 }
 
@@ -135,4 +149,19 @@ pub(crate) fn configure_vertex_attributes_for_buffer(
 		}
 	}
 	next_attribute_index
+}
+
+impl GraphicsResource for RawVertexAttributeBuffer {
+	type Id = VertexAttributeBufferId;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct VertexAttributeBufferId(pub u64);
+
+static NEXT_VERTEX_ATTRIBUTE_BUFFER_ID: AtomicU64 = AtomicU64::new(0);
+
+impl GraphicsResourceId for VertexAttributeBufferId {
+	fn next() -> Self {
+		VertexAttributeBufferId(NEXT_VERTEX_ATTRIBUTE_BUFFER_ID.fetch_add(1, Ordering::SeqCst))
+	}
 }

@@ -5,12 +5,12 @@ mod color_constants;
 mod culling;
 pub mod mesh;
 mod nine_slice;
+pub(crate) mod resource;
 pub mod shader;
 pub mod sprite_batch;
 mod stencil;
 pub mod text;
 pub mod texture;
-pub(crate) mod unused_resource;
 mod vertex;
 mod vertex_attributes;
 

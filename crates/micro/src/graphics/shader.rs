@@ -1,4 +1,12 @@
-use std::{cell::RefCell, collections::HashMap, path::Path, rc::Rc, sync::mpsc::Sender};
+use std::{
+	collections::HashMap,
+	path::Path,
+	rc::Rc,
+	sync::{
+		atomic::{AtomicU64, Ordering},
+		Weak,
+	},
+};
 
 use glam::{Mat3, Mat4, Vec2, Vec3, Vec4};
 use glow::{HasContext, NativeProgram};
@@ -10,7 +18,10 @@ use thiserror::Error;
 
 use crate::context::Context;
 
-use super::{texture::Texture, unused_resource::UnusedGraphicsResource};
+use super::{
+	resource::{GraphicsResource, GraphicsResourceId},
+	texture::Texture,
+};
 
 const TEXTURE_UNITS: u32 = 32;
 pub(crate) const DEFAULT_FRAGMENT_SHADER: &str = include_str!("shader/fragment.glsl");
@@ -20,9 +31,15 @@ static COMBINED_SHADER_SECTION_REGEX: Lazy<Regex> =
 const COMBINED_SHADER_VERTEX_SECTION_NAME: &str = "VERTEX";
 const COMBINED_SHADER_FRAGMENT_SECTION_NAME: &str = "FRAGMENT";
 
+pub(crate) static DEFAULT_SHADER: Lazy<Shader> = Lazy::new(|| {
+	Shader::new(DEFAULT_VERTEX_SHADER, DEFAULT_FRAGMENT_SHADER)
+		.expect("error compiling default shader")
+});
+
 #[derive(Debug, Clone)]
 pub struct Shader {
-	pub(crate) inner: Rc<RefCell<ShaderInner>>,
+	pub(crate) id: ShaderId,
+	_weak: Weak<()>,
 }
 
 impl Shader {
@@ -49,15 +66,7 @@ impl Shader {
 	}
 
 	pub fn from_strs(vertex: &str, fragment: &str) -> Result<Self, LoadShaderError> {
-		Context::with(|ctx| {
-			Self::new_from_gl(
-				&ctx.graphics.gl,
-				ctx.graphics.unused_resource_sender.clone(),
-				vertex,
-				fragment,
-			)
-			.map_err(LoadShaderError::ShaderError)
-		})
+		Self::new(vertex, fragment).map_err(LoadShaderError::ShaderError)
 	}
 
 	pub fn from_combined_str(combined: &str) -> Result<Self, LoadShaderError> {
@@ -89,215 +98,206 @@ impl Shader {
 		Self::from_strs(DEFAULT_VERTEX_SHADER, fragment)
 	}
 
-	pub(crate) fn new_from_gl(
-		gl: &glow::Context,
-		unused_resource_sender: Sender<UnusedGraphicsResource>,
-		vertex: &str,
-		fragment: &str,
-	) -> Result<Self, String> {
-		let vertex_shader = unsafe {
-			gl.create_shader(glow::VERTEX_SHADER)
-				.expect("error creating vertex shader")
-		};
-		unsafe {
-			gl.shader_source(vertex_shader, vertex);
-			gl.compile_shader(vertex_shader);
-			if !gl.get_shader_compile_status(vertex_shader) {
-				return Err(gl.get_shader_info_log(vertex_shader));
+	pub(crate) fn new(vertex: &str, fragment: &str) -> Result<Self, String> {
+		Context::with_mut(|ctx| {
+			let gl = &ctx.graphics.gl;
+			let vertex_shader = unsafe {
+				gl.create_shader(glow::VERTEX_SHADER)
+					.expect("error creating vertex shader")
+			};
+			unsafe {
+				gl.shader_source(vertex_shader, vertex);
+				gl.compile_shader(vertex_shader);
+				if !gl.get_shader_compile_status(vertex_shader) {
+					return Err(gl.get_shader_info_log(vertex_shader));
+				}
 			}
-		}
-		let fragment_shader = unsafe {
-			gl.create_shader(glow::FRAGMENT_SHADER)
-				.expect("error creating fragment shader")
-		};
-		unsafe {
-			gl.shader_source(fragment_shader, fragment);
-			gl.compile_shader(fragment_shader);
-			if !gl.get_shader_compile_status(fragment_shader) {
-				return Err(gl.get_shader_info_log(fragment_shader));
+			let fragment_shader = unsafe {
+				gl.create_shader(glow::FRAGMENT_SHADER)
+					.expect("error creating fragment shader")
+			};
+			unsafe {
+				gl.shader_source(fragment_shader, fragment);
+				gl.compile_shader(fragment_shader);
+				if !gl.get_shader_compile_status(fragment_shader) {
+					return Err(gl.get_shader_info_log(fragment_shader));
+				}
 			}
-		}
-		let program = unsafe { gl.create_program().expect("error creating shader program") };
-		unsafe {
-			gl.attach_shader(program, vertex_shader);
-			gl.attach_shader(program, fragment_shader);
-			gl.link_program(program);
-			if !gl.get_program_link_status(program) {
-				return Err(gl.get_program_info_log(program));
+			let program = unsafe { gl.create_program().expect("error creating shader program") };
+			unsafe {
+				gl.attach_shader(program, vertex_shader);
+				gl.attach_shader(program, fragment_shader);
+				gl.link_program(program);
+				if !gl.get_program_link_status(program) {
+					return Err(gl.get_program_info_log(program));
+				}
+				gl.delete_shader(vertex_shader);
+				gl.delete_shader(fragment_shader);
 			}
-			gl.delete_shader(vertex_shader);
-			gl.delete_shader(fragment_shader);
-		}
-		Ok(Self {
-			inner: Rc::new(RefCell::new(ShaderInner {
+			let (id, weak) = ctx.graphics.shaders.insert(RawShader {
+				gl: gl.clone(),
 				program,
 				sent_textures: HashMap::new(),
 				uniform_values: IndexMap::new(),
-				unused_resource_sender,
-			})),
+			});
+			Ok(Self { id, _weak: weak })
 		})
 	}
 
 	pub fn uniform_value(&self, name: &str) -> Option<UniformValue> {
-		self.inner.borrow().uniform_values.get(name).cloned()
+		Context::with(|ctx| {
+			let shader = ctx.graphics.shaders.get(self.id);
+			shader.uniform_values.get(name).cloned()
+		})
 	}
 
 	pub fn send_bool(&self, name: &str, value: bool) -> Result<(), UniformNotFound> {
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_1_i32(Some(&location), value.into());
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::Bool(value));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::Bool(value));
-		Ok(())
+		})
 	}
 
 	pub fn send_i32(&self, name: &str, value: i32) -> Result<(), UniformNotFound> {
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_1_i32(Some(&location), value);
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::I32(value));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::I32(value));
-		Ok(())
+		})
 	}
 
 	pub fn send_f32(&self, name: &str, value: f32) -> Result<(), UniformNotFound> {
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_1_f32(Some(&location), value);
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::F32(value));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::F32(value));
-		Ok(())
+		})
 	}
 
 	pub fn send_vec2(&self, name: &str, vec2: impl Into<Vec2>) -> Result<(), UniformNotFound> {
 		let vec2 = vec2.into();
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_2_f32(Some(&location), vec2.x, vec2.y);
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::Vec2(vec2));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::Vec2(vec2));
-
-		Ok(())
+		})
 	}
 
 	pub fn send_vec3(&self, name: &str, vec3: impl Into<Vec3>) -> Result<(), UniformNotFound> {
 		let vec3 = vec3.into();
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_3_f32(Some(&location), vec3.x, vec3.y, vec3.z);
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::Vec3(vec3));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::Vec3(vec3));
-		Ok(())
+		})
 	}
 
 	pub fn send_vec4(&self, name: &str, vec4: impl Into<Vec4>) -> Result<(), UniformNotFound> {
 		let vec4 = vec4.into();
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_4_f32(Some(&location), vec4.x, vec4.y, vec4.z, vec4.w);
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::Vec4(vec4));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::Vec4(vec4));
-		Ok(())
+		})
 	}
 
 	pub fn send_mat3(&self, name: &str, mat3: impl Into<Mat3>) -> Result<(), UniformNotFound> {
 		let mat3 = mat3.into();
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_matrix_3_f32_slice(Some(&location), false, &mat3.to_cols_array());
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::Mat3(mat3));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::Mat3(mat3));
-		Ok(())
+		})
 	}
 
 	pub fn send_mat4(&self, name: &str, mat4: impl Into<Mat4>) -> Result<(), UniformNotFound> {
 		let mat4 = mat4.into();
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_matrix_4_f32_slice(Some(&location), false, &mat4.to_cols_array());
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::Mat4(mat4));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::Mat4(mat4));
-		Ok(())
+		})
 	}
 
 	pub fn send_color(
@@ -306,12 +306,13 @@ impl Shader {
 		color: impl Into<LinSrgba>,
 	) -> Result<(), UniformNotFound> {
 		let color = color.into();
-		Context::with(|ctx| {
+		Context::with_mut(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let shader = ctx.graphics.shaders.get_mut(self.id);
 			unsafe {
-				gl.use_program(Some(self.inner.borrow().program));
+				gl.use_program(Some(shader.program));
 				let location = gl
-					.get_uniform_location(self.inner.borrow().program, name)
+					.get_uniform_location(shader.program, name)
 					.ok_or_else(|| UniformNotFound(name.to_string()))?;
 				gl.uniform_4_f32(
 					Some(&location),
@@ -321,57 +322,55 @@ impl Shader {
 					color.alpha,
 				);
 			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::Color(color));
 			Ok(())
-		})?;
-		self.inner
-			.borrow_mut()
-			.uniform_values
-			.insert(name.to_string(), UniformValue::Color(color));
-		Ok(())
+		})
 	}
 
 	pub fn send_texture(&self, name: &str, texture: &Texture) -> Result<(), SendTextureError> {
-		let inner = &mut self.inner.borrow_mut();
-		if let Some(SentTextureInfo { texture, .. }) = inner.sent_textures.get_mut(name) {
-			*texture = texture.clone();
-		} else {
-			let unit = inner.sent_textures.len() as u32 + 1;
-			if unit >= TEXTURE_UNITS {
-				return Err(SendTextureError::TooManyTextures);
-			}
-			inner.sent_textures.insert(
-				name.to_string(),
-				SentTextureInfo {
-					texture: texture.clone(),
-					unit,
-				},
-			);
-			Context::with(|ctx| {
+		Context::with_mut(|ctx| {
+			let shader = ctx.graphics.shaders.get_mut(self.id);
+			if let Some(SentTextureInfo { texture, .. }) = shader.sent_textures.get_mut(name) {
+				*texture = texture.clone();
+			} else {
+				let unit = shader.sent_textures.len() as u32 + 1;
+				if unit >= TEXTURE_UNITS {
+					return Err(SendTextureError::TooManyTextures);
+				}
+				shader.sent_textures.insert(
+					name.to_string(),
+					SentTextureInfo {
+						texture: texture.clone(),
+						unit,
+					},
+				);
 				let gl = &ctx.graphics.gl;
 				unsafe {
-					gl.use_program(Some(inner.program));
+					gl.use_program(Some(shader.program));
 					let location = gl
-						.get_uniform_location(inner.program, name)
+						.get_uniform_location(shader.program, name)
 						.ok_or_else(|| SendTextureError::UniformNotFound(name.to_string()))?;
 					gl.uniform_1_i32(Some(&location), unit as i32);
 				}
-				Ok(())
-			})?;
-		}
-		inner
-			.uniform_values
-			.insert(name.to_string(), UniformValue::Texture(texture.clone()));
-		Ok(())
+			}
+			shader
+				.uniform_values
+				.insert(name.to_string(), UniformValue::Texture(texture.clone()));
+			Ok(())
+		})
 	}
 
 	pub(crate) fn bind_sent_textures(&self) {
 		Context::with(|ctx| {
 			let gl = &ctx.graphics.gl;
+			let textures = &ctx.graphics.textures;
+			let shader = ctx.graphics.shaders.get(self.id);
 			unsafe {
-				for SentTextureInfo { texture, unit } in self.inner.borrow().sent_textures.values()
-				{
+				for SentTextureInfo { texture, unit } in shader.sent_textures.values() {
 					gl.active_texture(glow::TEXTURE0 + *unit);
-					gl.bind_texture(glow::TEXTURE_2D, Some(texture.inner.texture));
+					gl.bind_texture(glow::TEXTURE_2D, Some(textures.get(texture.id).texture));
 				}
 				gl.active_texture(glow::TEXTURE0);
 			}
@@ -379,37 +378,25 @@ impl Shader {
 	}
 
 	#[cfg(feature = "resource_management")]
-	pub(crate) fn import_uniforms(&mut self, other: &Self) {
-		for (name, value) in other.inner.borrow().uniform_values.iter() {
+	pub(crate) fn import_uniforms(&self, other: &Self) {
+		let values = Context::with(|ctx| {
+			let other = ctx.graphics.shaders.get(other.id);
+			other.uniform_values.clone()
+		});
+		for (name, value) in values {
 			match value {
-				UniformValue::Bool(value) => self.send_bool(name, *value).ok(),
-				UniformValue::I32(value) => self.send_i32(name, *value).ok(),
-				UniformValue::F32(value) => self.send_f32(name, *value).ok(),
-				UniformValue::Vec2(value) => self.send_vec2(name, *value).ok(),
-				UniformValue::Vec3(value) => self.send_vec3(name, *value).ok(),
-				UniformValue::Vec4(value) => self.send_vec4(name, *value).ok(),
-				UniformValue::Mat3(value) => self.send_mat3(name, *value).ok(),
-				UniformValue::Mat4(value) => self.send_mat4(name, *value).ok(),
-				UniformValue::Color(value) => self.send_color(name, *value).ok(),
-				UniformValue::Texture(value) => self.send_texture(name, value).ok(),
+				UniformValue::Bool(value) => self.send_bool(&name, value).ok(),
+				UniformValue::I32(value) => self.send_i32(&name, value).ok(),
+				UniformValue::F32(value) => self.send_f32(&name, value).ok(),
+				UniformValue::Vec2(value) => self.send_vec2(&name, value).ok(),
+				UniformValue::Vec3(value) => self.send_vec3(&name, value).ok(),
+				UniformValue::Vec4(value) => self.send_vec4(&name, value).ok(),
+				UniformValue::Mat3(value) => self.send_mat3(&name, value).ok(),
+				UniformValue::Mat4(value) => self.send_mat4(&name, value).ok(),
+				UniformValue::Color(value) => self.send_color(&name, value).ok(),
+				UniformValue::Texture(value) => self.send_texture(&name, &value).ok(),
 			};
 		}
-	}
-}
-
-#[derive(Debug)]
-pub(crate) struct ShaderInner {
-	pub(crate) program: NativeProgram,
-	sent_textures: HashMap<String, SentTextureInfo>,
-	uniform_values: IndexMap<String, UniformValue>,
-	unused_resource_sender: Sender<UnusedGraphicsResource>,
-}
-
-impl Drop for ShaderInner {
-	fn drop(&mut self) {
-		self.unused_resource_sender
-			.send(UnusedGraphicsResource::Program(self.program))
-			.ok();
 	}
 }
 
@@ -451,6 +438,37 @@ pub enum SendTextureError {
 	TooManyTextures,
 	#[error("This shader does not have a uniform called {0}")]
 	UniformNotFound(String),
+}
+
+#[derive(Debug)]
+pub(crate) struct RawShader {
+	gl: Rc<glow::Context>,
+	pub(crate) program: NativeProgram,
+	sent_textures: HashMap<String, SentTextureInfo>,
+	uniform_values: IndexMap<String, UniformValue>,
+}
+
+impl Drop for RawShader {
+	fn drop(&mut self) {
+		unsafe {
+			self.gl.delete_program(self.program);
+		}
+	}
+}
+
+impl GraphicsResource for RawShader {
+	type Id = ShaderId;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ShaderId(pub u64);
+
+static NEXT_SHADER_ID: AtomicU64 = AtomicU64::new(0);
+
+impl GraphicsResourceId for ShaderId {
+	fn next() -> Self {
+		ShaderId(NEXT_SHADER_ID.fetch_add(1, Ordering::SeqCst))
+	}
 }
 
 #[derive(Debug, Clone)]

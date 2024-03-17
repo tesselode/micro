@@ -9,22 +9,20 @@ pub use traits::*;
 
 use std::{collections::HashMap, hash::Hash};
 
-use super::Gamepad;
-
 #[derive(Debug)]
 pub struct VirtualController<C: VirtualControls, S: VirtualAnalogSticks<C> = ()> {
 	pub config: VirtualControllerConfig<C>,
-	pub controller: Option<Gamepad>,
+	pub gamepad_index: Option<u32>,
 	active_input_kind: Option<InputKind>,
 	control_state: HashMap<C, VirtualControlState>,
 	stick_state: HashMap<S, VirtualAnalogStickState>,
 }
 
 impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
-	pub fn new(config: VirtualControllerConfig<C>, controller: Option<Gamepad>) -> Self {
+	pub fn new(config: VirtualControllerConfig<C>, gamepad_index: Option<u32>) -> Self {
 		Self {
 			config,
-			controller,
+			gamepad_index,
 			active_input_kind: None,
 			control_state: C::ALL
 				.iter()
@@ -74,7 +72,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 					.iter()
 					.filter(|real_control| real_control.kind() == kind)
 					.any(|real_control| {
-						real_control.value(self.controller.as_ref()) > self.config.deadzone
+						real_control.value(self.gamepad_index) > self.config.deadzone
 					})
 			})
 	}
@@ -84,7 +82,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 			let down_previous = state.down;
 			let raw_value = Self::control_raw_value(
 				&self.config,
-				self.controller.as_ref(),
+				self.gamepad_index,
 				*control,
 				active_input_kind,
 			);
@@ -130,8 +128,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 
 	fn control_raw_value(
 		config: &VirtualControllerConfig<C>,
-		controller: Option<&Gamepad>,
-
+		gamepad_index: Option<u32>,
 		control: C,
 		active_input_kind: InputKind,
 	) -> f32 {
@@ -143,7 +140,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 					.iter()
 					.filter(|control| control.kind() == active_input_kind)
 					.fold(0.0, |previous, control| {
-						previous + control.value(controller)
+						previous + control.value(gamepad_index)
 					})
 					.min(1.0)
 			})

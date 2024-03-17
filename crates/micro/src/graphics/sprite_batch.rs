@@ -1,6 +1,6 @@
 mod sprite_params;
 
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, Mutex};
 
 use palette::LinSrgba;
 pub use sprite_params::SpriteParams;
@@ -22,7 +22,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
-	inner: Rc<RefCell<SpriteBatchInner>>,
+	inner: Arc<Mutex<SpriteBatchInner>>,
 	pub range: Option<OffsetAndCount>,
 	pub shader: Option<Shader>,
 	pub transform: Mat4,
@@ -53,7 +53,7 @@ impl SpriteBatch {
 			]);
 		}
 		Self {
-			inner: Rc::new(RefCell::new(SpriteBatchInner {
+			inner: Arc::new(Mutex::new(SpriteBatchInner {
 				texture: texture.clone(),
 				sprites: Arena::with_capacity(capacity),
 				mesh: Mesh::new(&vertices, &indices),
@@ -71,12 +71,12 @@ impl SpriteBatch {
 
 	pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_offset_and_count(self.inner.borrow().sprites.len());
+		new.range = range.into_offset_and_count(self.inner.lock().unwrap().sprites.len());
 		new
 	}
 
 	pub fn len(&self) -> usize {
-		self.inner.borrow().sprites.len()
+		self.inner.lock().unwrap().sprites.len()
 	}
 
 	#[must_use]
@@ -85,7 +85,7 @@ impl SpriteBatch {
 	}
 
 	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
-		let size = self.inner.borrow_mut().texture.size().as_vec2();
+		let size = self.inner.lock().unwrap().texture.size().as_vec2();
 		self.add_region(Rect::new(Vec2::ZERO, size), params)
 	}
 
@@ -96,7 +96,8 @@ impl SpriteBatch {
 	) -> Result<SpriteId, SpriteLimitReached> {
 		let id = self
 			.inner
-			.borrow_mut()
+			.lock()
+			.unwrap()
 			.sprites
 			.try_insert(())
 			.map(SpriteId)
@@ -105,7 +106,12 @@ impl SpriteBatch {
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_region.size);
-		let relative_texture_region = self.inner.borrow().texture.relative_rect(texture_region);
+		let relative_texture_region = self
+			.inner
+			.lock()
+			.unwrap()
+			.texture
+			.relative_rect(texture_region);
 		let transform = params.transform;
 		let corners = untransformed_display_rect.corners();
 		let vertices = corners
@@ -120,7 +126,8 @@ impl SpriteBatch {
 			.enumerate();
 		for (i, vertex) in vertices {
 			self.inner
-				.borrow()
+				.lock()
+				.unwrap()
 				.mesh
 				.set_vertex(start_vertex_index + i, vertex);
 		}
@@ -129,12 +136,11 @@ impl SpriteBatch {
 
 	pub fn add_nine_slice(
 		&mut self,
-
 		nine_slice: NineSlice,
 		display_rect: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<[SpriteId; 9], SpriteLimitReached> {
-		if self.inner.borrow().sprites.len() + 9 > self.inner.borrow().capacity {
+		if self.inner.lock().unwrap().sprites.len() + 9 > self.inner.lock().unwrap().capacity {
 			return Err(SpriteLimitReached);
 		}
 		let params: SpriteParams = params.into();
@@ -150,13 +156,13 @@ impl SpriteBatch {
 	}
 
 	pub fn remove(&mut self, id: SpriteId) -> Result<(), InvalidSpriteId> {
-		if self.inner.borrow_mut().sprites.remove(id.0).is_none() {
+		if self.inner.lock().unwrap().sprites.remove(id.0).is_none() {
 			return Err(InvalidSpriteId);
 		}
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		for i in 0..4 {
-			self.inner.borrow().mesh.set_vertex(
+			self.inner.lock().unwrap().mesh.set_vertex(
 				start_vertex_index + i,
 				Vertex2d {
 					position: Vec2::ZERO,
@@ -170,9 +176,10 @@ impl SpriteBatch {
 
 	pub fn draw(&self) {
 		self.inner
-			.borrow()
+			.lock()
+			.unwrap()
 			.mesh
-			.texture(&self.inner.borrow().texture)
+			.texture(&self.inner.lock().unwrap().texture)
 			.range(self.range.map(|range| OffsetAndCount {
 				offset: range.offset * 6,
 				count: range.count * 6,

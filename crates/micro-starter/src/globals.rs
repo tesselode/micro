@@ -1,5 +1,4 @@
 use micro::{
-	game_controller,
 	input::virtual_controller::VirtualController,
 	resource::{
 		loader::{FontLoader, TextureLoader},
@@ -20,7 +19,7 @@ pub struct Globals {
 impl Globals {
 	pub fn new() -> anyhow::Result<Self> {
 		Ok(Self {
-			input: Input::new(default_input_config(), game_controller(0)),
+			input: Input::new(default_input_config(), Some(0)),
 			textures: Resources::autoloaded("texture", TextureLoader::default()),
 			fonts: Resources::autoloaded("font", FontLoader::default()),
 		})

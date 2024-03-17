@@ -1,4 +1,7 @@
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::{
+	sync::{Arc, Mutex},
+	time::Duration,
+};
 
 use glam::Mat4;
 use palette::LinSrgba;
@@ -11,7 +14,7 @@ use super::{AnimationData, Frame, Repeats};
 
 #[derive(Debug, Clone)]
 pub struct AnimationPlayer {
-	inner: Rc<RefCell<AnimationPlayerInner>>,
+	inner: Arc<Mutex<AnimationPlayerInner>>,
 	pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
@@ -25,7 +28,7 @@ impl AnimationPlayer {
 		let initial_animation_repeats = initial_animation.repeats;
 		let initial_frame_index = initial_animation.start_frame;
 		Self {
-			inner: Rc::new(RefCell::new(AnimationPlayerInner {
+			inner: Arc::new(Mutex::new(AnimationPlayerInner {
 				animation_data,
 				current_animation_name: initial_animation_name,
 				current_animation_remaining_repeats: initial_animation_repeats,
@@ -44,27 +47,28 @@ impl AnimationPlayer {
 	standard_draw_param_methods!();
 
 	pub fn current_animation_name(&self) -> String {
-		self.inner.borrow().current_animation_name.clone()
+		self.inner.lock().unwrap().current_animation_name.clone()
 	}
 
 	pub fn current_frame(&self) -> Frame {
-		self.inner.borrow().animation_data.frames[self.inner.borrow().current_frame_index]
+		let inner = self.inner.lock().unwrap();
+		inner.animation_data.frames[inner.current_frame_index]
 	}
 
 	pub fn paused(&self) -> bool {
-		self.inner.borrow().paused
+		self.inner.lock().unwrap().paused
 	}
 
 	pub fn set_paused(&mut self, paused: bool) {
-		self.inner.borrow_mut().paused = paused;
+		self.inner.lock().unwrap().paused = paused;
 	}
 
 	pub fn finished(&self) -> bool {
-		self.inner.borrow().current_animation_finished
+		self.inner.lock().unwrap().current_animation_finished
 	}
 
 	pub fn switch(&mut self, animation_name: impl Into<String>) {
-		let mut inner = self.inner.borrow_mut();
+		let mut inner = self.inner.lock().unwrap();
 		inner.current_animation_name = animation_name.into();
 		let animation = &inner.animation_data.animations[&inner.current_animation_name];
 		let start_frame = animation.start_frame;
@@ -76,7 +80,7 @@ impl AnimationPlayer {
 	}
 
 	pub fn update(&mut self, delta_time: Duration) {
-		let mut inner = self.inner.borrow_mut();
+		let mut inner = self.inner.lock().unwrap();
 		if inner.paused || inner.current_animation_finished {
 			return;
 		}
@@ -100,7 +104,8 @@ impl AnimationPlayer {
 	pub fn draw(&self, texture: &Texture) {
 		texture
 			.region(
-				self.inner.borrow().animation_data.frames[self.inner.borrow().current_frame_index]
+				self.inner.lock().unwrap().animation_data.frames
+					[self.inner.lock().unwrap().current_frame_index]
 					.texture_region,
 			)
 			.shader(&self.shader)

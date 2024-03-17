@@ -1,6 +1,6 @@
 mod font;
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub use font::*;
 pub use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
@@ -19,7 +19,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct Text {
-	inner: Rc<TextInner>,
+	inner: Arc<TextInner>,
 
 	// params
 	pub shader: Option<Shader>,
@@ -140,7 +140,7 @@ impl Text {
 			num_glyphs += 1;
 		}
 		Self {
-			inner: Rc::new(TextInner {
+			inner: Arc::new(TextInner {
 				sprite_batches,
 				bounds,
 				num_glyphs,

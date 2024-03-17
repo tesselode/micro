@@ -30,7 +30,7 @@ impl ResourceLoader for ShaderLoader {
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		let mut new_shader = Shader::from_combined_file(path)?;
+		let new_shader = Shader::from_combined_file(path)?;
 		new_shader.import_uniforms(resource);
 		*resource = new_shader;
 		Ok(())

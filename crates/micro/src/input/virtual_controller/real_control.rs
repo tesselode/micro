@@ -1,5 +1,6 @@
 use crate::{
-	input::{Axis, Button, Gamepad, MouseButton, Scancode},
+	gamepad,
+	input::{Axis, Button, MouseButton, Scancode},
 	is_key_down, is_mouse_button_down,
 };
 
@@ -24,7 +25,8 @@ impl RealControl {
 		}
 	}
 
-	pub(super) fn value(&self, controller: Option<&Gamepad>) -> f32 {
+	pub(super) fn value(&self, gamepad_index: Option<u32>) -> f32 {
+		let gamepad = gamepad_index.and_then(gamepad);
 		match self {
 			RealControl::Key(scancode) => {
 				if is_key_down(*scancode) {
@@ -41,22 +43,22 @@ impl RealControl {
 				}
 			}
 			RealControl::GamepadButton(button) => {
-				let controller = match controller {
+				let gamepad = match gamepad {
 					Some(controller) => controller,
 					None => return 0.0,
 				};
-				if controller.is_button_down(*button) {
+				if gamepad.is_button_down(*button) {
 					1.0
 				} else {
 					0.0
 				}
 			}
 			RealControl::GamepadAxis(axis, direction) => {
-				let controller = match controller {
+				let gamepad = match gamepad {
 					Some(controller) => controller,
 					None => return 0.0,
 				};
-				(controller.axis_value(*axis) * direction.as_f32()).max(0.0)
+				(gamepad.axis_value(*axis) * direction.as_f32()).max(0.0)
 			}
 		}
 	}

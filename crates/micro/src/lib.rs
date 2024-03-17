@@ -323,8 +323,8 @@ pub fn mouse_position() -> IVec2 {
 	})
 }
 
-/// Gets the game controller with the given index if it's connected.
-pub fn game_controller(index: u32) -> Option<Gamepad> {
+/// Gets the gamepad with the given index if it's connected.
+pub fn gamepad(index: u32) -> Option<Gamepad> {
 	Context::with(|ctx| match ctx.controller.open(index) {
 		Ok(controller) => Some(Gamepad(controller)),
 		Err(error) => match error {

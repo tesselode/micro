@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use egui::TopBottomPanel;
 use glam::UVec2;
-use globals::Globals;
+use globals::globals;
 use micro::{
 	average_frame_time, clear, fps, graphics::ColorConstants, input::Scancode, quit,
 	ContextSettings, Event, State, WindowMode,
@@ -31,17 +31,15 @@ fn main() {
 }
 
 struct MainState {
-	globals: Globals,
 	scene_manager: SceneManager,
 	dev_tools_enabled: bool,
 }
 
 impl MainState {
 	fn new() -> anyhow::Result<Self> {
-		let mut globals = Globals::new()?;
-		let gameplay = Gameplay::new(&mut globals)?;
+		globals().init();
+		let gameplay = Gameplay::new()?;
 		Ok(Self {
-			globals,
 			scene_manager: SceneManager::new(gameplay),
 			dev_tools_enabled: false,
 		})
@@ -55,14 +53,14 @@ impl State<anyhow::Error> for MainState {
 		}
 		TopBottomPanel::top("menu").show(egui_ctx, |ui| -> anyhow::Result<()> {
 			egui::menu::bar(ui, |ui| -> anyhow::Result<()> {
-				self.scene_manager.menu(ui, &mut self.globals)?;
+				self.scene_manager.menu(ui)?;
 				ui.separator();
 				ui.label(&format!(
 					"Average frame time: {:.1}ms ({:.0} FPS)",
 					average_frame_time().as_secs_f64() * 1000.0,
 					fps()
 				));
-				if let Some(stats) = self.scene_manager.stats(&mut self.globals) {
+				if let Some(stats) = self.scene_manager.stats() {
 					for stat in &stats {
 						ui.separator();
 						ui.label(stat);
@@ -72,7 +70,7 @@ impl State<anyhow::Error> for MainState {
 			})
 			.inner
 		});
-		self.scene_manager.ui(egui_ctx, &mut self.globals)?;
+		self.scene_manager.ui(egui_ctx)?;
 		Ok(())
 	}
 
@@ -90,19 +88,19 @@ impl State<anyhow::Error> for MainState {
 		{
 			self.dev_tools_enabled = !self.dev_tools_enabled;
 		}
-		self.scene_manager.event(&mut self.globals, event)?;
+		self.scene_manager.event(event)?;
 		Ok(())
 	}
 
 	fn update(&mut self, delta_time: Duration) -> anyhow::Result<()> {
-		self.globals.input.update();
-		self.scene_manager.update(&mut self.globals, delta_time)?;
+		globals().input.update();
+		self.scene_manager.update(delta_time)?;
 		Ok(())
 	}
 
 	fn draw(&mut self) -> anyhow::Result<()> {
 		clear(LinSrgba::BLACK);
-		self.scene_manager.draw(&mut self.globals)?;
+		self.scene_manager.draw()?;
 		Ok(())
 	}
 }

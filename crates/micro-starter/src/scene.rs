@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use micro::Event;
 
-use crate::{globals::Globals, scene_manager::SceneChange};
+use crate::scene_manager::SceneChange;
 
 #[allow(unused_variables)]
 pub trait Scene {
@@ -16,35 +16,35 @@ pub trait Scene {
 		None
 	}
 
-	fn ui(&mut self, egui_ctx: &egui::Context, globals: &mut Globals) -> anyhow::Result<()> {
+	fn ui(&mut self, egui_ctx: &egui::Context) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn menu(&mut self, ui: &mut egui::Ui, globals: &mut Globals) -> anyhow::Result<()> {
+	fn menu(&mut self, ui: &mut egui::Ui) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn stats(&mut self, globals: &mut Globals) -> Option<Vec<String>> {
+	fn stats(&mut self) -> Option<Vec<String>> {
 		None
 	}
 
-	fn event(&mut self, globals: &mut Globals, event: &Event) -> anyhow::Result<()> {
+	fn event(&mut self, event: &Event) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn update(&mut self, globals: &mut Globals, delta_time: Duration) -> anyhow::Result<()> {
+	fn update(&mut self, delta_time: Duration) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn draw(&mut self, globals: &mut Globals) -> anyhow::Result<()> {
+	fn draw(&mut self) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn pause(&mut self, globals: &mut Globals) -> anyhow::Result<()> {
+	fn pause(&mut self) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn resume(&mut self, globals: &mut Globals) -> anyhow::Result<()> {
+	fn resume(&mut self) -> anyhow::Result<()> {
 		Ok(())
 	}
 }

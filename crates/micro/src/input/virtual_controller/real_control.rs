@@ -64,6 +64,30 @@ impl RealControl {
 	}
 }
 
+impl From<Scancode> for RealControl {
+	fn from(v: Scancode) -> Self {
+		Self::Key(v)
+	}
+}
+
+impl From<MouseButton> for RealControl {
+	fn from(v: MouseButton) -> Self {
+		Self::MouseButton(v)
+	}
+}
+
+impl From<Button> for RealControl {
+	fn from(v: Button) -> Self {
+		Self::GamepadButton(v)
+	}
+}
+
+impl From<(Axis, AxisDirection)> for RealControl {
+	fn from((axis, direction): (Axis, AxisDirection)) -> Self {
+		Self::GamepadAxis(axis, direction)
+	}
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum AxisDirection {

@@ -48,49 +48,37 @@ impl VirtualAnalogSticks<Controls> for Sticks {
 }
 
 pub fn default_input_config() -> VirtualControllerConfig<Controls> {
-	VirtualControllerConfig {
-		control_mapping: {
+	macro_rules! control_mapping {
+		($($virtual:expr => [$($real:expr),*]),*) => {{
 			let mut mapping = HashMap::new();
-			mapping.insert(
-				Controls::Move(CardinalDirection::Left),
-				vec![
-					RealControl::Key(Scancode::Left),
-					RealControl::GamepadButton(Button::DPadLeft),
-					RealControl::GamepadAxis(Axis::LeftX, AxisDirection::Negative),
-				],
-			);
-			mapping.insert(
-				Controls::Move(CardinalDirection::Right),
-				vec![
-					RealControl::Key(Scancode::Right),
-					RealControl::GamepadButton(Button::DPadRight),
-					RealControl::GamepadAxis(Axis::LeftX, AxisDirection::Positive),
-				],
-			);
-			mapping.insert(
-				Controls::Move(CardinalDirection::Up),
-				vec![
-					RealControl::Key(Scancode::Up),
-					RealControl::GamepadButton(Button::DPadUp),
-					RealControl::GamepadAxis(Axis::LeftY, AxisDirection::Negative),
-				],
-			);
-			mapping.insert(
-				Controls::Move(CardinalDirection::Down),
-				vec![
-					RealControl::Key(Scancode::Down),
-					RealControl::GamepadButton(Button::DPadDown),
-					RealControl::GamepadAxis(Axis::LeftY, AxisDirection::Positive),
-				],
-			);
-			mapping.insert(
-				Controls::Primary,
-				vec![
-					RealControl::Key(Scancode::X),
-					RealControl::GamepadButton(Button::A),
-				],
-			);
+			$(mapping.insert($virtual, vec![$($real.into()),*]);)*
 			mapping
+		}};
+	}
+
+	VirtualControllerConfig {
+		control_mapping: control_mapping! {
+			Controls::Move(CardinalDirection::Left) => [
+				Scancode::Left,
+				Button::DPadLeft,
+				(Axis::LeftX, AxisDirection::Negative)
+			],
+			Controls::Move(CardinalDirection::Right) => [
+				Scancode::Right,
+				Button::DPadRight,
+				(Axis::LeftX, AxisDirection::Positive)
+			],
+			Controls::Move(CardinalDirection::Up) => [
+				Scancode::Up,
+				Button::DPadUp,
+				(Axis::LeftY, AxisDirection::Negative)
+			],
+			Controls::Move(CardinalDirection::Down) => [
+				Scancode::Down,
+				Button::DPadDown,
+				(Axis::LeftY, AxisDirection::Positive)
+			],
+			Controls::Primary => [Scancode::X, Button::A]
 		},
 		deadzone: 1.0 / 3.0,
 		deadzone_shape: DeadzoneShape::Circle,

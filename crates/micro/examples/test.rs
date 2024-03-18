@@ -3,7 +3,7 @@ use std::error::Error;
 use micro::{
 	clear,
 	graphics::{
-		text::{Font, FontSettings, LayoutSettings, Text},
+		text::{Font, FontSettings, LayoutSettings, Text, TextFragment},
 		texture::{Texture, TextureSettings},
 		Canvas, CanvasSettings, ColorConstants,
 	},
@@ -16,41 +16,57 @@ fn main() {
 }
 
 struct MainState {
-	font: Font,
 	text: Text,
-	canvas: Canvas,
-	texture: Texture,
 }
 
 impl MainState {
 	pub fn new() -> Result<Self, Box<dyn Error>> {
-		let font = Font::from_file("resources/Abaddon Bold.ttf", FontSettings::default())?;
-		let text = Text::new(&font, "Hello, world!", LayoutSettings::default());
-		Ok(Self {
-			font,
-			text,
-			canvas: Canvas::new(window_size(), CanvasSettings::default()),
-			texture: Texture::from_file(
-				"resources/spritesheet_default.png",
-				TextureSettings::default(),
-			)?,
-		})
+		let main_font = Font::from_file(
+			"resources/consoleet_ter32bv.otf",
+			FontSettings {
+				chars: FontSettings::default().chars,
+				..Default::default()
+			},
+		)?;
+		let fallback_font = Font::from_file(
+			"resources/NotoSansJP-Regular.ttf",
+			FontSettings {
+				chars: FontSettings::default().chars + "心の底から感謝です",
+				..Default::default()
+			},
+		)?;
+		let text = text_with_fallback_fonts(
+			&[&main_font, &fallback_font],
+			"Test text 心の底から感謝です",
+			LayoutSettings::default(),
+		);
+		Ok(Self { text })
 	}
 }
 
 impl State<Box<dyn Error>> for MainState {
 	fn draw(&mut self) -> Result<(), Box<dyn Error>> {
 		clear(LinSrgba::BLACK);
-		render_to_canvas!(self.canvas, {
-			clear(LinSrgba::BLACK);
-			self.text
-				.color(LinSrgba::RED)
-				.translated_x(100.0)
-				.range(2..=4)
-				.draw();
-		});
-		self.canvas.draw();
-		self.texture.draw();
+		self.text.draw();
 		Ok(())
 	}
+}
+
+fn text_with_fallback_fonts(fonts: &[&Font], text: &str, settings: LayoutSettings) -> Text {
+	let fragments = text
+		.chars()
+		.map(|char| TextFragment {
+			font_index: first_font_that_has_char(fonts, char).unwrap_or(fonts.len() - 1),
+			text: char.into(),
+		})
+		.collect::<Vec<_>>();
+	Text::with_multiple_fonts(fonts, &fragments, settings)
+}
+
+fn first_font_that_has_char(fonts: &[&Font], c: char) -> Option<usize> {
+	fonts
+		.iter()
+		.enumerate()
+		.find(|(_, font)| font.has_glyph(c))
+		.map(|(i, _)| i)
 }

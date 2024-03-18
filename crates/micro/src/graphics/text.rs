@@ -30,12 +30,12 @@ pub struct Text {
 }
 
 impl Text {
-	pub fn new(font: &Font, text: &str, layout_settings: LayoutSettings) -> Self {
+	pub fn new(font: &Font, text: impl Into<String>, layout_settings: LayoutSettings) -> Self {
 		Self::with_multiple_fonts(
 			&[font],
 			&[TextFragment {
 				font_index: 0,
-				text,
+				text: text.into(),
 			}],
 			layout_settings,
 		)
@@ -43,7 +43,7 @@ impl Text {
 
 	pub fn with_multiple_fonts<'a>(
 		fonts: &[&Font],
-		text_fragments: impl IntoIterator<Item = &'a TextFragment<'a>>,
+		text_fragments: impl IntoIterator<Item = &'a TextFragment>,
 		layout_settings: LayoutSettings,
 	) -> Self {
 		let fontdue_fonts = fonts.iter().map(|font| &font.font).collect::<Vec<_>>();
@@ -218,7 +218,7 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 	}
 }
 
-pub struct TextFragment<'a> {
+pub struct TextFragment {
 	pub font_index: usize,
-	pub text: &'a str,
+	pub text: String,
 }

@@ -53,6 +53,10 @@ impl Font {
 			glyph_rects,
 		})
 	}
+
+	pub fn has_glyph(&self, glyph: char) -> bool {
+		self.glyph_rects.contains_key(&glyph)
+	}
 }
 
 #[derive(Debug, Clone, PartialEq)]

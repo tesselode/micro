@@ -71,12 +71,12 @@ impl SpriteBatch {
 
 	pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_offset_and_count(self.inner.lock().unwrap().sprites.len());
+		new.range = range.into_offset_and_count(self.inner.try_lock().unwrap().sprites.len());
 		new
 	}
 
 	pub fn len(&self) -> usize {
-		self.inner.lock().unwrap().sprites.len()
+		self.inner.try_lock().unwrap().sprites.len()
 	}
 
 	#[must_use]
@@ -85,7 +85,7 @@ impl SpriteBatch {
 	}
 
 	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
-		let size = self.inner.lock().unwrap().texture.size().as_vec2();
+		let size = self.inner.try_lock().unwrap().texture.size().as_vec2();
 		self.add_region(Rect::new(Vec2::ZERO, size), params)
 	}
 
@@ -96,7 +96,7 @@ impl SpriteBatch {
 	) -> Result<SpriteId, SpriteLimitReached> {
 		let id = self
 			.inner
-			.lock()
+			.try_lock()
 			.unwrap()
 			.sprites
 			.try_insert(())
@@ -108,7 +108,7 @@ impl SpriteBatch {
 		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_region.size);
 		let relative_texture_region = self
 			.inner
-			.lock()
+			.try_lock()
 			.unwrap()
 			.texture
 			.relative_rect(texture_region);
@@ -126,7 +126,7 @@ impl SpriteBatch {
 			.enumerate();
 		for (i, vertex) in vertices {
 			self.inner
-				.lock()
+				.try_lock()
 				.unwrap()
 				.mesh
 				.set_vertex(start_vertex_index + i, vertex);
@@ -140,7 +140,9 @@ impl SpriteBatch {
 		display_rect: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<[SpriteId; 9], SpriteLimitReached> {
-		if self.inner.lock().unwrap().sprites.len() + 9 > self.inner.lock().unwrap().capacity {
+		if self.inner.try_lock().unwrap().sprites.len() + 9
+			> self.inner.try_lock().unwrap().capacity
+		{
 			return Err(SpriteLimitReached);
 		}
 		let params: SpriteParams = params.into();
@@ -156,13 +158,20 @@ impl SpriteBatch {
 	}
 
 	pub fn remove(&mut self, id: SpriteId) -> Result<(), InvalidSpriteId> {
-		if self.inner.lock().unwrap().sprites.remove(id.0).is_none() {
+		if self
+			.inner
+			.try_lock()
+			.unwrap()
+			.sprites
+			.remove(id.0)
+			.is_none()
+		{
 			return Err(InvalidSpriteId);
 		}
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		for i in 0..4 {
-			self.inner.lock().unwrap().mesh.set_vertex(
+			self.inner.try_lock().unwrap().mesh.set_vertex(
 				start_vertex_index + i,
 				Vertex2d {
 					position: Vec2::ZERO,
@@ -176,10 +185,10 @@ impl SpriteBatch {
 
 	pub fn draw(&self) {
 		self.inner
-			.lock()
+			.try_lock()
 			.unwrap()
 			.mesh
-			.texture(&self.inner.lock().unwrap().texture)
+			.texture(&self.inner.try_lock().unwrap().texture)
 			.range(self.range.map(|range| OffsetAndCount {
 				offset: range.offset * 6,
 				count: range.count * 6,

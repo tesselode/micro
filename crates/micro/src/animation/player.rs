@@ -47,28 +47,32 @@ impl AnimationPlayer {
 	standard_draw_param_methods!();
 
 	pub fn current_animation_name(&self) -> String {
-		self.inner.lock().unwrap().current_animation_name.clone()
+		self.inner
+			.try_lock()
+			.unwrap()
+			.current_animation_name
+			.clone()
 	}
 
 	pub fn current_frame(&self) -> Frame {
-		let inner = self.inner.lock().unwrap();
+		let inner = self.inner.try_lock().unwrap();
 		inner.animation_data.frames[inner.current_frame_index]
 	}
 
 	pub fn paused(&self) -> bool {
-		self.inner.lock().unwrap().paused
+		self.inner.try_lock().unwrap().paused
 	}
 
 	pub fn set_paused(&mut self, paused: bool) {
-		self.inner.lock().unwrap().paused = paused;
+		self.inner.try_lock().unwrap().paused = paused;
 	}
 
 	pub fn finished(&self) -> bool {
-		self.inner.lock().unwrap().current_animation_finished
+		self.inner.try_lock().unwrap().current_animation_finished
 	}
 
 	pub fn switch(&mut self, animation_name: impl Into<String>) {
-		let mut inner = self.inner.lock().unwrap();
+		let mut inner = self.inner.try_lock().unwrap();
 		inner.current_animation_name = animation_name.into();
 		let animation = &inner.animation_data.animations[&inner.current_animation_name];
 		let start_frame = animation.start_frame;
@@ -80,7 +84,7 @@ impl AnimationPlayer {
 	}
 
 	pub fn update(&mut self, delta_time: Duration) {
-		let mut inner = self.inner.lock().unwrap();
+		let mut inner = self.inner.try_lock().unwrap();
 		if inner.paused || inner.current_animation_finished {
 			return;
 		}
@@ -104,8 +108,8 @@ impl AnimationPlayer {
 	pub fn draw(&self, texture: &Texture) {
 		texture
 			.region(
-				self.inner.lock().unwrap().animation_data.frames
-					[self.inner.lock().unwrap().current_frame_index]
+				self.inner.try_lock().unwrap().animation_data.frames
+					[self.inner.try_lock().unwrap().current_frame_index]
 					.texture_region,
 			)
 			.shader(&self.shader)

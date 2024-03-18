@@ -23,6 +23,8 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
 	inner: Arc<Mutex<SpriteBatchInner>>,
+	texture: Texture,
+	mesh: Mesh,
 	pub range: Option<OffsetAndCount>,
 	pub shader: Option<Shader>,
 	pub transform: Mat4,
@@ -54,11 +56,11 @@ impl SpriteBatch {
 		}
 		Self {
 			inner: Arc::new(Mutex::new(SpriteBatchInner {
-				texture: texture.clone(),
 				sprites: Arena::with_capacity(capacity),
-				mesh: Mesh::new(&vertices, &indices),
 				capacity,
 			})),
+			texture: texture.clone(),
+			mesh: Mesh::new(&vertices, &indices),
 			shader: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
@@ -85,7 +87,7 @@ impl SpriteBatch {
 	}
 
 	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
-		let size = self.inner.try_lock().unwrap().texture.size().as_vec2();
+		let size = self.texture.size().as_vec2();
 		self.add_region(Rect::new(Vec2::ZERO, size), params)
 	}
 
@@ -106,12 +108,7 @@ impl SpriteBatch {
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		let untransformed_display_rect = Rect::new(Vec2::ZERO, texture_region.size);
-		let relative_texture_region = self
-			.inner
-			.try_lock()
-			.unwrap()
-			.texture
-			.relative_rect(texture_region);
+		let relative_texture_region = self.texture.relative_rect(texture_region);
 		let transform = params.transform;
 		let corners = untransformed_display_rect.corners();
 		let vertices = corners
@@ -125,11 +122,7 @@ impl SpriteBatch {
 			})
 			.enumerate();
 		for (i, vertex) in vertices {
-			self.inner
-				.try_lock()
-				.unwrap()
-				.mesh
-				.set_vertex(start_vertex_index + i, vertex);
+			self.mesh.set_vertex(start_vertex_index + i, vertex);
 		}
 		Ok(id)
 	}
@@ -171,7 +164,7 @@ impl SpriteBatch {
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
 		for i in 0..4 {
-			self.inner.try_lock().unwrap().mesh.set_vertex(
+			self.mesh.set_vertex(
 				start_vertex_index + i,
 				Vertex2d {
 					position: Vec2::ZERO,
@@ -184,11 +177,8 @@ impl SpriteBatch {
 	}
 
 	pub fn draw(&self) {
-		self.inner
-			.try_lock()
-			.unwrap()
-			.mesh
-			.texture(&self.inner.try_lock().unwrap().texture)
+		self.mesh
+			.texture(&self.texture)
 			.range(self.range.map(|range| OffsetAndCount {
 				offset: range.offset * 6,
 				count: range.count * 6,
@@ -203,9 +193,7 @@ impl SpriteBatch {
 
 #[derive(Debug)]
 struct SpriteBatchInner {
-	texture: Texture,
 	sprites: Arena<()>,
-	mesh: Mesh,
 	capacity: usize,
 }
 

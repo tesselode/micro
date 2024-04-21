@@ -23,6 +23,6 @@ impl ResourceLoader for StreamingSoundDataLoader {
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
-		StreamingSoundData::from_file(path, self.default_settings)
+		Ok(StreamingSoundData::from_file(path)?.with_settings(self.default_settings))
 	}
 }

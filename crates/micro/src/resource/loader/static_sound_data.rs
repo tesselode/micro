@@ -23,6 +23,6 @@ impl ResourceLoader for StaticSoundDataLoader {
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
-		StaticSoundData::from_file(path, self.default_settings)
+		Ok(StaticSoundData::from_file(path)?.with_settings(self.default_settings))
 	}
 }

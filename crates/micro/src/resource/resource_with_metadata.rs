@@ -73,9 +73,9 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 		}))
 	}
 
-	pub fn reload(&mut self, loader: &mut L) {
+	pub fn reload(&mut self, loader: &mut L) -> Reloaded {
 		if !self.check_for_updates() {
-			return;
+			return false;
 		}
 		tracing::info!(
 			"hot reloading resource at path '{}'",
@@ -99,7 +99,9 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 				self.file_path.display(),
 				err
 			);
+			return false;
 		}
+		true
 	}
 
 	pub fn check_for_updates(&mut self) -> bool {
@@ -159,3 +161,5 @@ enum LoadSettingsError {
 	#[error("{0}")]
 	LoadSettingsError(#[from] serde_json::Error),
 }
+
+type Reloaded = bool;

@@ -5,10 +5,12 @@ use std::{
 	fmt::Debug,
 	ops::{Index, IndexMut},
 	path::{Path, PathBuf},
+	sync::Mutex,
 	time::Duration,
 };
 
 use indexmap::{IndexMap, IndexSet};
+use tracing::warn;
 
 use self::{loader::ResourceLoader, resource_with_metadata::ResourceWithMetadata};
 
@@ -20,6 +22,7 @@ pub struct Resources<L: ResourceLoader> {
 	resources: IndexMap<PathBuf, ResourceWithMetadata<L>>,
 	placeholder: Option<L::Resource>,
 	hot_reload_timer: Duration,
+	missing_resource_logger: MissingResourceLogger,
 }
 
 impl<L: ResourceLoader> Resources<L> {
@@ -31,6 +34,7 @@ impl<L: ResourceLoader> Resources<L> {
 			resources: IndexMap::new(),
 			placeholder,
 			hot_reload_timer: Duration::ZERO,
+			missing_resource_logger: MissingResourceLogger::new(),
 		}
 	}
 
@@ -58,17 +62,31 @@ impl<L: ResourceLoader> Resources<L> {
 	}
 
 	pub fn get(&self, path: impl AsRef<Path>) -> Option<&L::Resource> {
-		self.resources
-			.get(path.as_ref())
-			.map(|resource| &resource.resource)
-			.or(self.placeholder.as_ref())
+		let path = path.as_ref();
+		if let Some(resource) = self.resources.get(path) {
+			Some(&resource.resource)
+		} else {
+			self.missing_resource_logger.log(path);
+			if let Some(placeholder) = &self.placeholder {
+				Some(placeholder)
+			} else {
+				None
+			}
+		}
 	}
 
 	pub fn get_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut L::Resource> {
-		self.resources
-			.get_mut(path.as_ref())
-			.map(|resource| &mut resource.resource)
-			.or(self.placeholder.as_mut())
+		let path = path.as_ref();
+		if let Some(resource) = self.resources.get_mut(path) {
+			Some(&mut resource.resource)
+		} else {
+			self.missing_resource_logger.log(path);
+			if let Some(placeholder) = &mut self.placeholder {
+				Some(placeholder)
+			} else {
+				None
+			}
+		}
 	}
 
 	pub fn iter(&self) -> impl Iterator<Item = (&Path, &L::Resource)> {
@@ -142,8 +160,11 @@ impl<L: ResourceLoader> Resources<L> {
 	}
 
 	fn hot_reload(&mut self) {
-		for resource in self.resources.values_mut() {
-			resource.reload(&mut self.loader);
+		for (path, resource) in &mut self.resources {
+			let reloaded = resource.reload(&mut self.loader);
+			if reloaded {
+				self.missing_resource_logger.on_reloaded(path);
+			}
 		}
 	}
 }
@@ -178,6 +199,7 @@ where
 			resources: self.resources.clone(),
 			placeholder: self.placeholder.clone(),
 			hot_reload_timer: self.hot_reload_timer,
+			missing_resource_logger: self.missing_resource_logger.clone(),
 		}
 	}
 }
@@ -231,5 +253,39 @@ pub fn base_resources_path() -> PathBuf {
 			.parent()
 			.expect("could not get current executable directory")
 			.join("resources")
+	}
+}
+
+struct MissingResourceLogger {
+	logged_paths: Mutex<IndexSet<PathBuf>>,
+}
+
+impl MissingResourceLogger {
+	fn new() -> Self {
+		Self {
+			logged_paths: Mutex::new(IndexSet::new()),
+		}
+	}
+
+	fn log(&self, path: &Path) {
+		let mut logged_paths = self.logged_paths.lock().unwrap();
+		if logged_paths.contains(path) {
+			return;
+		}
+		warn!("Missing resource '{}'", path.display());
+		logged_paths.insert(path.to_path_buf());
+	}
+
+	fn on_reloaded(&self, path: &Path) {
+		let mut logged_paths = self.logged_paths.lock().unwrap();
+		logged_paths.remove(path);
+	}
+}
+
+impl Clone for MissingResourceLogger {
+	fn clone(&self) -> Self {
+		Self {
+			logged_paths: Mutex::new(self.logged_paths.lock().unwrap().clone()),
+		}
 	}
 }

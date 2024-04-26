@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
+use kira::{
+	dsp::Frame,
+	sound::static_sound::{StaticSoundData, StaticSoundSettings},
+};
 
 use super::ResourceLoader;
 
@@ -24,5 +27,14 @@ impl ResourceLoader for StaticSoundDataLoader {
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
 		Ok(StaticSoundData::from_file(path)?.with_settings(self.default_settings))
+	}
+
+	fn placeholder(&mut self) -> Option<Self::Resource> {
+		Some(StaticSoundData {
+			sample_rate: 0,
+			frames: vec![Frame::ZERO].into(),
+			settings: StaticSoundSettings::default(),
+			slice: None,
+		})
 	}
 }

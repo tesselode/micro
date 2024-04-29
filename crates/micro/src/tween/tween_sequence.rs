@@ -1,104 +1,180 @@
 use std::{
-	ops::{Range, RangeInclusive},
+	ops::{Add, AddAssign, RangeInclusive},
 	time::Duration,
 };
 
-use super::{Easing, Tweenable};
+use thiserror::Error;
+
+use crate::math::{InverseLerp, Lerp};
+
+use super::Easing;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct TweenSequence<T: Tweenable + Copy> {
-	starting_value: T,
-	tweens: Vec<Tween<T>>,
-	pub elapsed: Duration,
+pub struct TweenSequence<V, T = Duration> {
+	keyframes: Vec<Keyframe<V, T>>,
+	current_time: T,
 }
 
-impl<T: Tweenable + Copy> TweenSequence<T> {
-	pub fn new(starting_value: T) -> Self {
+impl<V, T> TweenSequence<V, T> {
+	pub fn new(initial_value: V) -> Self
+	where
+		T: Default,
+	{
 		Self {
-			starting_value,
-			tweens: vec![],
-			elapsed: Duration::ZERO,
+			keyframes: vec![Keyframe {
+				time: T::default(),
+				value: initial_value,
+				easing: Easing::Linear,
+			}],
+			current_time: T::default(),
 		}
 	}
 
-	pub fn simple<U: Copy + Into<T>>(
-		duration: Duration,
-		values: RangeInclusive<U>,
-		easing: Easing,
-	) -> Self {
-		let mut tween_sequence = TweenSequence::new((*values.start()).into());
-		tween_sequence = tween_sequence.tween(duration, (*values.end()).into(), easing);
-		tween_sequence
+	pub fn simple(duration: T, values: RangeInclusive<V>, easing: Easing) -> Self
+	where
+		T: Default + Copy,
+	{
+		let (start, end) = values.into_inner();
+		Self {
+			keyframes: vec![
+				Keyframe {
+					time: T::default(),
+					value: start,
+					easing: Easing::Linear,
+				},
+				Keyframe {
+					time: duration,
+					value: end,
+					easing,
+				},
+			],
+			current_time: T::default(),
+		}
 	}
 
-	pub fn tween(mut self, duration: Duration, target: impl Into<T>, easing: Easing) -> Self {
-		let (last_time, last_value) = self
-			.tweens
-			.last()
-			.map(|Tween { times, values, .. }| (times.end, values.end))
-			.unwrap_or((Duration::ZERO, self.starting_value));
-		self.tweens.push(Tween {
-			times: last_time..last_time + duration,
-			values: last_value..target.into(),
+	pub fn with_keyframe(
+		mut self,
+		time: T,
+		value: V,
+		easing: Easing,
+	) -> Result<Self, KeyframeAlreadyAtTime<V, T>>
+	where
+		T: PartialOrd,
+	{
+		for keyframe in &self.keyframes {
+			if keyframe.time == time {
+				return Err(KeyframeAlreadyAtTime {
+					time,
+					sequence: self,
+				});
+			}
+		}
+		self.keyframes.push(Keyframe {
+			time,
+			value,
+			easing,
+		});
+		self.keyframes
+			.sort_unstable_by(|a, b| a.time.partial_cmp(&b.time).expect("invalid keyframe time"));
+		Ok(self)
+	}
+
+	pub fn wait(mut self, duration: T) -> Self
+	where
+		V: Copy,
+		T: Copy + Add<T, Output = T>,
+	{
+		let last_keyframe = self.keyframes.last().unwrap();
+		self.keyframes.push(Keyframe {
+			time: last_keyframe.time + duration,
+			value: last_keyframe.value,
+			easing: Easing::Linear,
+		});
+		self
+	}
+
+	pub fn tween(mut self, duration: T, target: V, easing: Easing) -> Self
+	where
+		T: Copy + Add<T, Output = T>,
+	{
+		let last_keyframe = self.keyframes.last().unwrap();
+		self.keyframes.push(Keyframe {
+			time: last_keyframe.time + duration,
+			value: target,
 			easing,
 		});
 		self
 	}
 
-	pub fn wait(self, duration: Duration) -> Self {
-		let last_value = self
-			.tweens
-			.last()
-			.map(|Tween { values, .. }| values.end)
-			.unwrap_or(self.starting_value);
-		self.tween(duration, last_value, Easing::Linear)
+	pub fn duration(&self) -> T
+	where
+		T: Copy,
+	{
+		self.keyframes.last().unwrap().time
 	}
 
-	pub fn duration(&self) -> Duration {
-		self.tweens
-			.last()
-			.map(|Tween { times, .. }| times.end)
-			.unwrap_or(Duration::ZERO)
+	pub fn update(&mut self, delta_time: T)
+	where
+		T: AddAssign<T>,
+	{
+		self.current_time += delta_time;
 	}
 
-	pub fn get(&self, time: Duration) -> T {
-		let current_tween = self
-			.tweens
+	pub fn get(&self, time: T) -> V
+	where
+		V: Copy + Lerp,
+		T: Copy + PartialOrd + InverseLerp,
+	{
+		let first_keyframe = self.keyframes.first().unwrap();
+		if time < first_keyframe.time {
+			return first_keyframe.value;
+		}
+		let (current_keyframe_index, current_keyframe) = self
+			.keyframes
 			.iter()
+			.enumerate()
 			.rev()
-			.find(|Tween { times, .. }| times.start <= time);
-		if let Some(Tween {
-			times,
-			values,
-			easing,
-		}) = current_tween
-		{
-			let f = (time - times.start).as_secs_f32() / (times.end - times.start).as_secs_f32();
-			let f = f.clamp(0.0, 1.0);
-			values.start.lerp(values.end, easing.ease(f))
+			.find(|(_, keyframe)| keyframe.time <= time)
+			.unwrap();
+		let next_keyframe = self.keyframes.get(current_keyframe_index + 1);
+		if let Some(next_keyframe) = next_keyframe {
+			let f = time.inverse_lerp(current_keyframe.time, next_keyframe.time);
+			current_keyframe
+				.value
+				.lerp(next_keyframe.value, next_keyframe.easing.ease(f))
 		} else {
-			self.starting_value
+			current_keyframe.value
 		}
 	}
 
-	pub fn current(&self) -> T {
-		self.get(self.elapsed)
+	pub fn current(&self) -> V
+	where
+		V: Copy + Lerp,
+		T: Copy + PartialOrd + InverseLerp,
+	{
+		self.get(self.current_time)
 	}
 
-	pub fn update(&mut self, delta_time: Duration) {
-		self.elapsed += delta_time;
-	}
-
-	pub fn finished(&self) -> bool {
-		self.elapsed >= self.duration()
+	pub fn finished(&self) -> bool
+	where
+		T: PartialOrd + Copy,
+	{
+		self.current_time >= self.duration()
 	}
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-struct Tween<T: Tweenable> {
-	times: Range<Duration>,
-	values: Range<T>,
-	easing: Easing,
+pub struct Keyframe<V, T = Duration> {
+	pub time: T,
+	pub value: V,
+	pub easing: Easing,
+}
+
+#[derive(Debug, Clone, PartialEq, Error)]
+#[error("Sequence already has a keyframe at time {time}")]
+pub struct KeyframeAlreadyAtTime<V, T> {
+	pub time: T,
+	pub sequence: TweenSequence<V, T>,
 }

@@ -29,6 +29,12 @@ impl InverseLerp for f32 {
 	}
 }
 
+impl InverseLerp for f64 {
+	fn inverse_lerp(self, start: Self, end: Self) -> f32 {
+		((self - start) / (end - start)) as f32
+	}
+}
+
 impl InverseLerp for Duration {
 	fn inverse_lerp(self, start: Self, end: Self) -> f32 {
 		self.as_secs_f32()

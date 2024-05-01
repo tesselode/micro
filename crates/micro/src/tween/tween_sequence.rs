@@ -1,4 +1,5 @@
 use std::{
+	fmt::Debug,
 	ops::{Add, AddAssign, RangeInclusive},
 	time::Duration,
 };
@@ -31,6 +32,20 @@ impl<V, T> TweenSequence<V, T> {
 		}
 	}
 
+	pub fn starting_at(time: T, initial_value: V) -> Self
+	where
+		T: Copy,
+	{
+		Self {
+			keyframes: vec![Keyframe {
+				time,
+				value: initial_value,
+				easing: Easing::Linear,
+			}],
+			current_time: time,
+		}
+	}
+
 	pub fn simple(duration: T, values: RangeInclusive<V>, easing: Easing) -> Self
 	where
 		T: Default + Copy,
@@ -53,33 +68,6 @@ impl<V, T> TweenSequence<V, T> {
 		}
 	}
 
-	pub fn with_keyframe(
-		mut self,
-		time: T,
-		value: V,
-		easing: Easing,
-	) -> Result<Self, KeyframeAlreadyAtTime<V, T>>
-	where
-		T: PartialOrd,
-	{
-		for keyframe in &self.keyframes {
-			if keyframe.time == time {
-				return Err(KeyframeAlreadyAtTime {
-					time,
-					sequence: self,
-				});
-			}
-		}
-		self.keyframes.push(Keyframe {
-			time,
-			value,
-			easing,
-		});
-		self.keyframes
-			.sort_unstable_by(|a, b| a.time.partial_cmp(&b.time).expect("invalid keyframe time"));
-		Ok(self)
-	}
-
 	pub fn wait(mut self, duration: T) -> Self
 	where
 		V: Copy,
@@ -94,6 +82,23 @@ impl<V, T> TweenSequence<V, T> {
 		self
 	}
 
+	pub fn wait_until(mut self, time: T) -> Self
+	where
+		V: Copy,
+		T: PartialOrd,
+	{
+		let last_keyframe = self.keyframes.last().unwrap();
+		if time <= last_keyframe.time {
+			panic!("time must be greater than last keyframe time");
+		}
+		self.keyframes.push(Keyframe {
+			time,
+			value: last_keyframe.value,
+			easing: Easing::Linear,
+		});
+		self
+	}
+
 	pub fn tween(mut self, duration: T, target: V, easing: Easing) -> Self
 	where
 		T: Copy + Add<T, Output = T>,
@@ -102,6 +107,21 @@ impl<V, T> TweenSequence<V, T> {
 		self.keyframes.push(Keyframe {
 			time: last_keyframe.time + duration,
 			value: target,
+			easing,
+		});
+		self
+	}
+
+	pub fn tween_until(mut self, time: T, value: V, easing: Easing) -> Self
+	where
+		T: PartialOrd,
+	{
+		if time <= self.keyframes.last().unwrap().time {
+			panic!("time must be greater than last keyframe time");
+		}
+		self.keyframes.push(Keyframe {
+			time,
+			value,
 			easing,
 		});
 		self

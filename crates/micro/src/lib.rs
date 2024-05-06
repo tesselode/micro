@@ -137,20 +137,7 @@ pub fn clear_depth_buffer() {
 /// Creates a scope where all drawing operations have the given transform
 /// applied.
 ///
-/// Calls to `transform` can be nested.
-///
-/// ```rust
-/// use glam::{Mat4, Vec3};
-///
-/// # fn fake(ctx: &mut micro::Context) {
-/// {
-///     let _scope = ctx.transform(Mat4::from_scale(Vec3::new(2.0, 2.0, 1.0)));
-///     // the next drawing operations will have a transform applied
-///     // ...
-/// }
-/// // the following drawing operations will be back to normal
-/// # }
-/// ```
+/// Calls to `push_transform` can be nested.
 pub fn push_transform(transform: impl Into<Mat4>) -> OnDrop {
 	let transform = transform.into();
 	Context::with_mut(|ctx| ctx.graphics.transform_stack.push(transform));
@@ -204,22 +191,6 @@ pub fn push_rotation_z(rotation: f32) -> OnDrop {
 /// Creates a scope where all drawing operations use the given 3D camera.
 ///
 /// This also turns on the depth buffer.
-///
-/// ```rust
-/// use micro::graphics::Camera3d;
-/// use glam::Vec3;
-///
-/// # fn fake(ctx: &mut micro::Context) {
-/// {
-///     let _scope = ctx.use_3d_camera(
-///         Camera3d::perspective(90.0, 16.0 / 9.0, 0.01..=1000.0, Vec3::ZERO, Vec3::new(0.0, 0.0, 1.0))
-///     );
-///     // the next drawing operations will use the 3d camera
-///     // ...
-/// }
-/// // the following drawing operations will be back to normal
-/// # }
-/// ```
 pub fn use_3d_camera(camera: Camera3d) -> OnDrop {
 	let transform = camera.transform();
 	Context::with_mut(|ctx| {

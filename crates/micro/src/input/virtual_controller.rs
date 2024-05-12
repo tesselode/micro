@@ -3,6 +3,7 @@ mod real_control;
 mod traits;
 
 pub use config::*;
+use exhaust::Exhaust;
 use glam::Vec2;
 pub use real_control::*;
 pub use traits::*;
@@ -12,7 +13,11 @@ use std::{collections::HashMap, hash::Hash};
 use crate::math::CardinalDirection;
 
 #[derive(Debug)]
-pub struct VirtualController<C: VirtualControls, S: VirtualAnalogSticks<C> = ()> {
+pub struct VirtualController<C, S = ()>
+where
+	C: Sized + Hash + Eq + Copy + Exhaust + 'static,
+	S: VirtualAnalogSticks<C>,
+{
 	pub config: VirtualControllerConfig<C>,
 	pub gamepad_index: Option<u32>,
 	active_input_kind: Option<InputKind>,
@@ -20,19 +25,21 @@ pub struct VirtualController<C: VirtualControls, S: VirtualAnalogSticks<C> = ()>
 	stick_state: HashMap<S, VirtualAnalogStickState>,
 }
 
-impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
+impl<C, S> VirtualController<C, S>
+where
+	C: Sized + Hash + Eq + Copy + Exhaust + 'static,
+	S: VirtualAnalogSticks<C>,
+{
 	pub fn new(config: VirtualControllerConfig<C>, gamepad_index: Option<u32>) -> Self {
 		Self {
 			config,
 			gamepad_index,
 			active_input_kind: None,
-			control_state: C::ALL
-				.iter()
-				.map(|control| (*control, VirtualControlState::default()))
+			control_state: C::exhaust()
+				.map(|control| (control, VirtualControlState::default()))
 				.collect(),
-			stick_state: S::ALL
-				.iter()
-				.map(|stick| (*stick, VirtualAnalogStickState::default()))
+			stick_state: S::exhaust()
+				.map(|stick| (stick, VirtualAnalogStickState::default()))
 				.collect(),
 		}
 	}
@@ -140,7 +147,7 @@ impl<C: VirtualControls, S: VirtualAnalogSticks<C>> VirtualController<C, S> {
 				controls
 					.iter()
 					.filter(|control| control.kind() == active_input_kind)
-					.fold(0.0, |previous, control| {
+					.fold(0.0, |previous, control: &RealControl| {
 						previous + control.value(gamepad_index)
 					})
 					.min(1.0)

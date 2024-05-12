@@ -1,8 +1,9 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
+use exhaust::Exhaust;
 use glam::{IVec2, Vec2};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Exhaust)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum CardinalDirection {
 	Left,
@@ -12,8 +13,6 @@ pub enum CardinalDirection {
 }
 
 impl CardinalDirection {
-	pub const ALL: [Self; 4] = [Self::Left, Self::Right, Self::Up, Self::Down];
-
 	pub fn as_vec2(self) -> Vec2 {
 		match self {
 			CardinalDirection::Left => Vec2::new(-1.0, 0.0),

@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
+use exhaust::Exhaust;
 use glam::Vec2;
 
-use super::{RealControl, VirtualControls};
+use super::RealControl;
 
 #[derive(Debug, Clone, Default)]
-pub struct VirtualControllerConfig<C: VirtualControls> {
+pub struct VirtualControllerConfig<C: Sized + Hash + Eq + Copy + Exhaust + 'static> {
 	pub control_mapping: HashMap<C, Vec<RealControl>>,
 	pub deadzone: f32,
 	pub deadzone_shape: DeadzoneShape,

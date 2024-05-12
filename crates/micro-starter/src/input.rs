@@ -1,41 +1,29 @@
 use std::collections::HashMap;
 
+use exhaust::Exhaust;
 use micro::{
 	control_mapping,
 	input::{
 		virtual_controller::{
 			AxisDirection, DeadzoneShape, VirtualAnalogSticks, VirtualControllerConfig,
-			VirtualControls,
 		},
 		Axis, Button, Scancode,
 	},
 	math::CardinalDirection::{self, *},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Exhaust)]
 pub enum Controls {
 	Move(CardinalDirection),
 	Primary,
 }
 
-impl VirtualControls for Controls {
-	const ALL: &'static [Self] = &[
-		Self::Move(Left),
-		Self::Move(Right),
-		Self::Move(Up),
-		Self::Move(Down),
-		Self::Primary,
-	];
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Exhaust)]
 pub enum Sticks {
 	Move,
 }
 
 impl VirtualAnalogSticks<Controls> for Sticks {
-	const ALL: &'static [Self] = &[Self::Move];
-
 	fn controls(&self) -> fn(CardinalDirection) -> Controls {
 		match self {
 			Sticks::Move => Controls::Move,

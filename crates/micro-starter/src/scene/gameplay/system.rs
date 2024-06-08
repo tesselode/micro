@@ -13,7 +13,6 @@ use super::{context::GameplayContext, event::GameplayEvent};
 pub trait System {
 	fn init(
 		&mut self,
-
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -23,7 +22,6 @@ pub trait System {
 
 	fn ui(
 		&mut self,
-
 		egui_ctx: &egui::Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
@@ -34,7 +32,6 @@ pub trait System {
 
 	fn menu(
 		&mut self,
-
 		ui: &mut egui::Ui,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
@@ -45,7 +42,6 @@ pub trait System {
 
 	fn stats(
 		&mut self,
-
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -55,7 +51,6 @@ pub trait System {
 
 	fn event(
 		&mut self,
-
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -66,7 +61,6 @@ pub trait System {
 
 	fn gameplay_event(
 		&mut self,
-
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -77,7 +71,6 @@ pub trait System {
 
 	fn update(
 		&mut self,
-
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -88,7 +81,6 @@ pub trait System {
 
 	fn draw(
 		&mut self,
-
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,

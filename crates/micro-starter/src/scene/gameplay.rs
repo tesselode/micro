@@ -24,7 +24,14 @@ pub struct Gameplay {
 impl Gameplay {
 	pub fn new(globals: &mut Globals) -> anyhow::Result<Self> {
 		let gameplay_ctx = GameplayContext::new();
-		let systems: Vec<Box<dyn System>> = vec![];
+		macro_rules! systems {
+			($($system:expr),*$(,)?) => {
+				vec![
+					$(Box::new($system)),*
+				]
+			};
+		}
+		let systems: Vec<Box<dyn System>> = systems![];
 		let mut gameplay = Self {
 			gameplay_ctx,
 			world: World::new(),

@@ -37,24 +37,24 @@ pub fn default_input_config() -> VirtualControllerConfig<Controls> {
 			Controls::Move(Left) => [
 				Scancode::Left,
 				Button::DPadLeft,
-				(Axis::LeftX, AxisDirection::Negative)
+				(Axis::LeftX, AxisDirection::Negative),
 			],
 			Controls::Move(Right) => [
 				Scancode::Right,
 				Button::DPadRight,
-				(Axis::LeftX, AxisDirection::Positive)
+				(Axis::LeftX, AxisDirection::Positive),
 			],
 			Controls::Move(Up) => [
 				Scancode::Up,
 				Button::DPadUp,
-				(Axis::LeftY, AxisDirection::Negative)
+				(Axis::LeftY, AxisDirection::Negative),
 			],
 			Controls::Move(Down) => [
 				Scancode::Down,
 				Button::DPadDown,
-				(Axis::LeftY, AxisDirection::Positive)
+				(Axis::LeftY, AxisDirection::Positive),
 			],
-			Controls::Primary => [Scancode::X, Button::A]
+			Controls::Primary => [Scancode::X, Button::A],
 		},
 		deadzone: 1.0 / 3.0,
 		deadzone_shape: DeadzoneShape::Circle,

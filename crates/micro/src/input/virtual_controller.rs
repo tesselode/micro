@@ -179,7 +179,7 @@ pub enum InputKind {
 
 #[macro_export]
 macro_rules! control_mapping {
-	($($virtual:expr => [$($real:expr),*]),*) => {{
+	($($virtual:expr => [$($real:expr),*$(,)?]),*$(,)?) => {{
 		let mut mapping = HashMap::new();
 		$(mapping.insert($virtual, vec![$($real.into()),*]);)*
 		mapping

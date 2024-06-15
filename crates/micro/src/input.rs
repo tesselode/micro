@@ -1,6 +1,5 @@
 mod axis;
 mod button;
-mod keycode;
 mod mouse_button;
 mod scancode;
 pub mod virtual_controller;
@@ -9,9 +8,9 @@ use std::fmt::Debug;
 
 pub use axis::Axis;
 pub use button::Button;
-pub use keycode::Keycode;
 pub use mouse_button::MouseButton;
 pub use scancode::Scancode;
+pub use sdl2::keyboard::Keycode;
 pub use sdl2::mouse::MouseWheelDirection;
 
 pub struct Gamepad(pub(crate) sdl2::controller::GameController);

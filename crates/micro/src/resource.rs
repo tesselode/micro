@@ -278,7 +278,7 @@ impl MissingResourceLogger {
 
 	fn on_reloaded(&self, path: &Path) {
 		let mut logged_paths = self.logged_paths.lock().unwrap();
-		logged_paths.remove(path);
+		logged_paths.swap_remove(path);
 	}
 }
 

@@ -1,6 +1,4 @@
-use sdl2::keyboard::Scancode as Sdl2Scancode;
-
-use super::keycode::Keycode;
+use sdl2::keyboard::{Keycode, Scancode as Sdl2Scancode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -746,7 +744,7 @@ impl From<Scancode> for Sdl2Scancode {
 
 impl Scancode {
 	pub fn from_keycode(keycode: Keycode) -> Option<Scancode> {
-		Sdl2Scancode::from_keycode(keycode.into()).map(|keycode| keycode.into())
+		Sdl2Scancode::from_keycode(keycode).map(|keycode| keycode.into())
 	}
 
 	pub fn name(self) -> &'static str {

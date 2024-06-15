@@ -12,6 +12,8 @@ use std::{collections::HashMap, hash::Hash};
 
 use crate::math::CardinalDirection;
 
+use super::Gamepad;
+
 #[derive(Debug)]
 pub struct VirtualController<C, S = ()>
 where
@@ -19,7 +21,7 @@ where
 	S: VirtualAnalogSticks<C>,
 {
 	pub config: VirtualControllerConfig<C>,
-	pub gamepad_index: Option<u32>,
+	pub gamepad: Option<Gamepad>,
 	active_input_kind: Option<InputKind>,
 	control_state: HashMap<C, VirtualControlState>,
 	stick_state: HashMap<S, VirtualAnalogStickState>,
@@ -30,10 +32,10 @@ where
 	C: Sized + Hash + Eq + Copy + Exhaust + 'static,
 	S: VirtualAnalogSticks<C>,
 {
-	pub fn new(config: VirtualControllerConfig<C>, gamepad_index: Option<u32>) -> Self {
+	pub fn new(config: VirtualControllerConfig<C>, gamepad: Option<Gamepad>) -> Self {
 		Self {
 			config,
-			gamepad_index,
+			gamepad,
 			active_input_kind: None,
 			control_state: C::exhaust()
 				.map(|control| (control, VirtualControlState::default()))
@@ -81,7 +83,7 @@ where
 					.iter()
 					.filter(|real_control| real_control.kind() == kind)
 					.any(|real_control| {
-						real_control.value(self.gamepad_index) > self.config.deadzone
+						real_control.value(self.gamepad.as_ref()) > self.config.deadzone
 					})
 			})
 	}
@@ -91,7 +93,7 @@ where
 			let down_previous = state.down;
 			let raw_value = Self::control_raw_value(
 				&self.config,
-				self.gamepad_index,
+				self.gamepad.as_ref(),
 				*control,
 				active_input_kind,
 			);
@@ -136,7 +138,7 @@ where
 
 	fn control_raw_value(
 		config: &VirtualControllerConfig<C>,
-		gamepad_index: Option<u32>,
+		gamepad: Option<&Gamepad>,
 		control: C,
 		active_input_kind: InputKind,
 	) -> f32 {
@@ -148,7 +150,7 @@ where
 					.iter()
 					.filter(|control| control.kind() == active_input_kind)
 					.fold(0.0, |previous, control: &RealControl| {
-						previous + control.value(gamepad_index)
+						previous + control.value(gamepad)
 					})
 					.min(1.0)
 			})

@@ -20,7 +20,7 @@ use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	graphics::{Canvas, CanvasSettings, ColorConstants},
 	log::setup_logging,
-	log_if_err, push_transform,
+	log_if_err, logical_window_size, push_transform,
 	time::FrameTimeTracker,
 	window::WindowMode,
 	window_size, Event, State,
@@ -105,7 +105,8 @@ where
 				_ => {}
 			}
 			let transform = Context::with(|ctx| ctx.scaling_mode.transform_affine2().inverse());
-			state.event(event.transform_mouse_events(transform))?;
+			let dpi_scaling = window_size().y as f32 / logical_window_size().y as f32;
+			state.event(event.transform_mouse_events(transform, dpi_scaling))?;
 		}
 		Context::with_mut(|ctx| {
 			ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();

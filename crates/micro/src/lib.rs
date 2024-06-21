@@ -28,7 +28,7 @@ pub use window::*;
 use std::time::Duration;
 
 use context::Context;
-use glam::{IVec2, Mat4, UVec2, Vec2, Vec3};
+use glam::{vec2, IVec2, Mat4, UVec2, Vec2, Vec3};
 use glow::HasContext;
 use graphics::{Camera3d, StencilAction, StencilTest};
 use input::{Gamepad, MouseButton, Scancode};
@@ -41,6 +41,12 @@ use sdl2::{
 /// Gets the drawable size of the window (in pixels).
 pub fn window_size() -> UVec2 {
 	let (width, height) = Context::with(|ctx| ctx.window.drawable_size());
+	UVec2::new(width, height)
+}
+
+/// Gets the size of the window (in points).
+pub fn logical_window_size() -> UVec2 {
+	let (width, height) = Context::with(|ctx| ctx.window.size());
 	UVec2::new(width, height)
 }
 
@@ -285,7 +291,12 @@ pub fn is_mouse_button_down(mouse_button: MouseButton) -> bool {
 pub fn mouse_position() -> IVec2 {
 	Context::with(|ctx| {
 		let mouse_state = ctx.event_pump.mouse_state();
-		let untransformed = IVec2::new(mouse_state.x(), mouse_state.y());
+		let dpi_scaling = window_size().y as f32 / logical_window_size().y as f32;
+		let untransformed = vec2(
+			mouse_state.x() as f32 * dpi_scaling,
+			mouse_state.y() as f32 * dpi_scaling,
+		)
+		.as_ivec2();
 		ctx.scaling_mode
 			.transform_affine2()
 			.inverse()

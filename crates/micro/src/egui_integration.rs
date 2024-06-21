@@ -13,7 +13,7 @@ use crate::{
 		StencilAction, StencilTest, Vertex2d,
 	},
 	input::Scancode,
-	is_key_down, monitor_resolution, use_stencil, window_size, write_to_stencil,
+	is_key_down, logical_window_size, use_stencil, window_size, write_to_stencil,
 };
 
 const SCROLL_SPEED: f32 = 25.0;
@@ -341,10 +341,17 @@ fn egui_image_data_to_image_buffer(
 }
 
 fn egui_scaling_factor() -> f32 {
-	let Ok(monitor_resolution) = monitor_resolution() else {
-		return 1.0;
-	};
-	(monitor_resolution.y as f32 / 1080.0).max(1.0)
+	#[cfg(target_os = "macos")]
+	{
+		window_size().y as f32 / logical_window_size().y as f32
+	}
+	#[cfg(target_os = "windows")]
+	{
+		let Ok(monitor_resolution) = crate::monitor_resolution() else {
+			return 1.0;
+		};
+		(monitor_resolution.y as f32 / 1080.0).max(1.0)
+	}
 }
 
 fn coords_to_index(x: u32, y: u32, width: u32) -> usize {

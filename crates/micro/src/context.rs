@@ -189,14 +189,11 @@ impl Context {
 		gl_attr.set_stencil_size(8);
 		gl_attr.set_framebuffer_srgb_compatible(true);
 		let window = build_window(&video, settings);
-		let _sdl_gl_ctx = window
-			.gl_create_context()
-			.expect("error creating OpenGL context");
+		let event_pump = sdl.event_pump().expect("error creating event pump");
+		let graphics = GraphicsContext::new(&video, &window);
 		video
 			.gl_set_swap_interval(settings.swap_interval)
 			.expect("error setting swap interval");
-		let event_pump = sdl.event_pump().expect("error creating event pump");
-		let graphics = GraphicsContext::new(&video, &window);
 		Self {
 			_sdl: sdl,
 			video,

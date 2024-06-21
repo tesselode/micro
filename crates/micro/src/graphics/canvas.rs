@@ -239,8 +239,10 @@ pub struct CanvasSettings {
 	pub hdr: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum Msaa {
+	#[default]
 	None,
 	X2,
 	X4,
@@ -257,12 +259,6 @@ impl Msaa {
 			Msaa::X8 => 8,
 			Msaa::X16 => 16,
 		}
-	}
-}
-
-impl Default for Msaa {
-	fn default() -> Self {
-		Self::None
 	}
 }
 

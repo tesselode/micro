@@ -4,6 +4,7 @@ use sdl2::{video::Window, VideoSubsystem};
 use crate::ContextSettings;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum WindowMode {
 	Fullscreen,
 	Windowed { size: UVec2 },

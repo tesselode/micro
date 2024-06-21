@@ -40,7 +40,7 @@ use sdl2::{
 
 /// Gets the drawable size of the window (in pixels).
 pub fn window_size() -> UVec2 {
-	let (width, height) = Context::with(|ctx| ctx.window.size());
+	let (width, height) = Context::with(|ctx| ctx.window.drawable_size());
 	UVec2::new(width, height)
 }
 

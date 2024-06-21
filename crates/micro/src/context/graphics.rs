@@ -30,7 +30,7 @@ impl GraphicsContext {
 		let _sdl_gl_ctx = window
 			.gl_create_context()
 			.expect("error creating OpenGL context");
-		let (window_width, window_height) = window.size();
+		let (window_width, window_height) = window.drawable_size();
 		let viewport_size = UVec2::new(window_width, window_height).as_ivec2();
 		let gl = Rc::new(unsafe {
 			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)

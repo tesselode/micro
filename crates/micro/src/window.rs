@@ -24,6 +24,7 @@ pub(crate) fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -
 		WindowMode::Windowed { size } => size,
 	};
 	let mut window_builder = video.window(&settings.window_title, window_size.x, window_size.y);
+	window_builder.allow_highdpi();
 	if settings.window_mode == WindowMode::Fullscreen {
 		window_builder.fullscreen_desktop();
 	}

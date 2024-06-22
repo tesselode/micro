@@ -13,7 +13,7 @@ use crate::{
 		StencilAction, StencilTest, Vertex2d,
 	},
 	input::Scancode,
-	is_key_down, logical_window_size, use_stencil, window_size, write_to_stencil,
+	is_key_down, use_stencil, window_size, write_to_stencil,
 };
 
 const SCROLL_SPEED: f32 = 25.0;

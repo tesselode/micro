@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 pub use std::time::Duration;
 
 pub use hecs::World;

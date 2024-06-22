@@ -1,13 +1,17 @@
+mod dirs;
 mod globals;
 mod input;
+mod log;
 mod scene;
 mod scene_manager;
 
 use std::time::Duration;
 
+use backtrace::Backtrace;
 use egui::TopBottomPanel;
 use glam::UVec2;
 use globals::Globals;
+use log::setup_logging;
 use micro::{
 	average_frame_time, clear, fps, graphics::ColorConstants, input::Scancode, quit,
 	ContextSettings, Event, State, WindowMode,
@@ -17,6 +21,13 @@ use scene::gameplay::Gameplay;
 use scene_manager::SceneManager;
 
 fn main() {
+	#[cfg(debug_assertions)]
+	setup_logging();
+	#[cfg(not(debug_assertions))]
+	let _guard = setup_logging(&settings);
+	std::panic::set_hook(Box::new(|info| {
+		tracing::error!("{}\n{:?}", info, Backtrace::new())
+	}));
 	micro::run(
 		ContextSettings {
 			window_title: "Game".to_string(),

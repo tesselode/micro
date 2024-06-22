@@ -7,7 +7,6 @@ use std::{
 	time::Instant,
 };
 
-use backtrace::Backtrace;
 use glam::{Affine2, Mat4, UVec2, Vec2};
 use palette::LinSrgba;
 use sdl2::{
@@ -19,7 +18,6 @@ use crate::{
 	build_window, clear,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	graphics::{Canvas, CanvasSettings, ColorConstants},
-	log::setup_logging,
 	log_if_err, logical_window_size, push_transform,
 	time::FrameTimeTracker,
 	window::WindowMode,
@@ -39,13 +37,6 @@ where
 	F: FnMut() -> Result<S, E>,
 	E: Debug,
 {
-	#[cfg(debug_assertions)]
-	setup_logging();
-	#[cfg(not(debug_assertions))]
-	let _guard = setup_logging(&settings);
-	std::panic::set_hook(Box::new(|info| {
-		tracing::error!("{}\n{:?}", info, Backtrace::new())
-	}));
 	log_if_err!(run_inner(settings, state_constructor));
 }
 
@@ -218,9 +209,6 @@ pub struct ContextSettings {
 	pub resizable: bool,
 	pub swap_interval: SwapInterval,
 	pub scaling_mode: ScalingMode,
-	pub qualifier: &'static str,
-	pub organization_name: &'static str,
-	pub app_name: &'static str,
 }
 
 impl Default for ContextSettings {
@@ -231,9 +219,6 @@ impl Default for ContextSettings {
 			resizable: false,
 			swap_interval: SwapInterval::VSync,
 			scaling_mode: ScalingMode::default(),
-			qualifier: "com",
-			organization_name: "Tesselode",
-			app_name: "Game",
 		}
 	}
 }

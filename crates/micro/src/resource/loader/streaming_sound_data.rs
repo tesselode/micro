@@ -2,6 +2,8 @@ use std::path::Path;
 
 use kira::sound::streaming::{StreamingSoundData, StreamingSoundSettings};
 
+use crate::Context;
+
 use super::ResourceLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -20,6 +22,7 @@ impl ResourceLoader for StreamingSoundDataLoader {
 
 	fn load(
 		&mut self,
+		_ctx: &mut Context,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {

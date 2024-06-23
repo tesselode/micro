@@ -2,7 +2,7 @@ pub mod gameplay;
 
 use std::time::Duration;
 
-use micro::Event;
+use micro::{Context, Event};
 
 use crate::{globals::Globals, scene_manager::SceneChange};
 
@@ -16,35 +16,55 @@ pub trait Scene {
 		None
 	}
 
-	fn ui(&mut self, egui_ctx: &egui::Context, globals: &mut Globals) -> anyhow::Result<()> {
+	fn ui(
+		&mut self,
+		ctx: &mut Context,
+		egui_ctx: &egui::Context,
+		globals: &mut Globals,
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn menu(&mut self, ui: &mut egui::Ui, globals: &mut Globals) -> anyhow::Result<()> {
+	fn menu(
+		&mut self,
+		ctx: &mut Context,
+		ui: &mut egui::Ui,
+		globals: &mut Globals,
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn stats(&mut self, globals: &mut Globals) -> Option<Vec<String>> {
+	fn stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
 		None
 	}
 
-	fn event(&mut self, globals: &mut Globals, event: &Event) -> anyhow::Result<()> {
+	fn event(
+		&mut self,
+		ctx: &mut Context,
+		globals: &mut Globals,
+		event: &Event,
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn update(&mut self, globals: &mut Globals, delta_time: Duration) -> anyhow::Result<()> {
+	fn update(
+		&mut self,
+		ctx: &mut Context,
+		globals: &mut Globals,
+		delta_time: Duration,
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn draw(&mut self, globals: &mut Globals) -> anyhow::Result<()> {
+	fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn pause(&mut self, globals: &mut Globals) -> anyhow::Result<()> {
+	fn pause(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn resume(&mut self, globals: &mut Globals) -> anyhow::Result<()> {
+	fn resume(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
 }

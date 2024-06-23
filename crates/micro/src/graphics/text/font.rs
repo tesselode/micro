@@ -8,6 +8,7 @@ use thiserror::Error;
 use crate::{
 	graphics::texture::{Texture, TextureSettings},
 	math::Rect,
+	Context,
 };
 
 const GLYPH_PADDING: usize = 2;
@@ -21,13 +22,18 @@ pub struct Font {
 
 impl Font {
 	pub fn from_file(
+		ctx: &mut Context,
 		path: impl AsRef<Path>,
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
-		Self::from_bytes(&std::fs::read(path)?, settings)
+		Self::from_bytes(ctx, &std::fs::read(path)?, settings)
 	}
 
-	pub fn from_bytes(data: &[u8], settings: FontSettings) -> Result<Self, LoadFontError> {
+	pub fn from_bytes(
+		ctx: &mut Context,
+		data: &[u8],
+		settings: FontSettings,
+	) -> Result<Self, LoadFontError> {
 		let scale = settings.scale;
 		let texture_settings = settings.texture_settings;
 		let font = fontdue::Font::from_bytes(
@@ -41,6 +47,7 @@ impl Font {
 		let glyph_image_data = rasterize_chars(&font, settings);
 		let (width, height, glyph_rects) = pack_glyphs(&glyph_image_data);
 		let texture = create_texture(
+			ctx,
 			UVec2::new(width as u32, height as u32),
 			&glyph_image_data,
 			&glyph_rects,
@@ -153,14 +160,16 @@ fn pack_glyphs(
 }
 
 fn create_texture(
+	ctx: &mut Context,
 	size: UVec2,
 	glyph_image_data: &HashMap<char, ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
 	glyph_rects: &HashMap<char, Rect>,
 	texture_settings: TextureSettings,
 ) -> Texture {
-	let texture = Texture::empty(size, texture_settings);
+	let texture = Texture::empty(ctx, size, texture_settings);
 	for (char, rect) in glyph_rects {
 		texture.replace(
+			ctx,
 			rect.top_left.as_ivec2(),
 			glyph_image_data.get(char).expect("No image data for glyph"),
 		);

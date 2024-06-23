@@ -1,4 +1,7 @@
-use crate::graphics::text::{Font, FontSettings, LoadFontError};
+use crate::{
+	graphics::text::{Font, FontSettings, LoadFontError},
+	Context,
+};
 
 use super::ResourceLoader;
 
@@ -18,10 +21,12 @@ impl ResourceLoader for FontLoader {
 
 	fn load(
 		&mut self,
+		ctx: &mut Context,
 		path: &std::path::Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
 		Font::from_file(
+			ctx,
 			path,
 			settings.cloned().unwrap_or(self.default_settings.clone()),
 		)

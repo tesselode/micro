@@ -6,8 +6,11 @@ use std::{
 use glam::Mat4;
 use palette::LinSrgba;
 
-use crate::graphics::{
-	shader::Shader, standard_draw_param_methods, texture::Texture, BlendMode, ColorConstants,
+use crate::{
+	graphics::{
+		shader::Shader, standard_draw_param_methods, texture::Texture, BlendMode, ColorConstants,
+	},
+	Context,
 };
 
 use super::{AnimationData, Frame, Repeats};
@@ -105,7 +108,7 @@ impl AnimationPlayer {
 		}
 	}
 
-	pub fn draw(&self, texture: &Texture) {
+	pub fn draw(&self, ctx: &mut Context, texture: &Texture) {
 		texture
 			.region(
 				self.inner.try_lock().unwrap().animation_data.frames
@@ -116,7 +119,7 @@ impl AnimationPlayer {
 			.transformed(self.transform)
 			.color(self.color)
 			.blend_mode(self.blend_mode)
-			.draw();
+			.draw(ctx);
 	}
 }
 

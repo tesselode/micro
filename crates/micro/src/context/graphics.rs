@@ -8,8 +8,11 @@ use sdl2::{
 };
 
 use crate::graphics::{
-	mesh::RawMesh, resource::GraphicsResources, shader::RawShader, texture::RawTexture, RawCanvas,
-	RawVertexAttributeBuffer,
+	mesh::RawMesh,
+	resource::GraphicsResources,
+	shader::{RawShader, Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
+	texture::{RawTexture, Texture, TextureSettings},
+	RawCanvas, RawVertexAttributeBuffer,
 };
 
 pub(crate) struct GraphicsContext {
@@ -19,6 +22,8 @@ pub(crate) struct GraphicsContext {
 	pub(crate) shaders: GraphicsResources<RawShader>,
 	pub(crate) canvases: GraphicsResources<RawCanvas>,
 	pub(crate) vertex_attribute_buffers: GraphicsResources<RawVertexAttributeBuffer>,
+	pub(crate) default_texture: Texture,
+	pub(crate) default_shader: Shader,
 	pub(crate) transform_stack: Vec<Mat4>,
 	pub(crate) render_target: RenderTarget,
 	viewport_size: IVec2,
@@ -42,13 +47,35 @@ impl GraphicsContext {
 			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
 			gl.viewport(0, 0, viewport_size.x, viewport_size.y);
 		}
+		let meshes = GraphicsResources::new();
+		let mut textures = GraphicsResources::new();
+		let mut shaders = GraphicsResources::new();
+		let canvases = GraphicsResources::new();
+		let vertex_attribute_buffers = GraphicsResources::new();
+		let default_texture = Texture::new(
+			gl.clone(),
+			&mut textures,
+			UVec2::new(1, 1),
+			Some(&[255, 255, 255, 255]),
+			TextureSettings::default(),
+			false,
+		);
+		let default_shader = Shader::new(
+			gl.clone(),
+			&mut shaders,
+			DEFAULT_VERTEX_SHADER,
+			DEFAULT_FRAGMENT_SHADER,
+		)
+		.expect("error compiling default shader");
 		Self {
 			gl,
-			meshes: GraphicsResources::new(),
-			textures: GraphicsResources::new(),
-			shaders: GraphicsResources::new(),
-			canvases: GraphicsResources::new(),
-			vertex_attribute_buffers: GraphicsResources::new(),
+			meshes,
+			textures,
+			shaders,
+			canvases,
+			default_texture,
+			default_shader,
+			vertex_attribute_buffers,
 			transform_stack: vec![],
 			render_target: RenderTarget::Window,
 			viewport_size,

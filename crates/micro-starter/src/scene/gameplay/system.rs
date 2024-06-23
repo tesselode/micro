@@ -3,7 +3,7 @@ pub mod prelude;
 use std::time::Duration;
 
 use hecs::World;
-use micro::Event;
+use micro::{Context, Event};
 
 use crate::globals::Globals;
 
@@ -13,6 +13,7 @@ use super::{context::GameplayContext, event::GameplayEvent};
 pub trait System {
 	fn init(
 		&mut self,
+		ctx: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -22,6 +23,7 @@ pub trait System {
 
 	fn ui(
 		&mut self,
+		ctx: &mut Context,
 		egui_ctx: &egui::Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
@@ -32,6 +34,7 @@ pub trait System {
 
 	fn menu(
 		&mut self,
+		ctx: &mut Context,
 		ui: &mut egui::Ui,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
@@ -42,6 +45,7 @@ pub trait System {
 
 	fn stats(
 		&mut self,
+		ctx: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -51,6 +55,7 @@ pub trait System {
 
 	fn event(
 		&mut self,
+		ctx: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -61,6 +66,7 @@ pub trait System {
 
 	fn gameplay_event(
 		&mut self,
+		ctx: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -71,6 +77,7 @@ pub trait System {
 
 	fn update(
 		&mut self,
+		ctx: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -81,6 +88,7 @@ pub trait System {
 
 	fn draw(
 		&mut self,
+		ctx: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,

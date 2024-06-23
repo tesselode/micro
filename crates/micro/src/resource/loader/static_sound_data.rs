@@ -5,6 +5,8 @@ use kira::{
 	Frame,
 };
 
+use crate::Context;
+
 use super::ResourceLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -23,13 +25,14 @@ impl ResourceLoader for StaticSoundDataLoader {
 
 	fn load(
 		&mut self,
+		_ctx: &mut Context,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
 		Ok(StaticSoundData::from_file(path)?.with_settings(self.default_settings))
 	}
 
-	fn placeholder(&mut self) -> Option<Self::Resource> {
+	fn placeholder(&mut self, _ctx: &mut Context) -> Option<Self::Resource> {
 		Some(StaticSoundData {
 			sample_rate: 0,
 			frames: vec![Frame::ZERO].into(),

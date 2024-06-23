@@ -30,6 +30,8 @@ use serde::Deserialize;
 
 use std::{fmt::Debug, path::Path};
 
+use crate::Context;
+
 #[allow(unused_variables)]
 pub trait ResourceLoader {
 	type Resource;
@@ -42,21 +44,23 @@ pub trait ResourceLoader {
 
 	fn load(
 		&mut self,
+		ctx: &mut Context,
 		path: &Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error>;
 
 	fn reload(
 		&mut self,
+		ctx: &mut Context,
 		resource: &mut Self::Resource,
 		path: &Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		*resource = self.load(path, settings)?;
+		*resource = self.load(ctx, path, settings)?;
 		Ok(())
 	}
 
-	fn placeholder(&mut self) -> Option<Self::Resource> {
+	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Resource> {
 		None
 	}
 }

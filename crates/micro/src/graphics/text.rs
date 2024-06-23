@@ -9,7 +9,7 @@ use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
-use crate::{math::Rect, IntoOffsetAndCount, OffsetAndCount};
+use crate::{math::Rect, Context, IntoOffsetAndCount, OffsetAndCount};
 
 use super::{
 	shader::Shader,
@@ -30,8 +30,14 @@ pub struct Text {
 }
 
 impl Text {
-	pub fn new(font: &Font, text: impl Into<String>, layout_settings: LayoutSettings) -> Self {
+	pub fn new(
+		ctx: &mut Context,
+		font: &Font,
+		text: impl Into<String>,
+		layout_settings: LayoutSettings,
+	) -> Self {
 		Self::with_multiple_fonts(
+			ctx,
 			&[font],
 			&[TextFragment {
 				font_index: 0,
@@ -42,6 +48,7 @@ impl Text {
 	}
 
 	pub fn with_multiple_fonts<'a>(
+		ctx: &mut Context,
 		fonts: &[&Font],
 		text_fragments: impl IntoIterator<Item = &'a TextFragment>,
 		layout_settings: LayoutSettings,
@@ -60,7 +67,7 @@ impl Text {
 				},
 			);
 		}
-		Self::from_layout(layout, fonts)
+		Self::from_layout(ctx, layout, fonts)
 	}
 
 	standard_draw_param_methods!();
@@ -83,7 +90,7 @@ impl Text {
 		self.inner.bounds
 	}
 
-	pub fn draw(&self) {
+	pub fn draw(&self, ctx: &mut Context) {
 		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
 			unimplemented!(
 				"drawing a text range is not implemented for text with more than one font"
@@ -96,17 +103,18 @@ impl Text {
 				.color(self.color)
 				.blend_mode(self.blend_mode)
 				.range(self.range)
-				.draw();
+				.draw(ctx);
 		}
 	}
 
-	fn from_layout(layout: Layout, fonts: &[&Font]) -> Text {
+	fn from_layout(ctx: &mut Context, layout: Layout, fonts: &[&Font]) -> Text {
 		let glyphs = layout.glyphs();
 		let mut sprite_batches = fonts
 			.iter()
 			.enumerate()
 			.map(|(i, font)| {
 				SpriteBatch::new(
+					ctx,
 					&font.texture,
 					glyphs.iter().filter(|glyph| glyph.font_index == i).count(),
 				)
@@ -133,6 +141,7 @@ impl Text {
 				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
 			sprite_batches[glyph.font_index]
 				.add_region(
+					ctx,
 					texture_region,
 					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
 				)

@@ -1,4 +1,5 @@
 use std::{
+	ops::{Deref, DerefMut},
 	rc::Rc,
 	sync::{
 		atomic::{AtomicU64, Ordering},
@@ -35,84 +36,89 @@ pub struct Canvas {
 }
 
 impl Canvas {
-	pub fn new(size: UVec2, settings: CanvasSettings) -> Self {
-		let texture = Texture::new(size, None, settings.texture_settings, settings.hdr);
-		Context::with_mut(|ctx| {
-			let gl = &ctx.graphics.gl;
-			let framebuffer = unsafe {
-				gl.create_framebuffer()
-					.expect("error creating canvas framebuffer")
-			};
-			unsafe {
-				gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
-				let raw_texture = ctx.graphics.textures.get(texture.id);
-				gl.bind_texture(glow::TEXTURE_2D, Some(raw_texture.texture));
-				gl.framebuffer_texture_2d(
-					glow::FRAMEBUFFER,
-					glow::COLOR_ATTACHMENT0,
-					glow::TEXTURE_2D,
-					Some(raw_texture.texture),
-					0,
-				);
-			}
-			let multisample_framebuffer = match settings.msaa {
-				Msaa::None => None,
-				_ => Some(MultisampleFramebuffer::new(
-					gl.clone(),
-					size,
-					settings.msaa.num_samples(),
-					settings.hdr,
-				)),
-			};
-			let depth_stencil_renderbuffer = unsafe {
-				gl.create_renderbuffer()
-					.expect("error creating depth/stencil renderbuffer")
-			};
-			unsafe {
-				gl.bind_renderbuffer(glow::RENDERBUFFER, Some(depth_stencil_renderbuffer));
-				if settings.msaa != Msaa::None {
-					gl.renderbuffer_storage_multisample(
-						glow::RENDERBUFFER,
-						settings.msaa.num_samples().into(),
-						glow::DEPTH24_STENCIL8,
-						size.x as i32,
-						size.y as i32,
-					);
-				} else {
-					gl.renderbuffer_storage(
-						glow::RENDERBUFFER,
-						glow::DEPTH24_STENCIL8,
-						size.x as i32,
-						size.y as i32,
-					);
-				}
-				gl.framebuffer_renderbuffer(
-					glow::FRAMEBUFFER,
-					glow::DEPTH_STENCIL_ATTACHMENT,
+	pub fn new(ctx: &mut Context, size: UVec2, settings: CanvasSettings) -> Self {
+		let texture = Texture::new(
+			ctx.graphics.gl.clone(),
+			&mut ctx.graphics.textures,
+			size,
+			None,
+			settings.texture_settings,
+			settings.hdr,
+		);
+		let gl = &ctx.graphics.gl;
+		let framebuffer = unsafe {
+			gl.create_framebuffer()
+				.expect("error creating canvas framebuffer")
+		};
+		unsafe {
+			gl.bind_framebuffer(glow::FRAMEBUFFER, Some(framebuffer));
+			let raw_texture = ctx.graphics.textures.get(texture.id);
+			gl.bind_texture(glow::TEXTURE_2D, Some(raw_texture.texture));
+			gl.framebuffer_texture_2d(
+				glow::FRAMEBUFFER,
+				glow::COLOR_ATTACHMENT0,
+				glow::TEXTURE_2D,
+				Some(raw_texture.texture),
+				0,
+			);
+		}
+		let multisample_framebuffer = match settings.msaa {
+			Msaa::None => None,
+			_ => Some(MultisampleFramebuffer::new(
+				gl.clone(),
+				size,
+				settings.msaa.num_samples(),
+				settings.hdr,
+			)),
+		};
+		let depth_stencil_renderbuffer = unsafe {
+			gl.create_renderbuffer()
+				.expect("error creating depth/stencil renderbuffer")
+		};
+		unsafe {
+			gl.bind_renderbuffer(glow::RENDERBUFFER, Some(depth_stencil_renderbuffer));
+			if settings.msaa != Msaa::None {
+				gl.renderbuffer_storage_multisample(
 					glow::RENDERBUFFER,
-					Some(depth_stencil_renderbuffer),
+					settings.msaa.num_samples().into(),
+					glow::DEPTH24_STENCIL8,
+					size.x as i32,
+					size.y as i32,
+				);
+			} else {
+				gl.renderbuffer_storage(
+					glow::RENDERBUFFER,
+					glow::DEPTH24_STENCIL8,
+					size.x as i32,
+					size.y as i32,
 				);
 			}
-			unsafe {
-				gl.bind_framebuffer(glow::FRAMEBUFFER, None);
-			}
-			let (id, weak) = ctx.graphics.canvases.insert(RawCanvas {
-				gl: gl.clone(),
-				framebuffer,
-				depth_stencil_renderbuffer,
-				multisample_framebuffer,
-			});
-			Self {
-				id,
-				_weak: weak,
-				texture: texture.clone(),
-				shader: None,
-				transform: Mat4::IDENTITY,
-				color: LinSrgba::WHITE,
-				blend_mode: BlendMode::default(),
-				region: Rect::new(Vec2::ZERO, size.as_vec2()),
-			}
-		})
+			gl.framebuffer_renderbuffer(
+				glow::FRAMEBUFFER,
+				glow::DEPTH_STENCIL_ATTACHMENT,
+				glow::RENDERBUFFER,
+				Some(depth_stencil_renderbuffer),
+			);
+		}
+		unsafe {
+			gl.bind_framebuffer(glow::FRAMEBUFFER, None);
+		}
+		let (id, weak) = ctx.graphics.canvases.insert(RawCanvas {
+			gl: gl.clone(),
+			framebuffer,
+			depth_stencil_renderbuffer,
+			multisample_framebuffer,
+		});
+		Self {
+			id,
+			_weak: weak,
+			texture: texture.clone(),
+			shader: None,
+			transform: Mat4::IDENTITY,
+			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
+			region: Rect::new(Vec2::ZERO, size.as_vec2()),
+		}
 	}
 
 	pub fn region(&self, region: Rect) -> Self {
@@ -135,100 +141,91 @@ impl Canvas {
 		)
 	}
 
-	pub fn render_to(&self) -> OnDrop {
-		if let RenderTarget::Canvas { .. } = Context::with(|ctx| ctx.graphics.render_target) {
+	pub fn render_to<'a>(&'a self, ctx: &'a mut Context) -> OnDrop {
+		if let RenderTarget::Canvas { .. } = ctx.graphics.render_target {
 			unimplemented!("cannot nest render_to calls");
 		}
 		let size = self.size();
-		Context::with_mut(|ctx| {
-			let canvas = ctx.graphics.canvases.get(self.id);
-			unsafe {
-				ctx.graphics.gl.bind_framebuffer(
-					glow::FRAMEBUFFER,
-					Some(
-						if let Some(MultisampleFramebuffer { framebuffer, .. }) =
-							canvas.multisample_framebuffer
-						{
-							framebuffer
-						} else {
-							canvas.framebuffer
-						},
-					),
-				);
-			}
-			ctx.graphics
-				.set_render_target(RenderTarget::Canvas { size })
-		});
-		OnDrop {
-			canvas: self,
-			on_drop: |canvas| {
-				Context::with_mut(|ctx| {
-					let raw_canvas = ctx.graphics.canvases.get(canvas.id);
+		let canvas = ctx.graphics.canvases.get(self.id);
+		unsafe {
+			ctx.graphics.gl.bind_framebuffer(
+				glow::FRAMEBUFFER,
+				Some(
 					if let Some(MultisampleFramebuffer { framebuffer, .. }) =
-						raw_canvas.multisample_framebuffer
+						canvas.multisample_framebuffer
 					{
-						unsafe {
-							ctx.graphics
-								.gl
-								.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(framebuffer));
-							ctx.graphics.gl.bind_framebuffer(
-								glow::DRAW_FRAMEBUFFER,
-								Some(raw_canvas.framebuffer),
-							);
-							let width = canvas.size().x as i32;
-							let height = canvas.size().y as i32;
-							ctx.graphics.gl.blit_framebuffer(
-								0,
-								0,
-								width,
-								height,
-								0,
-								0,
-								width,
-								height,
-								glow::COLOR_BUFFER_BIT,
-								glow::NEAREST,
-							);
-						}
-					}
-					unsafe { ctx.graphics.gl.bind_framebuffer(glow::FRAMEBUFFER, None) }
-					ctx.graphics.set_render_target(RenderTarget::Window);
-				});
-			},
+						framebuffer
+					} else {
+						canvas.framebuffer
+					},
+				),
+			);
 		}
+		ctx.graphics
+			.set_render_target(RenderTarget::Canvas { size });
+		OnDrop { ctx, canvas: self }
 	}
 
-	pub fn draw(&self) {
+	pub fn draw(&self, ctx: &mut Context) {
 		self.texture
 			.region(self.region)
 			.shader(&self.shader)
 			.transformed(self.transform)
 			.color(self.color)
 			.blend_mode(self.blend_mode)
-			.draw();
+			.draw(ctx);
 	}
 
-	pub fn read(&self, buffer: &mut [u8]) {
+	pub fn read(&self, ctx: &Context, buffer: &mut [u8]) {
 		if buffer.len() < (self.size().x * self.size().y * 4) as usize {
 			panic!("buffer not big enough");
 		}
-		Context::with(|ctx| {
-			let gl = &ctx.graphics.gl;
-			let canvas = ctx.graphics.canvases.get(self.id);
+		let gl = &ctx.graphics.gl;
+		let canvas = ctx.graphics.canvases.get(self.id);
+		unsafe {
+			gl.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(canvas.framebuffer));
+			gl.read_buffer(glow::COLOR_ATTACHMENT0);
+			gl.read_pixels(
+				0,
+				0,
+				self.size().x as i32,
+				self.size().y as i32,
+				glow::RGBA,
+				glow::UNSIGNED_BYTE,
+				PixelPackData::Slice(buffer),
+			);
+		}
+	}
+
+	fn finish_render_to(&self, ctx: &mut Context) {
+		let raw_canvas = ctx.graphics.canvases.get(self.id);
+		if let Some(MultisampleFramebuffer { framebuffer, .. }) = raw_canvas.multisample_framebuffer
+		{
 			unsafe {
-				gl.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(canvas.framebuffer));
-				gl.read_buffer(glow::COLOR_ATTACHMENT0);
-				gl.read_pixels(
+				ctx.graphics
+					.gl
+					.bind_framebuffer(glow::READ_FRAMEBUFFER, Some(framebuffer));
+				ctx.graphics
+					.gl
+					.bind_framebuffer(glow::DRAW_FRAMEBUFFER, Some(raw_canvas.framebuffer));
+				let width = self.size().x as i32;
+				let height = self.size().y as i32;
+				ctx.graphics.gl.blit_framebuffer(
 					0,
 					0,
-					self.size().x as i32,
-					self.size().y as i32,
-					glow::RGBA,
-					glow::UNSIGNED_BYTE,
-					PixelPackData::Slice(buffer),
+					width,
+					height,
+					0,
+					0,
+					width,
+					height,
+					glow::COLOR_BUFFER_BIT,
+					glow::NEAREST,
 				);
 			}
-		});
+		}
+		unsafe { ctx.graphics.gl.bind_framebuffer(glow::FRAMEBUFFER, None) }
+		ctx.graphics.set_render_target(RenderTarget::Window);
 	}
 }
 
@@ -314,13 +311,27 @@ impl MultisampleFramebuffer {
 
 #[must_use]
 pub struct OnDrop<'a> {
+	pub(crate) ctx: &'a mut Context,
 	pub(crate) canvas: &'a Canvas,
-	pub(crate) on_drop: fn(&Canvas),
 }
 
 impl<'a> Drop for OnDrop<'a> {
 	fn drop(&mut self) {
-		(self.on_drop)(self.canvas);
+		self.canvas.finish_render_to(self.ctx)
+	}
+}
+
+impl<'a> Deref for OnDrop<'a> {
+	type Target = Context;
+
+	fn deref(&self) -> &Self::Target {
+		self.ctx
+	}
+}
+
+impl<'a> DerefMut for OnDrop<'a> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		self.ctx
 	}
 }
 

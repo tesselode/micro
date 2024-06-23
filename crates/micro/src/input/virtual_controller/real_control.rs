@@ -1,6 +1,6 @@
 use crate::{
+	context::Context,
 	input::{Axis, Button, Gamepad, MouseButton, Scancode},
-	is_key_down, is_mouse_button_down,
 };
 
 use super::InputKind;
@@ -24,17 +24,17 @@ impl RealControl {
 		}
 	}
 
-	pub(super) fn value(&self, gamepad: Option<&Gamepad>) -> f32 {
+	pub(super) fn value(&self, ctx: &Context, gamepad: Option<&Gamepad>) -> f32 {
 		match self {
 			RealControl::Key(scancode) => {
-				if is_key_down(*scancode) {
+				if ctx.is_key_down(*scancode) {
 					1.0
 				} else {
 					0.0
 				}
 			}
 			RealControl::MouseButton(mouse_button) => {
-				if is_mouse_button_down(*mouse_button) {
+				if ctx.is_mouse_button_down(*mouse_button) {
 					1.0
 				} else {
 					0.0

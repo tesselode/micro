@@ -20,32 +20,30 @@ pub struct VertexAttributeBuffer {
 }
 
 impl VertexAttributeBuffer {
-	pub fn new<T: VertexAttributes>(data: &[T]) -> Self {
-		Context::with_mut(|ctx| {
-			let gl = &ctx.graphics.gl;
-			let buffer = unsafe {
-				let buffer = gl
-					.create_buffer()
-					.expect("error creating vertex attribute buffer");
-				gl.bind_buffer(glow::ARRAY_BUFFER, Some(buffer));
-				gl.buffer_data_u8_slice(
-					glow::ARRAY_BUFFER,
-					bytemuck::cast_slice(data),
-					glow::STATIC_DRAW,
-				);
-				buffer
-			};
-			let (id, weak) =
-				ctx.graphics
-					.vertex_attribute_buffers
-					.insert(RawVertexAttributeBuffer {
-						gl: gl.clone(),
-						buffer,
-						attribute_kinds: T::ATTRIBUTE_KINDS.to_vec(),
-						divisor: T::DIVISOR,
-					});
-			Self { id, _weak: weak }
-		})
+	pub fn new<T: VertexAttributes>(ctx: &mut Context, data: &[T]) -> Self {
+		let gl = &ctx.graphics.gl;
+		let buffer = unsafe {
+			let buffer = gl
+				.create_buffer()
+				.expect("error creating vertex attribute buffer");
+			gl.bind_buffer(glow::ARRAY_BUFFER, Some(buffer));
+			gl.buffer_data_u8_slice(
+				glow::ARRAY_BUFFER,
+				bytemuck::cast_slice(data),
+				glow::STATIC_DRAW,
+			);
+			buffer
+		};
+		let (id, weak) = ctx
+			.graphics
+			.vertex_attribute_buffers
+			.insert(RawVertexAttributeBuffer {
+				gl: gl.clone(),
+				buffer,
+				attribute_kinds: T::ATTRIBUTE_KINDS.to_vec(),
+				divisor: T::DIVISOR,
+			});
+		Self { id, _weak: weak }
 	}
 }
 

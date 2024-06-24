@@ -184,7 +184,7 @@ impl<V, T> TweenSequence<V, T> {
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct Keyframe<V, T = Duration> {
 	pub time: T,

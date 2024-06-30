@@ -9,7 +9,7 @@ use crate::Context;
 
 use super::ResourceLoader;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct StaticSoundDataLoader {
 	pub default_settings: StaticSoundSettings,
 }

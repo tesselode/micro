@@ -1,3 +1,8 @@
+use std::path::{Path, PathBuf};
+
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
 use crate::{
 	graphics::text::{Font, FontSettings, LoadFontError},
 	Context,
@@ -5,30 +10,65 @@ use crate::{
 
 use super::ResourceLoader;
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FontLoader {
-	pub default_settings: FontSettings,
+	pub base_scale: f32,
+}
+
+impl FontLoader {
+	pub fn new() -> Self {
+		Self { base_scale: 1.0 }
+	}
+}
+
+impl Default for FontLoader {
+	fn default() -> Self {
+		Self::new()
+	}
 }
 
 impl ResourceLoader for FontLoader {
 	type Resource = Font;
 
-	type Error = LoadFontError;
+	type Error = LoadFontDefinitionError;
 
-	type Settings = FontSettings;
+	type Settings = ();
 
-	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["ttf", "ttc", "otf"];
+	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["font"];
 
 	fn load(
 		&mut self,
 		ctx: &mut Context,
-		path: &std::path::Path,
-		settings: Option<&Self::Settings>,
+		font_definition_path: &Path,
+		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
-		Font::from_file(
-			ctx,
-			path,
-			settings.cloned().unwrap_or(self.default_settings.clone()),
-		)
+		let font_definition_string = std::fs::read_to_string(font_definition_path)?;
+		let font_definition = serde_json::from_str::<FontDefinition>(&font_definition_string)?;
+		let font_path = font_definition_path
+			.parent()
+			.unwrap()
+			.join(font_definition.relative_font_path);
+		let mut settings = font_definition.settings;
+		settings.scale *= self.base_scale;
+		let font = Font::from_file(ctx, font_path, settings)?;
+		Ok(font)
 	}
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+struct FontDefinition {
+	#[serde(rename = "path")]
+	relative_font_path: PathBuf,
+	#[serde(flatten)]
+	settings: FontSettings,
+}
+
+#[derive(Debug, Error)]
+pub enum LoadFontDefinitionError {
+	#[error("{0}")]
+	IoError(#[from] std::io::Error),
+	#[error("{0}")]
+	DefinitionError(#[from] serde_json::Error),
+	#[error("{0}")]
+	LoadFontError(#[from] LoadFontError),
 }

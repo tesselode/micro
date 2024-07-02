@@ -59,26 +59,15 @@ impl CardinalDirection {
 	}
 }
 
-impl From<String> for CardinalDirection {
-	fn from(value: String) -> Self {
-		match value.as_str() {
-			"left" => Self::Left,
-			"right" => Self::Right,
-			"up" => Self::Up,
-			"down" => Self::Down,
-			value => panic!("invalid cardinal direction '{}'", value),
-		}
-	}
-}
-
-impl From<&str> for CardinalDirection {
-	fn from(value: &str) -> Self {
-		match value {
-			"left" => Self::Left,
-			"right" => Self::Right,
-			"up" => Self::Up,
-			"down" => Self::Down,
-			value => panic!("invalid cardinal direction '{}'", value),
+#[cfg(feature = "rand")]
+impl rand::distributions::Distribution<CardinalDirection> for rand::distributions::Standard {
+	fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> CardinalDirection {
+		match rng.gen_range(0..4) {
+			0 => CardinalDirection::Left,
+			1 => CardinalDirection::Right,
+			2 => CardinalDirection::Up,
+			3 => CardinalDirection::Down,
+			_ => unreachable!(),
 		}
 	}
 }

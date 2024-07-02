@@ -1,7 +1,7 @@
 use glam::{Affine2, Vec2};
 use palette::LinSrgba;
 
-use crate::graphics::ColorConstants;
+use crate::color::ColorConstants;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpriteParams {

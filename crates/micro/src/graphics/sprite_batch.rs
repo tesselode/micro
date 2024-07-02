@@ -10,15 +10,13 @@ use glam::{Mat4, Vec2};
 use thiserror::Error;
 
 use crate::{
+	color::ColorConstants,
 	graphics::{mesh::Mesh, texture::Texture},
 	math::Rect,
 	Context, IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::{
-	color_constants::ColorConstants, shader::Shader, standard_draw_param_methods, BlendMode,
-	NineSlice, Vertex2d,
-};
+use super::{shader::Shader, standard_draw_param_methods, BlendMode, NineSlice, Vertex2d};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {

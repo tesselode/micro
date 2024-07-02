@@ -1,4 +1,4 @@
-use palette::{LinSrgb, LinSrgba};
+pub use palette::*;
 
 pub trait ColorConstants {
 	const WHITE: Self;

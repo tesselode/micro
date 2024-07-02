@@ -8,14 +8,14 @@ mod scene_manager;
 use std::time::Duration;
 
 use backtrace::Backtrace;
-use egui::TopBottomPanel;
-use glam::UVec2;
 use globals::Globals;
 use log::setup_logging;
+use micro::color::LinSrgba;
+use micro::math::UVec2;
+use micro::ui::TopBottomPanel;
 use micro::{
-	graphics::ColorConstants, input::Scancode, Context, ContextSettings, Event, State, WindowMode,
+	color::ColorConstants, input::Scancode, Context, ContextSettings, Event, State, WindowMode,
 };
-use palette::LinSrgba;
 use scene::gameplay::Gameplay;
 use scene_manager::SceneManager;
 
@@ -59,12 +59,12 @@ impl MainState {
 }
 
 impl State<anyhow::Error> for MainState {
-	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> anyhow::Result<()> {
+	fn ui(&mut self, ctx: &mut Context, egui_ctx: &micro::ui::Context) -> anyhow::Result<()> {
 		if !self.dev_tools_enabled {
 			return Ok(());
 		}
 		TopBottomPanel::top("menu").show(egui_ctx, |ui| -> anyhow::Result<()> {
-			egui::menu::bar(ui, |ui| -> anyhow::Result<()> {
+			micro::ui::menu::bar(ui, |ui| -> anyhow::Result<()> {
 				self.scene_manager.menu(ctx, ui, &mut self.globals)?;
 				ui.separator();
 				ui.label(&format!(

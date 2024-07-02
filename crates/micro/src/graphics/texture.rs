@@ -13,13 +13,13 @@ use image::{ImageBuffer, ImageError};
 use palette::LinSrgba;
 use thiserror::Error;
 
-use crate::{context::Context, graphics::mesh::Mesh, math::Rect};
+use crate::{color::ColorConstants, context::Context, graphics::mesh::Mesh, math::Rect};
 
 use super::{
 	resource::{GraphicsResource, GraphicsResourceId, GraphicsResources},
 	shader::Shader,
 	sprite_batch::{SpriteBatch, SpriteParams},
-	standard_draw_param_methods, BlendMode, ColorConstants, NineSlice,
+	standard_draw_param_methods, BlendMode, NineSlice,
 };
 
 #[derive(Debug, Clone)]

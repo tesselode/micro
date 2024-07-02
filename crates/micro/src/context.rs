@@ -17,8 +17,9 @@ use sdl2::{
 
 use crate::{
 	build_window,
+	color::ColorConstants,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	graphics::{Camera3d, Canvas, CanvasSettings, ColorConstants, StencilAction, StencilTest},
+	graphics::{Camera3d, Canvas, CanvasSettings, StencilAction, StencilTest},
 	input::{Gamepad, MouseButton, Scancode},
 	log_if_err,
 	time::FrameTimeTracker,

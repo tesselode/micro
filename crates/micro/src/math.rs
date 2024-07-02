@@ -14,13 +14,17 @@ pub use rect::*;
 pub use urect::*;
 pub use vec_constants::*;
 
-use glam::Vec2;
+pub use glam::*;
+
 use lyon_tessellation::{TessellationError, VertexBuffers};
 use palette::LinSrgba;
 
-use crate::graphics::{
-	mesh::{MeshBuilder, ShapeStyle},
-	ColorConstants, Vertex2d,
+use crate::{
+	color::ColorConstants,
+	graphics::{
+		mesh::{MeshBuilder, ShapeStyle},
+		Vertex2d,
+	},
 };
 
 pub fn triangulate_polygon(points: &[Vec2]) -> Result<Vec<Vec<Vec2>>, TessellationError> {

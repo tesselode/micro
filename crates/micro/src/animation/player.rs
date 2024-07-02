@@ -7,9 +7,8 @@ use glam::Mat4;
 use palette::LinSrgba;
 
 use crate::{
-	graphics::{
-		shader::Shader, standard_draw_param_methods, texture::Texture, BlendMode, ColorConstants,
-	},
+	color::ColorConstants,
+	graphics::{shader::Shader, standard_draw_param_methods, texture::Texture, BlendMode},
 	Context,
 };
 

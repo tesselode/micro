@@ -17,6 +17,7 @@ use std::{
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
 use crate::{
+	color::ColorConstants,
 	context::Context,
 	graphics::{shader::Shader, texture::Texture, BlendMode},
 	math::{Circle, Rect},
@@ -24,7 +25,6 @@ use crate::{
 };
 
 use super::{
-	color_constants::ColorConstants,
 	configure_vertex_attributes_for_buffer,
 	resource::{GraphicsResource, GraphicsResourceId},
 	standard_draw_param_methods, Culling, Vertex, Vertex2d, VertexAttributeBuffer,

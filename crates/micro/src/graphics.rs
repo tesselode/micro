@@ -1,7 +1,6 @@
 mod blend_mode;
 mod camera_3d;
 mod canvas;
-mod color_constants;
 mod culling;
 pub mod mesh;
 mod nine_slice;
@@ -17,7 +16,6 @@ mod vertex_attributes;
 pub use blend_mode::*;
 pub use camera_3d::*;
 pub use canvas::*;
-pub use color_constants::*;
 pub use culling::*;
 pub use nine_slice::*;
 pub use stencil::*;

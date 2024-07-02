@@ -1,4 +1,5 @@
 pub mod animation;
+pub mod color;
 mod context;
 mod egui_integration;
 mod error;
@@ -23,3 +24,6 @@ pub use event::*;
 pub use offset_and_count::*;
 pub use state::*;
 pub use window::*;
+
+pub use egui as ui;
+pub use image;

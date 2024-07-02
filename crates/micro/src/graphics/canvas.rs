@@ -11,14 +11,14 @@ use glam::{Mat4, UVec2, Vec2};
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, PixelPackData};
 use palette::LinSrgba;
 
-use crate::{context::graphics::RenderTarget, math::Rect, Context};
+use crate::{color::ColorConstants, context::graphics::RenderTarget, math::Rect, Context};
 
 use super::{
 	resource::{GraphicsResource, GraphicsResourceId},
 	shader::Shader,
 	standard_draw_param_methods,
 	texture::{Texture, TextureSettings},
-	BlendMode, ColorConstants,
+	BlendMode,
 };
 
 #[derive(Debug, Clone)]

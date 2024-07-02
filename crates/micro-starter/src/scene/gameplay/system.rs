@@ -24,7 +24,7 @@ pub trait System {
 	fn ui(
 		&mut self,
 		ctx: &mut Context,
-		egui_ctx: &egui::Context,
+		egui_ctx: &micro::ui::Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -35,7 +35,7 @@ pub trait System {
 	fn menu(
 		&mut self,
 		ctx: &mut Context,
-		ui: &mut egui::Ui,
+		ui: &mut micro::ui::Ui,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,

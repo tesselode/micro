@@ -73,7 +73,7 @@ impl Scene for Gameplay {
 	fn ui(
 		&mut self,
 		ctx: &mut Context,
-		egui_ctx: &egui::Context,
+		egui_ctx: &micro::ui::Context,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		for system in &mut self.systems {
@@ -92,7 +92,7 @@ impl Scene for Gameplay {
 	fn menu(
 		&mut self,
 		ctx: &mut Context,
-		ui: &mut egui::Ui,
+		ui: &mut micro::ui::Ui,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		for system in &mut self.systems {

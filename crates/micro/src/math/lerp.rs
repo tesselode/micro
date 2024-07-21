@@ -3,6 +3,8 @@ use std::{
 	time::Duration,
 };
 
+use super::{Circle, Rect};
+
 pub trait Lerp {
 	fn lerp(self, other: Self, f: f32) -> Self;
 }
@@ -16,6 +18,24 @@ where
 {
 	fn lerp(self, other: Self, f: f32) -> Self {
 		self + (other - self) * f
+	}
+}
+
+impl Lerp for Circle {
+	fn lerp(self, other: Self, f: f32) -> Self {
+		Self {
+			center: self.center.lerp(other.center, f),
+			radius: self.radius.lerp(other.radius, f),
+		}
+	}
+}
+
+impl Lerp for Rect {
+	fn lerp(self, other: Self, f: f32) -> Self {
+		Self {
+			top_left: self.top_left.lerp(other.top_left, f),
+			size: self.size.lerp(other.size, f),
+		}
 	}
 }
 

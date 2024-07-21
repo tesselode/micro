@@ -17,24 +17,24 @@ pub struct TweenSequence<V, T = Duration> {
 	current_time: T,
 }
 
-impl<V, T> TweenSequence<V, T> {
-	pub fn new(initial_value: V) -> Self
+impl<Value, Time> TweenSequence<Value, Time> {
+	pub fn new(initial_value: Value) -> Self
 	where
-		T: Default,
+		Time: Default,
 	{
 		Self {
 			keyframes: vec![Keyframe {
-				time: T::default(),
+				time: Time::default(),
 				value: initial_value,
 				easing: Easing::Linear,
 			}],
-			current_time: T::default(),
+			current_time: Time::default(),
 		}
 	}
 
-	pub fn starting_at(time: T, initial_value: V) -> Self
+	pub fn starting_at(time: Time, initial_value: Value) -> Self
 	where
-		T: Copy,
+		Time: Copy,
 	{
 		Self {
 			keyframes: vec![Keyframe {
@@ -46,15 +46,15 @@ impl<V, T> TweenSequence<V, T> {
 		}
 	}
 
-	pub fn simple(duration: T, values: RangeInclusive<V>, easing: Easing) -> Self
+	pub fn simple(duration: Time, values: RangeInclusive<Value>, easing: Easing) -> Self
 	where
-		T: Default + Copy,
+		Time: Default + Copy,
 	{
 		let (start, end) = values.into_inner();
 		Self {
 			keyframes: vec![
 				Keyframe {
-					time: T::default(),
+					time: Time::default(),
 					value: start,
 					easing: Easing::Linear,
 				},
@@ -64,14 +64,14 @@ impl<V, T> TweenSequence<V, T> {
 					easing,
 				},
 			],
-			current_time: T::default(),
+			current_time: Time::default(),
 		}
 	}
 
-	pub fn wait(mut self, duration: T) -> Self
+	pub fn wait(mut self, duration: Time) -> Self
 	where
-		V: Copy,
-		T: Copy + Add<T, Output = T>,
+		Value: Copy,
+		Time: Copy + Add<Time, Output = Time>,
 	{
 		let last_keyframe = self.keyframes.last().unwrap();
 		self.keyframes.push(Keyframe {
@@ -82,10 +82,10 @@ impl<V, T> TweenSequence<V, T> {
 		self
 	}
 
-	pub fn wait_until(mut self, time: T) -> Self
+	pub fn wait_until(mut self, time: Time) -> Self
 	where
-		V: Copy,
-		T: PartialOrd,
+		Value: Copy,
+		Time: PartialOrd,
 	{
 		let last_keyframe = self.keyframes.last().unwrap();
 		if time <= last_keyframe.time {
@@ -99,9 +99,9 @@ impl<V, T> TweenSequence<V, T> {
 		self
 	}
 
-	pub fn tween(mut self, duration: T, target: V, easing: Easing) -> Self
+	pub fn tween(mut self, duration: Time, target: Value, easing: Easing) -> Self
 	where
-		T: Copy + Add<T, Output = T>,
+		Time: Copy + Add<Time, Output = Time>,
 	{
 		let last_keyframe = self.keyframes.last().unwrap();
 		self.keyframes.push(Keyframe {
@@ -112,9 +112,9 @@ impl<V, T> TweenSequence<V, T> {
 		self
 	}
 
-	pub fn tween_until(mut self, time: T, value: V, easing: Easing) -> Self
+	pub fn tween_until(mut self, time: Time, value: Value, easing: Easing) -> Self
 	where
-		T: PartialOrd,
+		Time: PartialOrd,
 	{
 		if time <= self.keyframes.last().unwrap().time {
 			panic!("time must be greater than last keyframe time");
@@ -127,24 +127,24 @@ impl<V, T> TweenSequence<V, T> {
 		self
 	}
 
-	pub fn duration(&self) -> T
+	pub fn duration(&self) -> Time
 	where
-		T: Copy,
+		Time: Copy,
 	{
 		self.keyframes.last().unwrap().time
 	}
 
-	pub fn update(&mut self, delta_time: T)
+	pub fn update(&mut self, delta_time: Time)
 	where
-		T: AddAssign<T>,
+		Time: AddAssign<Time>,
 	{
 		self.current_time += delta_time;
 	}
 
-	pub fn get(&self, time: T) -> V
+	pub fn get(&self, time: Time) -> Value
 	where
-		V: Copy + Lerp,
-		T: Copy + PartialOrd + InverseLerp,
+		Value: Copy + Lerp,
+		Time: Copy + PartialOrd + InverseLerp,
 	{
 		let first_keyframe = self.keyframes.first().unwrap();
 		if time < first_keyframe.time {
@@ -168,19 +168,41 @@ impl<V, T> TweenSequence<V, T> {
 		}
 	}
 
-	pub fn current(&self) -> V
+	pub fn current(&self) -> Value
 	where
-		V: Copy + Lerp,
-		T: Copy + PartialOrd + InverseLerp,
+		Value: Copy + Lerp,
+		Time: Copy + PartialOrd + InverseLerp,
 	{
 		self.get(self.current_time)
 	}
 
 	pub fn finished(&self) -> bool
 	where
-		T: PartialOrd + Copy,
+		Time: PartialOrd + Copy,
 	{
 		self.current_time >= self.duration()
+	}
+
+	pub fn map<NewValue>(
+		&self,
+		mut f: impl FnMut(Value) -> NewValue,
+	) -> TweenSequence<NewValue, Time>
+	where
+		Value: Copy,
+		Time: Copy,
+	{
+		TweenSequence {
+			keyframes: self
+				.keyframes
+				.iter()
+				.map(|old| Keyframe {
+					time: old.time,
+					value: f(old.value),
+					easing: old.easing.clone(),
+				})
+				.collect(),
+			current_time: self.current_time,
+		}
 	}
 }
 

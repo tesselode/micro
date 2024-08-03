@@ -5,7 +5,8 @@ use micro::{
 	control_mapping,
 	input::{
 		virtual_controller::{
-			AxisDirection, DeadzoneShape, VirtualAnalogSticks, VirtualControllerConfig,
+			AxisDirection, DeadzoneShape, VirtualAnalogSticks, VirtualController,
+			VirtualControllerConfig,
 		},
 		Axis, Button, Scancode,
 	},
@@ -60,3 +61,5 @@ pub fn default_input_config() -> VirtualControllerConfig<Controls> {
 		deadzone_shape: DeadzoneShape::Circle,
 	}
 }
+
+pub type Input = VirtualController<Controls, Sticks>;

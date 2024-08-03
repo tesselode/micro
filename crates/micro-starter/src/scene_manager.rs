@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use anyhow::anyhow;
-use micro::{Context, Event};
+use micro::{Context, Event, Globals};
 
-use crate::{globals::Globals, scene::Scene};
+use crate::scene::Scene;
 
 pub struct SceneManager {
 	scenes: Vec<Box<dyn Scene>>,

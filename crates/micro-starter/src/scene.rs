@@ -2,9 +2,9 @@ pub mod gameplay;
 
 use std::time::Duration;
 
-use micro::{Context, Event};
+use micro::{Context, Event, Globals};
 
-use crate::{globals::Globals, scene_manager::SceneChange};
+use crate::scene_manager::SceneChange;
 
 #[allow(unused_variables)]
 pub trait Scene {

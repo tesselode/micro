@@ -3,9 +3,7 @@ pub mod prelude;
 use std::time::Duration;
 
 use hecs::World;
-use micro::{Context, Event};
-
-use crate::globals::Globals;
+use micro::{Context, Event, Globals};
 
 use super::{context::GameplayContext, event::GameplayEvent};
 

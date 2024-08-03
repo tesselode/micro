@@ -4,6 +4,7 @@ mod context;
 mod egui_integration;
 mod error;
 mod event;
+mod globals;
 pub mod graphics;
 pub mod input;
 #[cfg(feature = "ldtk")]
@@ -21,6 +22,7 @@ mod window;
 pub use context::{run, Context, ContextSettings, OnDrop, ScalingMode};
 pub use error::*;
 pub use event::*;
+pub use globals::*;
 pub use offset_and_count::*;
 pub use state::*;
 pub use window::*;

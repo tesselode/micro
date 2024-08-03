@@ -7,9 +7,9 @@ mod system;
 use std::time::Duration;
 
 use hecs::World;
-use micro::{Context, Event};
+use micro::{Context, Event, Globals};
 
-use crate::{globals::Globals, scene_manager::SceneChange};
+use crate::scene_manager::SceneChange;
 
 use self::{context::GameplayContext, system::System};
 

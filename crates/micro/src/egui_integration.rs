@@ -167,10 +167,11 @@ fn sdl2_event_to_egui_event(
 			pressed: false,
 			modifiers,
 		}),
-		sdl2::event::Event::MouseWheel { x, y, .. } => Some(egui::Event::Scroll(egui::vec2(
-			x as f32 * SCROLL_SPEED,
-			y as f32 * SCROLL_SPEED,
-		))),
+		sdl2::event::Event::MouseWheel { x, y, .. } => Some(egui::Event::MouseWheel {
+			unit: egui::MouseWheelUnit::Point,
+			delta: egui::vec2(x as f32 * SCROLL_SPEED, y as f32 * SCROLL_SPEED),
+			modifiers,
+		}),
 		_ => None,
 	}
 }

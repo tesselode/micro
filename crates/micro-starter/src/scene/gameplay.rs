@@ -7,13 +7,13 @@ mod system;
 use std::time::Duration;
 
 use hecs::World;
-use micro::{Context, Event};
+use micro::{scene::Scene, Context, Event};
 
-use crate::{globals::Globals, scene_manager::SceneChange};
+use crate::globals::Globals;
 
 use self::{context::GameplayContext, system::System};
 
-use super::Scene;
+use super::SceneChange;
 
 pub struct Gameplay {
 	gameplay_ctx: GameplayContext,
@@ -69,7 +69,7 @@ impl Gameplay {
 	}
 }
 
-impl Scene for Gameplay {
+impl Scene<Globals, anyhow::Error> for Gameplay {
 	fn ui(
 		&mut self,
 		ctx: &mut Context,

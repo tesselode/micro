@@ -3,21 +3,21 @@ mod globals;
 mod input;
 mod log;
 mod scene;
-mod scene_manager;
 
 use std::time::Duration;
 
 use backtrace::Backtrace;
 use globals::Globals;
 use log::setup_logging;
-use micro::color::LinSrgba;
-use micro::math::UVec2;
-use micro::ui::TopBottomPanel;
 use micro::{
-	color::ColorConstants, input::Scancode, Context, ContextSettings, Event, State, WindowMode,
+	color::{ColorConstants, LinSrgba},
+	input::Scancode,
+	math::UVec2,
+	scene::SceneManager,
+	ui::TopBottomPanel,
+	Context, ContextSettings, Event, State, WindowMode,
 };
 use scene::gameplay::Gameplay;
-use scene_manager::SceneManager;
 
 fn main() {
 	#[cfg(debug_assertions)]
@@ -42,7 +42,7 @@ fn main() {
 
 struct MainState {
 	globals: Globals,
-	scene_manager: SceneManager,
+	scene_manager: SceneManager<Globals, anyhow::Error>,
 	dev_tools_enabled: bool,
 }
 

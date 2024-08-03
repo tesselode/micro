@@ -67,4 +67,8 @@ pub trait Scene {
 	fn resume(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
+
+	fn leave(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+		Ok(())
+	}
 }

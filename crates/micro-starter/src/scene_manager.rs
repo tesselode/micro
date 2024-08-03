@@ -82,12 +82,16 @@ impl SceneManager {
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		match scene_change {
-			SceneChange::Switch(scene) => *self.current_scene() = scene,
+			SceneChange::Switch(scene) => {
+				self.current_scene().leave(ctx, globals)?;
+				*self.current_scene() = scene;
+			}
 			SceneChange::Push(scene) => {
 				self.current_scene().pause(ctx, globals)?;
 				self.scenes.push(scene);
 			}
 			SceneChange::Pop => {
+				self.current_scene().leave(ctx, globals)?;
 				self.scenes.pop();
 				if self.scenes.is_empty() {
 					return Err(anyhow!("cannot pop the last scene"));
@@ -95,10 +99,12 @@ impl SceneManager {
 				self.current_scene().resume(ctx, globals)?;
 			}
 			SceneChange::PopAndSwitch(scene) => {
+				self.current_scene().leave(ctx, globals)?;
 				self.scenes.pop();
 				if self.scenes.is_empty() {
 					return Err(anyhow!("cannot pop the last scene"));
 				}
+				self.current_scene().leave(ctx, globals)?;
 				*self.current_scene() = scene;
 			}
 		}

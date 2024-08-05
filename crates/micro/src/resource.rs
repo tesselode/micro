@@ -107,7 +107,7 @@ impl<L: ResourceLoader> Resources<L> {
 	}
 
 	#[cfg(not(debug_assertions))]
-	pub fn update_hot_reload(&mut self, _delta_time: Duration) {}
+	pub fn update_hot_reload(&mut self, _ctx: &mut Context, _delta_time: Duration) {}
 
 	fn load_inner(&mut self, ctx: &mut Context, path: &Path) {
 		let full_resource_path = self.base_dir.join(path);

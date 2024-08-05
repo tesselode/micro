@@ -23,7 +23,7 @@ fn main() {
 	#[cfg(debug_assertions)]
 	setup_logging();
 	#[cfg(not(debug_assertions))]
-	let _guard = setup_logging(&settings);
+	let _guard = setup_logging();
 	std::panic::set_hook(Box::new(|info| {
 		tracing::error!("{}\n{:?}", info, Backtrace::new())
 	}));

@@ -1,5 +1,6 @@
 mod cardinal_direction;
 mod circle;
+mod clock_direction;
 mod irect;
 mod lerp;
 mod rect;
@@ -8,6 +9,7 @@ mod vec_constants;
 
 pub use cardinal_direction::*;
 pub use circle::*;
+pub use clock_direction::*;
 pub use irect::*;
 pub use lerp::*;
 pub use rect::*;

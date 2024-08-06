@@ -3,6 +3,8 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use exhaust::Exhaust;
 use glam::{IVec2, Vec2};
 
+use super::ClockDirection;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Exhaust)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum CardinalDirection {
@@ -55,6 +57,23 @@ impl CardinalDirection {
 			CardinalDirection::Right => false,
 			CardinalDirection::Up => true,
 			CardinalDirection::Down => true,
+		}
+	}
+
+	pub fn rotated(self, direction: ClockDirection) -> Self {
+		match direction {
+			ClockDirection::Clockwise => match self {
+				Self::Left => Self::Up,
+				Self::Right => Self::Down,
+				Self::Up => Self::Right,
+				Self::Down => Self::Left,
+			},
+			ClockDirection::CounterClockwise => match self {
+				Self::Left => Self::Down,
+				Self::Right => Self::Up,
+				Self::Up => Self::Left,
+				Self::Down => Self::Right,
+			},
 		}
 	}
 }

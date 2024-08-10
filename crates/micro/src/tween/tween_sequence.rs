@@ -1,6 +1,6 @@
 use std::{
 	fmt::Debug,
-	ops::{Add, AddAssign, RangeInclusive},
+	ops::{Add, AddAssign, RangeInclusive, SubAssign},
 	time::Duration,
 };
 
@@ -15,6 +15,7 @@ use super::Easing;
 pub struct TweenSequence<V, T = Duration> {
 	keyframes: Vec<Keyframe<V, T>>,
 	current_time: T,
+	looping: bool,
 }
 
 impl<Value, Time> TweenSequence<Value, Time> {
@@ -29,6 +30,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 				easing: Easing::Linear,
 			}],
 			current_time: Time::default(),
+			looping: false,
 		}
 	}
 
@@ -43,6 +45,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 				easing: Easing::Linear,
 			}],
 			current_time: time,
+			looping: false,
 		}
 	}
 
@@ -65,6 +68,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 				},
 			],
 			current_time: Time::default(),
+			looping: false,
 		}
 	}
 
@@ -127,6 +131,13 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self
 	}
 
+	pub fn looping(self) -> Self {
+		Self {
+			looping: true,
+			..self
+		}
+	}
+
 	pub fn duration(&self) -> Time
 	where
 		Time: Copy,
@@ -136,16 +147,26 @@ impl<Value, Time> TweenSequence<Value, Time> {
 
 	pub fn update(&mut self, delta_time: Time)
 	where
-		Time: AddAssign<Time>,
+		Time: Copy + PartialOrd + AddAssign<Time> + SubAssign<Time>,
 	{
 		self.current_time += delta_time;
+		if self.looping {
+			while self.current_time >= self.duration() {
+				self.current_time -= self.duration();
+			}
+		}
 	}
 
-	pub fn get(&self, time: Time) -> Value
+	pub fn get(&self, mut time: Time) -> Value
 	where
 		Value: Copy + Lerp,
-		Time: Copy + PartialOrd + InverseLerp,
+		Time: Copy + PartialOrd + InverseLerp + SubAssign<Time>,
 	{
+		if self.looping {
+			while time >= self.duration() {
+				time -= self.duration();
+			}
+		}
 		let first_keyframe = self.keyframes.first().unwrap();
 		if time < first_keyframe.time {
 			return first_keyframe.value;
@@ -171,7 +192,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 	pub fn current(&self) -> Value
 	where
 		Value: Copy + Lerp,
-		Time: Copy + PartialOrd + InverseLerp,
+		Time: Copy + PartialOrd + InverseLerp + SubAssign<Time>,
 	{
 		self.get(self.current_time)
 	}
@@ -202,6 +223,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 				})
 				.collect(),
 			current_time: self.current_time,
+			looping: self.looping,
 		}
 	}
 }

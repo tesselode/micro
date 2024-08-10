@@ -15,7 +15,7 @@ use micro::{
 	math::UVec2,
 	scene::SceneManager,
 	ui::TopBottomPanel,
-	Context, ContextSettings, Event, State, WindowMode,
+	App, Context, ContextSettings, Event, WindowMode,
 };
 use scene::gameplay::Gameplay;
 
@@ -36,17 +36,17 @@ fn main() {
 			resizable: true,
 			..Default::default()
 		},
-		MainState::new,
+		Game::new,
 	)
 }
 
-struct MainState {
+struct Game {
 	globals: Globals,
 	scene_manager: SceneManager<Globals, anyhow::Error>,
 	dev_tools_enabled: bool,
 }
 
-impl MainState {
+impl Game {
 	fn new(ctx: &mut Context) -> anyhow::Result<Self> {
 		let mut globals = Globals::new(ctx)?;
 		let gameplay = Gameplay::new(ctx, &mut globals)?;
@@ -58,7 +58,7 @@ impl MainState {
 	}
 }
 
-impl State<anyhow::Error> for MainState {
+impl App<anyhow::Error> for Game {
 	fn ui(&mut self, ctx: &mut Context, egui_ctx: &micro::ui::Context) -> anyhow::Result<()> {
 		if !self.dev_tools_enabled {
 			return Ok(());

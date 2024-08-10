@@ -6,7 +6,7 @@ use micro::{
 	graphics::mesh::{Mesh, ShapeStyle},
 	math::Circle,
 	tween::{Easing, TweenSequence},
-	Context, ContextSettings, State,
+	App, Context, ContextSettings,
 };
 use palette::LinSrgb;
 
@@ -30,7 +30,7 @@ impl MainState {
 	}
 }
 
-impl State<Box<dyn Error>> for MainState {
+impl App<Box<dyn Error>> for MainState {
 	fn update(&mut self, _ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
 		self.tween_sequence.update(delta_time);
 		Ok(())

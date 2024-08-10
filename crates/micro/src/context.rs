@@ -24,31 +24,31 @@ use crate::{
 	log_if_err,
 	time::FrameTimeTracker,
 	window::WindowMode,
-	Event, SdlError, State,
+	App, Event, SdlError,
 };
 
 use self::graphics::GraphicsContext;
 
 /// Runs the game. Call this in your `main` function.
-pub fn run<S, F, E>(settings: ContextSettings, state_constructor: F)
+pub fn run<S, F, E>(settings: ContextSettings, app_constructor: F)
 where
-	S: State<E>,
+	S: App<E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 	E: Debug,
 {
-	log_if_err!(run_inner(settings, state_constructor));
+	log_if_err!(run_inner(settings, app_constructor));
 }
 
-fn run_inner<S, F, E>(settings: ContextSettings, mut state_constructor: F) -> Result<(), E>
+fn run_inner<S, F, E>(settings: ContextSettings, mut app_constructor: F) -> Result<(), E>
 where
-	S: State<E>,
+	S: App<E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 {
 	// create contexts and resources
 	let mut ctx = Context::new(&settings);
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
-	let mut state = state_constructor(&mut ctx)?;
+	let mut app = app_constructor(&mut ctx)?;
 	let main_canvas = if let ScalingMode::Pixelated {
 		base_size: size, ..
 	} = settings.scaling_mode
@@ -73,7 +73,7 @@ where
 		// create egui UI
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_frame(egui_input);
-		state.ui(&mut ctx, &egui_ctx)?;
+		app.ui(&mut ctx, &egui_ctx)?;
 		let egui_output = egui_ctx.end_frame();
 
 		// dispatch events to state
@@ -89,7 +89,7 @@ where
 			}
 			let transform = ctx.scaling_mode.transform_affine2(&ctx).inverse();
 			let dpi_scaling = ctx.window_size().y as f32 / ctx.logical_window_size().y as f32;
-			state.event(
+			app.event(
 				&mut ctx,
 				event.transform_mouse_events(transform, dpi_scaling),
 			)?;
@@ -98,20 +98,20 @@ where
 		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
 
 		// update state
-		state.update(&mut ctx, delta_time)?;
+		app.update(&mut ctx, delta_time)?;
 
 		// draw state and egui UI
 		if let Some(main_canvas) = &main_canvas {
 			ctx.clear(LinSrgba::BLACK);
 			{
 				let ctx = &mut main_canvas.render_to(&mut ctx);
-				state.draw(ctx)?;
+				app.draw(ctx)?;
 			}
 			let transform = ctx.scaling_mode.transform_mat4(&ctx);
 			main_canvas.transformed(transform).draw(&mut ctx);
 		} else {
 			let ctx = &mut ctx.push_transform(ctx.scaling_mode.transform_mat4(&ctx));
-			state.draw(ctx)?;
+			app.draw(ctx)?;
 		}
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		ctx.window.gl_swap_window();

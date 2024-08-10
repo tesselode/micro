@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::{event::Event, Context};
 
 #[allow(unused_variables)]
-pub trait State<E> {
+pub trait App<E> {
 	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> Result<(), E> {
 		Ok(())
 	}

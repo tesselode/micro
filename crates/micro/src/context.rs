@@ -73,7 +73,7 @@ where
 		// create egui UI
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_frame(egui_input);
-		app.ui(&mut ctx, &egui_ctx)?;
+		app.debug_ui(&mut ctx, &egui_ctx)?;
 		let egui_output = egui_ctx.end_frame();
 
 		// dispatch events to state

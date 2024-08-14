@@ -4,7 +4,7 @@ use crate::{event::Event, Context};
 
 #[allow(unused_variables)]
 pub trait App<E> {
-	fn ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> Result<(), E> {
+	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> Result<(), E> {
 		Ok(())
 	}
 

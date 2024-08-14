@@ -59,7 +59,7 @@ impl Game {
 }
 
 impl App<anyhow::Error> for Game {
-	fn ui(&mut self, ctx: &mut Context, egui_ctx: &micro::ui::Context) -> anyhow::Result<()> {
+	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::ui::Context) -> anyhow::Result<()> {
 		if !self.dev_tools_enabled {
 			return Ok(());
 		}

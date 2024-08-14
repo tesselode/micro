@@ -14,7 +14,6 @@ pub mod math;
 mod offset_and_count;
 #[cfg(feature = "resource_management")]
 pub mod resource;
-pub mod scene;
 pub mod time;
 pub mod tween;
 mod window;

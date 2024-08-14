@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use hecs::CommandBuffer;
 
-use crate::scene::SceneChange;
+use crate::scene_manager::SceneChange;
 
 use super::event::GameplayEvent;
 

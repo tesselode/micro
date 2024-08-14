@@ -65,14 +65,14 @@ impl App<anyhow::Error> for Game {
 		}
 		TopBottomPanel::top("menu").show(egui_ctx, |ui| -> anyhow::Result<()> {
 			micro::ui::menu::bar(ui, |ui| -> anyhow::Result<()> {
-				self.scene_manager.menu(ctx, ui, &mut self.globals)?;
+				self.scene_manager.debug_menu(ctx, ui, &mut self.globals)?;
 				ui.separator();
 				ui.label(&format!(
 					"Average frame time: {:.1}ms ({:.0} FPS)",
 					ctx.average_frame_time().as_secs_f64() * 1000.0,
 					ctx.fps()
 				));
-				if let Some(stats) = self.scene_manager.stats(ctx, &mut self.globals) {
+				if let Some(stats) = self.scene_manager.debug_stats(ctx, &mut self.globals) {
 					for stat in &stats {
 						ui.separator();
 						ui.label(stat);
@@ -82,7 +82,8 @@ impl App<anyhow::Error> for Game {
 			})
 			.inner
 		});
-		self.scene_manager.ui(ctx, egui_ctx, &mut self.globals)?;
+		self.scene_manager
+			.debug_ui(ctx, egui_ctx, &mut self.globals)?;
 		Ok(())
 	}
 

@@ -16,7 +16,7 @@ pub trait Scene {
 		None
 	}
 
-	fn ui(
+	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
 		egui_ctx: &micro::ui::Context,
@@ -25,7 +25,7 @@ pub trait Scene {
 		Ok(())
 	}
 
-	fn menu(
+	fn debug_menu(
 		&mut self,
 		ctx: &mut Context,
 		ui: &mut micro::ui::Ui,
@@ -34,7 +34,7 @@ pub trait Scene {
 		Ok(())
 	}
 
-	fn stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
+	fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
 		None
 	}
 

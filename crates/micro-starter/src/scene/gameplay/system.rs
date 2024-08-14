@@ -21,7 +21,7 @@ pub trait System {
 		Ok(())
 	}
 
-	fn ui(
+	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
 		egui_ctx: &micro::ui::Context,
@@ -32,7 +32,7 @@ pub trait System {
 		Ok(())
 	}
 
-	fn menu(
+	fn debug_menu(
 		&mut self,
 		ctx: &mut Context,
 		ui: &mut micro::ui::Ui,
@@ -43,7 +43,7 @@ pub trait System {
 		Ok(())
 	}
 
-	fn stats(
+	fn debug_stats(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,

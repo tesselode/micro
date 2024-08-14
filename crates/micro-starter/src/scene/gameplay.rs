@@ -70,14 +70,14 @@ impl Gameplay {
 }
 
 impl Scene for Gameplay {
-	fn ui(
+	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
 		egui_ctx: &micro::ui::Context,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		for system in &mut self.systems {
-			system.ui(
+			system.debug_ui(
 				ctx,
 				egui_ctx,
 				globals,
@@ -89,24 +89,24 @@ impl Scene for Gameplay {
 		Ok(())
 	}
 
-	fn menu(
+	fn debug_menu(
 		&mut self,
 		ctx: &mut Context,
 		ui: &mut micro::ui::Ui,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		for system in &mut self.systems {
-			system.menu(ctx, ui, globals, &mut self.gameplay_ctx, &mut self.world)?;
+			system.debug_menu(ctx, ui, globals, &mut self.gameplay_ctx, &mut self.world)?;
 		}
 		self.dispatch_gameplay_events(ctx, globals)?;
 		Ok(())
 	}
 
-	fn stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
+	fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
 		let mut stats = vec![format!("Number of entities: {}", self.world.len())];
 		for system in &mut self.systems {
 			if let Some(mut system_stats) =
-				system.stats(ctx, globals, &mut self.gameplay_ctx, &mut self.world)
+				system.debug_stats(ctx, globals, &mut self.gameplay_ctx, &mut self.world)
 			{
 				stats.append(&mut system_stats);
 			}

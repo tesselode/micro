@@ -16,26 +16,26 @@ impl SceneManager {
 		}
 	}
 
-	pub fn ui(
+	pub fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
 		egui_ctx: &micro::ui::Context,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
-		self.current_scene().ui(ctx, egui_ctx, globals)
+		self.current_scene().debug_ui(ctx, egui_ctx, globals)
 	}
 
-	pub fn menu(
+	pub fn debug_menu(
 		&mut self,
 		ctx: &mut Context,
 		ui: &mut micro::ui::Ui,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
-		self.current_scene().menu(ctx, ui, globals)
+		self.current_scene().debug_menu(ctx, ui, globals)
 	}
 
-	pub fn stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
-		self.current_scene().stats(ctx, globals)
+	pub fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
+		self.current_scene().debug_stats(ctx, globals)
 	}
 
 	pub fn event(

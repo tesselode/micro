@@ -4,6 +4,7 @@ mod clock_direction;
 mod irect;
 mod lerp;
 mod rect;
+mod to_index;
 mod urect;
 mod vec_constants;
 
@@ -13,6 +14,7 @@ pub use clock_direction::*;
 pub use irect::*;
 pub use lerp::*;
 pub use rect::*;
+pub use to_index::*;
 pub use urect::*;
 pub use vec_constants::*;
 

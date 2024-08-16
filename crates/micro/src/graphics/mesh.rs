@@ -1,8 +1,10 @@
 mod builder;
 
 pub use builder::*;
+
+pub use lyon_tessellation::TessellationError;
+
 use glam::{Mat4, Vec2};
-use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 
 use std::{

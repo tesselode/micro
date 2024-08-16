@@ -71,7 +71,7 @@
 		"body": [
 			"let mut mesh_builder = MeshBuilder::new();",
 			"$0",
-			"mesh_builder.build().draw();",
+			"mesh_builder.build(ctx).draw(ctx);",
 		]
 	},
 }

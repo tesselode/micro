@@ -11,8 +11,8 @@ use backtrace::Backtrace;
 use globals::Globals;
 use log::setup_logging;
 use micro::color::LinSrgba;
+use micro::debug_ui::TopBottomPanel;
 use micro::math::UVec2;
-use micro::ui::TopBottomPanel;
 use micro::{
 	color::ColorConstants, input::Scancode, App, Context, ContextSettings, Event, WindowMode,
 };
@@ -59,12 +59,16 @@ impl Game {
 }
 
 impl App<anyhow::Error> for Game {
-	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::ui::Context) -> anyhow::Result<()> {
+	fn debug_ui(
+		&mut self,
+		ctx: &mut Context,
+		egui_ctx: &micro::debug_ui::Context,
+	) -> anyhow::Result<()> {
 		if !self.dev_tools_enabled {
 			return Ok(());
 		}
 		TopBottomPanel::top("menu").show(egui_ctx, |ui| -> anyhow::Result<()> {
-			micro::ui::menu::bar(ui, |ui| -> anyhow::Result<()> {
+			micro::debug_ui::menu::bar(ui, |ui| -> anyhow::Result<()> {
 				self.scene_manager.debug_menu(ctx, ui, &mut self.globals)?;
 				ui.separator();
 				ui.label(&format!(

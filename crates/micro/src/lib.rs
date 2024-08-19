@@ -25,5 +25,5 @@ pub use event::*;
 pub use offset_and_count::*;
 pub use window::*;
 
-pub use egui as ui;
+pub use egui as debug_ui;
 pub use image;

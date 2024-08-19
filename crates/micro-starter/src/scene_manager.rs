@@ -19,7 +19,7 @@ impl SceneManager {
 	pub fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
-		egui_ctx: &micro::ui::Context,
+		egui_ctx: &micro::debug_ui::Context,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		self.current_scene().debug_ui(ctx, egui_ctx, globals)
@@ -28,7 +28,7 @@ impl SceneManager {
 	pub fn debug_menu(
 		&mut self,
 		ctx: &mut Context,
-		ui: &mut micro::ui::Ui,
+		ui: &mut micro::debug_ui::Ui,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		self.current_scene().debug_menu(ctx, ui, globals)

@@ -1,4 +1,4 @@
-use glam::UVec2;
+use glam::{uvec2, UVec2};
 
 use super::{IRect, Rect};
 
@@ -17,10 +17,7 @@ impl URect {
 		}
 	}
 
-	pub fn from_top_left_and_bottom_right(
-		top_left: impl Into<UVec2>,
-		bottom_right: impl Into<UVec2>,
-	) -> Self {
+	pub fn from_corners(top_left: impl Into<UVec2>, bottom_right: impl Into<UVec2>) -> Self {
 		let top_left = top_left.into();
 		let bottom_right = bottom_right.into();
 		Self::new(top_left, bottom_right - top_left)
@@ -68,19 +65,6 @@ impl URect {
 		UVec2::new(self.right(), self.bottom())
 	}
 
-	pub const fn fractional_x(&self, fraction: u32) -> u32 {
-		self.left() + (self.right() - self.left()) * fraction
-	}
-
-	pub const fn fractional_y(&self, fraction: u32) -> u32 {
-		self.top() + (self.bottom() - self.top()) * fraction
-	}
-
-	pub fn fractional_point(&self, fraction: impl Into<UVec2>) -> UVec2 {
-		let fraction = fraction.into();
-		UVec2::new(self.fractional_x(fraction.x), self.fractional_y(fraction.y))
-	}
-
 	pub const fn corners(&self) -> [UVec2; 4] {
 		[
 			self.bottom_right(),
@@ -90,12 +74,28 @@ impl URect {
 		]
 	}
 
+	pub fn translated_x(&self, translation: u32) -> Self {
+		self.translated(uvec2(translation, 0))
+	}
+
+	pub fn translated_y(&self, translation: u32) -> Self {
+		self.translated(uvec2(0, translation))
+	}
+
 	pub fn translated(&self, translation: impl Into<UVec2>) -> Self {
 		let translation = translation.into();
 		Self {
 			top_left: self.top_left + translation,
 			size: self.size,
 		}
+	}
+
+	pub fn padded_x(&self, padding: u32) -> Self {
+		self.padded(uvec2(padding, 0))
+	}
+
+	pub fn padded_y(&self, padding: u32) -> Self {
+		self.padded(uvec2(0, padding))
 	}
 
 	pub fn padded(&self, padding: impl Into<UVec2>) -> Self {
@@ -115,7 +115,7 @@ impl URect {
 			self.bottom_right().x.max(other.bottom_right().x),
 			self.bottom_right().y.max(other.bottom_right().y),
 		);
-		Self::from_top_left_and_bottom_right(top_left, bottom_right)
+		Self::from_corners(top_left, bottom_right)
 	}
 
 	pub fn contains_point(&self, point: impl Into<UVec2>) -> bool {

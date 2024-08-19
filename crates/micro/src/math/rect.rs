@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test;
 
-use glam::Vec2;
+use glam::{vec2, Vec2};
 
 use super::{IRect, URect};
 
@@ -111,6 +111,14 @@ impl Rect {
 		]
 	}
 
+	pub fn translated_x(&self, translation: f32) -> Self {
+		self.translated(vec2(translation, 0.0))
+	}
+
+	pub fn translated_y(&self, translation: f32) -> Self {
+		self.translated(vec2(0.0, translation))
+	}
+
 	pub fn translated(&self, translation: impl Into<Vec2>) -> Self {
 		Self {
 			top_left: self.top_left + translation.into(),
@@ -188,6 +196,14 @@ impl Rect {
 
 	pub fn scaled(&self, scale: impl Into<Vec2>, anchor: impl Into<Vec2>) -> Self {
 		self.resized(self.size * scale.into(), anchor.into())
+	}
+
+	pub fn padded_x(&self, padding: f32) -> Self {
+		self.padded(vec2(padding, 0.0))
+	}
+
+	pub fn padded_y(&self, padding: f32) -> Self {
+		self.padded(vec2(0.0, padding))
 	}
 
 	pub fn padded(&self, padding: impl Into<Vec2>) -> Self {

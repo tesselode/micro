@@ -1,4 +1,4 @@
-use glam::IVec2;
+use glam::{ivec2, IVec2};
 
 use super::{Rect, URect};
 
@@ -16,10 +16,7 @@ impl IRect {
 		Self { top_left, size }
 	}
 
-	pub fn from_top_left_and_bottom_right(
-		top_left: impl Into<IVec2>,
-		bottom_right: impl Into<IVec2>,
-	) -> Self {
+	pub fn from_corners(top_left: impl Into<IVec2>, bottom_right: impl Into<IVec2>) -> Self {
 		let top_left = top_left.into();
 		let bottom_right = bottom_right.into();
 		Self::new(top_left, bottom_right - top_left)
@@ -67,19 +64,6 @@ impl IRect {
 		IVec2::new(self.right(), self.bottom())
 	}
 
-	pub const fn fractional_x(&self, fraction: i32) -> i32 {
-		self.left() + (self.right() - self.left()) * fraction
-	}
-
-	pub const fn fractional_y(&self, fraction: i32) -> i32 {
-		self.top() + (self.bottom() - self.top()) * fraction
-	}
-
-	pub fn fractional_point(&self, fraction: impl Into<IVec2>) -> IVec2 {
-		let fraction = fraction.into();
-		IVec2::new(self.fractional_x(fraction.x), self.fractional_y(fraction.y))
-	}
-
 	pub const fn corners(&self) -> [IVec2; 4] {
 		[
 			self.bottom_right(),
@@ -89,12 +73,28 @@ impl IRect {
 		]
 	}
 
+	pub fn translated_x(&self, translation: i32) -> Self {
+		self.translated(ivec2(translation, 0))
+	}
+
+	pub fn translated_y(&self, translation: i32) -> Self {
+		self.translated(ivec2(0, translation))
+	}
+
 	pub fn translated(&self, translation: impl Into<IVec2>) -> Self {
 		let translation = translation.into();
 		Self {
 			top_left: self.top_left + translation,
 			size: self.size,
 		}
+	}
+
+	pub fn padded_x(&self, padding: i32) -> Self {
+		self.padded(ivec2(padding, 0))
+	}
+
+	pub fn padded_y(&self, padding: i32) -> Self {
+		self.padded(ivec2(0, padding))
 	}
 
 	pub fn padded(&self, padding: impl Into<IVec2>) -> Self {
@@ -114,7 +114,7 @@ impl IRect {
 			self.bottom_right().x.max(other.bottom_right().x),
 			self.bottom_right().y.max(other.bottom_right().y),
 		);
-		Self::from_top_left_and_bottom_right(top_left, bottom_right)
+		Self::from_corners(top_left, bottom_right)
 	}
 
 	pub fn contains_point(&self, point: impl Into<IVec2>) -> bool {

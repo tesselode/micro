@@ -6,6 +6,7 @@ use micro::{
 	graphics::mesh::{Mesh, ShapeStyle},
 	math::Circle,
 	tween::{Easing, TweenSequence},
+	ui::{Padding, Rectangle, Widget},
 	App, Context, ContextSettings,
 };
 use palette::LinSrgb;
@@ -14,39 +15,27 @@ fn main() {
 	micro::run(ContextSettings::default(), MainState::new);
 }
 
-struct MainState {
-	tween_sequence: TweenSequence<f32>,
-}
+struct MainState {}
 
 impl MainState {
 	fn new(_ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {
-			tween_sequence: TweenSequence::new(0.0)
-				.wait(Duration::from_millis(500))
-				.tween(Duration::from_millis(500), 1.0, Easing::InOutPowi(2))
-				.wait(Duration::from_millis(500))
-				.looping(),
-		})
+		Ok(Self {})
 	}
 }
 
 impl App<Box<dyn Error>> for MainState {
 	fn update(&mut self, _ctx: &mut Context, delta_time: Duration) -> Result<(), Box<dyn Error>> {
-		self.tween_sequence.update(delta_time);
 		Ok(())
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		ctx.clear(LinSrgb::BLACK);
-		Mesh::circle(
-			ctx,
-			ShapeStyle::Fill,
-			Circle {
-				center: vec2(100.0.lerp(700.0, self.tween_sequence.current()), 300.0),
-				radius: 50.0,
-			},
-		)?
-		.draw(ctx);
+		let mut widget = Padding::symmetric(vec2(50.0, 100.0)).with_child(
+			Rectangle::new()
+				.with_fill(LinSrgb::RED)
+				.with_stroke(10.0, LinSrgb::BLUE),
+		);
+		widget.size(ctx.window_size().as_vec2());
+		widget.draw(ctx)?;
 		Ok(())
 	}
 }

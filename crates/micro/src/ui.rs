@@ -1,8 +1,16 @@
+mod axis;
+mod cross_sizing;
+mod max_size;
 mod padding;
 mod rectangle;
+mod stack;
 
+pub use axis::*;
+pub use cross_sizing::*;
+pub use max_size::*;
 pub use padding::*;
 pub use rectangle::*;
+pub use stack::*;
 
 use std::fmt::Debug;
 
@@ -26,7 +34,7 @@ macro_rules! with_child_fns {
 
 		pub fn with_children(
 			mut self,
-			children: impl Iterator<Item = impl Widget + 'static>,
+			children: impl IntoIterator<Item = impl Widget + 'static>,
 		) -> Self {
 			for child in children {
 				self.children.push(Box::new(child));

@@ -6,7 +6,7 @@ use micro::{
 	graphics::mesh::{Mesh, ShapeStyle},
 	math::Circle,
 	tween::{Easing, TweenSequence},
-	ui::{Padding, Rectangle, Widget},
+	ui::{CrossSizing, MaxSize, Padding, Rectangle, Stack, StackSettings, Widget},
 	App, Context, ContextSettings,
 };
 use palette::LinSrgb;
@@ -29,11 +29,27 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		let mut widget = Padding::symmetric(vec2(50.0, 100.0)).with_child(
-			Rectangle::new()
-				.with_fill(LinSrgb::RED)
-				.with_stroke(10.0, LinSrgb::BLUE),
-		);
+		let mut widget = Padding::symmetric(vec2(50.0, 100.0))
+			.with_child(Rectangle::new().with_stroke(5.0, LinSrgb::WHITE))
+			.with_child(
+				Stack::vertical(StackSettings {
+					gap: 50.0,
+					cross_align: 0.5,
+					cross_sizing: CrossSizing::Max,
+				})
+				.with_children([
+					MaxSize::new((50.0, 100.0)).with_child(
+						Rectangle::new()
+							.with_fill(LinSrgb::RED)
+							.with_stroke(10.0, LinSrgb::BLUE),
+					),
+					MaxSize::new((100.0, 50.0)).with_child(
+						Rectangle::new()
+							.with_fill(LinSrgb::RED)
+							.with_stroke(10.0, LinSrgb::BLUE),
+					),
+				]),
+			);
 		widget.size(ctx.window_size().as_vec2());
 		widget.draw(ctx)?;
 		Ok(())

@@ -1,12 +1,9 @@
 use std::{error::Error, time::Duration};
 
-use glam::{vec2, FloatExt};
+use glam::vec2;
 use micro::{
 	color::ColorConstants,
-	graphics::mesh::{Mesh, ShapeStyle},
-	math::Circle,
-	tween::{Easing, TweenSequence},
-	ui::{CrossSizing, MaxSize, Padding, Rectangle, Stack, StackSettings, Widget},
+	ui::{Align, CrossSizing, MaxSize, Padding, Rectangle, Stack, StackSettings, Widget},
 	App, Context, ContextSettings,
 };
 use palette::LinSrgb;
@@ -31,25 +28,43 @@ impl App<Box<dyn Error>> for MainState {
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		let mut widget = Padding::symmetric(vec2(50.0, 100.0))
 			.with_child(Rectangle::new().with_stroke(5.0, LinSrgb::WHITE))
-			.with_child(
-				Stack::vertical(StackSettings {
-					gap: 50.0,
-					cross_align: 0.5,
-					cross_sizing: CrossSizing::Max,
-				})
-				.with_children([
-					MaxSize::new((50.0, 100.0)).with_child(
+			.with_children([
+				Align::top_left().with_child(
+					MaxSize::new((50.0, 50.0)).with_child(
 						Rectangle::new()
 							.with_fill(LinSrgb::RED)
 							.with_stroke(10.0, LinSrgb::BLUE),
 					),
-					MaxSize::new((100.0, 50.0)).with_child(
+				),
+				Align::top_right().with_child(
+					MaxSize::new((50.0, 50.0)).with_child(
 						Rectangle::new()
 							.with_fill(LinSrgb::RED)
 							.with_stroke(10.0, LinSrgb::BLUE),
 					),
-				]),
-			);
+				),
+				Align::bottom_left().with_child(
+					MaxSize::new((50.0, 50.0)).with_child(
+						Rectangle::new()
+							.with_fill(LinSrgb::RED)
+							.with_stroke(10.0, LinSrgb::BLUE),
+					),
+				),
+				Align::bottom_right().with_child(
+					MaxSize::new((50.0, 50.0)).with_child(
+						Rectangle::new()
+							.with_fill(LinSrgb::RED)
+							.with_stroke(10.0, LinSrgb::BLUE),
+					),
+				),
+				Align::center().with_child(
+					MaxSize::new((50.0, 50.0)).with_child(
+						Rectangle::new()
+							.with_fill(LinSrgb::RED)
+							.with_stroke(10.0, LinSrgb::BLUE),
+					),
+				),
+			]);
 		widget.size(ctx.window_size().as_vec2());
 		widget.draw(ctx)?;
 		Ok(())

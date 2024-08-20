@@ -62,11 +62,11 @@ impl Padding {
 }
 
 impl Widget for Padding {
-	fn size(&mut self, max_size: Vec2) -> Vec2 {
+	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
 		self.size = Some(max_size);
 		let child_max_size = max_size - vec2(self.left + self.right, self.top + self.bottom);
 		for child in &mut self.children {
-			child.size(child_max_size);
+			child.size(ctx, child_max_size);
 		}
 		max_size
 	}

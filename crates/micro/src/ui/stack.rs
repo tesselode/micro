@@ -35,7 +35,7 @@ impl Stack {
 }
 
 impl Widget for Stack {
-	fn size(&mut self, max_size: Vec2) -> Vec2 {
+	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
 		match self.direction {
 			Axis::Horizontal => {
 				let mut max_width = max_size.x;
@@ -43,7 +43,7 @@ impl Widget for Stack {
 					.children
 					.iter_mut()
 					.map(|child| {
-						let size = child.size(vec2(max_width, max_size.y));
+						let size = child.size(ctx, vec2(max_width, max_size.y));
 						max_width -= size.x + self.settings.gap;
 						size
 					})
@@ -85,7 +85,7 @@ impl Widget for Stack {
 					.children
 					.iter_mut()
 					.map(|child| {
-						let size = child.size(vec2(max_size.x, max_height));
+						let size = child.size(ctx, vec2(max_size.x, max_height));
 						max_height -= size.y + self.settings.gap;
 						size
 					})

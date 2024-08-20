@@ -53,7 +53,10 @@ impl Text {
 		text_fragments: impl IntoIterator<Item = &'a TextFragment>,
 		layout_settings: LayoutSettings,
 	) -> Self {
-		let fontdue_fonts = fonts.iter().map(|font| &font.font).collect::<Vec<_>>();
+		let fontdue_fonts = fonts
+			.iter()
+			.map(|font| &font.inner.font)
+			.collect::<Vec<_>>();
 		let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
 		layout.reset(&layout_settings.into());
 		for TextFragment { font_index, text } in text_fragments {
@@ -61,7 +64,7 @@ impl Text {
 				&fontdue_fonts,
 				&TextStyle {
 					text,
-					px: fonts[*font_index].scale,
+					px: fonts[*font_index].inner.scale,
 					font_index: *font_index,
 					user_data: (),
 				},
@@ -115,7 +118,7 @@ impl Text {
 			.map(|(i, font)| {
 				SpriteBatch::new(
 					ctx,
-					&font.texture,
+					&font.inner.texture,
 					glyphs.iter().filter(|glyph| glyph.font_index == i).count(),
 				)
 			})
@@ -136,6 +139,7 @@ impl Text {
 				bounds = Some(display_rect);
 			}
 			let texture_region = *fonts[glyph.font_index]
+				.inner
 				.glyph_rects
 				.get(&glyph.parent)
 				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));

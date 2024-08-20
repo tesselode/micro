@@ -32,11 +32,11 @@ impl MaxSize {
 }
 
 impl Widget for MaxSize {
-	fn size(&mut self, max_size: Vec2) -> Vec2 {
+	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
 		let size = self.max_size.min(max_size);
 		self.size = Some(size);
 		for child in &mut self.children {
-			child.size(size);
+			child.size(ctx, size);
 		}
 		size
 	}

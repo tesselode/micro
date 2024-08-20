@@ -5,6 +5,7 @@ mod max_size;
 mod padding;
 mod rectangle;
 mod stack;
+mod text;
 
 pub use align::*;
 pub use axis::*;
@@ -13,6 +14,7 @@ pub use max_size::*;
 pub use padding::*;
 pub use rectangle::*;
 pub use stack::*;
+pub use text::{TextSettings, TextSizing, TextWidget as Text};
 
 use std::fmt::Debug;
 
@@ -21,9 +23,14 @@ use glam::Vec2;
 use crate::Context;
 
 pub trait Widget: Debug {
-	fn size(&mut self, max_size: Vec2) -> Vec2;
+	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2;
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()>;
+
+	fn render(&mut self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+		self.size(ctx, size);
+		self.draw(ctx)
+	}
 }
 
 #[macro_export]

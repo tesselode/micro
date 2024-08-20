@@ -46,8 +46,11 @@ impl Align {
 }
 
 impl Widget for Align {
-	fn size(&mut self, max_size: Vec2) -> Vec2 {
-		let child_sizes = self.children.iter_mut().map(|child| child.size(max_size));
+	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
+		let child_sizes = self
+			.children
+			.iter_mut()
+			.map(|child| child.size(ctx, max_size));
 		let child_positions = child_sizes
 			.map(|size| (max_size - size) * self.align)
 			.collect();

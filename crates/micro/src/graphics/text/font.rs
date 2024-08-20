@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use crunch::{pack_into_po2, PackedItem, PackedItems};
 use glam::{UVec2, Vec2};
@@ -13,11 +13,9 @@ use crate::{
 
 const GLYPH_PADDING: usize = 2;
 
+#[derive(Clone)]
 pub struct Font {
-	pub(crate) font: fontdue::Font,
-	pub(crate) scale: f32,
-	pub(crate) texture: Texture,
-	pub(crate) glyph_rects: HashMap<char, Rect>,
+	pub(crate) inner: Arc<FontInner>,
 }
 
 impl Font {
@@ -54,15 +52,17 @@ impl Font {
 			texture_settings,
 		);
 		Ok(Self {
-			font,
-			scale,
-			texture,
-			glyph_rects,
+			inner: Arc::new(FontInner {
+				font,
+				scale,
+				texture,
+				glyph_rects,
+			}),
 		})
 	}
 
 	pub fn has_glyph(&self, glyph: char) -> bool {
-		self.glyph_rects.contains_key(&glyph)
+		self.inner.glyph_rects.contains_key(&glyph)
 	}
 }
 
@@ -91,6 +91,13 @@ pub enum LoadFontError {
 	IoError(#[from] std::io::Error),
 	#[error("{0}")]
 	FontError(&'static str),
+}
+
+pub(crate) struct FontInner {
+	pub(crate) font: fontdue::Font,
+	pub(crate) scale: f32,
+	pub(crate) texture: Texture,
+	pub(crate) glyph_rects: HashMap<char, Rect>,
 }
 
 fn rasterize_chars(

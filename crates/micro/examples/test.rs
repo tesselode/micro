@@ -1,9 +1,14 @@
 use std::{error::Error, time::Duration};
 
+use fontdue::layout::{HorizontalAlign, VerticalAlign};
 use glam::vec2;
 use micro::{
 	color::ColorConstants,
-	ui::{Align, CrossSizing, MaxSize, Padding, Rectangle, Stack, StackSettings, Widget},
+	graphics::text::{Font, FontSettings},
+	ui::{
+		Align, CrossSizing, MaxSize, Padding, Rectangle, Stack, StackSettings, Text, TextSettings,
+		TextSizing, Widget,
+	},
 	App, Context, ContextSettings,
 };
 use palette::LinSrgb;
@@ -12,11 +17,19 @@ fn main() {
 	micro::run(ContextSettings::default(), MainState::new);
 }
 
-struct MainState {}
+struct MainState {
+	font: Font,
+}
 
 impl MainState {
-	fn new(_ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {})
+	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		Ok(Self {
+			font: Font::from_file(
+				ctx,
+				"resources/NotoSans-Regular.ttf",
+				FontSettings::default(),
+			)?,
+		})
 	}
 }
 
@@ -26,47 +39,20 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		let mut widget = Padding::symmetric(vec2(50.0, 100.0))
+		Padding::symmetric(vec2(50.0, 100.0))
 			.with_child(Rectangle::new().with_stroke(5.0, LinSrgb::WHITE))
-			.with_children([
-				Align::top_left().with_child(
-					MaxSize::new((50.0, 50.0)).with_child(
-						Rectangle::new()
-							.with_fill(LinSrgb::RED)
-							.with_stroke(10.0, LinSrgb::BLUE),
-					),
-				),
-				Align::top_right().with_child(
-					MaxSize::new((50.0, 50.0)).with_child(
-						Rectangle::new()
-							.with_fill(LinSrgb::RED)
-							.with_stroke(10.0, LinSrgb::BLUE),
-					),
-				),
-				Align::bottom_left().with_child(
-					MaxSize::new((50.0, 50.0)).with_child(
-						Rectangle::new()
-							.with_fill(LinSrgb::RED)
-							.with_stroke(10.0, LinSrgb::BLUE),
-					),
-				),
-				Align::bottom_right().with_child(
-					MaxSize::new((50.0, 50.0)).with_child(
-						Rectangle::new()
-							.with_fill(LinSrgb::RED)
-							.with_stroke(10.0, LinSrgb::BLUE),
-					),
-				),
-				Align::center().with_child(
-					MaxSize::new((50.0, 50.0)).with_child(
-						Rectangle::new()
-							.with_fill(LinSrgb::RED)
-							.with_stroke(10.0, LinSrgb::BLUE),
-					),
-				),
-			]);
-		widget.size(ctx.window_size().as_vec2());
-		widget.draw(ctx)?;
+			.with_child(Text::new(
+				&self.font,
+				"Hello, world!",
+				TextSettings {
+					sizing: TextSizing::Max {
+						horizontal_align: HorizontalAlign::Center,
+						vertical_align: VerticalAlign::Middle,
+					},
+					..Default::default()
+				},
+			))
+			.render(ctx, ctx.window_size().as_vec2())?;
 		Ok(())
 	}
 }

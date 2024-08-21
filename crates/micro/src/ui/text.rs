@@ -66,6 +66,14 @@ impl Widget for TextWidget {
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+		if let Some(TextShadow { color, offset }) = self.settings.shadow {
+			self.rendered
+				.as_ref()
+				.unwrap()
+				.translated_2d(offset)
+				.color(color)
+				.draw(ctx);
+		}
 		self.rendered
 			.as_ref()
 			.unwrap()
@@ -94,6 +102,7 @@ pub struct TextSettings {
 	/// prematurely wrap lines. If false, hard breaks will not prematurely create a new line.
 	pub wrap_hard_breaks: bool,
 	pub color: LinSrgba,
+	pub shadow: Option<TextShadow>,
 }
 
 impl Default for TextSettings {
@@ -104,6 +113,7 @@ impl Default for TextSettings {
 			wrap_style: WrapStyle::Word,
 			wrap_hard_breaks: true,
 			color: LinSrgba::WHITE,
+			shadow: None,
 		}
 	}
 }
@@ -116,4 +126,10 @@ pub enum TextSizing {
 		horizontal_align: HorizontalAlign,
 		vertical_align: VerticalAlign,
 	},
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TextShadow {
+	pub color: LinSrgba,
+	pub offset: Vec2,
 }

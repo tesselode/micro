@@ -16,7 +16,7 @@ pub use max_size::*;
 pub use padding::*;
 pub use rectangle::*;
 pub use stack::*;
-pub use text::{TextSettings, TextSizing, TextWidget as Text};
+pub use text::{TextSettings, TextShadow, TextSizing, TextWidget as Text};
 
 use std::fmt::Debug;
 

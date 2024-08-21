@@ -10,7 +10,7 @@ use micro::{
 	},
 	ui::{
 		Align, CrossSizing, Image, MaxSize, Padding, Rectangle, Stack, StackSettings, Text,
-		TextSettings, TextSizing, Widget,
+		TextSettings, TextShadow, TextSizing, Widget,
 	},
 	App, Context, ContextSettings,
 };
@@ -66,6 +66,10 @@ impl App<Box<dyn Error>> for MainState {
 							vertical_align: VerticalAlign::Middle,
 						},
 						color: LinSrgba::BLUE,
+						shadow: Some(TextShadow {
+							color: LinSrgba::GREEN,
+							offset: vec2(5.0, 5.0),
+						}),
 						..Default::default()
 					},
 				)),

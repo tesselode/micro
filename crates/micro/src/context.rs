@@ -278,6 +278,18 @@ impl Context {
 		self.push_transform(Mat4::from_scale(scale.into()))
 	}
 
+	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
+	}
+
+	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
+	}
+
+	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
+	}
+
 	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_rotation_x(rotation))
 	}

@@ -7,6 +7,7 @@ mod padding;
 mod rectangle;
 mod stack;
 mod text;
+mod transform;
 
 pub use align::*;
 pub use axis::*;
@@ -17,6 +18,7 @@ pub use padding::*;
 pub use rectangle::*;
 pub use stack::*;
 pub use text::{TextSettings, TextShadow, TextSizing, TextWidget as Text};
+pub use transform::*;
 
 use std::fmt::Debug;
 

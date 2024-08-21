@@ -65,6 +65,7 @@ impl App<Box<dyn Error>> for MainState {
 							horizontal_align: HorizontalAlign::Center,
 							vertical_align: VerticalAlign::Middle,
 						},
+						color: LinSrgba::BLUE,
 						..Default::default()
 					},
 				)),

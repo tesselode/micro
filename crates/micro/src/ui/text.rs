@@ -2,8 +2,10 @@ use std::fmt::{Debug, Formatter};
 
 use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
 use glam::Vec2;
+use palette::LinSrgba;
 
 use crate::{
+	color::ColorConstants,
 	graphics::text::{Font, LayoutSettings, Text},
 	Context,
 };
@@ -64,7 +66,11 @@ impl Widget for TextWidget {
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
-		self.rendered.as_ref().unwrap().draw(ctx);
+		self.rendered
+			.as_ref()
+			.unwrap()
+			.color(self.settings.color)
+			.draw(ctx);
 		Ok(())
 	}
 }
@@ -87,6 +93,7 @@ pub struct TextSettings {
 	/// The default is true. This option enables hard breaks, like new line characters, to
 	/// prematurely wrap lines. If false, hard breaks will not prematurely create a new line.
 	pub wrap_hard_breaks: bool,
+	pub color: LinSrgba,
 }
 
 impl Default for TextSettings {
@@ -96,6 +103,7 @@ impl Default for TextSettings {
 			line_height: 1.0,
 			wrap_style: WrapStyle::Word,
 			wrap_hard_breaks: true,
+			color: LinSrgba::WHITE,
 		}
 	}
 }

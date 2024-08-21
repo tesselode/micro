@@ -9,8 +9,8 @@ use micro::{
 		texture::{Texture, TextureSettings},
 	},
 	ui::{
-		Align, CrossSizing, Image, MaxSize, Padding, Rectangle, Stack, StackSettings, Text,
-		TextSettings, TextShadow, TextSizing, Transform, Widget,
+		Align, CrossSizing, FractionalMaxSize, Image, MaxSize, Padding, Rectangle, Stack,
+		StackSettings, Text, TextSettings, TextShadow, TextSizing, Transform, Widget,
 	},
 	App, Context, ContextSettings,
 };
@@ -48,35 +48,11 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		Transform::scale((0.25, 0.5))
-			.with_origin((0.5, 0.5))
+		Padding::symmetric(vec2(50.0, 100.0))
+			.with_child(Rectangle::new().with_stroke(5.0, LinSrgb::WHITE))
 			.with_child(
-				Padding::symmetric(vec2(50.0, 100.0))
-					.with_child(Rectangle::new().with_stroke(5.0, LinSrgb::WHITE))
-					.with_child(
-						Stack::horizontal(StackSettings {
-							gap: 20.0,
-							cross_align: 0.5,
-							cross_sizing: CrossSizing::Max,
-						})
-						.with_child(Image::new(&self.texture).with_color(LinSrgba::RED))
-						.with_child(Text::new(
-							&self.font,
-							"Hello, world!",
-							TextSettings {
-								sizing: TextSizing::Max {
-									horizontal_align: HorizontalAlign::Center,
-									vertical_align: VerticalAlign::Middle,
-								},
-								color: LinSrgba::BLUE,
-								shadow: Some(TextShadow {
-									color: LinSrgba::GREEN,
-									offset: vec2(5.0, 5.0),
-								}),
-								..Default::default()
-							},
-						)),
-					),
+				FractionalMaxSize::new((0.25, 0.5))
+					.with_child(Rectangle::new().with_stroke(5.0, LinSrgb::WHITE)),
 			)
 			.render(ctx, ctx.window_size().as_vec2())?;
 		Ok(())

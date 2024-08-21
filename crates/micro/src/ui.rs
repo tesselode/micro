@@ -1,6 +1,7 @@
 mod align;
 mod axis;
 mod cross_sizing;
+mod image;
 mod max_size;
 mod padding;
 mod rectangle;
@@ -10,6 +11,7 @@ mod text;
 pub use align::*;
 pub use axis::*;
 pub use cross_sizing::*;
+pub use image::*;
 pub use max_size::*;
 pub use padding::*;
 pub use rectangle::*;

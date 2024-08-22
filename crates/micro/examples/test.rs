@@ -1,6 +1,5 @@
 use std::{error::Error, time::Duration};
 
-use fontdue::layout::{HorizontalAlign, VerticalAlign};
 use glam::vec2;
 use micro::{
 	color::ColorConstants,
@@ -9,8 +8,8 @@ use micro::{
 		texture::{Texture, TextureSettings},
 	},
 	ui::{
-		Align, CrossSizing, FractionalMaxSize, Image, MaxSize, Padding, Rectangle, Stack,
-		StackSettings, Text, TextSettings, TextShadow, TextSizing, Transform, Widget,
+		CrossSizing, FractionalMaxSize, MaxSize, Padding, Polygon, Polyline, Rectangle, Stack,
+		StackSettings, Widget,
 	},
 	App, Context, ContextSettings,
 };
@@ -48,13 +47,20 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		Padding::symmetric(vec2(50.0, 100.0))
-			.with_child(Rectangle::new().with_stroke(5.0, LinSrgb::WHITE))
-			.with_child(
-				FractionalMaxSize::new((0.25, 0.5))
-					.with_child(Rectangle::new().with_stroke(5.0, LinSrgb::WHITE)),
-			)
-			.render(ctx, ctx.window_size().as_vec2())?;
+		Stack::horizontal(StackSettings {
+			gap: 50.0,
+			cross_align: 0.0,
+			cross_sizing: CrossSizing::Min,
+		})
+		.with_child(Polyline::new(
+			[(0.0, 0.0), (50.0, 0.0), (60.0, 60.0), (10.0, 60.0)],
+			2.0,
+			LinSrgba::GREEN,
+		))
+		.with_child(
+			MaxSize::new((50.0, 50.0)).with_child(Rectangle::new().with_fill(LinSrgba::RED)),
+		)
+		.render(ctx, ctx.window_size().as_vec2())?;
 		Ok(())
 	}
 }

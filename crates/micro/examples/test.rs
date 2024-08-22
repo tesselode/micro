@@ -8,8 +8,8 @@ use micro::{
 		texture::{Texture, TextureSettings},
 	},
 	ui::{
-		CrossSizing, Ellipse, FractionalMaxSize, MaxSize, Padding, Polygon, Polyline, Rectangle,
-		Stack, StackSettings, Widget,
+		CrossSizing, Ellipse, FractionalMaxSize, Mask, MaxSize, Padding, Polygon, Polyline,
+		Rectangle, Stack, StackSettings, Transform, Widget,
 	},
 	App, Context, ContextSettings,
 };
@@ -47,18 +47,16 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		Stack::horizontal(StackSettings {
-			gap: 50.0,
-			cross_align: 0.0,
-			cross_sizing: CrossSizing::Min,
-		})
-		.with_child(Polyline::new(
-			[(0.0, 0.0), (50.0, 0.0), (60.0, 60.0), (10.0, 60.0)],
-			2.0,
-			LinSrgba::GREEN,
-		))
-		.with_child(MaxSize::new((100.0, 50.0)).with_child(Ellipse::new().with_fill(LinSrgba::RED)))
-		.render(ctx, ctx.window_size().as_vec2())?;
+		MaxSize::new((100.0, 100.0))
+			.with_child(
+				Mask::new()
+					.with_mask_child(Rectangle::new().with_fill(LinSrgb::WHITE))
+					.with_child(
+						Transform::translation((50.0, 50.0))
+							.with_child(Ellipse::new().with_fill(LinSrgb::WHITE)),
+					),
+			)
+			.render(ctx, ctx.window_size().as_vec2())?;
 		Ok(())
 	}
 }

@@ -298,14 +298,14 @@ impl Mesh<Vertex2d> {
 
 	pub fn filled_polygon(
 		ctx: &mut Context,
-		points: impl IntoIterator<Item = FilledPolygonPoint>,
+		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new().with_filled_polygon(points)?.build(ctx))
 	}
 
 	pub fn polyline(
 		ctx: &mut Context,
-		points: impl IntoIterator<Item = StrokePoint>,
+		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
@@ -314,7 +314,7 @@ impl Mesh<Vertex2d> {
 	pub fn simple_polygon(
 		ctx: &mut Context,
 		style: ShapeStyle,
-		points: impl IntoIterator<Item = Vec2>,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
 			.with_simple_polygon(style, points, LinSrgba::WHITE)?
@@ -324,7 +324,7 @@ impl Mesh<Vertex2d> {
 	pub fn simple_polyline(
 		ctx: &mut Context,
 		stroke_width: f32,
-		points: impl IntoIterator<Item = Vec2>,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Result<Self, TessellationError> {
 		Ok(MeshBuilder::new()
 			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)?

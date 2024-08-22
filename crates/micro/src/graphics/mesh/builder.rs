@@ -61,13 +61,13 @@ impl MeshBuilder {
 	}
 
 	pub fn filled_polygon(
-		points: impl IntoIterator<Item = FilledPolygonPoint>,
+		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<Self, TessellationError> {
 		Self::new().with_filled_polygon(points)
 	}
 
 	pub fn polyline(
-		points: impl IntoIterator<Item = StrokePoint>,
+		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<Self, TessellationError> {
 		Self::new().with_polyline(points, closed)
@@ -75,7 +75,7 @@ impl MeshBuilder {
 
 	pub fn simple_polygon(
 		style: ShapeStyle,
-		points: impl IntoIterator<Item = Vec2>,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Self::new().with_simple_polygon(style, points, color)
@@ -83,7 +83,7 @@ impl MeshBuilder {
 
 	pub fn simple_polyline(
 		stroke_width: f32,
-		points: impl IntoIterator<Item = Vec2>,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		Self::new().with_simple_polyline(stroke_width, points, color)
@@ -236,7 +236,7 @@ impl MeshBuilder {
 
 	pub fn add_filled_polygon(
 		&mut self,
-		points: impl IntoIterator<Item = FilledPolygonPoint>,
+		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<(), TessellationError> {
 		let mut fill_tessellator = FillTessellator::new();
 		let mut buffers_builder = BuffersBuilder::new(
@@ -247,9 +247,10 @@ impl MeshBuilder {
 		let mut builder =
 			fill_tessellator.builder_with_attributes(4, &options, &mut buffers_builder);
 		let mut points = points.into_iter();
-		let point = points
+		let point: FilledPolygonPoint = points
 			.next()
-			.expect("need at least one point to build a polyline");
+			.expect("need at least one point to build a polyline")
+			.into();
 		builder.begin(
 			Point2D::new(point.position.x, point.position.y),
 			&[
@@ -260,6 +261,7 @@ impl MeshBuilder {
 			],
 		);
 		for point in points {
+			let point: FilledPolygonPoint = point.into();
 			builder.line_to(
 				Point2D::new(point.position.x, point.position.y),
 				&[
@@ -277,7 +279,7 @@ impl MeshBuilder {
 
 	pub fn with_filled_polygon(
 		mut self,
-		points: impl IntoIterator<Item = FilledPolygonPoint>,
+		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<Self, TessellationError> {
 		self.add_filled_polygon(points)?;
 		Ok(self)
@@ -285,7 +287,7 @@ impl MeshBuilder {
 
 	pub fn add_polyline(
 		&mut self,
-		points: impl IntoIterator<Item = StrokePoint>,
+		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<(), TessellationError> {
 		let mut stroke_tessellator = StrokeTessellator::new();
@@ -297,9 +299,10 @@ impl MeshBuilder {
 		let mut builder =
 			stroke_tessellator.builder_with_attributes(5, &options, &mut buffers_builder);
 		let mut points = points.into_iter();
-		let point = points
+		let point: StrokePoint = points
 			.next()
-			.expect("need at least one point to build a polyline");
+			.expect("need at least one point to build a polyline")
+			.into();
 		builder.begin(
 			Point2D::new(point.position.x, point.position.y),
 			&[
@@ -311,6 +314,7 @@ impl MeshBuilder {
 			],
 		);
 		for point in points {
+			let point: StrokePoint = point.into();
 			builder.line_to(
 				Point2D::new(point.position.x, point.position.y),
 				&[
@@ -329,7 +333,7 @@ impl MeshBuilder {
 
 	pub fn with_polyline(
 		mut self,
-		points: impl IntoIterator<Item = StrokePoint>,
+		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<Self, TessellationError> {
 		self.add_polyline(points, closed)?;
@@ -339,18 +343,19 @@ impl MeshBuilder {
 	pub fn add_simple_polygon(
 		&mut self,
 		style: ShapeStyle,
-		points: impl IntoIterator<Item = Vec2>,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
 		match style {
-			ShapeStyle::Fill => self.add_filled_polygon(
-				points
-					.into_iter()
-					.map(|position| FilledPolygonPoint { position, color }),
-			),
+			ShapeStyle::Fill => {
+				self.add_filled_polygon(points.into_iter().map(|position| FilledPolygonPoint {
+					position: position.into(),
+					color,
+				}))
+			}
 			ShapeStyle::Stroke(stroke_width) => self.add_polyline(
 				points.into_iter().map(|position| StrokePoint {
-					position,
+					position: position.into(),
 					color,
 					stroke_width,
 				}),
@@ -362,7 +367,7 @@ impl MeshBuilder {
 	pub fn with_simple_polygon(
 		mut self,
 		style: ShapeStyle,
-		points: impl IntoIterator<Item = Vec2>,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		self.add_simple_polygon(style, points, color)?;
@@ -372,12 +377,12 @@ impl MeshBuilder {
 	pub fn add_simple_polyline(
 		&mut self,
 		stroke_width: f32,
-		points: impl IntoIterator<Item = Vec2>,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
 		self.add_polyline(
 			points.into_iter().map(|position| StrokePoint {
-				position,
+				position: position.into(),
 				color,
 				stroke_width,
 			}),
@@ -388,7 +393,7 @@ impl MeshBuilder {
 	pub fn with_simple_polyline(
 		mut self,
 		stroke_width: f32,
-		points: impl IntoIterator<Item = Vec2>,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
 		self.add_simple_polyline(stroke_width, points, color)?;

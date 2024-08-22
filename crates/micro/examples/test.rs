@@ -8,8 +8,8 @@ use micro::{
 		texture::{Texture, TextureSettings},
 	},
 	ui::{
-		CrossSizing, FractionalMaxSize, MaxSize, Padding, Polygon, Polyline, Rectangle, Stack,
-		StackSettings, Widget,
+		CrossSizing, Ellipse, FractionalMaxSize, MaxSize, Padding, Polygon, Polyline, Rectangle,
+		Stack, StackSettings, Widget,
 	},
 	App, Context, ContextSettings,
 };
@@ -57,9 +57,7 @@ impl App<Box<dyn Error>> for MainState {
 			2.0,
 			LinSrgba::GREEN,
 		))
-		.with_child(
-			MaxSize::new((50.0, 50.0)).with_child(Rectangle::new().with_fill(LinSrgba::RED)),
-		)
+		.with_child(MaxSize::new((100.0, 50.0)).with_child(Ellipse::new().with_fill(LinSrgba::RED)))
 		.render(ctx, ctx.window_size().as_vec2())?;
 		Ok(())
 	}

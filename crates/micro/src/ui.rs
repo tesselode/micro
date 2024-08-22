@@ -1,6 +1,7 @@
 mod align;
 mod axis;
 mod cross_sizing;
+mod ellipse;
 mod fractional_max_size;
 mod image;
 mod max_size;
@@ -15,6 +16,7 @@ mod transform;
 pub use align::*;
 pub use axis::*;
 pub use cross_sizing::*;
+pub use ellipse::*;
 pub use fractional_max_size::*;
 pub use image::*;
 pub use max_size::*;

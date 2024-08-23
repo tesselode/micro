@@ -11,6 +11,7 @@ pub struct Padding {
 	right: f32,
 	bottom: f32,
 	children: Vec<Box<dyn Widget>>,
+	shrink_wrap: bool,
 	size: Option<Vec2>,
 }
 
@@ -22,6 +23,7 @@ impl Padding {
 			right,
 			bottom,
 			children: vec![],
+			shrink_wrap: false,
 			size: None,
 		}
 	}
@@ -58,17 +60,31 @@ impl Padding {
 		Self::new(0.0, 0.0, 0.0, padding)
 	}
 
+	pub fn shrink_wrap(self) -> Self {
+		Self {
+			shrink_wrap: true,
+			..self
+		}
+	}
+
 	with_child_fns!();
 }
 
 impl Widget for Padding {
 	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
-		self.size = Some(max_size);
 		let child_max_size = max_size - vec2(self.left + self.right, self.top + self.bottom);
-		for child in &mut self.children {
-			child.size(ctx, child_max_size);
-		}
-		max_size
+		let shrink_wrap_size = self
+			.children
+			.iter_mut()
+			.map(|child| child.size(ctx, child_max_size) + vec2(self.left, self.top))
+			.reduce(Vec2::max)
+			.unwrap_or_default();
+		let size = match self.shrink_wrap {
+			true => shrink_wrap_size,
+			false => max_size,
+		};
+		self.size = Some(size);
+		size
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {

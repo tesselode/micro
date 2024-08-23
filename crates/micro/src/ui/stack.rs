@@ -2,7 +2,7 @@ use glam::{vec2, Vec2};
 
 use crate::{with_child_fns, Context};
 
-use super::{Axis, CrossSizing, Widget};
+use super::{CrossSizing, Widget};
 
 #[derive(Debug)]
 pub struct Stack {
@@ -147,4 +147,10 @@ pub struct StackSettings {
 struct SizingPassResults {
 	size: Vec2,
 	child_positions: Vec<Vec2>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Axis {
+	Horizontal,
+	Vertical,
 }

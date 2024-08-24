@@ -1,29 +1,29 @@
 use glam::{vec2, Vec2};
 
-use crate::{with_child_fns, Context};
+use crate::{with_child_fns, with_sizing_fns, Context};
 
-use super::Widget;
+use super::{Sizing, Widget};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Padding {
+	sizing: Sizing,
 	left: f32,
 	top: f32,
 	right: f32,
 	bottom: f32,
 	children: Vec<Box<dyn Widget>>,
-	shrink_wrap: bool,
 	size: Option<Vec2>,
 }
 
 impl Padding {
 	pub fn new(left: f32, top: f32, right: f32, bottom: f32) -> Self {
 		Self {
+			sizing: Sizing::MIN,
 			left,
 			top,
 			right,
 			bottom,
 			children: vec![],
-			shrink_wrap: false,
 			size: None,
 		}
 	}
@@ -60,32 +60,36 @@ impl Padding {
 		Self::new(0.0, 0.0, 0.0, padding)
 	}
 
-	pub fn shrink_wrap(self) -> Self {
+	with_child_fns!();
+	with_sizing_fns!();
+}
+
+impl Default for Padding {
+	fn default() -> Self {
 		Self {
-			shrink_wrap: true,
-			..self
+			sizing: Sizing::MIN,
+			left: Default::default(),
+			top: Default::default(),
+			right: Default::default(),
+			bottom: Default::default(),
+			children: Default::default(),
+			size: Default::default(),
 		}
 	}
-
-	with_child_fns!();
 }
 
 impl Widget for Padding {
-	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
-		let child_max_size = max_size - vec2(self.left + self.right, self.top + self.bottom);
-		let shrink_wrap_size = self
+	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+		let total_padding = vec2(self.left + self.right, self.top + self.bottom);
+		let allotted_size_for_children =
+			self.sizing.allotted_size_for_children(allotted_size) - total_padding;
+		let child_sizes = self
 			.children
 			.iter_mut()
-			.map(|child| child.size(ctx, child_max_size))
-			.reduce(Vec2::max)
-			.unwrap_or_default()
-			+ vec2(self.left + self.right, self.top + self.bottom);
-		let size = match self.shrink_wrap {
-			true => shrink_wrap_size,
-			false => max_size,
-		};
-		self.size = Some(size);
-		size
+			.map(|child| child.size(ctx, allotted_size_for_children));
+		let parent_size = self.sizing.final_parent_size(allotted_size, child_sizes) + total_padding;
+		self.size = Some(parent_size);
+		parent_size
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {

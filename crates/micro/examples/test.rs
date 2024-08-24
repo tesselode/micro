@@ -8,12 +8,12 @@ use micro::{
 		texture::{Texture, TextureSettings},
 	},
 	ui::{
-		CrossSizing, Ellipse, FractionalMaxSize, Mask, MaxSize, Padding, Polygon, Polyline,
-		Rectangle, Stack, StackSettings, Transform, Widget,
+		Align, AxisSizing, Ellipse, Mask, MatchSize, Padding, Polygon, Polyline, Rectangle, Sizing,
+		Stack, StackSettings, Text, TextSettings, Transform, Widget,
 	},
 	App, Context, ContextSettings,
 };
-use palette::{LinSrgb, LinSrgba};
+use palette::{Darken, LinSrgb, LinSrgba};
 
 fn main() {
 	micro::run(ContextSettings::default(), MainState::new);
@@ -47,14 +47,17 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		MaxSize::new((100.0, 100.0))
-			.with_child(
-				Mask::new()
-					.with_mask_child(Rectangle::new().with_fill(LinSrgb::WHITE))
-					.with_child(
-						Transform::translation((50.0, 50.0))
-							.with_child(Ellipse::new().with_fill(LinSrgb::WHITE)),
-					),
+		MatchSize::new()
+			.with_child(Rectangle::new().with_fill(LinSrgb::WHITE.darken(0.9)))
+			.with_sizing_child(
+				Align::center()
+					.with_horizontal_sizing(AxisSizing::Shrink)
+					.with_vertical_sizing(AxisSizing::Max(100.0))
+					.with_child(Padding::horizontal(10.0).with_child(Text::new(
+						&self.font,
+						"Hello, world!",
+						TextSettings::default(),
+					))),
 			)
 			.render(ctx, ctx.window_size().as_vec2())?;
 		Ok(())

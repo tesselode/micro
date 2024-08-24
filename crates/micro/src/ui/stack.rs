@@ -2,7 +2,7 @@ use glam::{vec2, Vec2};
 
 use crate::{with_child_fns, Context};
 
-use super::{CrossSizing, Widget};
+use super::{AxisSizing, Widget};
 
 #[derive(Debug)]
 pub struct Stack {
@@ -35,16 +35,20 @@ impl Stack {
 }
 
 impl Widget for Stack {
-	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
+	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
 		match self.direction {
 			Axis::Horizontal => {
-				let mut max_width = max_size.x;
+				let mut remaining_space = allotted_size.x;
+				let allotted_size_cross = self
+					.settings
+					.cross_sizing
+					.allotted_size_for_children(allotted_size.y);
 				let child_sizes = self
 					.children
 					.iter_mut()
 					.map(|child| {
-						let size = child.size(ctx, vec2(max_width, max_size.y));
-						max_width -= size.x + self.settings.gap;
+						let size = child.size(ctx, vec2(remaining_space, allotted_size_cross));
+						remaining_space -= size.x + self.settings.gap;
 						size
 					})
 					.collect::<Vec<_>>();
@@ -52,14 +56,9 @@ impl Widget for Stack {
 				let total_gap = self.settings.gap * self.children.len().saturating_sub(1) as f32;
 				let stack_size = vec2(
 					total_child_width + total_gap,
-					match self.settings.cross_sizing {
-						CrossSizing::Min => child_sizes
-							.iter()
-							.map(|size| size.y)
-							.reduce(f32::max)
-							.unwrap_or_default(),
-						CrossSizing::Max => max_size.y,
-					},
+					self.settings
+						.cross_sizing
+						.final_parent_size(allotted_size.y, child_sizes.iter().map(|size| size.y)),
 				);
 				let mut next_child_x = 0.0;
 				let child_positions = child_sizes
@@ -80,27 +79,26 @@ impl Widget for Stack {
 				stack_size
 			}
 			Axis::Vertical => {
-				let mut max_height = max_size.y;
+				let mut remaining_space = allotted_size.y;
+				let allotted_size_cross = self
+					.settings
+					.cross_sizing
+					.allotted_size_for_children(allotted_size.x);
 				let child_sizes = self
 					.children
 					.iter_mut()
 					.map(|child| {
-						let size = child.size(ctx, vec2(max_size.x, max_height));
-						max_height -= size.y + self.settings.gap;
+						let size = child.size(ctx, vec2(allotted_size_cross, remaining_space));
+						remaining_space -= size.y + self.settings.gap;
 						size
 					})
 					.collect::<Vec<_>>();
 				let total_child_height = child_sizes.iter().map(|size| size.y).sum::<f32>();
 				let total_gap = self.settings.gap * self.children.len().saturating_sub(1) as f32;
 				let stack_size = vec2(
-					match self.settings.cross_sizing {
-						CrossSizing::Min => child_sizes
-							.iter()
-							.map(|size| size.x)
-							.reduce(f32::max)
-							.unwrap_or_default(),
-						CrossSizing::Max => max_size.x,
-					},
+					self.settings
+						.cross_sizing
+						.final_parent_size(allotted_size.x, child_sizes.iter().map(|size| size.x)),
 					total_child_height + total_gap,
 				);
 				let mut next_child_y = 0.0;
@@ -140,7 +138,7 @@ impl Widget for Stack {
 pub struct StackSettings {
 	pub gap: f32,
 	pub cross_align: f32,
-	pub cross_sizing: CrossSizing,
+	pub cross_sizing: AxisSizing,
 }
 
 #[derive(Debug, Clone, PartialEq)]

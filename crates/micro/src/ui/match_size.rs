@@ -1,4 +1,4 @@
-use glam::{vec2, Vec2};
+use glam::Vec2;
 
 use crate::{with_child_fns, Context};
 
@@ -6,35 +6,13 @@ use super::Widget;
 
 #[derive(Debug)]
 pub struct MatchSize {
-	match_x: bool,
-	match_y: bool,
 	children: Vec<Box<dyn Widget>>,
 	sizing_child_index: Option<usize>,
 }
 
 impl MatchSize {
-	pub fn both_axes() -> Self {
+	pub fn new() -> Self {
 		Self {
-			match_x: true,
-			match_y: true,
-			children: vec![],
-			sizing_child_index: None,
-		}
-	}
-
-	pub fn horizontal() -> Self {
-		Self {
-			match_x: true,
-			match_y: false,
-			children: vec![],
-			sizing_child_index: None,
-		}
-	}
-
-	pub fn vertical() -> Self {
-		Self {
-			match_x: false,
-			match_y: true,
 			children: vec![],
 			sizing_child_index: None,
 		}
@@ -51,26 +29,14 @@ impl MatchSize {
 
 impl Default for MatchSize {
 	fn default() -> Self {
-		Self::both_axes()
+		Self::new()
 	}
 }
 
 impl Widget for MatchSize {
-	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
+	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
 		let sizing_child_index = self.sizing_child_index.expect("no sizing child set");
-		let sizing_child_size = self.children[sizing_child_index].size(ctx, max_size);
-		let size = vec2(
-			if self.match_x {
-				sizing_child_size.x
-			} else {
-				max_size.x
-			},
-			if self.match_y {
-				sizing_child_size.y
-			} else {
-				max_size.y
-			},
-		);
+		let size = self.children[sizing_child_index].size(ctx, allotted_size);
 		for (i, child) in self.children.iter_mut().enumerate() {
 			if i == sizing_child_index {
 				continue;

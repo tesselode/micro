@@ -1,11 +1,12 @@
 use glam::{vec3, Mat4, Vec2};
 
-use crate::{with_child_fns, Context};
+use crate::{with_child_fns, with_sizing_fns, Context};
 
-use super::Widget;
+use super::{Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Transform {
+	sizing: Sizing,
 	origin: Vec2,
 	transform: Mat4,
 	children: Vec<Box<dyn Widget>>,
@@ -15,6 +16,7 @@ pub struct Transform {
 impl Transform {
 	pub fn new(transform: impl Into<Mat4>) -> Self {
 		Self {
+			sizing: Sizing::MIN,
 			origin: Vec2::ZERO,
 			transform: transform.into(),
 			children: vec![],
@@ -58,15 +60,19 @@ impl Transform {
 	}
 
 	with_child_fns!();
+	with_sizing_fns!();
 }
 
 impl Widget for Transform {
-	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
-		for child in &mut self.children {
-			child.size(ctx, max_size);
-		}
-		self.size = Some(max_size);
-		max_size
+	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+		let allotted_size_for_children = self.sizing.allotted_size_for_children(allotted_size);
+		let child_sizes = self
+			.children
+			.iter_mut()
+			.map(|child| child.size(ctx, allotted_size_for_children));
+		let parent_size = self.sizing.final_parent_size(allotted_size, child_sizes);
+		self.size = Some(parent_size);
+		parent_size
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {

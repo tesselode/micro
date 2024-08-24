@@ -1,12 +1,13 @@
 use glam::Vec2;
 
-use crate::{with_child_fns, Context};
+use crate::{with_child_fns, with_sizing_fns, Context};
 
-use super::Widget;
+use super::{Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Align {
 	align: Vec2,
+	sizing: Sizing,
 	children: Vec<Box<dyn Widget>>,
 	sizing_pass_results: Option<SizingPassResults>,
 }
@@ -25,6 +26,7 @@ impl Align {
 	pub fn new(align: impl Into<Vec2>) -> Self {
 		Self {
 			align: align.into(),
+			sizing: Sizing::MAX,
 			children: vec![],
 			sizing_pass_results: None,
 		}
@@ -43,22 +45,30 @@ impl Align {
 	}
 
 	with_child_fns!();
+	with_sizing_fns!();
 }
 
 impl Widget for Align {
-	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
+	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+		let allotted_size_for_children = self.sizing.allotted_size_for_children(allotted_size);
 		let child_sizes = self
 			.children
 			.iter_mut()
-			.map(|child| child.size(ctx, max_size));
+			.map(|child| child.size(ctx, allotted_size_for_children))
+			.collect::<Vec<_>>();
+		let parent_size = self
+			.sizing
+			.final_parent_size(allotted_size, child_sizes.iter().copied());
 		let child_positions = child_sizes
-			.map(|size| (max_size - size) * self.align)
+			.iter()
+			.copied()
+			.map(|size| (parent_size - size) * self.align)
 			.collect();
 		self.sizing_pass_results = Some(SizingPassResults {
-			size: max_size,
+			size: parent_size,
 			child_positions,
 		});
-		max_size
+		parent_size
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {

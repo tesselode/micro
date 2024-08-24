@@ -2,13 +2,14 @@ use glam::Vec2;
 
 use crate::{
 	graphics::{StencilAction, StencilTest},
-	with_child_fns, Context,
+	with_child_fns, with_sizing_fns, Context,
 };
 
-use super::Widget;
+use super::{Sizing, Widget};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Mask {
+	sizing: Sizing,
 	mask_children: Vec<Box<dyn Widget>>,
 	children: Vec<Box<dyn Widget>>,
 }
@@ -34,17 +35,34 @@ impl Mask {
 	}
 
 	with_child_fns!();
+	with_sizing_fns!();
+}
+
+impl Default for Mask {
+	fn default() -> Self {
+		Self {
+			sizing: Sizing::MIN,
+			mask_children: Default::default(),
+			children: Default::default(),
+		}
+	}
 }
 
 impl Widget for Mask {
-	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
-		for child in &mut self.mask_children {
-			child.size(ctx, max_size);
-		}
-		for child in &mut self.children {
-			child.size(ctx, max_size);
-		}
-		max_size
+	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+		let allotted_size_for_children = self.sizing.allotted_size_for_children(allotted_size);
+		let mut child_sizes = self
+			.children
+			.iter_mut()
+			.map(|child| child.size(ctx, allotted_size_for_children))
+			.collect::<Vec<_>>();
+		child_sizes.extend(
+			self.mask_children
+				.iter_mut()
+				.map(|child| child.size(ctx, allotted_size_for_children)),
+		);
+		self.sizing
+			.final_parent_size(allotted_size, child_sizes.iter().copied())
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {

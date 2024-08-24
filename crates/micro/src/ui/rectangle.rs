@@ -1,12 +1,13 @@
 use glam::Vec2;
 use palette::LinSrgba;
 
-use crate::{graphics::mesh::Mesh, math::Rect, with_child_fns, Context};
+use crate::{graphics::mesh::Mesh, math::Rect, with_child_fns, with_sizing_fns, Context};
 
-use super::Widget;
+use super::{Sizing, Widget};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Rectangle {
+	sizing: Sizing,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
 	children: Vec<Box<dyn Widget>>,
@@ -33,15 +34,31 @@ impl Rectangle {
 	}
 
 	with_child_fns!();
+	with_sizing_fns!();
+}
+
+impl Default for Rectangle {
+	fn default() -> Self {
+		Self {
+			sizing: Sizing::MAX,
+			fill: Default::default(),
+			stroke: Default::default(),
+			children: Default::default(),
+			size: Default::default(),
+		}
+	}
 }
 
 impl Widget for Rectangle {
-	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
-		self.size = Some(max_size);
-		for child in &mut self.children {
-			child.size(ctx, max_size);
-		}
-		max_size
+	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+		let allotted_size_for_children = self.sizing.allotted_size_for_children(allotted_size);
+		let child_sizes = self
+			.children
+			.iter_mut()
+			.map(|child| child.size(ctx, allotted_size_for_children));
+		let parent_size = self.sizing.final_parent_size(allotted_size, child_sizes);
+		self.size = Some(parent_size);
+		parent_size
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {

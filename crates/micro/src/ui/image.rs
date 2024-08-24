@@ -28,7 +28,7 @@ impl Image {
 }
 
 impl Widget for Image {
-	fn size(&mut self, _ctx: &mut Context, _max_size: Vec2) -> Vec2 {
+	fn size(&mut self, _ctx: &mut Context, _allotted_size: Vec2) -> Vec2 {
 		self.texture.size().as_vec2()
 	}
 

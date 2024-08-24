@@ -76,9 +76,10 @@ impl Widget for Padding {
 		let shrink_wrap_size = self
 			.children
 			.iter_mut()
-			.map(|child| child.size(ctx, child_max_size) + vec2(self.left, self.top))
+			.map(|child| child.size(ctx, child_max_size))
 			.reduce(Vec2::max)
-			.unwrap_or_default();
+			.unwrap_or_default()
+			+ vec2(self.left + self.right, self.top + self.bottom);
 		let size = match self.shrink_wrap {
 			true => shrink_wrap_size,
 			false => max_size,

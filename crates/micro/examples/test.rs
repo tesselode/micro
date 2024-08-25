@@ -4,12 +4,13 @@ use glam::vec2;
 use micro::{
 	color::ColorConstants,
 	graphics::{
-		text::{Font, FontSettings},
+		mesh::Mesh,
+		text::{Font, FontSettings, LayoutSettings, Text},
 		texture::{Texture, TextureSettings},
 	},
 	ui::{
 		Align, AxisSizing, Ellipse, Mask, MatchSize, Padding, Polygon, Polyline, Rectangle, Sizing,
-		Stack, StackSettings, Text, TextSettings, Transform, Widget,
+		Stack, StackSettings, TextSettings, Transform, Widget,
 	},
 	App, Context, ContextSettings,
 };
@@ -47,19 +48,25 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		MatchSize::new()
-			.with_child(Rectangle::new().with_fill(LinSrgb::WHITE.darken(0.9)))
-			.with_sizing_child(
-				Align::center()
-					.with_horizontal_sizing(AxisSizing::Shrink)
-					.with_vertical_sizing(AxisSizing::Max(100.0))
-					.with_child(Padding::horizontal(10.0).with_child(Text::new(
-						&self.font,
-						"Hello, world!",
-						TextSettings::default(),
-					))),
-			)
-			.render(ctx, ctx.window_size().as_vec2())?;
+		let text = Text::new(
+			ctx,
+			&self.font,
+			"Hello, world!\nNice to meet you!",
+			LayoutSettings::default(),
+		);
+		text.draw(ctx);
+		let bounds = text.bounds().unwrap();
+		let lowest_baseline = text.lowest_baseline().unwrap();
+		Mesh::simple_polyline(
+			ctx,
+			1.0,
+			[
+				(bounds.left(), lowest_baseline),
+				(bounds.right(), lowest_baseline),
+			],
+		)?
+		.color(LinSrgb::RED)
+		.draw(ctx);
 		Ok(())
 	}
 }

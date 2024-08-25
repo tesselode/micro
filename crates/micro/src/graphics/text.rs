@@ -93,6 +93,10 @@ impl Text {
 		self.inner.bounds
 	}
 
+	pub fn lowest_baseline(&self) -> Option<f32> {
+		self.inner.lowest_baseline
+	}
+
 	pub fn draw(&self, ctx: &mut Context) {
 		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
 			unimplemented!(
@@ -112,6 +116,13 @@ impl Text {
 
 	fn from_layout(ctx: &mut Context, layout: Layout, fonts: &[&Font]) -> Text {
 		let glyphs = layout.glyphs();
+		let lowest_baseline = layout.lines().map(|lines| {
+			lines
+				.iter()
+				.map(|line| line.baseline_y)
+				.reduce(f32::max)
+				.unwrap()
+		});
 		let mut sprite_batches = fonts
 			.iter()
 			.enumerate()
@@ -157,6 +168,7 @@ impl Text {
 				sprite_batches,
 				bounds,
 				num_glyphs,
+				lowest_baseline,
 			}),
 			shader: None,
 			transform: Mat4::IDENTITY,
@@ -171,6 +183,7 @@ impl Text {
 struct TextInner {
 	pub(crate) sprite_batches: Vec<SpriteBatch>,
 	pub(crate) bounds: Option<Rect>,
+	pub(crate) lowest_baseline: Option<f32>,
 	pub(crate) num_glyphs: usize,
 }
 

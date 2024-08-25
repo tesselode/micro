@@ -5,12 +5,12 @@ use micro::{
 	color::ColorConstants,
 	graphics::{
 		mesh::Mesh,
-		text::{Font, FontSettings, LayoutSettings, Text},
+		text::{Font, FontSettings, LayoutSettings},
 		texture::{Texture, TextureSettings},
 	},
 	ui::{
 		Align, AxisSizing, Ellipse, Mask, MatchSize, Padding, Polygon, Polyline, Rectangle, Sizing,
-		Stack, StackSettings, TextSettings, Transform, Widget,
+		Stack, StackSettings, Text, TextSettings, TextSizeReporting, TextSizing, Transform, Widget,
 	},
 	App, Context, ContextSettings,
 };
@@ -48,25 +48,29 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		let text = Text::new(
-			ctx,
+		Stack::vertical(StackSettings {
+			gap: 0.0,
+			cross_align: 0.0,
+			cross_sizing: AxisSizing::Shrink,
+		})
+		.with_child(Text::new(
 			&self.font,
-			"Hello, world!\nNice to meet you!",
-			LayoutSettings::default(),
-		);
-		text.draw(ctx);
-		let bounds = text.bounds().unwrap();
-		let lowest_baseline = text.lowest_baseline().unwrap();
-		Mesh::simple_polyline(
-			ctx,
-			1.0,
-			[
-				(bounds.left(), lowest_baseline),
-				(bounds.right(), lowest_baseline),
-			],
-		)?
-		.color(LinSrgb::RED)
-		.draw(ctx);
+			"How are you?",
+			TextSettings {
+				sizing: TextSizing::Min {
+					size_reporting: TextSizeReporting {
+						include_lowest_line_descenders: false,
+					},
+				},
+				..Default::default()
+			},
+		))
+		.with_child(
+			Rectangle::new()
+				.with_vertical_sizing(AxisSizing::Max(2.0))
+				.with_fill(LinSrgb::RED),
+		)
+		.render(ctx, ctx.window_size().as_vec2())?;
 		Ok(())
 	}
 }

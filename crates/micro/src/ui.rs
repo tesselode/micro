@@ -21,7 +21,7 @@ pub use polygon::*;
 pub use polyline::*;
 pub use rectangle::*;
 pub use stack::*;
-pub use text::{TextSettings, TextShadow, TextSizing, TextWidget as Text};
+pub use text::{TextSettings, TextShadow, TextSizeReporting, TextSizing, TextWidget as Text};
 pub use transform::*;
 
 use std::fmt::Debug;

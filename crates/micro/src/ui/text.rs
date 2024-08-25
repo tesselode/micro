@@ -33,7 +33,7 @@ impl TextWidget {
 impl Widget for TextWidget {
 	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
 		let layout_settings = match self.settings.sizing {
-			TextSizing::Min => LayoutSettings {
+			TextSizing::Min { .. } => LayoutSettings {
 				line_height: self.settings.line_height,
 				wrap_style: self.settings.wrap_style,
 				wrap_hard_breaks: self.settings.wrap_hard_breaks,
@@ -55,9 +55,19 @@ impl Widget for TextWidget {
 		};
 		let rendered = Text::new(ctx, &self.font, &self.text, layout_settings);
 		let size = match self.settings.sizing {
-			TextSizing::Min => rendered
+			TextSizing::Min {
+				size_reporting: TextSizeReporting {
+					include_lowest_line_descenders,
+				},
+			} => rendered
 				.bounds()
-				.map(|bounds| bounds.bottom_right())
+				.map(|bounds| {
+					let mut size = bounds.bottom_right();
+					if !include_lowest_line_descenders {
+						size.y = rendered.lowest_baseline().unwrap();
+					}
+					size
+				})
 				.unwrap_or_default(),
 			TextSizing::Max { .. } => max_size,
 		};
@@ -118,18 +128,40 @@ impl Default for TextSettings {
 	}
 }
 
-#[derive(Clone, Copy, PartialEq, Default)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum TextSizing {
-	#[default]
-	Min,
+	Min {
+		size_reporting: TextSizeReporting,
+	},
 	Max {
 		horizontal_align: HorizontalAlign,
 		vertical_align: VerticalAlign,
 	},
 }
 
+impl Default for TextSizing {
+	fn default() -> Self {
+		Self::Min {
+			size_reporting: TextSizeReporting::default(),
+		}
+	}
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TextShadow {
 	pub color: LinSrgba,
 	pub offset: Vec2,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TextSizeReporting {
+	pub include_lowest_line_descenders: bool,
+}
+
+impl Default for TextSizeReporting {
+	fn default() -> Self {
+		Self {
+			include_lowest_line_descenders: true,
+		}
+	}
 }

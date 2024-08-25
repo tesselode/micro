@@ -244,6 +244,7 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 	}
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TextFragment {
 	pub font_index: usize,
 	pub text: String,

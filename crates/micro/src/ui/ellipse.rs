@@ -8,7 +8,7 @@ use crate::{
 	with_child_fns, with_sizing_fns, Context,
 };
 
-use super::{ChildPathGenerator, Sizing, UiState, Widget};
+use super::{ChildPathGenerator, MouseInput, Sizing, TookMouse, UiState, Widget};
 
 #[derive(Debug)]
 pub struct Ellipse {
@@ -75,6 +75,23 @@ impl Widget for Ellipse {
 		let parent_size = self.sizing.final_parent_size(allotted_size, child_sizes);
 		self.size = Some(parent_size);
 		parent_size
+	}
+
+	fn use_mouse_input(
+		&mut self,
+		mouse_input: &MouseInput,
+		state: &mut UiState,
+		path: &Path,
+	) -> TookMouse {
+		let mut child_path_generator = ChildPathGenerator::new();
+		for child in self.children.iter_mut().rev() {
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			let child_took_input = child.use_mouse_input(mouse_input, state, &child_path);
+			if child_took_input {
+				return true;
+			}
+		}
+		false
 	}
 
 	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {

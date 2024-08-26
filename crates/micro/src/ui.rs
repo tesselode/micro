@@ -1,9 +1,11 @@
 mod align;
+mod child_path_generator;
 mod ellipse;
 mod image;
 mod macros;
 mod mask;
 mod match_size;
+mod mouse_input;
 mod padding;
 mod polygon;
 mod polyline;
@@ -15,11 +17,12 @@ mod text;
 mod transform;
 
 pub use align::*;
+pub use child_path_generator::*;
 pub use ellipse::*;
 pub use image::*;
-use indexmap::IndexMap;
 pub use mask::*;
 pub use match_size::*;
+pub use mouse_input::*;
 pub use padding::*;
 pub use polygon::*;
 pub use polyline::*;
@@ -41,12 +44,14 @@ use crate::Context;
 
 pub struct Ui {
 	state: UiState,
+	mouse_input: MouseInput,
 }
 
 impl Ui {
 	pub fn new() -> Self {
 		Self {
 			state: UiState::new(),
+			mouse_input: MouseInput::new(),
 		}
 	}
 
@@ -58,8 +63,10 @@ impl Ui {
 	) -> anyhow::Result<()> {
 		self.state.remove_unused();
 		self.state.reset_used();
+		self.mouse_input.update(ctx);
 		let root_path = PathBuf::new();
 		widget.size(ctx, &mut self.state, &root_path, size);
+		widget.use_mouse_input(&self.mouse_input, &mut self.state, &root_path);
 		widget.draw(ctx, &mut self.state, &root_path)?;
 		Ok(())
 	}
@@ -82,30 +89,14 @@ pub trait Widget: Debug {
 		allotted_size: Vec2,
 	) -> Vec2;
 
+	fn use_mouse_input(
+		&mut self,
+		mouse_input: &MouseInput,
+		state: &mut UiState,
+		path: &Path,
+	) -> TookMouse;
+
 	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()>;
 }
 
-pub struct ChildPathGenerator {
-	num_widgets: IndexMap<&'static str, usize>,
-}
-
-impl ChildPathGenerator {
-	pub fn new() -> Self {
-		Self {
-			num_widgets: IndexMap::new(),
-		}
-	}
-
-	pub fn generate(&mut self, widget_name: &'static str) -> String {
-		let num_widgets_with_name = self.num_widgets.entry(widget_name).or_default();
-		let path = format!("{}{}", widget_name, *num_widgets_with_name);
-		*num_widgets_with_name += 1;
-		path
-	}
-}
-
-impl Default for ChildPathGenerator {
-	fn default() -> Self {
-		Self::new()
-	}
-}
+pub type TookMouse = bool;

@@ -5,7 +5,7 @@ use palette::LinSrgba;
 
 use crate::{graphics::mesh::Mesh, Context};
 
-use super::{UiState, Widget};
+use super::{MouseInput, TookMouse, UiState, Widget};
 
 #[derive(Debug)]
 pub struct Polyline {
@@ -48,6 +48,15 @@ impl Widget for Polyline {
 		_allotted_size: Vec2,
 	) -> Vec2 {
 		self.size
+	}
+
+	fn use_mouse_input(
+		&mut self,
+		_mouse_input: &MouseInput,
+		_state: &mut UiState,
+		_path: &Path,
+	) -> TookMouse {
+		false
 	}
 
 	fn draw(&self, ctx: &mut Context, _state: &mut UiState, _path: &Path) -> anyhow::Result<()> {

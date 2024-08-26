@@ -1,6 +1,7 @@
+use exhaust::Exhaust;
 use sdl2::mouse::MouseButton as Sdl2MouseButton;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Exhaust)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum MouseButton {
 	Unknown,

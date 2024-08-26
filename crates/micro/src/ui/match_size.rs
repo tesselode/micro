@@ -4,7 +4,7 @@ use glam::Vec2;
 
 use crate::{with_child_fns, Context};
 
-use super::{ChildPathGenerator, UiState, Widget};
+use super::{ChildPathGenerator, MouseInput, TookMouse, UiState, Widget};
 
 #[derive(Debug)]
 pub struct MatchSize {
@@ -67,6 +67,23 @@ impl Widget for MatchSize {
 			child.size(ctx, state, &path.join(&child_paths[i]), size);
 		}
 		size
+	}
+
+	fn use_mouse_input(
+		&mut self,
+		mouse_input: &MouseInput,
+		state: &mut UiState,
+		path: &Path,
+	) -> TookMouse {
+		let mut child_path_generator = ChildPathGenerator::new();
+		for child in self.children.iter_mut().rev() {
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			let child_took_input = child.use_mouse_input(mouse_input, state, &child_path);
+			if child_took_input {
+				return true;
+			}
+		}
+		false
 	}
 
 	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {

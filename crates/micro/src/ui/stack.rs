@@ -4,7 +4,7 @@ use glam::{vec2, Vec2};
 
 use crate::{with_child_fns, Context};
 
-use super::{AxisSizing, ChildPathGenerator, UiState, Widget};
+use super::{AxisSizing, ChildPathGenerator, MouseInput, TookMouse, UiState, Widget};
 
 #[derive(Debug)]
 pub struct Stack {
@@ -145,6 +145,27 @@ impl Widget for Stack {
 				stack_size
 			}
 		}
+	}
+
+	fn use_mouse_input(
+		&mut self,
+		mouse_input: &MouseInput,
+		state: &mut UiState,
+		path: &Path,
+	) -> TookMouse {
+		let mut child_path_generator = ChildPathGenerator::new();
+		let SizingPassResults {
+			child_positions, ..
+		} = self.sizing_pass_results.as_ref().unwrap();
+		for (child, &position) in self.children.iter_mut().zip(child_positions.iter()).rev() {
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			let child_took_input =
+				child.use_mouse_input(&mouse_input.translated(position), state, &child_path);
+			if child_took_input {
+				return true;
+			}
+		}
+		false
 	}
 
 	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {

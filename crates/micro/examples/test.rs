@@ -8,10 +8,7 @@ use micro::{
 		text::{Font, FontSettings, LayoutSettings},
 		texture::{Texture, TextureSettings},
 	},
-	ui::{
-		Align, AxisSizing, Ellipse, Mask, MatchSize, Padding, Polygon, Polyline, Rectangle, Sizing,
-		Stack, StackSettings, Text, TextSettings, TextSizeReporting, TextSizing, Transform, Widget,
-	},
+	ui::{Align, AxisSizing, Rectangle, Stack, StackSettings, Ui},
 	App, Context, ContextSettings,
 };
 use palette::{Darken, LinSrgb, LinSrgba};
@@ -48,29 +45,24 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		Stack::vertical(StackSettings {
-			gap: 0.0,
-			cross_align: 0.0,
-			cross_sizing: AxisSizing::Shrink,
-		})
-		.with_child(Text::new(
-			&self.font,
-			"How are you?",
-			TextSettings {
-				sizing: TextSizing::Min {
-					size_reporting: TextSizeReporting {
-						include_lowest_line_descenders: false,
-					},
-				},
-				..Default::default()
-			},
-		))
-		.with_child(
-			Rectangle::new()
-				.with_vertical_sizing(AxisSizing::Max(2.0))
-				.with_fill(LinSrgb::RED),
-		)
-		.render(ctx, ctx.window_size().as_vec2())?;
+		Ui.render(
+			ctx,
+			ctx.window_size().as_vec2(),
+			Stack::horizontal(StackSettings {
+				gap: 10.0,
+				cross_align: 0.5,
+				cross_sizing: AxisSizing::Expand,
+			})
+			.with_children(
+				[(50.0, 50.0), (100.0, 50.0), (50.0, 100.0)]
+					.iter()
+					.map(|size| {
+						Rectangle::new()
+							.with_max_size(*size)
+							.with_stroke(2.0, LinSrgb::WHITE)
+					}),
+			),
+		)?;
 		Ok(())
 	}
 }

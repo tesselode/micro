@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use glam::Vec2;
 use palette::LinSrgba;
 
@@ -6,7 +8,7 @@ use crate::{
 	Context,
 };
 
-use super::Widget;
+use super::{UiState, Widget};
 
 #[derive(Debug)]
 pub struct Polygon {
@@ -47,11 +49,21 @@ impl Polygon {
 }
 
 impl Widget for Polygon {
-	fn size(&mut self, _ctx: &mut Context, _allotted_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"polygon"
+	}
+
+	fn size(
+		&mut self,
+		_ctx: &mut Context,
+		_state: &mut UiState,
+		_path: &Path,
+		_allotted_size: Vec2,
+	) -> Vec2 {
 		self.size
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, _state: &mut UiState, _path: &Path) -> anyhow::Result<()> {
 		if let Some(fill) = self.fill {
 			Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())?
 				.color(fill)

@@ -1,9 +1,11 @@
+use std::path::Path;
+
 use glam::Vec2;
 use palette::LinSrgba;
 
 use crate::{graphics::mesh::Mesh, math::Rect, with_child_fns, with_sizing_fns, Context};
 
-use super::{Sizing, Widget};
+use super::{ChildPathGenerator, Sizing, UiState, Widget};
 
 #[derive(Debug)]
 pub struct Rectangle {
@@ -50,25 +52,38 @@ impl Default for Rectangle {
 }
 
 impl Widget for Rectangle {
-	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"rectangle"
+	}
+
+	fn size(
+		&mut self,
+		ctx: &mut Context,
+		state: &mut UiState,
+		path: &Path,
+		allotted_size: Vec2,
+	) -> Vec2 {
+		let mut child_path_generator = ChildPathGenerator::new();
 		let allotted_size_for_children = self.sizing.allotted_size_for_children(allotted_size);
-		let child_sizes = self
-			.children
-			.iter_mut()
-			.map(|child| child.size(ctx, allotted_size_for_children));
+		let child_sizes = self.children.iter_mut().map(|child| {
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			child.size(ctx, state, &child_path, allotted_size_for_children)
+		});
 		let parent_size = self.sizing.final_parent_size(allotted_size, child_sizes);
 		self.size = Some(parent_size);
 		parent_size
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {
+		let mut child_path_generator = ChildPathGenerator::new();
 		if let Some(fill) = self.fill {
 			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.size.unwrap()))
 				.color(fill)
 				.draw(ctx);
 		}
 		for child in &self.children {
-			child.draw(ctx)?;
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			child.draw(ctx, state, &child_path)?;
 		}
 		if let Some((width, color)) = self.stroke {
 			Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, self.size.unwrap()))?

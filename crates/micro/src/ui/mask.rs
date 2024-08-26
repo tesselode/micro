@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use glam::Vec2;
 
 use crate::{
@@ -5,7 +7,7 @@ use crate::{
 	with_child_fns, with_sizing_fns, Context,
 };
 
-use super::{Sizing, Widget};
+use super::{ChildPathGenerator, Sizing, UiState, Widget};
 
 #[derive(Debug)]
 pub struct Mask {
@@ -49,34 +51,56 @@ impl Default for Mask {
 }
 
 impl Widget for Mask {
-	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"mask"
+	}
+
+	fn size(
+		&mut self,
+		ctx: &mut Context,
+		state: &mut UiState,
+		path: &Path,
+		allotted_size: Vec2,
+	) -> Vec2 {
+		let mut child_path_generator = ChildPathGenerator::new();
 		let allotted_size_for_children = self.sizing.allotted_size_for_children(allotted_size);
 		let mut child_sizes = self
 			.children
 			.iter_mut()
-			.map(|child| child.size(ctx, allotted_size_for_children))
+			.map(|child| {
+				let child_path = path.join(child_path_generator.generate(child.name()));
+				child.size(ctx, state, &child_path, allotted_size_for_children)
+			})
 			.collect::<Vec<_>>();
-		child_sizes.extend(
-			self.mask_children
-				.iter_mut()
-				.map(|child| child.size(ctx, allotted_size_for_children)),
-		);
+		let mut mask_child_path_generator = ChildPathGenerator::new();
+		child_sizes.extend(self.mask_children.iter_mut().map(|child| {
+			let child_path = path
+				.join("mask")
+				.join(mask_child_path_generator.generate(child.name()));
+			child.size(ctx, state, &child_path, allotted_size_for_children)
+		}));
 		self.sizing
 			.final_parent_size(allotted_size, child_sizes.iter().copied())
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {
 		ctx.clear_stencil();
 		{
+			let mut mask_child_path_generator = ChildPathGenerator::new();
 			let ctx = &mut ctx.write_to_stencil(StencilAction::Replace(1));
 			for child in &self.mask_children {
-				child.draw(ctx)?;
+				let child_path = path
+					.join("mask")
+					.join(mask_child_path_generator.generate(child.name()));
+				child.draw(ctx, state, &child_path)?;
 			}
 		}
 		{
+			let mut child_path_generator = ChildPathGenerator::new();
 			let ctx = &mut ctx.use_stencil(StencilTest::Equal, 1);
 			for child in &self.children {
-				child.draw(ctx)?;
+				let child_path = path.join(child_path_generator.generate(child.name()));
+				child.draw(ctx, state, &child_path)?;
 			}
 		}
 		Ok(())

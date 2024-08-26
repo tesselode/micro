@@ -1,8 +1,10 @@
+use std::path::Path;
+
 use glam::{vec2, Vec2};
 
 use crate::{with_child_fns, Context};
 
-use super::{AxisSizing, Widget};
+use super::{AxisSizing, ChildPathGenerator, UiState, Widget};
 
 #[derive(Debug)]
 pub struct Stack {
@@ -35,7 +37,18 @@ impl Stack {
 }
 
 impl Widget for Stack {
-	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"stack"
+	}
+
+	fn size(
+		&mut self,
+		ctx: &mut Context,
+		state: &mut UiState,
+		path: &Path,
+		allotted_size: Vec2,
+	) -> Vec2 {
+		let mut child_path_generator = ChildPathGenerator::new();
 		match self.direction {
 			Axis::Horizontal => {
 				let mut remaining_space = allotted_size.x;
@@ -47,7 +60,13 @@ impl Widget for Stack {
 					.children
 					.iter_mut()
 					.map(|child| {
-						let size = child.size(ctx, vec2(remaining_space, allotted_size_cross));
+						let child_path = path.join(child_path_generator.generate(child.name()));
+						let size = child.size(
+							ctx,
+							state,
+							&child_path,
+							vec2(remaining_space, allotted_size_cross),
+						);
 						remaining_space -= size.x + self.settings.gap;
 						size
 					})
@@ -88,7 +107,13 @@ impl Widget for Stack {
 					.children
 					.iter_mut()
 					.map(|child| {
-						let size = child.size(ctx, vec2(allotted_size_cross, remaining_space));
+						let child_path = path.join(child_path_generator.generate(child.name()));
+						let size = child.size(
+							ctx,
+							state,
+							&child_path,
+							vec2(allotted_size_cross, remaining_space),
+						);
 						remaining_space -= size.y + self.settings.gap;
 						size
 					})
@@ -122,13 +147,15 @@ impl Widget for Stack {
 		}
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {
+		let mut child_path_generator = ChildPathGenerator::new();
 		let SizingPassResults {
 			child_positions, ..
 		} = self.sizing_pass_results.as_ref().unwrap();
 		for (child, &position) in self.children.iter().zip(child_positions.iter()) {
+			let child_path = path.join(child_path_generator.generate(child.name()));
 			let ctx = &mut ctx.push_translation_2d(position);
-			child.draw(ctx)?;
+			child.draw(ctx, state, &child_path)?;
 		}
 		Ok(())
 	}

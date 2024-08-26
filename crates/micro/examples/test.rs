@@ -1,6 +1,6 @@
-use std::{error::Error, time::Duration};
+use std::{error::Error, path::Path, time::Duration};
 
-use glam::vec2;
+use glam::{vec2, Vec2};
 use micro::{
 	color::ColorConstants,
 	graphics::{
@@ -8,9 +8,11 @@ use micro::{
 		text::{Font, FontSettings, LayoutSettings},
 		texture::{Texture, TextureSettings},
 	},
+	input::Scancode,
 	ui::{
 		Align, AxisSizing, Ellipse, Mask, MatchSize, Padding, Polygon, Polyline, Rectangle, Sizing,
-		Stack, StackSettings, Text, TextSettings, TextSizeReporting, TextSizing, Transform, Widget,
+		Stack, StackSettings, Text, TextSettings, TextSizeReporting, TextSizing, Transform, Ui,
+		UiState, Widget,
 	},
 	App, Context, ContextSettings,
 };
@@ -23,6 +25,7 @@ fn main() {
 struct MainState {
 	font: Font,
 	texture: Texture,
+	ui: Ui,
 }
 
 impl MainState {
@@ -38,6 +41,7 @@ impl MainState {
 				"resources/spritesheet_default.png",
 				TextureSettings::default(),
 			)?,
+			ui: Ui::new(),
 		})
 	}
 }
@@ -48,29 +52,44 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		Stack::vertical(StackSettings {
-			gap: 0.0,
-			cross_align: 0.0,
-			cross_sizing: AxisSizing::Shrink,
-		})
-		.with_child(Text::new(
-			&self.font,
-			"How are you?",
-			TextSettings {
-				sizing: TextSizing::Min {
-					size_reporting: TextSizeReporting {
-						include_lowest_line_descenders: false,
-					},
-				},
-				..Default::default()
-			},
-		))
-		.with_child(
-			Rectangle::new()
-				.with_vertical_sizing(AxisSizing::Max(2.0))
-				.with_fill(LinSrgb::RED),
-		)
-		.render(ctx, ctx.window_size().as_vec2())?;
+		if ctx.is_key_down(Scancode::Space) {
+			self.ui
+				.render(ctx, ctx.window_size().as_vec2(), TestWidget)?;
+		} else {
+			self.ui
+				.render(ctx, ctx.window_size().as_vec2(), Rectangle::new())?;
+		}
 		Ok(())
 	}
+}
+
+#[derive(Debug)]
+struct TestWidget;
+
+impl Widget for TestWidget {
+	fn name(&self) -> &'static str {
+		"testWidget"
+	}
+
+	fn size(
+		&mut self,
+		ctx: &mut Context,
+		state: &mut UiState,
+		path: &Path,
+		allotted_size: Vec2,
+	) -> Vec2 {
+		Vec2::ZERO
+	}
+
+	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {
+		let TestWidgetState { num_frames } = state.get_mut(path);
+		*num_frames += 1;
+		println!("{}", *num_frames);
+		Ok(())
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+struct TestWidgetState {
+	num_frames: usize,
 }

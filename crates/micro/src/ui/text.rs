@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Formatter};
+use std::{
+	fmt::{Debug, Formatter},
+	path::Path,
+};
 
 use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
 use glam::Vec2;
@@ -10,7 +13,7 @@ use crate::{
 	Context,
 };
 
-use super::Widget;
+use super::{UiState, Widget};
 
 pub struct TextWidget {
 	font: Font,
@@ -31,7 +34,17 @@ impl TextWidget {
 }
 
 impl Widget for TextWidget {
-	fn size(&mut self, ctx: &mut Context, max_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"text"
+	}
+
+	fn size(
+		&mut self,
+		ctx: &mut Context,
+		_state: &mut UiState,
+		_path: &Path,
+		max_size: Vec2,
+	) -> Vec2 {
 		let layout_settings = match self.settings.sizing {
 			TextSizing::Min { .. } => LayoutSettings {
 				line_height: self.settings.line_height,
@@ -75,7 +88,7 @@ impl Widget for TextWidget {
 		size
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, _state: &mut UiState, _path: &Path) -> anyhow::Result<()> {
 		if let Some(TextShadow { color, offset }) = self.settings.shadow {
 			self.rendered
 				.as_ref()

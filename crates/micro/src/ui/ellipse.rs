@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use glam::Vec2;
 use palette::LinSrgba;
 
@@ -6,7 +8,7 @@ use crate::{
 	with_child_fns, with_sizing_fns, Context,
 };
 
-use super::{Sizing, Widget};
+use super::{ChildPathGenerator, Sizing, UiState, Widget};
 
 #[derive(Debug)]
 pub struct Ellipse {
@@ -53,18 +55,30 @@ impl Default for Ellipse {
 }
 
 impl Widget for Ellipse {
-	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"ellipse"
+	}
+
+	fn size(
+		&mut self,
+		ctx: &mut Context,
+		state: &mut UiState,
+		path: &Path,
+		allotted_size: Vec2,
+	) -> Vec2 {
+		let mut child_path_generator = ChildPathGenerator::new();
 		let allotted_size_for_children = self.sizing.allotted_size_for_children(allotted_size);
-		let child_sizes = self
-			.children
-			.iter_mut()
-			.map(|child| child.size(ctx, allotted_size_for_children));
+		let child_sizes = self.children.iter_mut().map(|child| {
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			child.size(ctx, state, &child_path, allotted_size_for_children)
+		});
 		let parent_size = self.sizing.final_parent_size(allotted_size, child_sizes);
 		self.size = Some(parent_size);
 		parent_size
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {
+		let mut child_path_generator = ChildPathGenerator::new();
 		let size = self.size.unwrap();
 		if let Some(fill) = self.fill {
 			Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)?
@@ -72,7 +86,8 @@ impl Widget for Ellipse {
 				.draw(ctx);
 		}
 		for child in &self.children {
-			child.draw(ctx)?;
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			child.draw(ctx, state, &child_path)?;
 		}
 		if let Some((width, color)) = self.stroke {
 			Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)?

@@ -1,8 +1,10 @@
+use std::path::Path;
+
 use glam::Vec2;
 
 use crate::{with_child_fns, Context};
 
-use super::Widget;
+use super::{ChildPathGenerator, UiState, Widget};
 
 #[derive(Debug)]
 pub struct MatchSize {
@@ -34,21 +36,44 @@ impl Default for MatchSize {
 }
 
 impl Widget for MatchSize {
-	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"matchSize"
+	}
+
+	fn size(
+		&mut self,
+		ctx: &mut Context,
+		state: &mut UiState,
+		path: &Path,
+		allotted_size: Vec2,
+	) -> Vec2 {
+		let mut child_path_generator = ChildPathGenerator::new();
+		let child_paths = self
+			.children
+			.iter()
+			.map(|child| child_path_generator.generate(child.name()))
+			.collect::<Vec<_>>();
 		let sizing_child_index = self.sizing_child_index.expect("no sizing child set");
-		let size = self.children[sizing_child_index].size(ctx, allotted_size);
+		let size = self.children[sizing_child_index].size(
+			ctx,
+			state,
+			&path.join(&child_paths[sizing_child_index]),
+			allotted_size,
+		);
 		for (i, child) in self.children.iter_mut().enumerate() {
 			if i == sizing_child_index {
 				continue;
 			}
-			child.size(ctx, size);
+			child.size(ctx, state, &path.join(&child_paths[i]), size);
 		}
 		size
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {
+		let mut child_path_generator = ChildPathGenerator::new();
 		for child in &self.children {
-			child.draw(ctx)?;
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			child.draw(ctx, state, &child_path)?;
 		}
 		Ok(())
 	}

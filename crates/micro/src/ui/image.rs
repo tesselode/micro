@@ -1,9 +1,11 @@
+use std::path::Path;
+
 use glam::Vec2;
 use palette::LinSrgba;
 
 use crate::{color::ColorConstants, graphics::texture::Texture, Context};
 
-use super::Widget;
+use super::{UiState, Widget};
 
 #[derive(Debug)]
 pub struct Image {
@@ -28,11 +30,21 @@ impl Image {
 }
 
 impl Widget for Image {
-	fn size(&mut self, _ctx: &mut Context, _allotted_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"image"
+	}
+
+	fn size(
+		&mut self,
+		_ctx: &mut Context,
+		_state: &mut UiState,
+		_path: &Path,
+		_allotted_size: Vec2,
+	) -> Vec2 {
 		self.texture.size().as_vec2()
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, _state: &mut UiState, _path: &Path) -> anyhow::Result<()> {
 		self.texture.color(self.color).draw(ctx);
 		Ok(())
 	}

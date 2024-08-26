@@ -1,8 +1,10 @@
+use std::path::Path;
+
 use glam::{vec2, Vec2};
 
 use crate::{with_child_fns, with_sizing_fns, Context};
 
-use super::{Sizing, Widget};
+use super::{ChildPathGenerator, Sizing, UiState, Widget};
 
 #[derive(Debug)]
 pub struct Padding {
@@ -79,23 +81,36 @@ impl Default for Padding {
 }
 
 impl Widget for Padding {
-	fn size(&mut self, ctx: &mut Context, allotted_size: Vec2) -> Vec2 {
+	fn name(&self) -> &'static str {
+		"padding"
+	}
+
+	fn size(
+		&mut self,
+		ctx: &mut Context,
+		state: &mut UiState,
+		path: &Path,
+		allotted_size: Vec2,
+	) -> Vec2 {
+		let mut child_path_generator = ChildPathGenerator::new();
 		let total_padding = vec2(self.left + self.right, self.top + self.bottom);
 		let allotted_size_for_children =
 			self.sizing.allotted_size_for_children(allotted_size) - total_padding;
-		let child_sizes = self
-			.children
-			.iter_mut()
-			.map(|child| child.size(ctx, allotted_size_for_children));
+		let child_sizes = self.children.iter_mut().map(|child| {
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			child.size(ctx, state, &child_path, allotted_size_for_children)
+		});
 		let parent_size = self.sizing.final_parent_size(allotted_size, child_sizes) + total_padding;
 		self.size = Some(parent_size);
 		parent_size
 	}
 
-	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn draw(&self, ctx: &mut Context, state: &mut UiState, path: &Path) -> anyhow::Result<()> {
+		let mut child_path_generator = ChildPathGenerator::new();
 		let ctx = &mut ctx.push_translation_2d(vec2(self.left, self.top));
 		for child in &self.children {
-			child.draw(ctx)?;
+			let child_path = path.join(child_path_generator.generate(child.name()));
+			child.draw(ctx, state, &child_path)?;
 		}
 		Ok(())
 	}

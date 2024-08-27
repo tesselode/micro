@@ -51,8 +51,8 @@ impl Widget for Align {
 		"align"
 	}
 
-	fn children(&mut self) -> Vec<Box<dyn Widget>> {
-		std::mem::take(&mut self.children)
+	fn children(&self) -> &[Box<dyn Widget>] {
+		&self.children
 	}
 
 	fn allotted_size_for_next_child(

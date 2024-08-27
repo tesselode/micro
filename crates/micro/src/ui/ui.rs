@@ -13,26 +13,26 @@ impl Ui {
 		size: Vec2,
 		widget: impl Widget + 'static,
 	) -> anyhow::Result<()> {
-		let baked_widget = BakedWidget::new(Box::new(widget), size);
+		let baked_widget = BakedWidget::new(&widget, size);
 		baked_widget.draw(ctx)?;
 		Ok(())
 	}
 }
 
-struct BakedWidget {
-	widget: Box<dyn Widget>,
-	children: Vec<BakedWidget>,
+struct BakedWidget<'a> {
+	widget: &'a dyn Widget,
+	children: Vec<BakedWidget<'a>>,
 	layout_result: LayoutResult,
 }
 
-impl BakedWidget {
-	fn new(mut widget: Box<dyn Widget>, allotted_size_from_parent: Vec2) -> Self {
+impl<'a> BakedWidget<'a> {
+	fn new(widget: &'a dyn Widget, allotted_size_from_parent: Vec2) -> Self {
 		let mut children = vec![];
 		let mut child_sizes = vec![];
 		for child in widget.children() {
 			let allotted_size_for_child =
 				widget.allotted_size_for_next_child(allotted_size_from_parent, &child_sizes);
-			let baked_child = BakedWidget::new(child, allotted_size_for_child);
+			let baked_child = BakedWidget::new(child.as_ref(), allotted_size_for_child);
 			child_sizes.push(baked_child.layout_result.size);
 			children.push(baked_child);
 		}

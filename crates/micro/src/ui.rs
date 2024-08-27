@@ -22,7 +22,7 @@ use crate::Context;
 pub trait Widget: Debug {
 	fn name(&self) -> &'static str;
 
-	fn children(&mut self) -> Vec<Box<dyn Widget>>;
+	fn children(&self) -> &[Box<dyn Widget>];
 
 	fn allotted_size_for_next_child(
 		&self,

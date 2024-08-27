@@ -1,14 +1,17 @@
+use std::fmt::Debug;
+
 use glam::Vec2;
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{with_child_fns, with_mouse_event_fns, with_sizing_fns};
 
-use super::{LayoutResult, Sizing, Widget};
+use super::{LayoutResult, MouseEvents, Sizing, Widget};
 
 #[derive(Debug)]
-pub struct Align {
+pub struct Align<Event> {
 	align: Vec2,
 	sizing: Sizing,
-	children: Vec<Box<dyn Widget>>,
+	children: Vec<Box<dyn Widget<Event>>>,
+	mouse_events: MouseEvents<Event>,
 }
 
 macro_rules! align_constructors {
@@ -21,12 +24,13 @@ macro_rules! align_constructors {
 	};
 }
 
-impl Align {
+impl<Event> Align<Event> {
 	pub fn new(align: impl Into<Vec2>) -> Self {
 		Self {
 			align: align.into(),
 			sizing: Sizing::MAX,
 			children: vec![],
+			mouse_events: MouseEvents::default(),
 		}
 	}
 
@@ -44,15 +48,20 @@ impl Align {
 
 	with_child_fns!();
 	with_sizing_fns!();
+	with_mouse_event_fns!();
 }
 
-impl Widget for Align {
+impl<Event: Debug + Copy> Widget<Event> for Align<Event> {
 	fn name(&self) -> &'static str {
 		"align"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget>] {
+	fn children(&self) -> &[Box<dyn Widget<Event>>] {
 		&self.children
+	}
+
+	fn mouse_events(&self) -> MouseEvents<Event> {
+		self.mouse_events
 	}
 
 	fn allotted_size_for_next_child(

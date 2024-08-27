@@ -1,19 +1,25 @@
+use std::fmt::Debug;
+
 use glam::Vec2;
 use palette::LinSrgba;
 
-use crate::{graphics::mesh::Mesh, math::Rect, with_child_fns, with_sizing_fns, Context};
+use crate::{
+	graphics::mesh::Mesh, math::Rect, with_child_fns, with_mouse_event_fns, with_sizing_fns,
+	Context,
+};
 
-use super::{LayoutResult, Sizing, Widget};
+use super::{LayoutResult, MouseEvents, Sizing, Widget};
 
 #[derive(Debug)]
-pub struct Rectangle {
+pub struct Rectangle<Event> {
 	sizing: Sizing,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
-	children: Vec<Box<dyn Widget>>,
+	children: Vec<Box<dyn Widget<Event>>>,
+	mouse_events: MouseEvents<Event>,
 }
 
-impl Rectangle {
+impl<Event> Rectangle<Event> {
 	pub fn new() -> Self {
 		Self::default()
 	}
@@ -34,26 +40,32 @@ impl Rectangle {
 
 	with_child_fns!();
 	with_sizing_fns!();
+	with_mouse_event_fns!();
 }
 
-impl Default for Rectangle {
+impl<Event> Default for Rectangle<Event> {
 	fn default() -> Self {
 		Self {
 			sizing: Sizing::MAX,
 			fill: Default::default(),
 			stroke: Default::default(),
 			children: Default::default(),
+			mouse_events: Default::default(),
 		}
 	}
 }
 
-impl Widget for Rectangle {
+impl<Event: Debug + Copy> Widget<Event> for Rectangle<Event> {
 	fn name(&self) -> &'static str {
 		"rectangle"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget>] {
+	fn children(&self) -> &[Box<dyn Widget<Event>>] {
 		&self.children
+	}
+
+	fn mouse_events(&self) -> MouseEvents<Event> {
+		self.mouse_events
 	}
 
 	fn allotted_size_for_next_child(

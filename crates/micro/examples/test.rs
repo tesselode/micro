@@ -20,6 +20,7 @@ fn main() {
 struct MainState {
 	font: Font,
 	texture: Texture,
+	ui: Ui,
 }
 
 impl MainState {
@@ -35,6 +36,7 @@ impl MainState {
 				"resources/spritesheet_default.png",
 				TextureSettings::default(),
 			)?,
+			ui: Ui::new(),
 		})
 	}
 }
@@ -45,7 +47,7 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		Ui.render(
+		let events = self.ui.render(
 			ctx,
 			ctx.window_size().as_vec2(),
 			Stack::horizontal(StackSettings {
@@ -56,13 +58,27 @@ impl App<Box<dyn Error>> for MainState {
 			.with_children(
 				[(50.0, 50.0), (100.0, 50.0), (50.0, 100.0)]
 					.iter()
-					.map(|size| {
+					.enumerate()
+					.map(|(i, size)| {
 						Rectangle::new()
 							.with_max_size(*size)
 							.with_stroke(2.0, LinSrgb::WHITE)
+							.on_click(UiEvent::Click(i))
+							.on_hover(UiEvent::Hover(i))
+							.on_unhover(UiEvent::Unhover(i))
 					}),
 			),
 		)?;
+		for event in events {
+			println!("{:?}", event);
+		}
 		Ok(())
 	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum UiEvent {
+	Click(usize),
+	Hover(usize),
+	Unhover(usize),
 }

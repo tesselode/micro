@@ -1,22 +1,26 @@
+use std::fmt::Debug;
+
 use glam::{vec2, Vec2};
 
-use crate::with_child_fns;
+use crate::{with_child_fns, with_mouse_event_fns};
 
-use super::{AxisSizing, LayoutResult, Widget};
+use super::{AxisSizing, LayoutResult, MouseEvents, Widget};
 
 #[derive(Debug)]
-pub struct Stack {
+pub struct Stack<Event> {
 	direction: Axis,
 	settings: StackSettings,
-	children: Vec<Box<dyn Widget>>,
+	children: Vec<Box<dyn Widget<Event>>>,
+	mouse_events: MouseEvents<Event>,
 }
 
-impl Stack {
+impl<Event> Stack<Event> {
 	pub fn horizontal(settings: StackSettings) -> Self {
 		Self {
 			direction: Axis::Horizontal,
 			settings,
 			children: vec![],
+			mouse_events: MouseEvents::default(),
 		}
 	}
 
@@ -25,19 +29,25 @@ impl Stack {
 			direction: Axis::Vertical,
 			settings,
 			children: vec![],
+			mouse_events: MouseEvents::default(),
 		}
 	}
 
 	with_child_fns!();
+	with_mouse_event_fns!();
 }
 
-impl Widget for Stack {
+impl<Event: Debug + Copy> Widget<Event> for Stack<Event> {
 	fn name(&self) -> &'static str {
 		"stack"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget>] {
+	fn children(&self) -> &[Box<dyn Widget<Event>>] {
 		&self.children
+	}
+
+	fn mouse_events(&self) -> MouseEvents<Event> {
+		self.mouse_events
 	}
 
 	fn allotted_size_for_next_child(

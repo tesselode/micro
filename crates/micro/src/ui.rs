@@ -19,10 +19,12 @@ use glam::Vec2;
 use crate::Context;
 
 #[allow(unused_variables)]
-pub trait Widget: Debug {
+pub trait Widget<Event>: Debug {
 	fn name(&self) -> &'static str;
 
-	fn children(&self) -> &[Box<dyn Widget>];
+	fn children(&self) -> &[Box<dyn Widget<Event>>];
+
+	fn mouse_events(&self) -> MouseEvents<Event>;
 
 	fn allotted_size_for_next_child(
 		&self,
@@ -41,4 +43,21 @@ pub trait Widget: Debug {
 pub struct LayoutResult {
 	pub size: Vec2,
 	pub child_positions: Vec<Vec2>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MouseEvents<Event> {
+	pub click: Option<Event>,
+	pub hover: Option<Event>,
+	pub unhover: Option<Event>,
+}
+
+impl<Event> Default for MouseEvents<Event> {
+	fn default() -> Self {
+		Self {
+			click: Default::default(),
+			hover: Default::default(),
+			unhover: Default::default(),
+		}
+	}
 }

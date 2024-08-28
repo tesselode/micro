@@ -17,9 +17,12 @@ impl WidgetMouseState {
 		self.hovered = mouse_input
 			.mouse_position
 			.is_some_and(|position| Rect::new(Vec2::ZERO, size).contains_point(position));
-		if mouse_input.left_pressed() && self.hovered {
+		let click_started = if mouse_input.left_pressed() && self.hovered {
 			self.pressed = true;
-		}
+			true
+		} else {
+			false
+		};
 		let clicked = if mouse_input.left_released() && self.pressed && self.hovered {
 			self.pressed = false;
 			true
@@ -30,16 +33,18 @@ impl WidgetMouseState {
 			self.pressed = false;
 		}
 		UpdateMouseStateResult {
+			click_started,
 			clicked,
 			hovered: self.hovered && !self.hovered_previous,
-			unhovered: self.hovered_previous && !self.hovered && !self.pressed,
+			unhovered: self.hovered_previous && !self.hovered,
 		}
 	}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UpdateMouseStateResult {
-	pub clicked: bool,
 	pub hovered: bool,
 	pub unhovered: bool,
+	pub click_started: bool,
+	pub clicked: bool,
 }

@@ -73,9 +73,10 @@ impl<'a> BakedWidget<'a> {
 		widget_mouse_state: &mut IndexMap<PathBuf, WidgetMouseState>,
 	) {
 		let UpdateMouseStateResult {
-			clicked,
 			hovered,
 			unhovered,
+			click_started,
+			clicked,
 		} = widget_mouse_state
 			.entry(self.path.clone())
 			.or_default()
@@ -86,6 +87,9 @@ impl<'a> BakedWidget<'a> {
 			}
 			if unhovered {
 				channel.push(WidgetMouseEvent::Unhovered);
+			}
+			if click_started {
+				channel.push(WidgetMouseEvent::ClickStarted);
 			}
 			if clicked {
 				channel.push(WidgetMouseEvent::Clicked);

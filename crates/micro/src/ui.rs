@@ -62,9 +62,16 @@ impl WidgetMouseEventChannel {
 	}
 }
 
+impl Default for WidgetMouseEventChannel {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WidgetMouseEvent {
 	Hovered,
 	Unhovered,
+	ClickStarted,
 	Clicked,
 }

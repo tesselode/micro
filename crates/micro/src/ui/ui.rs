@@ -10,7 +10,7 @@ use widget_mouse_state::{UpdateMouseStateResult, WidgetMouseState};
 
 use crate::Context;
 
-use super::{LayoutResult, MouseEvents, Widget};
+use super::{LayoutResult, Widget, WidgetMouseEvent};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Ui {
@@ -23,34 +23,29 @@ impl Ui {
 		Self::default()
 	}
 
-	pub fn render<Event>(
+	pub fn render(
 		&mut self,
 		ctx: &mut Context,
 		size: Vec2,
-		widget: impl Widget<Event> + 'static,
-	) -> anyhow::Result<Vec<Event>> {
+		widget: impl Widget + 'static,
+	) -> anyhow::Result<()> {
 		let mut baked_widget = BakedWidget::new(PathBuf::new(), &widget, size);
 		self.mouse_input.update(ctx);
-		let mut emitted_events = vec![];
-		baked_widget.use_mouse_input(
-			self.mouse_input,
-			&mut self.widget_mouse_state,
-			&mut emitted_events,
-		);
+		baked_widget.use_mouse_input(self.mouse_input, &mut self.widget_mouse_state);
 		baked_widget.draw(ctx)?;
-		Ok(emitted_events)
+		Ok(())
 	}
 }
 
-struct BakedWidget<'a, Event> {
+struct BakedWidget<'a> {
 	path: PathBuf,
-	widget: &'a dyn Widget<Event>,
-	children: Vec<BakedWidget<'a, Event>>,
+	widget: &'a dyn Widget,
+	children: Vec<BakedWidget<'a>>,
 	layout_result: LayoutResult,
 }
 
-impl<'a, Event> BakedWidget<'a, Event> {
-	fn new(path: PathBuf, widget: &'a dyn Widget<Event>, allotted_size_from_parent: Vec2) -> Self {
+impl<'a> BakedWidget<'a> {
+	fn new(path: PathBuf, widget: &'a dyn Widget, allotted_size_from_parent: Vec2) -> Self {
 		let mut children = vec![];
 		let mut child_sizes = vec![];
 		let mut unique_child_name_generator = UniqueChildNameGenerator::new();
@@ -76,13 +71,7 @@ impl<'a, Event> BakedWidget<'a, Event> {
 		&mut self,
 		mouse_input: MouseInput,
 		widget_mouse_state: &mut IndexMap<PathBuf, WidgetMouseState>,
-		emitted_events: &mut Vec<Event>,
 	) {
-		let MouseEvents {
-			click,
-			hover,
-			unhover,
-		} = self.widget.mouse_events();
 		let UpdateMouseStateResult {
 			clicked,
 			hovered,
@@ -91,25 +80,23 @@ impl<'a, Event> BakedWidget<'a, Event> {
 			.entry(self.path.clone())
 			.or_default()
 			.update(mouse_input, self.layout_result.size);
-		if hovered {
-			emitted_events.extend(hover);
-		}
-		if unhovered {
-			emitted_events.extend(unhover);
-		}
-		if clicked {
-			emitted_events.extend(click);
+		if let Some(channel) = self.widget.mouse_event_channel() {
+			if hovered {
+				channel.push(WidgetMouseEvent::Hovered);
+			}
+			if unhovered {
+				channel.push(WidgetMouseEvent::Unhovered);
+			}
+			if clicked {
+				channel.push(WidgetMouseEvent::Clicked);
+			}
 		}
 		for (child, &position) in self
 			.children
 			.iter_mut()
 			.zip(self.layout_result.child_positions.iter())
 		{
-			child.use_mouse_input(
-				mouse_input.translated(-position),
-				widget_mouse_state,
-				emitted_events,
-			);
+			child.use_mouse_input(mouse_input.translated(-position), widget_mouse_state);
 		}
 	}
 

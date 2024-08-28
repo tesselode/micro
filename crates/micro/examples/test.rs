@@ -8,7 +8,7 @@ use micro::{
 		text::{Font, FontSettings, LayoutSettings},
 		texture::{Texture, TextureSettings},
 	},
-	ui::{Align, AxisSizing, Rectangle, Stack, StackSettings, Ui},
+	ui::{Align, AxisSizing, Rectangle, Stack, StackSettings, Ui, WidgetMouseEventChannel},
 	App, Context, ContextSettings,
 };
 use palette::{Darken, LinSrgb, LinSrgba};
@@ -21,6 +21,7 @@ struct MainState {
 	font: Font,
 	texture: Texture,
 	ui: Ui,
+	widget_mouse_event_channels: Vec<WidgetMouseEventChannel>,
 }
 
 impl MainState {
@@ -37,6 +38,11 @@ impl MainState {
 				TextureSettings::default(),
 			)?,
 			ui: Ui::new(),
+			widget_mouse_event_channels: vec![
+				WidgetMouseEventChannel::new(),
+				WidgetMouseEventChannel::new(),
+				WidgetMouseEventChannel::new(),
+			],
 		})
 	}
 }
@@ -47,7 +53,7 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
-		let events = self.ui.render(
+		self.ui.render(
 			ctx,
 			ctx.window_size().as_vec2(),
 			Stack::horizontal(StackSettings {
@@ -63,14 +69,14 @@ impl App<Box<dyn Error>> for MainState {
 						Rectangle::new()
 							.with_max_size(*size)
 							.with_stroke(2.0, LinSrgb::WHITE)
-							.on_click(UiEvent::Click(i))
-							.on_hover(UiEvent::Hover(i))
-							.on_unhover(UiEvent::Unhover(i))
+							.with_mouse_event_channel(&self.widget_mouse_event_channels[i])
 					}),
 			),
 		)?;
-		for event in events {
-			println!("{:?}", event);
+		for (i, channel) in self.widget_mouse_event_channels.iter().enumerate() {
+			while let Some(event) = channel.pop() {
+				println!("{:?} ({})", event, i);
+			}
 		}
 		Ok(())
 	}

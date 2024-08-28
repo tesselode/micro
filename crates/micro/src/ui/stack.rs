@@ -2,25 +2,25 @@ use std::fmt::Debug;
 
 use glam::{vec2, Vec2};
 
-use crate::{with_child_fns, with_mouse_event_fns};
+use crate::with_child_fns;
 
-use super::{AxisSizing, LayoutResult, MouseEvents, Widget};
+use super::{AxisSizing, LayoutResult, Widget, WidgetMouseEventChannel};
 
 #[derive(Debug)]
-pub struct Stack<Event> {
+pub struct Stack {
 	direction: Axis,
 	settings: StackSettings,
-	children: Vec<Box<dyn Widget<Event>>>,
-	mouse_events: MouseEvents<Event>,
+	children: Vec<Box<dyn Widget>>,
+	mouse_event_channel: Option<WidgetMouseEventChannel>,
 }
 
-impl<Event> Stack<Event> {
+impl Stack {
 	pub fn horizontal(settings: StackSettings) -> Self {
 		Self {
 			direction: Axis::Horizontal,
 			settings,
 			children: vec![],
-			mouse_events: MouseEvents::default(),
+			mouse_event_channel: None,
 		}
 	}
 
@@ -29,25 +29,31 @@ impl<Event> Stack<Event> {
 			direction: Axis::Vertical,
 			settings,
 			children: vec![],
-			mouse_events: MouseEvents::default(),
+			mouse_event_channel: None,
+		}
+	}
+
+	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+		Self {
+			mouse_event_channel: Some(channel.clone()),
+			..self
 		}
 	}
 
 	with_child_fns!();
-	with_mouse_event_fns!();
 }
 
-impl<Event: Debug + Copy> Widget<Event> for Stack<Event> {
+impl Widget for Stack {
 	fn name(&self) -> &'static str {
 		"stack"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget<Event>>] {
+	fn children(&self) -> &[Box<dyn Widget>] {
 		&self.children
 	}
 
-	fn mouse_events(&self) -> MouseEvents<Event> {
-		self.mouse_events
+	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
+		self.mouse_event_channel.as_ref()
 	}
 
 	fn allotted_size_for_next_child(

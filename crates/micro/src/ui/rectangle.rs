@@ -3,23 +3,20 @@ use std::fmt::Debug;
 use glam::Vec2;
 use palette::LinSrgba;
 
-use crate::{
-	graphics::mesh::Mesh, math::Rect, with_child_fns, with_mouse_event_fns, with_sizing_fns,
-	Context,
-};
+use crate::{graphics::mesh::Mesh, math::Rect, with_child_fns, with_sizing_fns, Context};
 
-use super::{LayoutResult, MouseEvents, Sizing, Widget};
+use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
 #[derive(Debug)]
-pub struct Rectangle<Event> {
+pub struct Rectangle {
 	sizing: Sizing,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
-	children: Vec<Box<dyn Widget<Event>>>,
-	mouse_events: MouseEvents<Event>,
+	children: Vec<Box<dyn Widget>>,
+	mouse_event_channel: Option<WidgetMouseEventChannel>,
 }
 
-impl<Event> Rectangle<Event> {
+impl Rectangle {
 	pub fn new() -> Self {
 		Self::default()
 	}
@@ -38,34 +35,40 @@ impl<Event> Rectangle<Event> {
 		}
 	}
 
+	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+		Self {
+			mouse_event_channel: Some(channel.clone()),
+			..self
+		}
+	}
+
 	with_child_fns!();
 	with_sizing_fns!();
-	with_mouse_event_fns!();
 }
 
-impl<Event> Default for Rectangle<Event> {
+impl Default for Rectangle {
 	fn default() -> Self {
 		Self {
 			sizing: Sizing::MAX,
 			fill: Default::default(),
 			stroke: Default::default(),
 			children: Default::default(),
-			mouse_events: Default::default(),
+			mouse_event_channel: None,
 		}
 	}
 }
 
-impl<Event: Debug + Copy> Widget<Event> for Rectangle<Event> {
+impl Widget for Rectangle {
 	fn name(&self) -> &'static str {
 		"rectangle"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget<Event>>] {
+	fn children(&self) -> &[Box<dyn Widget>] {
 		&self.children
 	}
 
-	fn mouse_events(&self) -> MouseEvents<Event> {
-		self.mouse_events
+	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
+		self.mouse_event_channel.as_ref()
 	}
 
 	fn allotted_size_for_next_child(

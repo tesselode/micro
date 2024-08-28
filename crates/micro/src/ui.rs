@@ -12,19 +12,19 @@ pub use sizing::*;
 pub use stack::*;
 pub use ui::Ui;
 
-use std::fmt::Debug;
+use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 
 use glam::Vec2;
 
 use crate::Context;
 
 #[allow(unused_variables)]
-pub trait Widget<Event>: Debug {
+pub trait Widget: Debug {
 	fn name(&self) -> &'static str;
 
-	fn children(&self) -> &[Box<dyn Widget<Event>>];
+	fn children(&self) -> &[Box<dyn Widget>];
 
-	fn mouse_events(&self) -> MouseEvents<Event>;
+	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel>;
 
 	fn allotted_size_for_next_child(
 		&self,
@@ -45,19 +45,26 @@ pub struct LayoutResult {
 	pub child_positions: Vec<Vec2>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MouseEvents<Event> {
-	pub click: Option<Event>,
-	pub hover: Option<Event>,
-	pub unhover: Option<Event>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WidgetMouseEventChannel(Rc<RefCell<VecDeque<WidgetMouseEvent>>>);
+
+impl WidgetMouseEventChannel {
+	pub fn new() -> Self {
+		Self(Rc::new(RefCell::new(VecDeque::new())))
+	}
+
+	pub fn push(&self, event: WidgetMouseEvent) {
+		self.0.borrow_mut().push_back(event);
+	}
+
+	pub fn pop(&self) -> Option<WidgetMouseEvent> {
+		self.0.borrow_mut().pop_front()
+	}
 }
 
-impl<Event> Default for MouseEvents<Event> {
-	fn default() -> Self {
-		Self {
-			click: Default::default(),
-			hover: Default::default(),
-			unhover: Default::default(),
-		}
-	}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum WidgetMouseEvent {
+	Hovered,
+	Unhovered,
+	Clicked,
 }

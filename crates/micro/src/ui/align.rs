@@ -2,16 +2,16 @@ use std::fmt::Debug;
 
 use glam::Vec2;
 
-use crate::{with_child_fns, with_mouse_event_fns, with_sizing_fns};
+use crate::{with_child_fns, with_sizing_fns};
 
-use super::{LayoutResult, MouseEvents, Sizing, Widget};
+use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
 #[derive(Debug)]
-pub struct Align<Event> {
+pub struct Align {
 	align: Vec2,
 	sizing: Sizing,
-	children: Vec<Box<dyn Widget<Event>>>,
-	mouse_events: MouseEvents<Event>,
+	children: Vec<Box<dyn Widget>>,
+	mouse_event_channel: Option<WidgetMouseEventChannel>,
 }
 
 macro_rules! align_constructors {
@@ -24,13 +24,13 @@ macro_rules! align_constructors {
 	};
 }
 
-impl<Event> Align<Event> {
+impl Align {
 	pub fn new(align: impl Into<Vec2>) -> Self {
 		Self {
 			align: align.into(),
 			sizing: Sizing::MAX,
 			children: vec![],
-			mouse_events: MouseEvents::default(),
+			mouse_event_channel: None,
 		}
 	}
 
@@ -46,22 +46,28 @@ impl<Event> Align<Event> {
 		center: (0.5, 0.5),
 	}
 
+	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+		Self {
+			mouse_event_channel: Some(channel.clone()),
+			..self
+		}
+	}
+
 	with_child_fns!();
 	with_sizing_fns!();
-	with_mouse_event_fns!();
 }
 
-impl<Event: Debug + Copy> Widget<Event> for Align<Event> {
+impl Widget for Align {
 	fn name(&self) -> &'static str {
 		"align"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget<Event>>] {
+	fn children(&self) -> &[Box<dyn Widget>] {
 		&self.children
 	}
 
-	fn mouse_events(&self) -> MouseEvents<Event> {
-		self.mouse_events
+	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
+		self.mouse_event_channel.as_ref()
 	}
 
 	fn allotted_size_for_next_child(

@@ -1,14 +1,14 @@
 #[macro_export]
 macro_rules! with_child_fns {
 	() => {
-		pub fn with_child(mut self, child: impl Widget<Event> + 'static) -> Self {
+		pub fn with_child(mut self, child: impl Widget + 'static) -> Self {
 			self.children.push(Box::new(child));
 			self
 		}
 
 		pub fn with_children(
 			mut self,
-			children: impl IntoIterator<Item = impl Widget<Event> + 'static>,
+			children: impl IntoIterator<Item = impl Widget + 'static>,
 		) -> Self {
 			for child in children {
 				self.children.push(Box::new(child));
@@ -52,41 +52,6 @@ macro_rules! with_sizing_fns {
 				sizing: $crate::ui::Sizing {
 					horizontal: $crate::ui::AxisSizing::Fractional(fraction.x),
 					vertical: $crate::ui::AxisSizing::Fractional(fraction.y),
-				},
-				..self
-			}
-		}
-	};
-}
-
-#[macro_export]
-macro_rules! with_mouse_event_fns {
-	() => {
-		pub fn on_click(self, event: Event) -> Self {
-			Self {
-				mouse_events: MouseEvents {
-					click: Some(event),
-					..self.mouse_events
-				},
-				..self
-			}
-		}
-
-		pub fn on_hover(self, event: Event) -> Self {
-			Self {
-				mouse_events: MouseEvents {
-					hover: Some(event),
-					..self.mouse_events
-				},
-				..self
-			}
-		}
-
-		pub fn on_unhover(self, event: Event) -> Self {
-			Self {
-				mouse_events: MouseEvents {
-					unhover: Some(event),
-					..self.mouse_events
 				},
 				..self
 			}

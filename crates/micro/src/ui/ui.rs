@@ -8,7 +8,10 @@ use indexmap::IndexMap;
 use mouse_input::MouseInput;
 use widget_mouse_state::{UpdateMouseStateResult, WidgetMouseState};
 
-use crate::Context;
+use crate::{
+	graphics::{StencilAction, StencilTest},
+	Context,
+};
 
 use super::{LayoutResult, Widget, WidgetMouseEvent};
 
@@ -41,6 +44,7 @@ struct BakedWidget<'a> {
 	path: PathBuf,
 	widget: &'a dyn Widget,
 	children: Vec<BakedWidget<'a>>,
+	mask: Option<Box<BakedWidget<'a>>>,
 	layout_result: LayoutResult,
 }
 
@@ -59,10 +63,18 @@ impl<'a> BakedWidget<'a> {
 			children.push(baked_child);
 		}
 		let layout_result = widget.layout(allotted_size_from_parent, &child_sizes);
+		let mask = widget.mask().map(|mask| {
+			Box::new(BakedWidget::new(
+				path.join("mask"),
+				mask,
+				layout_result.size,
+			))
+		});
 		Self {
 			path,
 			widget,
 			children,
+			mask,
 			layout_result,
 		}
 	}
@@ -105,6 +117,22 @@ impl<'a> BakedWidget<'a> {
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+		if let Some(mask) = &self.mask {
+			{
+				let ctx = &mut ctx.write_to_stencil(StencilAction::Replace(1));
+				mask.draw(ctx)?;
+			}
+			{
+				let ctx = &mut ctx.use_stencil(StencilTest::Equal, 1);
+				self.draw_non_mask_contents(ctx)?;
+			}
+		} else {
+			self.draw_non_mask_contents(ctx)?;
+		}
+		Ok(())
+	}
+
+	fn draw_non_mask_contents(&self, ctx: &mut Context) -> anyhow::Result<()> {
 		self.widget.draw(ctx, self.layout_result.size)?;
 		for (child, position) in self
 			.children

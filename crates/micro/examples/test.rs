@@ -8,7 +8,7 @@ use micro::{
 		text::{Font, FontSettings, LayoutSettings},
 		texture::{Texture, TextureSettings},
 	},
-	ui::{Align, AxisSizing, Rectangle, Stack, StackSettings, Ui, WidgetMouseEventChannel},
+	ui::{Align, AxisSizing, Mask, Rectangle, Stack, StackSettings, Ui, WidgetMouseEventChannel},
 	App, Context, ContextSettings,
 };
 use palette::{Darken, LinSrgb, LinSrgba};
@@ -56,22 +56,12 @@ impl App<Box<dyn Error>> for MainState {
 		self.ui.render(
 			ctx,
 			ctx.window_size().as_vec2(),
-			Stack::horizontal(StackSettings {
-				gap: 10.0,
-				cross_align: 0.5,
-				cross_sizing: AxisSizing::Expand,
-			})
-			.with_children(
-				[(50.0, 50.0), (100.0, 50.0), (50.0, 100.0)]
-					.iter()
-					.enumerate()
-					.map(|(i, size)| {
-						Rectangle::new()
-							.with_max_size(*size)
-							.with_stroke(2.0, LinSrgb::WHITE)
-							.with_mouse_event_channel(&self.widget_mouse_event_channels[i])
-					}),
-			),
+			Mask::new(
+				Rectangle::new()
+					.with_fill(LinSrgb::WHITE)
+					.with_fractional_size((0.5, 0.5)),
+			)
+			.with_child(Rectangle::new().with_fill(LinSrgb::RED)),
 		)?;
 		for (i, channel) in self.widget_mouse_event_channels.iter().enumerate() {
 			while let Some(event) = channel.pop() {

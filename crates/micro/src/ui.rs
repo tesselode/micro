@@ -1,5 +1,6 @@
 mod align;
 mod macros;
+mod mask;
 mod rectangle;
 mod sizing;
 mod stack;
@@ -7,6 +8,7 @@ mod stack;
 mod ui;
 
 pub use align::*;
+pub use mask::*;
 pub use rectangle::*;
 pub use sizing::*;
 pub use stack::*;
@@ -23,6 +25,10 @@ pub trait Widget: Debug {
 	fn name(&self) -> &'static str;
 
 	fn children(&self) -> &[Box<dyn Widget>];
+
+	fn mask(&self) -> Option<&dyn Widget> {
+		None
+	}
 
 	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel>;
 

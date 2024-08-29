@@ -10,6 +10,7 @@ mod rectangle;
 mod sizing;
 mod stack;
 mod text;
+mod transform;
 #[allow(clippy::module_inception)]
 mod ui;
 
@@ -24,11 +25,12 @@ pub use rectangle::*;
 pub use sizing::*;
 pub use stack::*;
 pub use text::*;
+pub use transform::*;
 pub use ui::Ui;
 
 use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 
-use glam::Vec2;
+use glam::{Mat4, Vec2};
 
 use crate::Context;
 
@@ -40,6 +42,10 @@ pub trait Widget: Debug {
 
 	fn mask(&self) -> Option<&dyn Widget> {
 		None
+	}
+
+	fn transform(&self, size: Vec2) -> Mat4 {
+		Mat4::IDENTITY
 	}
 
 	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel>;

@@ -124,6 +124,7 @@ impl<'a> BakedWidget<'a> {
 	}
 
 	fn draw(&self, ctx: &mut Context) -> anyhow::Result<()> {
+		let ctx = &mut ctx.push_transform(self.widget.transform(self.layout_result.size));
 		if let Some(mask) = &self.mask {
 			{
 				let ctx = &mut ctx.write_to_stencil(StencilAction::Replace(1));

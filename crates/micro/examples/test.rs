@@ -11,7 +11,8 @@ use micro::{
 	},
 	ui::{
 		Align, AxisSizing, Ellipse, Image, Mask, Padding, Polygon, Polyline, Rectangle, Stack,
-		StackSettings, TextSettings, TextSizing, TextWidget, Ui, WidgetMouseEventChannel,
+		StackSettings, TextSettings, TextSizing, TextWidget, Transform, Ui,
+		WidgetMouseEventChannel,
 	},
 	App, Context, ContextSettings,
 };
@@ -73,16 +74,8 @@ impl App<Box<dyn Error>> for MainState {
 						.with_fractional_size((0.5, 0.5)),
 				),
 			)
-			.with_child(TextWidget::new(
-				&self.font,
-				"Hello, world!",
-				TextSettings {
-					sizing: TextSizing::Max {
-						horizontal_align: HorizontalAlign::Left,
-						vertical_align: VerticalAlign::Middle,
-					},
-					..Default::default()
-				},
+			.with_child(Transform::rotation(1.0).with_origin((0.5, 0.5)).with_child(
+				TextWidget::new(&self.font, "Hello, world!", TextSettings::default()),
 			)),
 		)?;
 		for (i, channel) in self.widget_mouse_event_channels.iter().enumerate() {

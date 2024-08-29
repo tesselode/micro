@@ -88,9 +88,11 @@ impl<'a> BakedWidget<'a> {
 
 	fn use_mouse_input(
 		&mut self,
-		mouse_input: MouseInput,
+		mut mouse_input: MouseInput,
 		widget_mouse_state: &mut IndexMap<PathBuf, WidgetMouseState>,
 	) {
+		mouse_input =
+			mouse_input.transformed(self.widget.transform(self.layout_result.size).inverse());
 		let UpdateMouseStateResult {
 			hovered,
 			unhovered,

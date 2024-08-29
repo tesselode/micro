@@ -1,4 +1,4 @@
-use glam::Vec2;
+use glam::{Mat4, Vec2};
 
 use crate::{input::MouseButton, Context};
 
@@ -14,6 +14,15 @@ impl MouseInput {
 		self.mouse_position = Some(ctx.mouse_position().as_vec2());
 		self.left_held_previous = self.left_held;
 		self.left_held = ctx.is_mouse_button_down(MouseButton::Left);
+	}
+
+	pub fn transformed(self, transform: Mat4) -> Self {
+		Self {
+			mouse_position: self
+				.mouse_position
+				.map(|position| transform.transform_point3(position.extend(0.0)).truncate()),
+			..self
+		}
 	}
 
 	pub fn translated(self, translation: Vec2) -> Self {

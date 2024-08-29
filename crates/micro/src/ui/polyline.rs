@@ -63,7 +63,12 @@ impl Widget for Polyline {
 		unreachable!()
 	}
 
-	fn layout(&self, _allotted_size_from_parent: Vec2, _child_sizes: &[Vec2]) -> LayoutResult {
+	fn layout(
+		&self,
+		_ctx: &mut Context,
+		_allotted_size_from_parent: Vec2,
+		_child_sizes: &[Vec2],
+	) -> LayoutResult {
 		LayoutResult {
 			size: self.size,
 			child_positions: vec![],

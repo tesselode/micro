@@ -32,7 +32,7 @@ impl Ui {
 		size: Vec2,
 		widget: impl Widget + 'static,
 	) -> anyhow::Result<()> {
-		let mut baked_widget = BakedWidget::new(PathBuf::new(), &widget, size);
+		let mut baked_widget = BakedWidget::new(ctx, PathBuf::new(), &widget, size);
 		self.mouse_input.update(ctx);
 		baked_widget.use_mouse_input(self.mouse_input, &mut self.widget_mouse_state);
 		baked_widget.draw(ctx)?;
@@ -49,7 +49,12 @@ struct BakedWidget<'a> {
 }
 
 impl<'a> BakedWidget<'a> {
-	fn new(path: PathBuf, widget: &'a dyn Widget, allotted_size_from_parent: Vec2) -> Self {
+	fn new(
+		ctx: &mut Context,
+		path: PathBuf,
+		widget: &'a dyn Widget,
+		allotted_size_from_parent: Vec2,
+	) -> Self {
 		let mut children = vec![];
 		let mut child_sizes = vec![];
 		let mut unique_child_name_generator = UniqueChildNameGenerator::new();
@@ -58,13 +63,15 @@ impl<'a> BakedWidget<'a> {
 				widget.allotted_size_for_next_child(allotted_size_from_parent, &child_sizes);
 			let unique_name = unique_child_name_generator.generate(child.name());
 			let child_path = path.join(unique_name);
-			let baked_child = BakedWidget::new(child_path, child.as_ref(), allotted_size_for_child);
+			let baked_child =
+				BakedWidget::new(ctx, child_path, child.as_ref(), allotted_size_for_child);
 			child_sizes.push(baked_child.layout_result.size);
 			children.push(baked_child);
 		}
-		let layout_result = widget.layout(allotted_size_from_parent, &child_sizes);
+		let layout_result = widget.layout(ctx, allotted_size_from_parent, &child_sizes);
 		let mask = widget.mask().map(|mask| {
 			Box::new(BakedWidget::new(
+				ctx,
 				path.join("mask"),
 				mask,
 				layout_result.size,

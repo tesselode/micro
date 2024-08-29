@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use glam::Vec2;
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{with_child_fns, with_sizing_fns, Context};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -79,7 +79,12 @@ impl Widget for Align {
 			.allotted_size_for_children(allotted_size_from_parent)
 	}
 
-	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult {
+	fn layout(
+		&self,
+		_ctx: &mut Context,
+		allotted_size_from_parent: Vec2,
+		child_sizes: &[Vec2],
+	) -> LayoutResult {
 		let parent_size = self
 			.sizing
 			.final_parent_size(allotted_size_from_parent, child_sizes.iter().copied());

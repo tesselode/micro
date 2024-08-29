@@ -83,7 +83,12 @@ impl Widget for Ellipse {
 			.allotted_size_for_children(allotted_size_from_parent)
 	}
 
-	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult {
+	fn layout(
+		&self,
+		_ctx: &mut Context,
+		allotted_size_from_parent: Vec2,
+		child_sizes: &[Vec2],
+	) -> LayoutResult {
 		LayoutResult {
 			size: self
 				.sizing

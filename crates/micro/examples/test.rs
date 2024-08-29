@@ -1,5 +1,6 @@
 use std::{error::Error, time::Duration};
 
+use fontdue::layout::{HorizontalAlign, VerticalAlign};
 use glam::vec2;
 use micro::{
 	color::ColorConstants,
@@ -10,7 +11,7 @@ use micro::{
 	},
 	ui::{
 		Align, AxisSizing, Ellipse, Image, Mask, Padding, Polygon, Polyline, Rectangle, Stack,
-		StackSettings, Ui, WidgetMouseEventChannel,
+		StackSettings, TextSettings, TextSizing, TextWidget, Ui, WidgetMouseEventChannel,
 	},
 	App, Context, ContextSettings,
 };
@@ -72,10 +73,16 @@ impl App<Box<dyn Error>> for MainState {
 						.with_fractional_size((0.5, 0.5)),
 				),
 			)
-			.with_child(Polyline::new(
-				[(0.0, 0.0), (50.0, 10.0), (50.0, 40.0), (0.0, 50.0)],
-				2.0,
-				LinSrgb::WHITE,
+			.with_child(TextWidget::new(
+				&self.font,
+				"Hello, world!",
+				TextSettings {
+					sizing: TextSizing::Max {
+						horizontal_align: HorizontalAlign::Left,
+						vertical_align: VerticalAlign::Middle,
+					},
+					..Default::default()
+				},
 			)),
 		)?;
 		for (i, channel) in self.widget_mouse_event_channels.iter().enumerate() {

@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use glam::{vec2, Vec2};
 
-use crate::with_child_fns;
+use crate::{with_child_fns, Context};
 
 use super::{AxisSizing, LayoutResult, Widget, WidgetMouseEventChannel};
 
@@ -75,7 +75,12 @@ impl Widget for Stack {
 		}
 	}
 
-	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult {
+	fn layout(
+		&self,
+		_ctx: &mut Context,
+		allotted_size_from_parent: Vec2,
+		child_sizes: &[Vec2],
+	) -> LayoutResult {
 		match self.direction {
 			Axis::Horizontal => {
 				let parent_size = vec2(

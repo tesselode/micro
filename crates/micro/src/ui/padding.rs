@@ -1,6 +1,6 @@
 use glam::{vec2, Vec2};
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{with_child_fns, with_sizing_fns, Context};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -112,7 +112,12 @@ impl Widget for Padding {
 			- self.total_padding()
 	}
 
-	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult {
+	fn layout(
+		&self,
+		_ctx: &mut Context,
+		allotted_size_from_parent: Vec2,
+		child_sizes: &[Vec2],
+	) -> LayoutResult {
 		LayoutResult {
 			size: self
 				.sizing

@@ -9,6 +9,7 @@ mod polyline;
 mod rectangle;
 mod sizing;
 mod stack;
+mod text;
 #[allow(clippy::module_inception)]
 mod ui;
 
@@ -22,6 +23,7 @@ pub use polyline::*;
 pub use rectangle::*;
 pub use sizing::*;
 pub use stack::*;
+pub use text::*;
 pub use ui::Ui;
 
 use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
@@ -48,7 +50,12 @@ pub trait Widget: Debug {
 		previous_child_sizes: &[Vec2],
 	) -> Vec2;
 
-	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult;
+	fn layout(
+		&self,
+		ctx: &mut Context,
+		allotted_size_from_parent: Vec2,
+		child_sizes: &[Vec2],
+	) -> LayoutResult;
 
 	fn draw(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		Ok(())

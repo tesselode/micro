@@ -8,7 +8,10 @@ use micro::{
 		text::{Font, FontSettings, LayoutSettings},
 		texture::{Texture, TextureSettings},
 	},
-	ui::{Align, AxisSizing, Mask, Rectangle, Stack, StackSettings, Ui, WidgetMouseEventChannel},
+	ui::{
+		Align, AxisSizing, Ellipse, Image, Mask, Padding, Polygon, Polyline, Rectangle, Stack,
+		StackSettings, Ui, WidgetMouseEventChannel,
+	},
 	App, Context, ContextSettings,
 };
 use palette::{Darken, LinSrgb, LinSrgba};
@@ -53,15 +56,27 @@ impl App<Box<dyn Error>> for MainState {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
+		ctx.clear(LinSrgb::BLACK);
 		self.ui.render(
 			ctx,
 			ctx.window_size().as_vec2(),
-			Mask::new(
-				Rectangle::new()
-					.with_fill(LinSrgb::WHITE)
-					.with_fractional_size((0.5, 0.5)),
+			Stack::vertical(StackSettings {
+				gap: 0.0,
+				cross_align: 0.5,
+				cross_sizing: AxisSizing::Shrink,
+			})
+			.with_child(
+				Padding::all(10.0).with_child(
+					Rectangle::new()
+						.with_stroke(2.0, LinSrgb::WHITE)
+						.with_fractional_size((0.5, 0.5)),
+				),
 			)
-			.with_child(Rectangle::new().with_fill(LinSrgb::RED)),
+			.with_child(Polyline::new(
+				[(0.0, 0.0), (50.0, 10.0), (50.0, 40.0), (0.0, 50.0)],
+				2.0,
+				LinSrgb::WHITE,
+			)),
 		)?;
 		for (i, channel) in self.widget_mouse_event_channels.iter().enumerate() {
 			while let Some(event) = channel.pop() {

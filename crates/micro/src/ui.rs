@@ -1,6 +1,11 @@
 mod align;
+mod ellipse;
+mod image;
 mod macros;
 mod mask;
+mod padding;
+mod polygon;
+mod polyline;
 mod rectangle;
 mod sizing;
 mod stack;
@@ -8,7 +13,12 @@ mod stack;
 mod ui;
 
 pub use align::*;
+pub use ellipse::*;
+pub use image::*;
 pub use mask::*;
+pub use padding::*;
+pub use polygon::*;
+pub use polyline::*;
 pub use rectangle::*;
 pub use sizing::*;
 pub use stack::*;

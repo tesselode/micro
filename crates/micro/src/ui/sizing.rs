@@ -7,11 +7,11 @@ pub struct Sizing {
 }
 
 impl Sizing {
-	pub const MIN: Self = Self {
+	pub const SHRINK: Self = Self {
 		horizontal: AxisSizing::Shrink,
 		vertical: AxisSizing::Shrink,
 	};
-	pub const MAX: Self = Self {
+	pub const EXPAND: Self = Self {
 		horizontal: AxisSizing::Expand,
 		vertical: AxisSizing::Expand,
 	};

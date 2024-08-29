@@ -15,7 +15,7 @@ pub struct Mask {
 impl Mask {
 	pub fn new(mask: impl Widget + 'static) -> Self {
 		Self {
-			sizing: Sizing::MIN,
+			sizing: Sizing::SHRINK,
 			children: vec![],
 			mask: Box::new(mask),
 			mouse_event_channel: None,

@@ -16,7 +16,7 @@ pub struct Transform {
 impl Transform {
 	pub fn new(transform: impl Into<Mat4>) -> Self {
 		Self {
-			sizing: Sizing::MIN,
+			sizing: Sizing::SHRINK,
 			origin: Vec2::ZERO,
 			transform: transform.into(),
 			children: vec![],

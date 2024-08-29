@@ -28,7 +28,7 @@ impl Align {
 	pub fn new(align: impl Into<Vec2>) -> Self {
 		Self {
 			align: align.into(),
-			sizing: Sizing::MAX,
+			sizing: Sizing::EXPAND,
 			children: vec![],
 			mouse_event_channel: None,
 		}

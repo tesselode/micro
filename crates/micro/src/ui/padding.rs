@@ -18,7 +18,7 @@ pub struct Padding {
 impl Padding {
 	pub fn new(left: f32, top: f32, right: f32, bottom: f32) -> Self {
 		Self {
-			sizing: Sizing::MIN,
+			sizing: Sizing::SHRINK,
 			left,
 			top,
 			right,
@@ -78,7 +78,7 @@ impl Padding {
 impl Default for Padding {
 	fn default() -> Self {
 		Self {
-			sizing: Sizing::MIN,
+			sizing: Sizing::SHRINK,
 			left: Default::default(),
 			top: Default::default(),
 			right: Default::default(),

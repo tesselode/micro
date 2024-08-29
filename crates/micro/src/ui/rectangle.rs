@@ -49,7 +49,7 @@ impl Rectangle {
 impl Default for Rectangle {
 	fn default() -> Self {
 		Self {
-			sizing: Sizing::MAX,
+			sizing: Sizing::EXPAND,
 			fill: Default::default(),
 			stroke: Default::default(),
 			children: Default::default(),

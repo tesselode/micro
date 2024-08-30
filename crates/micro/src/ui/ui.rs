@@ -149,7 +149,7 @@ impl<'a> BakedWidget<'a> {
 			.iter()
 			.zip(self.layout_result.child_positions.iter().copied())
 		{
-			let ctx = &mut ctx.push_translation_2d(position);
+			let ctx = &mut ctx.push_translation_2d(position.round());
 			child.draw(ctx)?;
 		}
 		Ok(())

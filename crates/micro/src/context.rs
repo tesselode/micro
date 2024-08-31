@@ -19,7 +19,7 @@ use crate::{
 	build_window,
 	color::ColorConstants,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	graphics::{Camera3d, Canvas, CanvasSettings, StencilAction, StencilTest},
+	graphics::{Camera3d, Canvas, CanvasSettings, Msaa, StencilAction, StencilTest},
 	input::{Gamepad, MouseButton, Scancode},
 	log_if_err,
 	time::FrameTimeTracker,
@@ -142,6 +142,10 @@ pub struct Context {
 }
 
 impl Context {
+	pub fn max_msaa_level(&self) -> Msaa {
+		unsafe { self.graphics.gl.get_parameter_i32(glow::MAX_SAMPLES) }.into()
+	}
+
 	/// Gets the drawable size of the window (in pixels).
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.drawable_size();

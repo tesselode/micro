@@ -7,8 +7,10 @@ use std::{
 	},
 };
 
+use exhaust::Exhaust;
 use glam::{Mat4, UVec2, Vec2};
 use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, PixelPackData};
+use itertools::Itertools;
 use palette::LinSrgba;
 
 use crate::{color::ColorConstants, context::graphics::RenderTarget, math::Rect, Context};
@@ -236,7 +238,7 @@ pub struct CanvasSettings {
 	pub hdr: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Exhaust)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum Msaa {
 	#[default]
@@ -248,6 +250,10 @@ pub enum Msaa {
 }
 
 impl Msaa {
+	pub fn levels_up_to(max: Self) -> impl Iterator<Item = Self> {
+		Self::exhaust().take_while_inclusive(move |&level| level < max)
+	}
+
 	fn num_samples(&self) -> u8 {
 		match self {
 			Msaa::None => 0,
@@ -255,6 +261,19 @@ impl Msaa {
 			Msaa::X4 => 4,
 			Msaa::X8 => 8,
 			Msaa::X16 => 16,
+		}
+	}
+}
+
+impl From<i32> for Msaa {
+	fn from(value: i32) -> Self {
+		match value {
+			0 => Self::None,
+			2 => Self::X2,
+			4 => Self::X4,
+			8 => Self::X8,
+			16.. => Self::X16,
+			_ => panic!("unexpected MSAA value"),
 		}
 	}
 }

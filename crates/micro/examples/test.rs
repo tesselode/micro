@@ -2,6 +2,7 @@ use std::error::Error;
 
 use micro::{
 	color::ColorConstants,
+	graphics::Msaa,
 	ui::{Align, Rectangle, Transform, Ui, WidgetMouseEventChannel},
 	App, Context, ContextSettings,
 };
@@ -18,6 +19,9 @@ struct Test {
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		let max_msaa_level = ctx.max_msaa_level();
+		println!("{:?}", max_msaa_level);
+		dbg!(Msaa::levels_up_to(max_msaa_level).collect::<Vec<_>>());
 		Ok(Self {
 			ui: Ui::new(),
 			widget_mouse_event_channel: WidgetMouseEventChannel::new(),

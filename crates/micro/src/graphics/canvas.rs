@@ -278,6 +278,18 @@ impl From<i32> for Msaa {
 	}
 }
 
+impl std::fmt::Display for Msaa {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.write_str(match self {
+			Msaa::None => "None",
+			Msaa::X2 => "X2",
+			Msaa::X4 => "X4",
+			Msaa::X8 => "X8",
+			Msaa::X16 => "X16",
+		})
+	}
+}
+
 #[derive(Debug)]
 struct MultisampleFramebuffer {
 	framebuffer: NativeFramebuffer,

@@ -1,5 +1,3 @@
-use crate::Context;
-
 use super::ResourceLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -12,11 +10,13 @@ impl ResourceLoader for TiledMapLoader {
 
 	type Settings = ();
 
+	type Context = ();
+
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["tmx"];
 
 	fn load(
 		&mut self,
-		_ctx: &mut Context,
+		_ctx: &mut (),
 		path: &std::path::Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {

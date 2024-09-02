@@ -3,7 +3,6 @@ use std::path::Path;
 use crate::{
 	ldtk::{Error, Level},
 	resource::loader::ResourceLoader,
-	Context,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -16,11 +15,13 @@ impl ResourceLoader for LdtkLevelLoader {
 
 	type Settings = ();
 
+	type Context = ();
+
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["ldtkl"];
 
 	fn load(
 		&mut self,
-		_ctx: &mut Context,
+		_ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {

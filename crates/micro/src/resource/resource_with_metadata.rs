@@ -5,8 +5,6 @@ use std::{
 
 use thiserror::Error;
 
-use crate::Context;
-
 use super::loader::ResourceLoader;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -20,7 +18,7 @@ pub(super) struct ResourceWithMetadata<L: ResourceLoader> {
 
 impl<L: ResourceLoader> ResourceWithMetadata<L> {
 	pub fn load(
-		ctx: &mut Context,
+		ctx: &mut L::Context,
 		full_resource_path: &Path,
 		loader: &mut L,
 	) -> Result<Option<Self>, L::Error> {
@@ -79,7 +77,7 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 		}))
 	}
 
-	pub fn reload(&mut self, ctx: &mut Context, loader: &mut L) -> Reloaded {
+	pub fn reload(&mut self, ctx: &mut L::Context, loader: &mut L) -> Reloaded {
 		if !self.check_for_updates() {
 			return false;
 		}

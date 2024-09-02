@@ -34,6 +34,8 @@ impl ResourceLoader for FontLoader {
 
 	type Settings = ();
 
+	type Context = Context;
+
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["font"];
 
 	fn load(

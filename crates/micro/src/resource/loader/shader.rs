@@ -17,6 +17,8 @@ impl ResourceLoader for ShaderLoader {
 
 	type Settings = ();
 
+	type Context = Context;
+
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["glsl"];
 
 	fn load(

@@ -22,6 +22,8 @@ impl ResourceLoader for TextureLoader {
 
 	type Settings = TextureSettings;
 
+	type Context = Context;
+
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["png"];
 
 	fn load(

@@ -30,8 +30,6 @@ use serde::Deserialize;
 
 use std::{fmt::Debug, path::Path};
 
-use crate::Context;
-
 #[allow(unused_variables)]
 pub trait ResourceLoader {
 	type Resource;
@@ -40,18 +38,20 @@ pub trait ResourceLoader {
 
 	type Settings: for<'a> Deserialize<'a>;
 
+	type Context;
+
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str];
 
 	fn load(
 		&mut self,
-		ctx: &mut Context,
+		ctx: &mut Self::Context,
 		path: &Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error>;
 
 	fn reload(
 		&mut self,
-		ctx: &mut Context,
+		ctx: &mut Self::Context,
 		resource: &mut Self::Resource,
 		path: &Path,
 		settings: Option<&Self::Settings>,
@@ -60,7 +60,7 @@ pub trait ResourceLoader {
 		Ok(())
 	}
 
-	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Resource> {
+	fn placeholder(&mut self, ctx: &mut Self::Context) -> Option<Self::Resource> {
 		None
 	}
 }

@@ -16,10 +16,10 @@ macro_rules! with_child_fns {
 			self
 		}
 
-		pub fn with_child_if<T: Widget + 'static>(
+		pub fn with_child_if<W: Widget + 'static>(
 			mut self,
 			condition: bool,
-			child: impl FnOnce() -> T,
+			child: impl FnOnce() -> W,
 		) -> Self {
 			if condition {
 				self.children.push(Box::new(child()));
@@ -37,6 +37,30 @@ macro_rules! with_child_fns {
 			}
 			for child in children {
 				self.children.push(Box::new(child));
+			}
+			self
+		}
+
+		pub fn with_child_if_some<T, W: Widget + 'static>(
+			mut self,
+			value: &Option<T>,
+			child: impl FnOnce(&T) -> W,
+		) -> Self {
+			if let Some(value) = value {
+				self.children.push(Box::new(child(value)));
+			}
+			self
+		}
+
+		pub fn with_children_if_some<T, W: IntoIterator<Item = impl Widget + 'static>>(
+			mut self,
+			value: &Option<T>,
+			children: impl FnOnce(&T) -> W,
+		) -> Self {
+			if let Some(value) = value {
+				for child in children(value) {
+					self.children.push(Box::new(child));
+				}
 			}
 			self
 		}

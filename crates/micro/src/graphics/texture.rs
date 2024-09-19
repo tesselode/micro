@@ -66,7 +66,7 @@ impl Texture {
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
-		let image = image::io::Reader::open(path)?.decode()?.to_rgba8();
+		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
 		Ok(Self::from_image(ctx, &image, settings))
 	}
 

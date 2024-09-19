@@ -46,7 +46,7 @@ impl ResourceLoader for TextureLoader {
 		path: &std::path::Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		let image = image::io::Reader::open(path)?.decode()?.to_rgba8();
+		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
 		resource.replace(ctx, IVec2::ZERO, &image);
 		Ok(())
 	}

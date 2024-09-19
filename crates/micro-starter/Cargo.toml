@@ -9,7 +9,7 @@ edition = "2021"
 anyhow = { version = "1.0.71", features = ["backtrace"] }
 backtrace = "0.3.73"
 directories = "5.0.1"
-exhaust = "0.1.1"
+exhaust = "0.2.0"
 hecs = "0.10.3"
 micro = { path = "../micro", features = ["resource_management"] }
 tracing = "0.1.37"

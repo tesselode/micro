@@ -69,6 +69,22 @@ macro_rules! standard_draw_param_methods {
 			self.transformed(Mat4::from_scale(scale.into()))
 		}
 
+		pub fn scaled_x(&self, scale: f32) -> Self {
+			self.scaled_2d(glam::vec2(scale, 1.0))
+		}
+
+		pub fn scaled_y(&self, scale: f32) -> Self {
+			self.scaled_2d(glam::vec2(1.0, scale))
+		}
+
+		pub fn scaled_z(&self, scale: f32) -> Self {
+			self.scaled_3d(glam::vec3(1.0, 1.0, scale))
+		}
+
+		pub fn rotated(&self, rotation: glam::Quat) -> Self {
+			self.transformed(Mat4::from_quat(rotation))
+		}
+
 		pub fn rotated_x(&self, rotation: f32) -> Self {
 			self.transformed(Mat4::from_rotation_x(rotation))
 		}

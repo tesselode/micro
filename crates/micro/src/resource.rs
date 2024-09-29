@@ -66,7 +66,9 @@ impl<L: ResourceLoader> Resources<L> {
 		if let Some(resource) = self.resources.get(path) {
 			Some(&resource.resource)
 		} else {
-			self.missing_resource_logger.log(path);
+			if self.loader.warn_on_missing() {
+				self.missing_resource_logger.log(path);
+			}
 			if let Some(placeholder) = &self.placeholder {
 				Some(placeholder)
 			} else {
@@ -80,7 +82,9 @@ impl<L: ResourceLoader> Resources<L> {
 		if let Some(resource) = self.resources.get_mut(path) {
 			Some(&mut resource.resource)
 		} else {
-			self.missing_resource_logger.log(path);
+			if self.loader.warn_on_missing() {
+				self.missing_resource_logger.log(path);
+			}
 			if let Some(placeholder) = &mut self.placeholder {
 				Some(placeholder)
 			} else {

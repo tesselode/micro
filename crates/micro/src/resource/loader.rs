@@ -63,4 +63,8 @@ pub trait ResourceLoader {
 	fn placeholder(&mut self, ctx: &mut Self::Context) -> Option<Self::Resource> {
 		None
 	}
+
+	fn warn_on_missing(&self) -> bool {
+		true
+	}
 }

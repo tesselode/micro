@@ -1,4 +1,5 @@
 use std::{
+	collections::VecDeque,
 	fmt::Debug,
 	ops::{Add, AddAssign, RangeInclusive, SubAssign},
 	time::Duration,
@@ -12,13 +13,16 @@ use super::Easing;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct TweenSequence<V, T = Duration> {
-	keyframes: Vec<Keyframe<V, T>>,
-	current_time: T,
+pub struct TweenSequence<Value, Time = Duration, Event = ()> {
+	keyframes: Vec<Keyframe<Value, Time>>,
+	events: Vec<(Time, Event)>,
+	current_time: Time,
+	previous_time: Time,
 	looping: bool,
+	emitted_events: VecDeque<Event>,
 }
 
-impl<Value, Time> TweenSequence<Value, Time> {
+impl<Value, Time, Event> TweenSequence<Value, Time, Event> {
 	pub fn new(initial_value: Value) -> Self
 	where
 		Time: Default,
@@ -29,8 +33,11 @@ impl<Value, Time> TweenSequence<Value, Time> {
 				value: initial_value,
 				easing: Easing::Linear,
 			}],
+			events: vec![],
 			current_time: Time::default(),
+			previous_time: Time::default(),
 			looping: false,
+			emitted_events: VecDeque::new(),
 		}
 	}
 
@@ -44,8 +51,11 @@ impl<Value, Time> TweenSequence<Value, Time> {
 				value: initial_value,
 				easing: Easing::Linear,
 			}],
+			events: vec![],
 			current_time: time,
+			previous_time: time,
 			looping: false,
+			emitted_events: VecDeque::new(),
 		}
 	}
 
@@ -67,8 +77,11 @@ impl<Value, Time> TweenSequence<Value, Time> {
 					easing,
 				},
 			],
+			events: vec![],
 			current_time: Time::default(),
+			previous_time: Time::default(),
 			looping: false,
+			emitted_events: VecDeque::new(),
 		}
 	}
 
@@ -131,6 +144,14 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self
 	}
 
+	pub fn emit(mut self, event: Event) -> Self
+	where
+		Time: Copy,
+	{
+		self.events.push((self.duration(), event));
+		self
+	}
+
 	pub fn looping(self) -> Self {
 		Self {
 			looping: true,
@@ -148,11 +169,27 @@ impl<Value, Time> TweenSequence<Value, Time> {
 	pub fn update(&mut self, delta_time: Time)
 	where
 		Time: Copy + PartialOrd + AddAssign<Time> + SubAssign<Time>,
+		Event: Clone,
 	{
+		self.previous_time = self.current_time;
 		self.current_time += delta_time;
 		if self.looping {
 			while self.current_time >= self.duration() {
 				self.current_time -= self.duration();
+			}
+		}
+		/*
+		it's possible that if the delta time is high enough, the animation will loop
+		multiple times in one update. in that case, events won't be emitted
+		enough times. i'm not bothering to solve that problem for now because:
+
+		- seems complicated
+		- micro should probably be clamping delta times anyway to avoid issues
+		like tunneling
+		*/
+		for (time, event) in &self.events {
+			if was_time_just_passed(*time, self.previous_time, self.current_time) {
+				self.emitted_events.push_back(event.clone());
 			}
 		}
 	}
@@ -204,13 +241,18 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self.current_time >= self.duration()
 	}
 
+	pub fn pop_event(&mut self) -> Option<Event> {
+		self.emitted_events.pop_front()
+	}
+
 	pub fn map<NewValue>(
 		&self,
 		mut f: impl FnMut(Value) -> NewValue,
-	) -> TweenSequence<NewValue, Time>
+	) -> TweenSequence<NewValue, Time, Event>
 	where
 		Value: Copy,
 		Time: Copy,
+		Event: Clone,
 	{
 		TweenSequence {
 			keyframes: self
@@ -222,17 +264,43 @@ impl<Value, Time> TweenSequence<Value, Time> {
 					easing: old.easing.clone(),
 				})
 				.collect(),
+			events: self.events.clone(),
 			current_time: self.current_time,
+			previous_time: self.previous_time,
 			looping: self.looping,
+			emitted_events: VecDeque::new(),
+		}
+	}
+
+	pub fn map_events<NewEvent>(
+		&self,
+		mut f: impl FnMut(&Event) -> NewEvent,
+	) -> TweenSequence<Value, Time, NewEvent>
+	where
+		Value: Copy,
+		Time: Copy,
+		Event: Clone,
+	{
+		TweenSequence {
+			keyframes: self.keyframes.clone(),
+			events: self
+				.events
+				.iter()
+				.map(|(time, event)| (*time, f(event)))
+				.collect(),
+			current_time: self.current_time,
+			previous_time: self.previous_time,
+			looping: self.looping,
+			emitted_events: VecDeque::new(),
 		}
 	}
 }
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct Keyframe<V, T = Duration> {
-	pub time: T,
-	pub value: V,
+pub struct Keyframe<Value, Time = Duration> {
+	pub time: Time,
+	pub value: Value,
 	pub easing: Easing,
 }
 
@@ -241,4 +309,12 @@ pub struct Keyframe<V, T = Duration> {
 pub struct KeyframeAlreadyAtTime<V, T> {
 	pub time: T,
 	pub sequence: TweenSequence<V, T>,
+}
+
+fn was_time_just_passed<T: PartialOrd>(time: T, previous: T, current: T) -> bool {
+	if previous > current {
+		time > previous || time <= current
+	} else {
+		time > previous && time <= current
+	}
 }

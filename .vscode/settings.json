@@ -1,6 +1,5 @@
 {
 	"rust-analyzer.cargo.features": [
-		"kira",
 		"resource_management",
 		"rand"
 	]

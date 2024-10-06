@@ -1,8 +1,7 @@
 use std::path::Path;
 
 use kira::sound::streaming::{StreamingSoundData, StreamingSoundSettings};
-
-use super::ResourceLoader;
+use micro::resource::loader::ResourceLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StreamingSoundDataLoader {

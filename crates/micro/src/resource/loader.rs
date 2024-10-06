@@ -1,17 +1,9 @@
 mod font;
 mod shader;
-#[cfg(feature = "kira")]
-mod static_sound_data;
-#[cfg(feature = "kira")]
-mod streaming_sound_data;
 mod texture;
 
 pub use font::*;
 pub use shader::*;
-#[cfg(feature = "kira")]
-pub use static_sound_data::*;
-#[cfg(feature = "kira")]
-pub use streaming_sound_data::*;
 pub use texture::*;
 
 use serde::Deserialize;

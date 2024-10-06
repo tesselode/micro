@@ -1,4 +1,3 @@
-pub mod animation;
 mod app;
 pub mod color;
 mod context;

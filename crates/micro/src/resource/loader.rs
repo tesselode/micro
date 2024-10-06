@@ -1,5 +1,3 @@
-#[cfg(feature = "aseprite")]
-mod animation_data;
 mod font;
 mod shader;
 #[cfg(feature = "kira")]
@@ -10,8 +8,6 @@ mod texture;
 #[cfg(feature = "tiled")]
 mod tiled;
 
-#[cfg(feature = "aseprite")]
-pub use animation_data::*;
 pub use font::*;
 pub use shader::*;
 #[cfg(feature = "kira")]

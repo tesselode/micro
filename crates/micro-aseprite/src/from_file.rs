@@ -3,7 +3,7 @@ use std::{num::ParseIntError, path::Path, time::Duration};
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::math::Rect;
+use micro::math::Rect;
 
 use super::{Animation, AnimationData, Frame, Repeats};
 

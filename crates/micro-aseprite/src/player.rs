@@ -3,13 +3,11 @@ use std::{
 	time::Duration,
 };
 
-use glam::Mat4;
-use palette::LinSrgba;
-
-use crate::{
-	color::ColorConstants,
-	graphics::{shader::Shader, standard_draw_param_methods, texture::Texture, BlendMode},
-	Context,
+use micro::{
+	color::{ColorConstants, LinSrgba},
+	graphics::{shader::Shader, texture::Texture, BlendMode},
+	math::Mat4,
+	standard_draw_param_methods, Context,
 };
 
 use super::{AnimationData, Frame, Repeats};

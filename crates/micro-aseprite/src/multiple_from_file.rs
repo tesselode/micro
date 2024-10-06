@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path, vec::Vec};
 
 use serde::Deserialize;
 
-use crate::animation::Frame;
+use crate::Frame;
 
 use super::{
 	from_file::{RawFrame, RawMeta},

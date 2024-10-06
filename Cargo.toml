@@ -1,3 +1,3 @@
 [workspace]
-members = ["crates/micro", "crates/micro-ldtk", "crates/micro-starter", "crates/micro-ui"]
+members = ["crates/micro", "crates/micro-aseprite", "crates/micro-ldtk", "crates/micro-starter", "crates/micro-ui"]
 resolver = "2"

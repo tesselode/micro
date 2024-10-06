@@ -37,7 +37,6 @@ rand = { version = "0.8.5", optional = true }
 regex-lite = "0.1.5"
 
 [features]
-aseprite = ["serializing", "serde_json"]
 mint = ["glam/mint"]
 rand = ["dep:rand", "glam/rand", "palette/random"]
 resource_management = ["serializing", "serde_json"]

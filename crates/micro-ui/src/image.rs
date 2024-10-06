@@ -1,7 +1,9 @@
-use glam::Vec2;
-use palette::LinSrgba;
-
-use crate::{color::ColorConstants, graphics::texture::Texture, Context};
+use micro::{
+	color::{ColorConstants, LinSrgba},
+	graphics::texture::Texture,
+	math::Vec2,
+	Context,
+};
 
 use super::{LayoutResult, Widget, WidgetMouseEventChannel};
 

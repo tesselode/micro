@@ -1,6 +1,6 @@
-use glam::Vec2;
+use micro::{math::Vec2, Context};
 
-use crate::{with_child_fns, with_sizing_fns, Context};
+use crate::{with_child_fns, with_sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -52,9 +52,9 @@ impl Widget for Mask {
 
 	fn allotted_size_for_next_child(
 		&self,
-		allotted_size_from_parent: glam::Vec2,
-		_previous_child_sizes: &[glam::Vec2],
-	) -> glam::Vec2 {
+		allotted_size_from_parent: Vec2,
+		_previous_child_sizes: &[Vec2],
+	) -> Vec2 {
 		self.sizing
 			.allotted_size_for_children(allotted_size_from_parent)
 	}
@@ -62,8 +62,8 @@ impl Widget for Mask {
 	fn layout(
 		&self,
 		_ctx: &mut Context,
-		allotted_size_from_parent: glam::Vec2,
-		child_sizes: &[glam::Vec2],
+		allotted_size_from_parent: Vec2,
+		child_sizes: &[Vec2],
 	) -> super::LayoutResult {
 		LayoutResult {
 			size: self

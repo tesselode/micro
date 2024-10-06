@@ -3,18 +3,16 @@ mod widget_mouse_state;
 
 use std::{collections::HashMap, path::PathBuf};
 
-use glam::Vec2;
 use indexmap::IndexMap;
 use itertools::izip;
-use mouse_input::MouseInput;
-use palette::{LinSrgb, LinSrgba};
-use widget_mouse_state::{UpdateMouseStateResult, WidgetMouseState};
-
-use crate::{
+use micro::{
+	color::{LinSrgb, LinSrgba},
 	graphics::{mesh::Mesh, StencilAction, StencilTest},
-	math::Rect,
+	math::{Rect, Vec2},
 	Context,
 };
+use mouse_input::MouseInput;
+use widget_mouse_state::{UpdateMouseStateResult, WidgetMouseState};
 
 use super::{LayoutResult, Widget, WidgetMouseEvent};
 
@@ -31,12 +29,12 @@ impl Ui {
 		Self::default()
 	}
 
-	pub fn show_debug_window(&mut self, egui_ctx: &crate::debug_ui::Context, open: &mut bool) {
+	pub fn show_debug_window(&mut self, egui_ctx: &micro::debug_ui::Context, open: &mut bool) {
 		let Some(widget) = &self.previous_baked_widget else {
 			return;
 		};
 		let mut highlighted_widget_path = None;
-		crate::debug_ui::Window::new("UI")
+		micro::debug_ui::Window::new("UI")
 			.open(open)
 			.scroll(true)
 			.show(egui_ctx, |ui| {
@@ -243,7 +241,7 @@ struct DrawDebugState {
 }
 
 fn show_debug_widget_info(
-	ui: &mut crate::debug_ui::Ui,
+	ui: &mut micro::debug_ui::Ui,
 	highlighted_widget_path: &mut Option<PathBuf>,
 	widget: &BakedWidget,
 ) {

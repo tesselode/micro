@@ -16,7 +16,6 @@ mod offset_and_count;
 pub mod resource;
 pub mod time;
 pub mod tween;
-pub mod ui;
 mod window;
 
 pub use app::*;

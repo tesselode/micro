@@ -1,17 +1,18 @@
 use std::fmt::Debug;
 
-use glam::Vec2;
-use palette::LinSrgba;
-
-use crate::{
-	graphics::mesh::{Mesh, ShapeStyle},
-	with_child_fns, with_sizing_fns, Context,
+use micro::{
+	color::LinSrgba,
+	graphics::mesh::Mesh,
+	math::{Rect, Vec2},
+	Context,
 };
+
+use crate::{with_child_fns, with_sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
 #[derive(Debug)]
-pub struct Ellipse {
+pub struct Rectangle {
 	sizing: Sizing,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
@@ -19,7 +20,7 @@ pub struct Ellipse {
 	mouse_event_channel: Option<WidgetMouseEventChannel>,
 }
 
-impl Ellipse {
+impl Rectangle {
 	pub fn new() -> Self {
 		Self::default()
 	}
@@ -49,7 +50,7 @@ impl Ellipse {
 	with_sizing_fns!();
 }
 
-impl Default for Ellipse {
+impl Default for Rectangle {
 	fn default() -> Self {
 		Self {
 			sizing: Sizing::EXPAND,
@@ -61,9 +62,9 @@ impl Default for Ellipse {
 	}
 }
 
-impl Widget for Ellipse {
+impl Widget for Rectangle {
 	fn name(&self) -> &'static str {
-		"ellipse"
+		"rectangle"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
@@ -101,12 +102,12 @@ impl Widget for Ellipse {
 
 	fn draw(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		if let Some(fill) = self.fill {
-			Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)?
+			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, size))
 				.color(fill)
 				.draw(ctx);
 		}
 		if let Some((width, color)) = self.stroke {
-			Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)?
+			Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, size))?
 				.color(color)
 				.draw(ctx);
 		}

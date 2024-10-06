@@ -1,6 +1,4 @@
-use glam::Vec2;
-
-use crate::math::Rect;
+use micro::math::{Rect, Vec2};
 
 use super::mouse_input::MouseInput;
 

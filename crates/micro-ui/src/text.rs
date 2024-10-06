@@ -3,13 +3,10 @@ use std::{
 	fmt::{Debug, Formatter},
 };
 
-use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
-use glam::Vec2;
-use palette::LinSrgba;
-
-use crate::{
-	color::ColorConstants,
-	graphics::text::{Font, LayoutSettings, Text},
+use micro::{
+	color::{ColorConstants, LinSrgba},
+	graphics::text::{Font, HorizontalAlign, LayoutSettings, Text, VerticalAlign, WrapStyle},
+	math::Vec2,
 	Context,
 };
 

@@ -1,6 +1,8 @@
-use glam::{Mat4, Vec2};
-
-use crate::{input::MouseButton, Context};
+use micro::{
+	input::MouseButton,
+	math::{Mat4, Vec2},
+	Context,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct MouseInput {

@@ -30,9 +30,10 @@ pub use ui::Ui;
 
 use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 
-use glam::{Mat4, Vec2};
-
-use crate::Context;
+use micro::{
+	math::{Mat4, Vec2},
+	Context,
+};
 
 #[allow(unused_variables)]
 pub trait Widget: Debug {

@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
-use glam::Vec2;
+use micro::{math::Vec2, Context};
 
-use crate::{with_child_fns, with_sizing_fns, Context};
+use crate::{with_child_fns, with_sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 

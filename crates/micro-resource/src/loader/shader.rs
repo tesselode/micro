@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::{
+use micro::{
 	graphics::shader::{LoadShaderError, Shader},
 	Context,
 };

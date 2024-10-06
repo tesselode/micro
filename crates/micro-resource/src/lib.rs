@@ -1,5 +1,7 @@
-pub mod loader;
+mod loader;
 mod resource_with_metadata;
+
+pub use loader::*;
 
 use std::{
 	fmt::Debug,
@@ -12,7 +14,7 @@ use std::{
 use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
-use self::{loader::ResourceLoader, resource_with_metadata::ResourceWithMetadata};
+use self::resource_with_metadata::ResourceWithMetadata;
 
 const HOT_RELOAD_INTERVAL: Duration = Duration::from_secs(1);
 

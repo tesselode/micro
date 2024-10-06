@@ -4,7 +4,7 @@ use kira::{
 	sound::static_sound::{StaticSoundData, StaticSoundSettings},
 	Frame,
 };
-use micro::resource::loader::ResourceLoader;
+use micro_resource::ResourceLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct StaticSoundDataLoader {

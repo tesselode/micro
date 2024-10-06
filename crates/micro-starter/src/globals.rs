@@ -1,11 +1,5 @@
-use micro::{
-	input::virtual_controller::VirtualController,
-	resource::{
-		loader::{FontLoader, TextureLoader},
-		Resources,
-	},
-	Context,
-};
+use micro::{input::virtual_controller::VirtualController, Context};
+use micro_resource::{FontLoader, Resources, TextureLoader};
 
 use crate::input::{default_input_config, Controls, Sticks};
 

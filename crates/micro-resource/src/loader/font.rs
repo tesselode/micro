@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{
+use micro::{
 	graphics::text::{Font, FontSettings, LoadFontError},
 	Context,
 };

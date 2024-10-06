@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 kira = { version = "0.9.5", default-features = false, features = ["symphonia"] }
-micro = { path = "../micro", features = ["resource_management"] }
+micro = { path = "../micro" }
+micro-resource = { path = "../micro-resource" }

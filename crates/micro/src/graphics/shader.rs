@@ -418,8 +418,7 @@ impl Shader {
 		}
 	}
 
-	#[cfg(feature = "resource_management")]
-	pub(crate) fn import_uniforms(&self, ctx: &mut Context, other: &Self) {
+	pub fn import_uniforms(&self, ctx: &mut Context, other: &Self) {
 		let values = {
 			let other = ctx.graphics.shaders.get(other.id);
 			other.uniform_values.clone()

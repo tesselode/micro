@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-micro = { path = "../micro", features = ["resource_management"] }
+micro = { path = "../micro" }
+micro-resource = { path = "../micro-resource" }
 tiled = "0.12.1"

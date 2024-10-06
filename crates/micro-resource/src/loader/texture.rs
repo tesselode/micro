@@ -1,9 +1,8 @@
-use glam::{IVec2, UVec2};
-use image::ImageBuffer;
-use palette::{rgb::channels::Rgba, Srgba};
-
-use crate::{
+use micro::{
+	color::{rgb::channels::Rgba, Srgba},
 	graphics::texture::{LoadTextureError, Texture, TextureSettings},
+	image::ImageBuffer,
+	math::{IVec2, UVec2},
 	Context,
 };
 

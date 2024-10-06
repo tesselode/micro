@@ -1,14 +1,13 @@
 [package]
-name = "micro-aseprite"
+name = "micro-resource"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-micro = { path = "../micro" }
-micro-resource = { path = "../micro-resource", optional = true }
+image = "0.25.2"
+indexmap = "2.6.0"
+micro = { path = "../micro", features = ["serializing"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 thiserror = "1.0.64"
-
-[features]
-loader = ["micro-resource"]
+tracing = "0.1.40"

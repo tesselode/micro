@@ -1,0 +1,8 @@
+[package]
+name = "micro-tiled-loader"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+micro = { path = "../micro", features = ["resource_management"] }
+tiled = "0.12.1"

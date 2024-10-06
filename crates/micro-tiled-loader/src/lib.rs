@@ -1,4 +1,4 @@
-use super::ResourceLoader;
+use micro::resource::loader::ResourceLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct TiledMapLoader;

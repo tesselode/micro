@@ -1,6 +1,6 @@
 use glam::{vec2, Mat4, Vec2};
 
-use super::Circle;
+use super::{Circle, Lerp};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LineSegment {
@@ -115,6 +115,15 @@ impl From<(Vec2, Vec2)> for LineSegment {
 		Self {
 			start: value.0,
 			end: value.1,
+		}
+	}
+}
+
+impl Lerp for LineSegment {
+	fn lerp(self, other: Self, f: f32) -> Self {
+		Self {
+			start: self.start.lerp(other.start, f),
+			end: self.end.lerp(other.end, f),
 		}
 	}
 }

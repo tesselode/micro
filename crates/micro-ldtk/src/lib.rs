@@ -2,9 +2,9 @@ mod entity;
 mod entity_ref;
 mod field;
 mod layer;
+#[cfg(feature = "loader")]
+mod loader;
 mod tile;
-
-use std::path::Path;
 
 pub use entity::*;
 pub use entity_ref::*;
@@ -12,8 +12,12 @@ pub use field::*;
 pub use layer::*;
 pub use tile::*;
 
-use glam::{IVec2, UVec2};
-use palette::{LinSrgba, Srgb, WithAlpha};
+use std::path::Path;
+
+use micro::{
+	color::{LinSrgba, Srgb, WithAlpha},
+	math::{IVec2, UVec2},
+};
 use serde::Deserialize;
 use thiserror::Error;
 

@@ -1,4 +1,4 @@
-use glam::{IVec2, UVec2, Vec2};
+use micro::math::{IVec2, UVec2, Vec2};
 use serde::Deserialize;
 
 use super::{Error, Field};

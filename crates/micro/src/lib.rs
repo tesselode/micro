@@ -7,8 +7,6 @@ mod error;
 mod event;
 pub mod graphics;
 pub mod input;
-#[cfg(feature = "ldtk")]
-pub mod ldtk;
 mod log;
 pub mod math;
 mod offset_and_count;

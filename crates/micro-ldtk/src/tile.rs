@@ -1,4 +1,4 @@
-use glam::UVec2;
+use micro::math::UVec2;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]

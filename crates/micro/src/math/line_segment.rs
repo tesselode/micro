@@ -71,6 +71,7 @@ impl LineSegment {
 		distance_difference <= tolerance
 	}
 
+	// https://www.jeffreythompson.org/collision-detection/line-circle.php
 	pub fn intersects_circle(self, circle: Circle) -> bool {
 		const LINE_ON_POINT_TOLERANCE: f32 = 0.01;
 		if circle.contains_point(self.start) {

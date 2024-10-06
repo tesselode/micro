@@ -43,4 +43,8 @@ impl Circle {
 	pub fn overlaps(&self, other: Circle) -> bool {
 		(other.center - self.center).length_squared() <= (self.radius + other.radius).powi(2)
 	}
+
+	pub fn overlaps_rect(&self, rect: Rect) -> bool {
+		rect.overlaps_circle(*self)
+	}
 }

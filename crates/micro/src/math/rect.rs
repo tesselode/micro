@@ -3,7 +3,7 @@ mod test;
 
 use glam::{vec2, Vec2};
 
-use super::{IRect, URect};
+use super::{Circle, IRect, URect};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -239,5 +239,26 @@ impl Rect {
 			&& other.left() < self.right()
 			&& self.top() < other.bottom()
 			&& other.top() < self.bottom()
+	}
+
+	// https://www.jeffreythompson.org/collision-detection/circle-rect.php
+	pub fn overlaps_circle(&self, circle: Circle) -> bool {
+		let test = vec2(
+			if circle.center.x < self.left() {
+				self.left()
+			} else if circle.center.x > self.right() {
+				self.right()
+			} else {
+				circle.center.x
+			},
+			if circle.center.y < self.top() {
+				self.top()
+			} else if circle.center.y > self.bottom() {
+				self.bottom()
+			} else {
+				circle.center.y
+			},
+		);
+		(circle.center - test).length_squared() <= circle.radius.powi(2)
 	}
 }

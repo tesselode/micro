@@ -4,30 +4,32 @@ use glam::{vec2, Vec2};
 use micro::{
 	color::ColorConstants,
 	graphics::mesh::{MeshBuilder, ShapeStyle},
-	math::{Circle, Rect},
+	math::{Circle, Polygon},
 	App, Context, ContextSettings,
 };
 use palette::{LinSrgb, LinSrgba};
 
-const CIRCLE: Circle = Circle {
-	center: vec2(400.0, 300.0),
-	radius: 200.0,
-};
-const RECT_SIZE: Vec2 = vec2(100.0, 50.0);
+const POLYGON_POINTS: &[Vec2] = &[
+	vec2(300.0, 300.0),
+	vec2(500.0, 300.0),
+	vec2(400.0, 500.0),
+	vec2(100.0, 450.0),
+];
+const CIRCLE_RADIUS: f32 = 50.0;
 
 fn main() {
 	micro::run(ContextSettings::default(), Game::new);
 }
 
-struct Game;
+struct Game {
+	polygon: Polygon,
+}
 
 impl Game {
 	fn new(_ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self)
-	}
-
-	fn rect(&self, ctx: &Context) -> Rect {
-		Rect::centered_around(ctx.mouse_position().as_vec2(), RECT_SIZE)
+		Ok(Self {
+			polygon: Polygon::new(POLYGON_POINTS),
+		})
 	}
 }
 
@@ -38,20 +40,31 @@ impl App<Box<dyn Error>> for Game {
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.clear(LinSrgb::BLACK);
-		let rect = self.rect(ctx);
+		let circle = circle(ctx);
 		MeshBuilder::new()
-			.with_circle(ShapeStyle::Stroke(2.0), CIRCLE, LinSrgb::WHITE.into())?
-			.with_rectangle(
+			.with_circle(
 				ShapeStyle::Stroke(2.0),
-				rect,
-				if rect.overlaps_circle(CIRCLE) {
+				circle,
+				if self.polygon.overlaps_circle(circle) {
 					LinSrgba::RED
 				} else {
 					LinSrgba::WHITE
 				},
 			)?
+			.with_simple_polygon(
+				ShapeStyle::Stroke(2.0),
+				self.polygon.points.iter().copied(),
+				LinSrgba::WHITE,
+			)?
 			.build(ctx)
 			.draw(ctx);
 		Ok(())
+	}
+}
+
+fn circle(ctx: &Context) -> Circle {
+	Circle {
+		center: ctx.mouse_position().as_vec2(),
+		radius: CIRCLE_RADIUS,
 	}
 }

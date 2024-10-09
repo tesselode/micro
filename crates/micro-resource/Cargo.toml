@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-image = "0.25.2"
+image = { version = "0.25.2", default-features = false, features = ["png"] }
 indexmap = "2.6.0"
 micro = { path = "../micro", features = ["serializing"] }
 serde = { version = "1.0.210", features = ["derive"] }

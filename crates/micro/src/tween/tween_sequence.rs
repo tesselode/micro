@@ -5,7 +5,7 @@ use std::{
 	time::Duration,
 };
 
-use thiserror::Error;
+use derive_more::derive::{Display, Error};
 
 use crate::math::{InverseLerp, Lerp};
 
@@ -304,8 +304,8 @@ pub struct Keyframe<Value, Time = Duration> {
 	pub easing: Easing,
 }
 
-#[derive(Debug, Clone, PartialEq, Error)]
-#[error("Sequence already has a keyframe at time {time}")]
+#[derive(Debug, Clone, PartialEq, Error, Display)]
+#[display("Sequence already has a keyframe at time {time}")]
 pub struct KeyframeAlreadyAtTime<V, T> {
 	pub time: T,
 	pub sequence: TweenSequence<V, T>,

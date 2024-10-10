@@ -1,33 +1,33 @@
 use std::{num::ParseIntError, path::Path, time::Duration};
 
+use derive_more::derive::{Display, Error, From};
 use serde::Deserialize;
-use thiserror::Error;
 
 use micro::math::Rect;
 
 use super::{Animation, AnimationData, Frame, Repeats};
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display, From)]
 pub enum LoadAnimationDataError {
-	#[error("{0}")]
-	IoError(#[from] std::io::Error),
-	#[error("{0}")]
-	ParseError(#[from] serde_json::Error),
-	#[error("error parsing the repeat amount for animation {animation_name}: {error}")]
+	#[from]
+	IoError(std::io::Error),
+	#[from]
+	ParseError(serde_json::Error),
+	#[display("error parsing the repeat amount for animation {animation_name}: {error}")]
 	InvalidRepeatAmount {
 		animation_name: String,
 		error: ParseIntError,
 	},
-	#[error("error parsing user data for animation {animation_name}: {error}")]
+	#[display("error parsing user data for animation {animation_name}: {error}")]
 	ParseUserDataError {
 		animation_name: String,
 		error: serde_json::Error,
 	},
-	#[error("Invalid format for frame name {}", frame_name)]
+	#[display("Invalid format for frame name {}", frame_name)]
 	InvalidFrameName { frame_name: String },
-	#[error("Invalid format for tag name {}", tag_name)]
+	#[display("Invalid format for tag name {}", tag_name)]
 	InvalidTagName { tag_name: String },
-	#[error("No frames for animation with name {}", filename)]
+	#[display("No frames for animation with name {}", filename)]
 	NoFramesForAnimation { filename: String },
 }
 

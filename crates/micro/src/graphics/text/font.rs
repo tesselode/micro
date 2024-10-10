@@ -1,9 +1,9 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use crunch::{pack_into_po2, PackedItem, PackedItems};
+use derive_more::derive::{Display, Error, From};
 use glam::{UVec2, Vec2};
 use image::ImageBuffer;
-use thiserror::Error;
 
 use crate::{
 	graphics::texture::{Texture, TextureSettings},
@@ -85,12 +85,10 @@ impl Default for FontSettings {
 	}
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display, From)]
 pub enum LoadFontError {
-	#[error("{0}")]
-	IoError(#[from] std::io::Error),
-	#[error("{0}")]
-	FontError(&'static str),
+	IoError(std::io::Error),
+	FontError(#[error(not(source))] &'static str),
 }
 
 pub(crate) struct FontInner {

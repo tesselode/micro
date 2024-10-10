@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use derive_more::derive::{Display, Error, From};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 use micro::{
 	graphics::text::{Font, FontSettings, LoadFontError},
@@ -65,12 +65,9 @@ struct FontDefinition {
 	settings: FontSettings,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display, From)]
 pub enum LoadFontDefinitionError {
-	#[error("{0}")]
-	IoError(#[from] std::io::Error),
-	#[error("{0}")]
-	DefinitionError(#[from] serde_json::Error),
-	#[error("{0}")]
-	LoadFontError(#[from] LoadFontError),
+	IoError(std::io::Error),
+	DefinitionError(serde_json::Error),
+	LoadFontError(LoadFontError),
 }

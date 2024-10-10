@@ -7,11 +7,11 @@ use std::{
 	},
 };
 
+use derive_more::derive::{Display, Error, From};
 use glam::{IVec2, Mat4, UVec2, Vec2};
 use glow::{HasContext, NativeTexture, PixelUnpackData};
 use image::{ImageBuffer, ImageError};
 use palette::LinSrgba;
-use thiserror::Error;
 
 use crate::{color::ColorConstants, context::Context, graphics::mesh::Mesh, math::Rect};
 
@@ -271,12 +271,10 @@ impl Default for TextureFilter {
 	}
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display, From)]
 pub enum LoadTextureError {
-	#[error("{0}")]
-	IoError(#[from] std::io::Error),
-	#[error("{0}")]
-	ImageError(#[from] ImageError),
+	IoError(std::io::Error),
+	ImageError(ImageError),
 }
 
 #[derive(Debug)]

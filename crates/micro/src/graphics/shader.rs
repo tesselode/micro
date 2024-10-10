@@ -8,13 +8,13 @@ use std::{
 	},
 };
 
+use derive_more::derive::{Display, Error, From};
 use glam::{Mat3, Mat4, Vec2, Vec3, Vec4};
 use glow::{HasContext, NativeProgram};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use palette::LinSrgba;
 use regex_lite::Regex;
-use thiserror::Error;
 
 use crate::context::Context;
 
@@ -454,30 +454,22 @@ pub enum UniformValue {
 	Texture(Texture),
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display, From)]
 pub enum LoadShaderError {
-	#[error("{0}")]
-	IoError(#[from] std::io::Error),
-	#[error("{0}")]
-	ShaderError(String),
+	IoError(std::io::Error),
+	ShaderError(#[error(not(source))] String),
 }
 
-impl From<String> for LoadShaderError {
-	fn from(v: String) -> Self {
-		Self::ShaderError(v)
-	}
-}
+#[derive(Debug, Clone, Error, Display)]
+#[display("This shader does not have a uniform called {_0}")]
+pub struct UniformNotFound(#[error(not(source))] pub String);
 
-#[derive(Debug, Clone, Error)]
-#[error("This shader does not have a uniform called {0}")]
-pub struct UniformNotFound(pub String);
-
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display)]
 pub enum SendTextureError {
-	#[error("Cannot send more than {TEXTURE_UNITS} textures")]
+	#[display("Cannot send more than {TEXTURE_UNITS} textures")]
 	TooManyTextures,
-	#[error("This shader does not have a uniform called {0}")]
-	UniformNotFound(String),
+	#[display("This shader does not have a uniform called {_0}")]
+	UniformNotFound(#[error(not(source))] String),
 }
 
 #[derive(Debug)]

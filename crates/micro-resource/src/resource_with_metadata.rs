@@ -3,7 +3,7 @@ use std::{
 	time::SystemTime,
 };
 
-use thiserror::Error;
+use derive_more::derive::{Display, Error, From};
 
 use super::loader::ResourceLoader;
 
@@ -162,12 +162,10 @@ fn file_modified_time(path: &Path) -> std::io::Result<SystemTime> {
 	std::fs::metadata(path)?.modified()
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display, From)]
 enum LoadSettingsError {
-	#[error("{0}")]
-	IoError(#[from] std::io::Error),
-	#[error("{0}")]
-	LoadSettingsError(#[from] serde_json::Error),
+	IoError(std::io::Error),
+	LoadSettingsError(serde_json::Error),
 }
 
 type Reloaded = bool;

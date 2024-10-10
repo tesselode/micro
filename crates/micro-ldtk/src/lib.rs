@@ -6,6 +6,7 @@ mod layer;
 mod loader;
 mod tile;
 
+use derive_more::derive::{Display, Error, From};
 pub use entity::*;
 pub use entity_ref::*;
 pub use field::*;
@@ -19,7 +20,6 @@ use micro::{
 	math::{IVec2, UVec2},
 };
 use serde::Deserialize;
-use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(try_from = "RawLevel")]
@@ -86,14 +86,14 @@ impl TryFrom<RawLevel> for Level {
 	}
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Display, From)]
 pub enum Error {
-	#[error("{0}")]
 	IoError(#[from] std::io::Error),
-	#[error("Error parsing ldtk file: {0}")]
+	#[display("Error parsing ldtk file: {_0}")]
 	ParseError(#[from] serde_json::Error),
-	#[error("{0} is not a valid color")]
-	InvalidColor(String),
+	#[from(skip)]
+	#[display("{_0} is not a valid color")]
+	InvalidColor(#[error(not(source))] String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

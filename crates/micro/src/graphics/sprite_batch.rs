@@ -2,12 +2,12 @@ mod sprite_params;
 
 use std::sync::{Arc, Mutex};
 
+use derive_more::derive::{Display, Error};
 use palette::LinSrgba;
 pub use sprite_params::SpriteParams;
 
 use generational_arena::{Arena, Index};
 use glam::{Mat4, Vec2};
-use thiserror::Error;
 
 use crate::{
 	color::ColorConstants,
@@ -206,10 +206,10 @@ struct SpriteBatchInner {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SpriteId(pub Index);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]
-#[error("Cannot add more sprites to the sprite batch")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error, Display)]
+#[display("Cannot add more sprites to the sprite batch")]
 pub struct SpriteLimitReached;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error)]
-#[error("No sprite with this ID exists")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error, Display)]
+#[display("No sprite with this ID exists")]
 pub struct InvalidSpriteId;

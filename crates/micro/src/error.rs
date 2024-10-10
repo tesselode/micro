@@ -1,8 +1,7 @@
-use thiserror::Error;
+use derive_more::derive::{Display, Error};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Error)]
-#[error("{0}")]
-pub struct SdlError(pub String);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Error, Display)]
+pub struct SdlError(#[error(not(source))] pub String);
 
 impl From<String> for SdlError {
 	fn from(value: String) -> Self {

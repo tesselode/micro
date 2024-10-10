@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+derive_more = { version = "1.0.0", features = ["from", "display", "error"] }
 micro = { path = "../micro" }
 micro-resource = { path = "../micro-resource", optional = true }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
-thiserror = "1.0.64"
 
 [features]
 loader = ["micro-resource"]

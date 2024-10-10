@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bytemuck = { version = "1.10.0", features = ["derive"] }
 crunch = "0.5.3"
+derive_more = { version = "1.0.0", features = ["from", "display", "error"] }
 directories = "5.0.1"
 egui = "0.29.1"
 exhaust = "0.2.0"
@@ -24,12 +25,11 @@ palette = { version = "0.7.2", default-features = false, features = [
 	"std",
 	"bytemuck",
 ] }
-serde = { version = "1.0", features = ["derive"], optional = true }
-sdl2 = "0.37.0"
-thiserror = "1.0.31"
-tracing = "0.1.37"
 rand = { version = "0.8.5", optional = true }
 regex-lite = "0.1.5"
+sdl2 = "0.37.0"
+serde = { version = "1.0", features = ["derive"], optional = true }
+tracing = "0.1.37"
 
 [features]
 mint = ["glam/mint"]

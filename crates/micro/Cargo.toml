@@ -15,7 +15,7 @@ exhaust = "0.2.0"
 fontdue = "0.9.0"
 generational-arena = "0.2.8"
 glam = { version = "0.29.0", features = ["bytemuck"] }
-glow = "0.14.0"
+glow = "0.15.0"
 image = { version = "0.25.0", default-features = false, features = ["png"] }
 indexmap = "2.0.2"
 itertools = "0.13.0"

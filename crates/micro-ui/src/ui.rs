@@ -38,7 +38,7 @@ impl Ui {
 			.open(open)
 			.scroll(true)
 			.show(egui_ctx, |ui| {
-				show_debug_widget_info(ui, &mut highlighted_widget_path, widget);
+				show_debug_widget_info(ui, &mut highlighted_widget_path, widget, None);
 			});
 		self.draw_debug_state = Some(DrawDebugState {
 			highlighted_widget_path,
@@ -70,6 +70,7 @@ struct BakedWidget {
 	children: Vec<BakedWidget>,
 	mask: Option<Box<BakedWidget>>,
 	layout_result: LayoutResult,
+	allotted_size_from_parent: Vec2,
 }
 
 impl BakedWidget {
@@ -107,6 +108,7 @@ impl BakedWidget {
 			children,
 			mask,
 			layout_result,
+			allotted_size_from_parent,
 		}
 	}
 
@@ -244,24 +246,38 @@ fn show_debug_widget_info(
 	ui: &mut micro::debug_ui::Ui,
 	highlighted_widget_path: &mut Option<PathBuf>,
 	widget: &BakedWidget,
+	position: Option<Vec2>,
 ) {
 	let label = widget
 		.path
 		.file_name()
 		.map(|name| name.to_str().unwrap().to_string())
 		.unwrap_or_else(|| "Root".to_string());
-	if widget.children.is_empty() {
-		if ui.selectable_label(false, label).contains_pointer() {
-			*highlighted_widget_path = Some(widget.path.clone());
-		}
-	} else {
-		let response = ui.collapsing(label, |ui| {
-			for child in &widget.children {
-				show_debug_widget_info(ui, highlighted_widget_path, child);
-			}
+	let response = ui.collapsing(label, |ui| {
+		ui.horizontal(|ui| {
+			ui.label("Allotted size from parent:");
+			ui.monospace(format!("{}", widget.allotted_size_from_parent));
 		});
-		if response.header_response.contains_pointer() {
-			*highlighted_widget_path = Some(widget.path.clone());
+		ui.horizontal(|ui| {
+			ui.label("Size:");
+			ui.monospace(format!("{}", widget.layout_result.size));
+		});
+		if let Some(position) = position {
+			ui.horizontal(|ui| {
+				ui.label("Position:");
+				ui.monospace(format!("{}", position));
+			});
 		}
+		for (i, child) in widget.children.iter().enumerate() {
+			show_debug_widget_info(
+				ui,
+				highlighted_widget_path,
+				child,
+				Some(widget.layout_result.child_positions[i]),
+			);
+		}
+	});
+	if response.header_response.contains_pointer() {
+		*highlighted_widget_path = Some(widget.path.clone());
 	}
 }

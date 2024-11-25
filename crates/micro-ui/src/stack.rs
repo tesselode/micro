@@ -69,10 +69,14 @@ impl Widget for Stack {
 		match self.direction {
 			Axis::Horizontal => vec2(
 				allotted_size_from_parent.x - total_child_main_axis_size,
-				allotted_size_from_parent.y,
+				self.settings
+					.cross_sizing
+					.allotted_size_for_children(allotted_size_from_parent.y),
 			),
 			Axis::Vertical => vec2(
-				allotted_size_from_parent.x,
+				self.settings
+					.cross_sizing
+					.allotted_size_for_children(allotted_size_from_parent.x),
 				allotted_size_from_parent.y - total_child_main_axis_size,
 			),
 		}

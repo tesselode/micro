@@ -1,7 +1,7 @@
 use micro::{
 	color::{ColorConstants, LinSrgba},
 	graphics::texture::Texture,
-	math::Vec2,
+	math::{vec2, Vec2},
 	Context,
 };
 
@@ -10,6 +10,7 @@ use super::{LayoutResult, Widget, WidgetMouseEventChannel};
 #[derive(Debug)]
 pub struct Image {
 	texture: Texture,
+	scale: Vec2,
 	color: LinSrgba,
 	mouse_event_channel: Option<WidgetMouseEventChannel>,
 }
@@ -18,6 +19,7 @@ impl Image {
 	pub fn new(texture: &Texture) -> Self {
 		Self {
 			texture: texture.clone(),
+			scale: Vec2::ONE,
 			color: LinSrgba::WHITE,
 			mouse_event_channel: None,
 		}
@@ -26,6 +28,34 @@ impl Image {
 	pub fn with_color(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			color: color.into(),
+			..self
+		}
+	}
+
+	pub fn with_scale(self, scale: impl Into<Vec2>) -> Self {
+		Self {
+			scale: scale.into(),
+			..self
+		}
+	}
+
+	pub fn with_scale_x(self, scale_x: f32) -> Self {
+		Self {
+			scale: vec2(scale_x, self.scale.y),
+			..self
+		}
+	}
+
+	pub fn with_scale_y(self, scale_y: f32) -> Self {
+		Self {
+			scale: vec2(self.scale.x, scale_y),
+			..self
+		}
+	}
+
+	pub fn with_uniform_scale(self, scale: f32) -> Self {
+		Self {
+			scale: Vec2::splat(scale),
 			..self
 		}
 	}
@@ -66,13 +96,16 @@ impl Widget for Image {
 		_child_sizes: &[Vec2],
 	) -> LayoutResult {
 		LayoutResult {
-			size: self.texture.size().as_vec2(),
+			size: self.texture.size().as_vec2() * self.scale,
 			child_positions: vec![],
 		}
 	}
 
 	fn draw(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
-		self.texture.color(self.color).draw(ctx);
+		self.texture
+			.color(self.color)
+			.scaled_2d(self.scale)
+			.draw(ctx);
 		Ok(())
 	}
 }

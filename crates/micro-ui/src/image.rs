@@ -101,7 +101,7 @@ impl Widget for Image {
 		}
 	}
 
-	fn draw(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
 		self.texture
 			.color(self.color)
 			.scaled_2d(self.scale)

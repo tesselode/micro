@@ -100,12 +100,16 @@ impl Widget for Ellipse {
 		}
 	}
 
-	fn draw(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		if let Some(fill) = self.fill {
 			Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)?
 				.color(fill)
 				.draw(ctx);
 		}
+		Ok(())
+	}
+
+	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		if let Some((width, color)) = self.stroke {
 			Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)?
 				.color(color)

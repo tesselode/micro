@@ -112,7 +112,7 @@ impl Widget for TextWidget {
 		}
 	}
 
-	fn draw(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
 		if let Some(TextShadow { color, offset }) = self.settings.shadow {
 			self.rendered
 				.borrow()

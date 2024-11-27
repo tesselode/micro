@@ -100,12 +100,16 @@ impl Widget for Rectangle {
 		}
 	}
 
-	fn draw(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		if let Some(fill) = self.fill {
 			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, size))
 				.color(fill)
 				.draw(ctx);
 		}
+		Ok(())
+	}
+
+	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		if let Some((width, color)) = self.stroke {
 			Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, size))?
 				.color(color)

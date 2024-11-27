@@ -87,12 +87,16 @@ impl Widget for Polygon {
 		}
 	}
 
-	fn draw(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
 		if let Some(fill) = self.fill {
 			Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())?
 				.color(fill)
 				.draw(ctx);
 		}
+		Ok(())
+	}
+
+	fn draw_after_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
 		if let Some((width, color)) = self.stroke {
 			Mesh::simple_polygon(ctx, ShapeStyle::Stroke(width), self.points.iter().copied())?
 				.color(color)

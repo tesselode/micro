@@ -143,7 +143,7 @@ impl Canvas {
 		)
 	}
 
-	pub fn render_to<'a>(&'a self, ctx: &'a mut Context) -> OnDrop {
+	pub fn render_to<'a>(&'a self, ctx: &'a mut Context) -> OnDrop<'a> {
 		if let RenderTarget::Canvas { .. } = ctx.graphics.render_target {
 			unimplemented!("cannot nest render_to calls");
 		}
@@ -346,13 +346,13 @@ pub struct OnDrop<'a> {
 	pub(crate) canvas: &'a Canvas,
 }
 
-impl<'a> Drop for OnDrop<'a> {
+impl Drop for OnDrop<'_> {
 	fn drop(&mut self) {
 		self.canvas.finish_render_to(self.ctx)
 	}
 }
 
-impl<'a> Deref for OnDrop<'a> {
+impl Deref for OnDrop<'_> {
 	type Target = Context;
 
 	fn deref(&self) -> &Self::Target {
@@ -360,7 +360,7 @@ impl<'a> Deref for OnDrop<'a> {
 	}
 }
 
-impl<'a> DerefMut for OnDrop<'a> {
+impl DerefMut for OnDrop<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}

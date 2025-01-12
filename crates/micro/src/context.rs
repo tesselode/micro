@@ -552,7 +552,7 @@ pub struct OnDrop<'a> {
 	action: OnDropAction,
 }
 
-impl<'a> Drop for OnDrop<'a> {
+impl Drop for OnDrop<'_> {
 	fn drop(&mut self) {
 		match self.action {
 			OnDropAction::PopTransform => {
@@ -576,7 +576,7 @@ impl<'a> Drop for OnDrop<'a> {
 	}
 }
 
-impl<'a> Deref for OnDrop<'a> {
+impl Deref for OnDrop<'_> {
 	type Target = Context;
 
 	fn deref(&self) -> &Self::Target {
@@ -584,7 +584,7 @@ impl<'a> Deref for OnDrop<'a> {
 	}
 }
 
-impl<'a> DerefMut for OnDrop<'a> {
+impl DerefMut for OnDrop<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}

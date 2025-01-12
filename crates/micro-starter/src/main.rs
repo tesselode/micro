@@ -71,7 +71,7 @@ impl App<anyhow::Error> for Game {
 			micro::debug_ui::menu::bar(ui, |ui| -> anyhow::Result<()> {
 				self.scene_manager.debug_menu(ctx, ui, &mut self.globals)?;
 				ui.separator();
-				ui.label(&format!(
+				ui.label(format!(
 					"Average frame time: {:.1}ms ({:.0} FPS)",
 					ctx.average_frame_time().as_secs_f64() * 1000.0,
 					ctx.fps()

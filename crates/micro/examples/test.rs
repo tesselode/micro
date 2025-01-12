@@ -33,7 +33,9 @@ impl Game {
 	}
 }
 
-impl App<Box<dyn Error>> for Game {
+impl App for Game {
+	type Error = Box<dyn Error>;
+
 	fn update(&mut self, ctx: &mut Context, _delta_time: Duration) -> Result<(), Box<dyn Error>> {
 		Ok(())
 	}

@@ -32,7 +32,7 @@ use self::graphics::GraphicsContext;
 /// Runs the game. Call this in your `main` function.
 pub fn run<S, F, E>(settings: ContextSettings, app_constructor: F)
 where
-	S: App<E>,
+	S: App<Error = E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 	E: Debug,
 {
@@ -41,7 +41,7 @@ where
 
 fn run_inner<S, F, E>(settings: ContextSettings, mut app_constructor: F) -> Result<(), E>
 where
-	S: App<E>,
+	S: App<Error = E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 {
 	// create contexts and resources

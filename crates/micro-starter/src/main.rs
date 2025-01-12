@@ -58,7 +58,9 @@ impl Game {
 	}
 }
 
-impl App<anyhow::Error> for Game {
+impl App for Game {
+	type Error = anyhow::Error;
+
 	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,

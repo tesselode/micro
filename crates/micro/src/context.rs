@@ -21,7 +21,6 @@ use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	graphics::{Camera3d, Canvas, CanvasSettings, Msaa, StencilAction, StencilTest},
 	input::{Gamepad, MouseButton, Scancode},
-	log_if_err,
 	time::FrameTimeTracker,
 	window::WindowMode,
 	App, Event, SdlError,
@@ -30,13 +29,13 @@ use crate::{
 use self::graphics::GraphicsContext;
 
 /// Runs the game. Call this in your `main` function.
-pub fn run<S, F, E>(settings: ContextSettings, app_constructor: F)
+pub fn run<S, F, E>(settings: ContextSettings, app_constructor: F) -> Result<(), E>
 where
 	S: App<Error = E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 	E: Debug,
 {
-	log_if_err!(run_inner(settings, app_constructor));
+	run_inner(settings, app_constructor)
 }
 
 fn run_inner<S, F, E>(settings: ContextSettings, mut app_constructor: F) -> Result<(), E>

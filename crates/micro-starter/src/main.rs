@@ -12,6 +12,7 @@ use globals::Globals;
 use log::setup_logging;
 use micro::color::LinSrgba;
 use micro::debug_ui::TopBottomPanel;
+use micro::log_if_err;
 use micro::math::UVec2;
 use micro::{
 	color::ColorConstants, input::Scancode, App, Context, ContextSettings, Event, WindowMode,
@@ -27,7 +28,7 @@ fn main() {
 	std::panic::set_hook(Box::new(|info| {
 		tracing::error!("{}\n{:?}", info, Backtrace::new())
 	}));
-	micro::run(
+	log_if_err!(micro::run(
 		ContextSettings {
 			window_title: "Game".to_string(),
 			window_mode: WindowMode::Windowed {
@@ -37,7 +38,7 @@ fn main() {
 			..Default::default()
 		},
 		Game::new,
-	)
+	));
 }
 
 struct Game {

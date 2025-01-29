@@ -72,8 +72,7 @@ impl LineSegment {
 	}
 
 	// https://www.jeffreythompson.org/collision-detection/line-circle.php
-	pub fn intersects_circle(self, circle: Circle) -> bool {
-		const LINE_ON_POINT_TOLERANCE: f32 = 0.01;
+	pub fn intersects_circle(self, circle: Circle, tolerance: f32) -> bool {
 		if circle.contains_point(self.start) {
 			return true;
 		}
@@ -82,7 +81,7 @@ impl LineSegment {
 		}
 		let dot = (circle.center - self.start).dot(self.end - self.start) / self.length_squared();
 		let closest = self.start + dot * (self.end - self.start);
-		if !self.contains_point(closest, LINE_ON_POINT_TOLERANCE) {
+		if !self.contains_point(closest, tolerance) {
 			return false;
 		}
 		let distance_squared = (closest - circle.center).length_squared();

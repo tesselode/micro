@@ -82,13 +82,15 @@ impl Polygon {
 				((s.y > point.y) != (e.y > point.y))
 					&& (point.x < (e.x - s.x) * (point.y - s.y) / (e.y - s.y) + s.x)
 			})
-			.count() % 2 == 1
+			.count() % 2
+			== 1
 	}
 
-	pub fn overlaps_circle(&self, circle: Circle) -> bool {
+	// https://www.jeffreythompson.org/collision-detection/poly-circle.php
+	pub fn overlaps_circle(&self, circle: Circle, tolerance: f32) -> bool {
 		let edge_intersects_circle = self
 			.line_segments()
-			.any(|line_segment| line_segment.intersects_circle(circle));
+			.any(|line_segment| line_segment.intersects_circle(circle, tolerance));
 		edge_intersects_circle || self.contains_point(circle.center)
 	}
 }

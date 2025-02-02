@@ -1,6 +1,6 @@
 use glam::{vec2, Mat4, Vec2};
 
-use super::{Circle, LineSegment};
+use super::{Circle, LineSegment, Rect};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Polygon {
@@ -75,6 +75,14 @@ impl Polygon {
 		})
 	}
 
+	pub fn bounding_rect(&self) -> Option<Rect> {
+		let left = self.points.iter().map(|point| point.x).reduce(f32::min)?;
+		let right = self.points.iter().map(|point| point.x).reduce(f32::max)?;
+		let top = self.points.iter().map(|point| point.y).reduce(f32::min)?;
+		let bottom = self.points.iter().map(|point| point.y).reduce(f32::max)?;
+		Some(Rect::from_corners(vec2(left, top), vec2(right, bottom)))
+	}
+
 	// https://www.jeffreythompson.org/collision-detection/poly-point.php
 	pub fn contains_point(&self, point: Vec2) -> bool {
 		self.line_segments()
@@ -92,5 +100,29 @@ impl Polygon {
 			.line_segments()
 			.any(|line_segment| line_segment.intersects_circle(circle, tolerance));
 		edge_intersects_circle || self.contains_point(circle.center)
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use glam::vec2;
+
+	use crate::math::Rect;
+
+	use super::Polygon;
+
+	#[test]
+	fn bounding_rect() {
+		let polygon = Polygon::new(vec![
+			vec2(-1.0, -1.0),
+			vec2(0.0, -2.0),
+			vec2(1.0, -1.0),
+			vec2(0.5, 1.0),
+			vec2(-0.5, 1.0),
+		]);
+		assert_eq!(
+			polygon.bounding_rect(),
+			Some(Rect::from_corners(vec2(-1.0, -2.0), vec2(1.0, 1.0))),
+		);
 	}
 }

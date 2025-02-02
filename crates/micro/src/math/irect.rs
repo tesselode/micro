@@ -36,35 +36,35 @@ impl IRect {
 		}
 	}
 
-	pub const fn left(&self) -> i32 {
+	pub const fn left(self) -> i32 {
 		self.top_left.x
 	}
 
-	pub const fn right(&self) -> i32 {
+	pub const fn right(self) -> i32 {
 		self.top_left.x + self.size.x
 	}
 
-	pub const fn top(&self) -> i32 {
+	pub const fn top(self) -> i32 {
 		self.top_left.y
 	}
 
-	pub const fn bottom(&self) -> i32 {
+	pub const fn bottom(self) -> i32 {
 		self.top_left.y + self.size.y
 	}
 
-	pub const fn top_right(&self) -> IVec2 {
+	pub const fn top_right(self) -> IVec2 {
 		IVec2::new(self.right(), self.top())
 	}
 
-	pub const fn bottom_left(&self) -> IVec2 {
+	pub const fn bottom_left(self) -> IVec2 {
 		IVec2::new(self.left(), self.bottom())
 	}
 
-	pub const fn bottom_right(&self) -> IVec2 {
+	pub const fn bottom_right(self) -> IVec2 {
 		IVec2::new(self.right(), self.bottom())
 	}
 
-	pub const fn corners(&self) -> [IVec2; 4] {
+	pub const fn corners(self) -> [IVec2; 4] {
 		[
 			self.bottom_right(),
 			self.top_right(),
@@ -73,15 +73,15 @@ impl IRect {
 		]
 	}
 
-	pub fn translated_x(&self, translation: i32) -> Self {
+	pub fn translated_x(self, translation: i32) -> Self {
 		self.translated(ivec2(translation, 0))
 	}
 
-	pub fn translated_y(&self, translation: i32) -> Self {
+	pub fn translated_y(self, translation: i32) -> Self {
 		self.translated(ivec2(0, translation))
 	}
 
-	pub fn translated(&self, translation: impl Into<IVec2>) -> Self {
+	pub fn translated(self, translation: impl Into<IVec2>) -> Self {
 		let translation = translation.into();
 		Self {
 			top_left: self.top_left + translation,
@@ -89,15 +89,15 @@ impl IRect {
 		}
 	}
 
-	pub fn padded_x(&self, padding: i32) -> Self {
+	pub fn padded_x(self, padding: i32) -> Self {
 		self.padded(ivec2(padding, 0))
 	}
 
-	pub fn padded_y(&self, padding: i32) -> Self {
+	pub fn padded_y(self, padding: i32) -> Self {
 		self.padded(ivec2(0, padding))
 	}
 
-	pub fn padded(&self, padding: impl Into<IVec2>) -> Self {
+	pub fn padded(self, padding: impl Into<IVec2>) -> Self {
 		let padding = padding.into();
 		Self {
 			top_left: self.top_left - padding,
@@ -105,7 +105,7 @@ impl IRect {
 		}
 	}
 
-	pub fn union(&self, other: Self) -> Self {
+	pub fn union(self, other: Self) -> Self {
 		let top_left = IVec2::new(
 			self.top_left.x.min(other.top_left.x),
 			self.top_left.y.min(other.top_left.y),
@@ -117,7 +117,7 @@ impl IRect {
 		Self::from_corners(top_left, bottom_right)
 	}
 
-	pub fn contains_point(&self, point: impl Into<IVec2>) -> bool {
+	pub fn contains_point(self, point: impl Into<IVec2>) -> bool {
 		let point = point.into();
 		point.x >= self.left()
 			&& point.x <= self.right()
@@ -125,7 +125,7 @@ impl IRect {
 			&& point.y <= self.bottom()
 	}
 
-	pub const fn overlaps(&self, other: Self) -> bool {
+	pub const fn overlaps(self, other: Self) -> bool {
 		self.left() < other.right()
 			&& other.left() < self.right()
 			&& self.top() < other.bottom()

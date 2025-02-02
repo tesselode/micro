@@ -8,7 +8,7 @@ pub enum ClockDirection {
 }
 
 impl ClockDirection {
-	pub fn as_f32(&self) -> f32 {
+	pub fn as_f32(self) -> f32 {
 		match self {
 			ClockDirection::Clockwise => -1.0,
 			ClockDirection::CounterClockwise => 1.0,

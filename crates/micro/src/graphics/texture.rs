@@ -109,7 +109,7 @@ impl Texture {
 				image.height() as i32,
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
-				PixelUnpackData::Slice(image.as_raw()),
+				PixelUnpackData::Slice(Some(image.as_raw())),
 			);
 		}
 	}
@@ -193,7 +193,7 @@ impl Texture {
 				} else {
 					glow::UNSIGNED_BYTE
 				},
-				pixels,
+				PixelUnpackData::Slice(pixels),
 			);
 			gl.generate_mipmap(glow::TEXTURE_2D);
 		}

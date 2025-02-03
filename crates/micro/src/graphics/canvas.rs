@@ -194,7 +194,7 @@ impl Canvas {
 				self.size().y as i32,
 				glow::RGBA,
 				glow::UNSIGNED_BYTE,
-				PixelPackData::Slice(buffer),
+				PixelPackData::Slice(Some(buffer)),
 			);
 		}
 	}

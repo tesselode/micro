@@ -67,15 +67,20 @@ where
 		ctx.frame_time_tracker.record(delta_time);
 
 		// poll for events
+		let span = tracy_client::span!("poll events");
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
+		drop(span);
 
 		// create egui UI
+		let span = tracy_client::span!("create egui UI");
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_pass(egui_input);
 		app.debug_ui(&mut ctx, &egui_ctx)?;
 		let egui_output = egui_ctx.end_pass();
+		drop(span);
 
 		// dispatch events to state
+		let span = tracy_client::span!("dispatch events");
 		for event in events
 			.drain(..)
 			.filter(|event| !egui_took_sdl2_event(&egui_ctx, event))
@@ -93,13 +98,17 @@ where
 				event.transform_mouse_events(transform, dpi_scaling),
 			)?;
 		}
+		drop(span);
 		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
 		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
 
 		// update state
+		let span = tracy_client::span!("update");
 		app.update(&mut ctx, delta_time)?;
+		drop(span);
 
 		// draw state and egui UI
+		let span = tracy_client::span!("draw");
 		if let Some(main_canvas) = &main_canvas {
 			ctx.clear(LinSrgba::BLACK);
 			{
@@ -112,10 +121,17 @@ where
 			let ctx = &mut ctx.push_transform(ctx.scaling_mode.transform_mat4(&ctx));
 			app.draw(ctx)?;
 		}
+		drop(span);
+		let span = tracy_client::span!("draw egui UI");
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
+		drop(span);
 		ctx.window.gl_swap_window();
 
+		tracy_client::frame_mark();
+
+		let span = tracy_client::span!("delete unused resources");
 		ctx.graphics.delete_unused_resources();
+		drop(span);
 
 		if ctx.should_quit {
 			break;

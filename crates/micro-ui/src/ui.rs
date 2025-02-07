@@ -51,6 +51,7 @@ impl Ui {
 		size: Vec2,
 		widget: impl Widget + 'static,
 	) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		let mut baked_widget = BakedWidget::new(ctx, PathBuf::new(), &widget, size);
 		self.mouse_input.update(ctx);
 		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);

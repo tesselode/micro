@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-derive_more = { version = "1.0.0", features = ["from", "display", "error"] }
+derive_more = { version = "2.0.1", features = ["from", "display", "error"] }
 micro = { path = "../micro" }
 micro-resource = { path = "../micro-resource", optional = true }
 serde = { version = "1.0.210", features = ["derive"] }

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-derive_more = { version = "1.0.0", features = ["from", "display", "error"] }
+derive_more = { version = "2.0.1", features = ["from", "display", "error"] }
 image = { version = "0.25.2", default-features = false, features = ["png"] }
 indexmap = "2.6.0"
 micro = { path = "../micro", features = ["serializing"] }

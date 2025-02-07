@@ -6,5 +6,13 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.89"
 indexmap = "2.6.0"
-itertools = "0.13.0"
+itertools = "0.14.0"
 micro = { path = "../micro" }
+tracy-client = { version = "0.18.0", default-features = false, features = [
+	"broadcast",
+	"callstack-inlines",
+	"code-transfer",
+	"context-switch-tracing",
+	"sampling",
+	"system-tracing",
+] }

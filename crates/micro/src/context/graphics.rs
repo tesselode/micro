@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use glam::{IVec2, Mat4, UVec2, Vec3};
 use glow::HasContext;
@@ -6,8 +6,10 @@ use sdl2::{
 	video::{GLContext, Window},
 	VideoSubsystem,
 };
+use tracy_client::{GpuContextType, SpanLocation};
 
 use crate::graphics::{
+	gpu_span::{GpuSpan, GpuSpanInner},
 	mesh::RawMesh,
 	resource::GraphicsResources,
 	shader::{RawShader, Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
@@ -26,6 +28,8 @@ pub(crate) struct GraphicsContext {
 	pub(crate) default_shader: Shader,
 	pub(crate) transform_stack: Vec<Mat4>,
 	pub(crate) render_target: RenderTarget,
+	pub(crate) tracy_gpu_ctx: tracy_client::GpuContext,
+	gpu_spans: Vec<Rc<RefCell<GpuSpanInner>>>,
 	viewport_size: IVec2,
 	_sdl_gl_ctx: GLContext,
 }
@@ -67,6 +71,7 @@ impl GraphicsContext {
 			DEFAULT_FRAGMENT_SHADER,
 		)
 		.expect("error compiling default shader");
+		let gpu_timestamp = unsafe { gl.get_parameter_i64(glow::TIMESTAMP) };
 		Self {
 			gl,
 			meshes,
@@ -78,6 +83,16 @@ impl GraphicsContext {
 			vertex_attribute_buffers,
 			transform_stack: vec![],
 			render_target: RenderTarget::Window,
+			tracy_gpu_ctx: tracy_client::Client::running()
+				.unwrap()
+				.new_gpu_context(
+					Some("GPU context"),
+					GpuContextType::OpenGL,
+					gpu_timestamp,
+					1.0,
+				)
+				.unwrap(),
+			gpu_spans: vec![],
 			viewport_size,
 			_sdl_gl_ctx,
 		}
@@ -130,6 +145,31 @@ impl GraphicsContext {
 			.fold(coordinate_system_transform, |previous, transform| {
 				previous * *transform
 			})
+	}
+
+	pub(crate) fn create_gpu_span(&mut self, span_location: &'static SpanLocation) -> GpuSpan {
+		let start_query = unsafe { self.gl.create_query() }.unwrap();
+		unsafe {
+			self.gl.query_counter(start_query, glow::TIMESTAMP);
+		}
+		let end_query = unsafe { self.gl.create_query() }.unwrap();
+		let inner = Rc::new(RefCell::new(GpuSpanInner {
+			tracy_gpu_span: self.tracy_gpu_ctx.span(span_location).unwrap(),
+			start_query,
+			end_query,
+		}));
+		self.gpu_spans.push(inner.clone());
+		GpuSpan {
+			gl: self.gl.clone(),
+			inner,
+		}
+	}
+
+	pub(crate) fn record_queries(&mut self) {
+		self.gpu_spans.retain_mut(|span| {
+			let recorded = span.borrow_mut().try_record(self.gl.clone());
+			!recorded
+		});
 	}
 }
 

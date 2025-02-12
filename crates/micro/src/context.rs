@@ -14,12 +14,15 @@ use sdl2::{
 	video::{FullscreenType, GLProfile, SwapInterval, Window, WindowPos},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 };
+use tracy_client::SpanLocation;
 
 use crate::{
 	build_window,
 	color::ColorConstants,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	graphics::{Camera3d, Canvas, CanvasSettings, Msaa, StencilAction, StencilTest},
+	graphics::{
+		gpu_span::GpuSpan, Camera3d, Canvas, CanvasSettings, Msaa, StencilAction, StencilTest,
+	},
 	input::{Gamepad, MouseButton, Scancode},
 	time::FrameTimeTracker,
 	window::WindowMode,
@@ -43,6 +46,8 @@ where
 	S: App<Error = E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 {
+	tracy_client::Client::start();
+
 	// create contexts and resources
 	let mut ctx = Context::new(&settings);
 	let egui_ctx = egui::Context::default();
@@ -128,6 +133,7 @@ where
 		ctx.window.gl_swap_window();
 
 		tracy_client::frame_mark();
+		ctx.graphics.record_queries();
 
 		let span = tracy_client::span!("delete unused resources");
 		ctx.graphics.delete_unused_resources();
@@ -373,6 +379,10 @@ impl Context {
 			ctx: self,
 			action: OnDropAction::StopUsingStencil,
 		}
+	}
+
+	pub fn create_gpu_span(&mut self, span_location: &'static SpanLocation) -> GpuSpan {
+		self.graphics.create_gpu_span(span_location)
 	}
 
 	/// Returns `true` if the given keyboard key is currently held down.

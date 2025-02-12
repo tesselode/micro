@@ -2,6 +2,7 @@ mod blend_mode;
 mod camera_3d;
 mod canvas;
 mod culling;
+pub(crate) mod gpu_span;
 pub mod mesh;
 mod nine_slice;
 pub(crate) mod resource;

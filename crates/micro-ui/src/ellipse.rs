@@ -80,6 +80,7 @@ impl Widget for Ellipse {
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 	) -> Vec2 {
+		let _span = tracy_client::span!();
 		self.sizing
 			.allotted_size_for_children(allotted_size_from_parent)
 	}
@@ -90,6 +91,7 @@ impl Widget for Ellipse {
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 	) -> LayoutResult {
+		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self
 				.sizing
@@ -101,6 +103,7 @@ impl Widget for Ellipse {
 	}
 
 	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
 			Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)?
 				.color(fill)
@@ -110,6 +113,7 @@ impl Widget for Ellipse {
 	}
 
 	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
 			Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)?
 				.color(color)

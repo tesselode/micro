@@ -52,6 +52,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 
 impl<V: Vertex> Mesh<V> {
 	pub fn new(ctx: &mut Context, vertices: &[V], indices: &[u32]) -> Self {
+		let _span = tracy_client::span!();
 		let gl = &ctx.graphics.gl;
 		let vertex_array = unsafe {
 			gl.create_vertex_array()
@@ -124,6 +125,7 @@ impl<V: Vertex> Mesh<V> {
 	}
 
 	pub fn set_vertex(&self, ctx: &Context, index: usize, vertex: V) {
+		let _span = tracy_client::span!();
 		let gl = &ctx.graphics.gl;
 		let mesh = ctx.graphics.meshes.get(self.id);
 		unsafe {
@@ -138,6 +140,7 @@ impl<V: Vertex> Mesh<V> {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
+		let _span = tracy_client::span!();
 		let global_transform = ctx.graphics.global_transform();
 		let texture = self
 			.texture
@@ -185,6 +188,7 @@ impl<V: Vertex> Mesh<V> {
 		num_instances: usize,
 		vertex_attribute_buffers: &[&VertexAttributeBuffer],
 	) {
+		let _span = tracy_client::span!();
 		let global_transform = ctx.graphics.global_transform();
 		let texture = self
 			.texture
@@ -242,6 +246,7 @@ impl<V: Vertex> Mesh<V> {
 
 impl Mesh<Vertex2d> {
 	pub fn rectangle(ctx: &mut Context, rect: Rect) -> Self {
+		let _span = tracy_client::span!();
 		Self::rectangle_with_texture_region(ctx, rect, Rect::new((0.0, 0.0), (1.0, 1.0)))
 	}
 
@@ -250,6 +255,7 @@ impl Mesh<Vertex2d> {
 		display_rect: Rect,
 		texture_region: Rect,
 	) -> Self {
+		let _span = tracy_client::span!();
 		let vertices = display_rect
 			.corners()
 			.iter()
@@ -269,6 +275,7 @@ impl Mesh<Vertex2d> {
 		stroke_width: f32,
 		rect: Rect,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new()
 			.with_rectangle(ShapeStyle::Stroke(stroke_width), rect, LinSrgba::WHITE)?
 			.build(ctx))
@@ -279,6 +286,7 @@ impl Mesh<Vertex2d> {
 		style: ShapeStyle,
 		circle: Circle,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new()
 			.with_circle(style, circle, LinSrgba::WHITE)?
 			.build(ctx))
@@ -291,6 +299,7 @@ impl Mesh<Vertex2d> {
 		radii: impl Into<Vec2>,
 		rotation: f32,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new()
 			.with_ellipse(style, center, radii, rotation, LinSrgba::WHITE)?
 			.build(ctx))
@@ -300,6 +309,7 @@ impl Mesh<Vertex2d> {
 		ctx: &mut Context,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new().with_filled_polygon(points)?.build(ctx))
 	}
 
@@ -308,6 +318,7 @@ impl Mesh<Vertex2d> {
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
 	}
 
@@ -316,6 +327,7 @@ impl Mesh<Vertex2d> {
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new()
 			.with_simple_polygon(style, points, LinSrgba::WHITE)?
 			.build(ctx))
@@ -326,6 +338,7 @@ impl Mesh<Vertex2d> {
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new()
 			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)?
 			.build(ctx))

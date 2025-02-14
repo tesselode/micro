@@ -21,6 +21,7 @@ pub struct VertexAttributeBuffer {
 
 impl VertexAttributeBuffer {
 	pub fn new<T: VertexAttributes>(ctx: &mut Context, data: &[T]) -> Self {
+		let _span = tracy_client::span!();
 		let gl = &ctx.graphics.gl;
 		let buffer = unsafe {
 			let buffer = gl

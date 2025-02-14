@@ -13,6 +13,7 @@ pub struct NineSlice {
 
 impl NineSlice {
 	pub(crate) fn slices(self, mut display_rect: Rect) -> [Slice; 9] {
+		let _span = tracy_client::span!();
 		display_rect.size = display_rect
 			.size
 			.max(Vec2::new(self.left + self.right, self.top + self.bottom));

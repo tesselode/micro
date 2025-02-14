@@ -32,6 +32,7 @@ pub struct SpriteBatch {
 
 impl SpriteBatch {
 	pub fn new(ctx: &mut Context, texture: &Texture, capacity: usize) -> Self {
+		let _span = tracy_client::span!();
 		let vertices = vec![
 			Vertex2d {
 				position: Vec2::ZERO,
@@ -89,6 +90,7 @@ impl SpriteBatch {
 		ctx: &Context,
 		params: impl Into<SpriteParams>,
 	) -> Result<SpriteId, SpriteLimitReached> {
+		let _span = tracy_client::span!();
 		let size = self.texture.size().as_vec2();
 		self.add_region(ctx, Rect::new(Vec2::ZERO, size), params)
 	}
@@ -99,6 +101,7 @@ impl SpriteBatch {
 		texture_region: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<SpriteId, SpriteLimitReached> {
+		let _span = tracy_client::span!();
 		let id = self
 			.inner
 			.try_lock()
@@ -137,6 +140,7 @@ impl SpriteBatch {
 		display_rect: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<[SpriteId; 9], SpriteLimitReached> {
+		let _span = tracy_client::span!();
 		if self.inner.try_lock().unwrap().sprites.len() + 9
 			> self.inner.try_lock().unwrap().capacity
 		{
@@ -156,6 +160,7 @@ impl SpriteBatch {
 	}
 
 	pub fn remove(&mut self, ctx: &Context, id: SpriteId) -> Result<(), InvalidSpriteId> {
+		let _span = tracy_client::span!();
 		if self
 			.inner
 			.try_lock()
@@ -183,6 +188,7 @@ impl SpriteBatch {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
+		let _span = tracy_client::span!();
 		self.mesh
 			.texture(&self.texture)
 			.range(self.range.map(|range| OffsetAndCount {

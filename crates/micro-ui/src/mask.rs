@@ -55,6 +55,7 @@ impl Widget for Mask {
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 	) -> Vec2 {
+		let _span = tracy_client::span!();
 		self.sizing
 			.allotted_size_for_children(allotted_size_from_parent)
 	}

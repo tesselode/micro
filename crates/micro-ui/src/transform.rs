@@ -96,6 +96,7 @@ impl Widget for Transform {
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 	) -> Vec2 {
+		let _span = tracy_client::span!();
 		self.sizing
 			.allotted_size_for_children(allotted_size_from_parent)
 	}
@@ -106,6 +107,7 @@ impl Widget for Transform {
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 	) -> LayoutResult {
+		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self
 				.sizing

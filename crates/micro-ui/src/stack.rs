@@ -64,6 +64,7 @@ impl Widget for Stack {
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
 	) -> Vec2 {
+		let _span = tracy_client::span!();
 		let total_child_main_axis_size =
 			total_child_main_axis_size(self.direction, previous_child_sizes, self.settings.gap);
 		match self.direction {
@@ -88,6 +89,7 @@ impl Widget for Stack {
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 	) -> LayoutResult {
+		let _span = tracy_client::span!();
 		match self.direction {
 			Axis::Horizontal => {
 				let parent_size = vec2(

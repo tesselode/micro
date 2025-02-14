@@ -39,6 +39,7 @@ pub struct Canvas {
 
 impl Canvas {
 	pub fn new(ctx: &mut Context, size: UVec2, settings: CanvasSettings) -> Self {
+		let _span = tracy_client::span!();
 		let texture = Texture::new(
 			ctx.graphics.gl.clone(),
 			&mut ctx.graphics.textures,
@@ -144,6 +145,7 @@ impl Canvas {
 	}
 
 	pub fn render_to<'a>(&'a self, ctx: &'a mut Context) -> OnDrop<'a> {
+		let _span = tracy_client::span!();
 		if let RenderTarget::Canvas { .. } = ctx.graphics.render_target {
 			unimplemented!("cannot nest render_to calls");
 		}
@@ -169,6 +171,7 @@ impl Canvas {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
+		let _span = tracy_client::span!();
 		self.texture
 			.region(self.region)
 			.shader(&self.shader)
@@ -179,6 +182,7 @@ impl Canvas {
 	}
 
 	pub fn read(&self, ctx: &Context, buffer: &mut [u8]) {
+		let _span = tracy_client::span!();
 		if buffer.len() < (self.size().x * self.size().y * 4) as usize {
 			panic!("buffer not big enough");
 		}
@@ -200,6 +204,7 @@ impl Canvas {
 	}
 
 	fn finish_render_to(&self, ctx: &mut Context) {
+		let _span = tracy_client::span!();
 		let raw_canvas = ctx.graphics.canvases.get(self.id);
 		if let Some(MultisampleFramebuffer { framebuffer, .. }) = raw_canvas.multisample_framebuffer
 		{

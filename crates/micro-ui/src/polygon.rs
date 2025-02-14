@@ -81,6 +81,7 @@ impl Widget for Polygon {
 		_allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
 	) -> LayoutResult {
+		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self.size,
 			child_positions: vec![],
@@ -88,6 +89,7 @@ impl Widget for Polygon {
 	}
 
 	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
 			Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())?
 				.color(fill)
@@ -97,6 +99,7 @@ impl Widget for Polygon {
 	}
 
 	fn draw_after_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
 			Mesh::simple_polygon(ctx, ShapeStyle::Stroke(width), self.points.iter().copied())?
 				.color(color)

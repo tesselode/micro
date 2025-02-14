@@ -36,6 +36,7 @@ impl Text {
 		text: impl Into<String>,
 		layout_settings: LayoutSettings,
 	) -> Self {
+		let _span = tracy_client::span!();
 		Self::with_multiple_fonts(
 			ctx,
 			&[font],
@@ -53,6 +54,7 @@ impl Text {
 		text_fragments: impl IntoIterator<Item = &'a TextFragment>,
 		layout_settings: LayoutSettings,
 	) -> Self {
+		let _span = tracy_client::span!();
 		let fontdue_fonts = fonts
 			.iter()
 			.map(|font| &font.inner.font)
@@ -98,6 +100,7 @@ impl Text {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
+		let _span = tracy_client::span!();
 		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
 			unimplemented!(
 				"drawing a text range is not implemented for text with more than one font"

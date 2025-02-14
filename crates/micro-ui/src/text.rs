@@ -66,6 +66,7 @@ impl Widget for TextWidget {
 		allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
 	) -> LayoutResult {
+		let _span = tracy_client::span!();
 		let layout_settings = match self.settings.sizing {
 			TextSizing::Min { .. } => LayoutSettings {
 				line_height: self.settings.line_height,
@@ -113,6 +114,7 @@ impl Widget for TextWidget {
 	}
 
 	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		if let Some(TextShadow { color, offset }) = self.settings.shadow {
 			self.rendered
 				.borrow()

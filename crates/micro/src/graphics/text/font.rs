@@ -24,6 +24,7 @@ impl Font {
 		path: impl AsRef<Path>,
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
+		let _span = tracy_client::span!();
 		Self::from_bytes(ctx, &std::fs::read(path)?, settings)
 	}
 
@@ -32,6 +33,7 @@ impl Font {
 		data: &[u8],
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
+		let _span = tracy_client::span!();
 		let scale = settings.scale;
 		let texture_settings = settings.texture_settings;
 		let font = fontdue::Font::from_bytes(

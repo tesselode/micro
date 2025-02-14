@@ -66,6 +66,7 @@ impl Widget for Polyline {
 		_allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
 	) -> LayoutResult {
+		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self.size,
 			child_positions: vec![],
@@ -73,6 +74,7 @@ impl Widget for Polyline {
 	}
 
 	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		Mesh::simple_polyline(ctx, self.stroke_width, self.points.iter().copied())?
 			.color(self.color)
 			.draw(ctx);

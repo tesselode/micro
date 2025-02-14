@@ -331,6 +331,7 @@ impl Context {
 	///
 	/// This also turns on the depth buffer.
 	pub fn use_3d_camera(&mut self, camera: Camera3d) -> OnDrop {
+		let _span = tracy_client::span!();
 		let transform = camera.transform(self);
 		self.graphics.transform_stack.push(transform);
 		unsafe {
@@ -343,6 +344,7 @@ impl Context {
 	}
 
 	pub fn write_to_stencil(&mut self, action: StencilAction) -> OnDrop {
+		let _span = tracy_client::span!();
 		unsafe {
 			self.graphics.gl.color_mask(false, false, false, false);
 			self.graphics.gl.enable(glow::STENCIL_TEST);
@@ -365,6 +367,7 @@ impl Context {
 	}
 
 	pub fn use_stencil(&mut self, test: StencilTest, reference: u8) -> OnDrop {
+		let _span = tracy_client::span!();
 		unsafe {
 			self.graphics.gl.enable(glow::STENCIL_TEST);
 			self.graphics
@@ -515,6 +518,7 @@ pub enum ScalingMode {
 
 impl ScalingMode {
 	pub(crate) fn transform_affine2(&self, ctx: &Context) -> Affine2 {
+		let _span = tracy_client::span!();
 		match self {
 			ScalingMode::None => Affine2::IDENTITY,
 			ScalingMode::Smooth { base_size } => {
@@ -543,6 +547,7 @@ impl ScalingMode {
 	}
 
 	fn transform_mat4(&self, ctx: &Context) -> Mat4 {
+		let _span = tracy_client::span!();
 		match self {
 			ScalingMode::None => Mat4::IDENTITY,
 			ScalingMode::Smooth { base_size } => {

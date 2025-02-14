@@ -39,6 +39,7 @@ impl MeshBuilder {
 		rect: Rect,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Self::new().with_rectangle(style, rect, color)
 	}
 
@@ -47,6 +48,7 @@ impl MeshBuilder {
 		circle: Circle,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Self::new().with_circle(style, circle, color)
 	}
 
@@ -57,12 +59,14 @@ impl MeshBuilder {
 		rotation: f32,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Self::new().with_ellipse(style, center, radii, rotation, color)
 	}
 
 	pub fn filled_polygon(
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Self::new().with_filled_polygon(points)
 	}
 
@@ -70,6 +74,7 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Self::new().with_polyline(points, closed)
 	}
 
@@ -78,6 +83,7 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Self::new().with_simple_polygon(style, points, color)
 	}
 
@@ -86,6 +92,7 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		Self::new().with_simple_polyline(stroke_width, points, color)
 	}
 
@@ -95,6 +102,7 @@ impl MeshBuilder {
 		rect: Rect,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
 		match style {
 			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
 				&lyon_tessellation::math::Box2D {
@@ -134,6 +142,7 @@ impl MeshBuilder {
 		rect: Rect,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		self.add_rectangle(style, rect, color)?;
 		Ok(self)
 	}
@@ -144,6 +153,7 @@ impl MeshBuilder {
 		circle: Circle,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_circle(
@@ -177,6 +187,7 @@ impl MeshBuilder {
 		circle: Circle,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		self.add_circle(style, circle, color)?;
 		Ok(self)
 	}
@@ -189,6 +200,7 @@ impl MeshBuilder {
 		rotation: f32,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
 		let center = center.into();
 		let radii = radii.into();
 		match style {
@@ -230,6 +242,7 @@ impl MeshBuilder {
 		rotation: f32,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		self.add_ellipse(style, center, radii, rotation, color)?;
 		Ok(self)
 	}
@@ -238,6 +251,7 @@ impl MeshBuilder {
 		&mut self,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
 		let mut fill_tessellator = FillTessellator::new();
 		let mut buffers_builder = BuffersBuilder::new(
 			&mut self.buffers,
@@ -281,6 +295,7 @@ impl MeshBuilder {
 		mut self,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		self.add_filled_polygon(points)?;
 		Ok(self)
 	}
@@ -290,6 +305,7 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
 		let mut stroke_tessellator = StrokeTessellator::new();
 		let mut buffers_builder = BuffersBuilder::new(
 			&mut self.buffers,
@@ -336,6 +352,7 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		self.add_polyline(points, closed)?;
 		Ok(self)
 	}
@@ -346,6 +363,7 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
 		match style {
 			ShapeStyle::Fill => {
 				self.add_filled_polygon(points.into_iter().map(|position| FilledPolygonPoint {
@@ -370,6 +388,7 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		self.add_simple_polygon(style, points, color)?;
 		Ok(self)
 	}
@@ -380,6 +399,7 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
 		self.add_polyline(
 			points.into_iter().map(|position| StrokePoint {
 				position: position.into(),
@@ -396,11 +416,13 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: LinSrgba,
 	) -> Result<Self, TessellationError> {
+		let _span = tracy_client::span!();
 		self.add_simple_polyline(stroke_width, points, color)?;
 		Ok(self)
 	}
 
 	pub fn append(&mut self, mut other: Self) {
+		let _span = tracy_client::span!();
 		let num_vertices_before_append = self.buffers.vertices.len();
 		self.buffers.vertices.append(&mut other.buffers.vertices);
 		self.buffers.indices.extend(
@@ -413,11 +435,13 @@ impl MeshBuilder {
 	}
 
 	pub fn appended_with(mut self, other: Self) -> Self {
+		let _span = tracy_client::span!();
 		self.append(other);
 		self
 	}
 
 	pub fn build(self, ctx: &mut Context) -> Mesh {
+		let _span = tracy_client::span!();
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
 	}
 }

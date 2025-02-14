@@ -36,6 +36,7 @@ pub struct Texture {
 
 impl Texture {
 	pub fn empty(ctx: &mut Context, size: UVec2, settings: TextureSettings) -> Self {
+		let _span = tracy_client::span!();
 		Self::new(
 			ctx.graphics.gl.clone(),
 			&mut ctx.graphics.textures,
@@ -51,6 +52,7 @@ impl Texture {
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 		settings: TextureSettings,
 	) -> Self {
+		let _span = tracy_client::span!();
 		Self::new(
 			ctx.graphics.gl.clone(),
 			&mut ctx.graphics.textures,
@@ -66,6 +68,7 @@ impl Texture {
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
+		let _span = tracy_client::span!();
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
 		Ok(Self::from_image(ctx, &image, settings))
 	}
@@ -96,6 +99,7 @@ impl Texture {
 		top_left: IVec2,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 	) {
+		let _span = tracy_client::span!();
 		let gl = &ctx.graphics.gl;
 		let texture = &ctx.graphics.textures.get(self.id);
 		unsafe {
@@ -115,6 +119,7 @@ impl Texture {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
+		let _span = tracy_client::span!();
 		Mesh::rectangle_with_texture_region(
 			ctx,
 			Rect::new(Vec2::ZERO, self.region.size),
@@ -129,6 +134,7 @@ impl Texture {
 	}
 
 	pub fn draw_nine_slice(&self, ctx: &mut Context, nine_slice: NineSlice, display_rect: Rect) {
+		let _span = tracy_client::span!();
 		let mut sprite_batch = SpriteBatch::new(ctx, self, 9);
 		sprite_batch
 			.add_nine_slice(ctx, nine_slice, display_rect, SpriteParams::default())

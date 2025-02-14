@@ -70,6 +70,7 @@ impl Camera3d {
 	}
 
 	pub fn transform(self, ctx: &Context) -> Mat4 {
+		let _span = tracy_client::span!();
 		let (projection, up_y) = match self.kind {
 			Camera3dKind::Perspective {
 				field_of_view,

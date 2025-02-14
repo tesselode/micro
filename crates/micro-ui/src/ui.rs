@@ -81,6 +81,7 @@ impl BakedWidget {
 		raw_widget: &dyn Widget,
 		allotted_size_from_parent: Vec2,
 	) -> Self {
+		let _span = tracy_client::span!();
 		let mut children = vec![];
 		let mut child_sizes = vec![];
 		let mut unique_child_name_generator = UniqueChildNameGenerator::new();
@@ -119,6 +120,7 @@ impl BakedWidget {
 		mut mouse_input: MouseInput,
 		widget_mouse_state: &mut IndexMap<PathBuf, WidgetMouseState>,
 	) {
+		let _span = tracy_client::span!();
 		mouse_input =
 			mouse_input.transformed(raw_widget.transform(self.layout_result.size).inverse());
 		let UpdateMouseStateResult {
@@ -158,6 +160,7 @@ impl BakedWidget {
 	}
 
 	fn draw(&self, ctx: &mut Context, raw_widget: &dyn Widget) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		let ctx = &mut ctx.push_transform(raw_widget.transform(self.layout_result.size));
 		if let Some((raw_mask, baked_mask)) = raw_widget.mask().zip(self.mask.as_ref()) {
 			{
@@ -179,6 +182,7 @@ impl BakedWidget {
 		ctx: &mut Context,
 		raw_widget: &dyn Widget,
 	) -> anyhow::Result<()> {
+		let _span = tracy_client::span!();
 		raw_widget.draw_before_children(ctx, self.layout_result.size)?;
 		for (raw_child, baked_child, position) in izip!(
 			raw_widget.children(),

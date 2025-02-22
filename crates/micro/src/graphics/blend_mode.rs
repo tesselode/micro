@@ -11,9 +11,9 @@ pub enum BlendMode {
 }
 
 impl BlendMode {
-	pub(crate) unsafe fn apply(&self, gl: &glow::Context) {
+	pub(crate) unsafe fn apply(&self, gl: &glow::Context) { unsafe {
 		self.as_state().apply(gl);
-	}
+	}}
 
 	fn as_state(&self) -> BlendState {
 		match self {
@@ -90,7 +90,7 @@ struct BlendState {
 }
 
 impl BlendState {
-	unsafe fn apply(self, gl: &glow::Context) {
+	unsafe fn apply(self, gl: &glow::Context) { unsafe {
 		gl.blend_func_separate(
 			self.color_source,
 			self.color_destination,
@@ -98,5 +98,5 @@ impl BlendState {
 			self.alpha_destination,
 		);
 		gl.blend_equation_separate(self.color_operation, self.alpha_operation);
-	}
+	}}
 }

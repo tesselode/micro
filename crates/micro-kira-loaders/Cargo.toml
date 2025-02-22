@@ -1,9 +1,11 @@
 [package]
 name = "micro-kira-loaders"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-kira = { version = "0.10.1", default-features = false, features = ["symphonia"] }
+kira = { version = "0.10.1", default-features = false, features = [
+	"symphonia",
+] }
 micro = { path = "../micro" }
 micro-resource = { path = "../micro-resource" }

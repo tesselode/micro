@@ -6,10 +6,10 @@ use std::{collections::HashMap, path::PathBuf};
 use indexmap::IndexMap;
 use itertools::izip;
 use micro::{
-	color::{LinSrgb, LinSrgba},
-	graphics::{mesh::Mesh, StencilAction, StencilTest},
-	math::{Rect, Vec2},
 	Context,
+	color::{LinSrgb, LinSrgba},
+	graphics::{StencilAction, StencilTest, mesh::Mesh},
+	math::{Mat4, Rect, Vec2},
 };
 use mouse_input::MouseInput;
 use widget_mouse_state::{UpdateMouseStateResult, WidgetMouseState};
@@ -51,9 +51,20 @@ impl Ui {
 		size: Vec2,
 		widget: impl Widget + 'static,
 	) -> anyhow::Result<()> {
+		self.render_transformed(ctx, size, Mat4::IDENTITY, widget)
+	}
+
+	pub fn render_transformed(
+		&mut self,
+		ctx: &mut Context,
+		size: Vec2,
+		transform: Mat4,
+		widget: impl Widget + 'static,
+	) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
+		let ctx = &mut ctx.push_transform(transform);
 		let mut baked_widget = BakedWidget::new(ctx, PathBuf::new(), &widget, size);
-		self.mouse_input.update(ctx);
+		self.mouse_input.update(ctx, transform.inverse());
 		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);
 		baked_widget.draw(ctx, &widget)?;
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {

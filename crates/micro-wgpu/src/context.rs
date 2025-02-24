@@ -1,6 +1,9 @@
+pub(crate) mod graphics;
+
 use std::time::Instant;
 
 use glam::{IVec2, UVec2, vec2};
+use graphics::GraphicsContext;
 use sdl2::{
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 	video::{FullscreenType, Window, WindowPos},
@@ -17,7 +20,24 @@ where
 	S: App<Error = E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 {
-	let mut ctx = Context::new(settings);
+	let sdl = sdl2::init().expect("error initializing SDL");
+	let video = sdl.video().expect("error initializing video subsystem");
+	let controller = sdl
+		.game_controller()
+		.expect("error initializing controller subsystem");
+	let mut window = build_window(&video, &settings);
+	let event_pump = sdl.event_pump().expect("error creating event pump");
+	let graphics = GraphicsContext::new(&window);
+
+	let mut ctx = Context {
+		_sdl: sdl,
+		video,
+		window: &mut window,
+		controller,
+		event_pump,
+		graphics,
+		should_quit: false,
+	};
 	let mut app = app_constructor(&mut ctx)?;
 
 	let mut last_update_time = Instant::now();
@@ -50,7 +70,7 @@ where
 			.filter_map(Event::from_sdl2_event)
 		{
 			match event {
-				// Event::WindowSizeChanged(size) => ctx.graphics.resize(size),
+				Event::WindowSizeChanged(size) => ctx.graphics.resize(size),
 				Event::Exited => ctx.should_quit = true,
 				_ => {}
 			}
@@ -76,7 +96,8 @@ where
 		// let span = tracy_client::span!("draw egui UI");
 		// draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		// drop(span);
-		ctx.window.gl_swap_window();
+		app.draw(&mut ctx)?;
+		ctx.graphics.present();
 
 		// tracy_client::frame_mark();
 		// ctx.graphics.record_queries();
@@ -89,16 +110,17 @@ where
 	Ok(())
 }
 
-pub struct Context {
+pub struct Context<'window> {
 	_sdl: Sdl,
 	pub(crate) video: VideoSubsystem,
-	pub(crate) window: Window,
+	pub(crate) window: &'window mut Window,
 	pub(crate) controller: GameControllerSubsystem,
 	pub(crate) event_pump: EventPump,
+	pub(crate) graphics: GraphicsContext<'window>,
 	pub(crate) should_quit: bool,
 }
 
-impl Context {
+impl Context<'_> {
 	/// Gets the drawable size of the window (in pixels).
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.drawable_size();
@@ -200,24 +222,6 @@ impl Context {
 	/// Quits the game.
 	pub fn quit(&mut self) {
 		self.should_quit = true;
-	}
-
-	fn new(settings: ContextSettings) -> Self {
-		let sdl = sdl2::init().expect("error initializing SDL");
-		let video = sdl.video().expect("error initializing video subsystem");
-		let controller = sdl
-			.game_controller()
-			.expect("error initializing controller subsystem");
-		let window = build_window(&video, &settings);
-		let event_pump = sdl.event_pump().expect("error creating event pump");
-		Self {
-			_sdl: sdl,
-			video,
-			window,
-			controller,
-			event_pump,
-			should_quit: false,
-		}
 	}
 }
 

@@ -1,3 +1,13 @@
 [workspace]
-members = ["crates/micro", "crates/micro-aseprite", "crates/micro-kira-loaders", "crates/micro-ldtk", "crates/micro-resource", "crates/micro-starter", "crates/micro-tiled-loader", "crates/micro-ui"]
-resolver = "2"
+members = [
+	"crates/micro",
+	"crates/micro-aseprite",
+	"crates/micro-kira-loaders",
+	"crates/micro-ldtk",
+	"crates/micro-resource",
+	"crates/micro-starter",
+	"crates/micro-tiled-loader",
+	"crates/micro-ui",
+	"crates/micro-wgpu",
+]
+resolver = "3"

@@ -1,14 +1,14 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
-use crunch::{pack_into_po2, PackedItem, PackedItems};
+use crunch::{PackedItem, PackedItems, pack_into_po2};
 use derive_more::derive::{Display, Error, From};
 use glam::{UVec2, Vec2};
 use image::ImageBuffer;
 
 use crate::{
+	Context,
 	graphics::texture::{Texture, TextureSettings},
 	math::Rect,
-	Context,
 };
 
 const GLYPH_PADDING: usize = 2;

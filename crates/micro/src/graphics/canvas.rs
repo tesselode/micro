@@ -2,8 +2,8 @@ use std::{
 	ops::{Deref, DerefMut},
 	rc::Rc,
 	sync::{
-		atomic::{AtomicU64, Ordering},
 		Weak,
+		atomic::{AtomicU64, Ordering},
 	},
 };
 
@@ -13,14 +13,14 @@ use glow::{HasContext, NativeFramebuffer, NativeRenderbuffer, NativeTexture, Pix
 use itertools::Itertools;
 use palette::LinSrgba;
 
-use crate::{color::ColorConstants, context::graphics::RenderTarget, math::Rect, Context};
+use crate::{Context, color::ColorConstants, context::graphics::RenderTarget, math::Rect};
 
 use super::{
+	BlendMode,
 	resource::{GraphicsResource, GraphicsResourceId},
 	shader::Shader,
 	standard_draw_param_methods,
 	texture::{Texture, TextureSettings},
-	BlendMode,
 };
 
 #[derive(Debug, Clone)]

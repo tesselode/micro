@@ -1,6 +1,6 @@
 use micro::{
-	math::{vec3, Mat4, Vec2},
 	Context,
+	math::{Mat4, Vec2, vec3},
 };
 
 use crate::{with_child_fns, with_sizing_fns};

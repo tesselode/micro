@@ -8,9 +8,9 @@ use palette::{LinSrgba, Srgba};
 use crate::{
 	context::Context,
 	graphics::{
+		StencilAction, StencilTest, Vertex2d,
 		mesh::Mesh,
 		texture::{Texture, TextureSettings},
-		StencilAction, StencilTest, Vertex2d,
 	},
 	input::Scancode,
 };

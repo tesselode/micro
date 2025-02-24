@@ -31,8 +31,8 @@ pub use ui::Ui;
 use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 
 use micro::{
-	math::{Mat4, Vec2},
 	Context,
+	math::{Mat4, Vec2},
 };
 
 #[allow(unused_variables)]

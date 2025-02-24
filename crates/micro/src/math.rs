@@ -32,8 +32,8 @@ use palette::LinSrgba;
 use crate::{
 	color::ColorConstants,
 	graphics::{
-		mesh::{MeshBuilder, ShapeStyle},
 		Vertex2d,
+		mesh::{MeshBuilder, ShapeStyle},
 	},
 };
 

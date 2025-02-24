@@ -1,12 +1,12 @@
 use std::{error::Error, time::Duration};
 
-use glam::{vec2, Vec2};
+use glam::{Vec2, vec2};
 use micro::{
+	App, Context, ContextSettings,
 	color::ColorConstants,
 	graphics::mesh::{MeshBuilder, ShapeStyle},
 	input::MouseButton,
 	math::{Circle, Ray, VecConstants},
-	App, Context, ContextSettings,
 };
 use palette::{LinSrgb, LinSrgba};
 

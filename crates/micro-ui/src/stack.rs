@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use micro::{
-	math::{vec2, Vec2},
 	Context,
+	math::{Vec2, vec2},
 };
 
 use crate::with_child_fns;

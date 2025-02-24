@@ -11,26 +11,26 @@ use std::{
 	marker::PhantomData,
 	rc::Rc,
 	sync::{
-		atomic::{AtomicU64, Ordering},
 		Weak,
+		atomic::{AtomicU64, Ordering},
 	},
 };
 
 use glow::{HasContext, NativeBuffer, NativeVertexArray};
 
 use crate::{
+	IntoOffsetAndCount, OffsetAndCount,
 	color::ColorConstants,
 	context::Context,
-	graphics::{shader::Shader, texture::Texture, BlendMode},
+	graphics::{BlendMode, shader::Shader, texture::Texture},
 	math::{Circle, Rect},
-	IntoOffsetAndCount, OffsetAndCount,
 };
 
 use super::{
+	Culling, Vertex, Vertex2d, VertexAttributeBuffer, VertexAttributeDivisor,
 	configure_vertex_attributes_for_buffer,
 	resource::{GraphicsResource, GraphicsResourceId},
-	standard_draw_param_methods, Culling, Vertex, Vertex2d, VertexAttributeBuffer,
-	VertexAttributeDivisor,
+	standard_draw_param_methods,
 };
 
 #[derive(Debug, Clone)]

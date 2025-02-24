@@ -4,10 +4,10 @@ use std::{
 };
 
 use micro::{
+	Context,
 	color::{ColorConstants, LinSrgba},
 	graphics::text::{Font, HorizontalAlign, LayoutSettings, Text, VerticalAlign, WrapStyle},
 	math::Vec2,
-	Context,
 };
 
 use super::{LayoutResult, Widget, WidgetMouseEventChannel};

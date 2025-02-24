@@ -1,4 +1,4 @@
-use micro::{color::LinSrgba, graphics::mesh::Mesh, math::Vec2, Context};
+use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
 use super::{LayoutResult, Widget, WidgetMouseEventChannel};
 

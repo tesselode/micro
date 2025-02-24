@@ -1,4 +1,4 @@
-use glam::{vec2, Mat4, Vec2};
+use glam::{Mat4, Vec2, vec2};
 
 use super::{Circle, Lerp};
 

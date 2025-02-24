@@ -3,18 +3,18 @@ use std::{cell::RefCell, rc::Rc};
 use glam::{IVec2, Mat4, UVec2, Vec3};
 use glow::HasContext;
 use sdl2::{
-	video::{GLContext, Window},
 	VideoSubsystem,
+	video::{GLContext, Window},
 };
 use tracy_client::{GpuContextType, SpanLocation};
 
 use crate::graphics::{
+	RawCanvas, RawVertexAttributeBuffer,
 	gpu_span::{GpuSpan, GpuSpanInner},
 	mesh::RawMesh,
 	resource::GraphicsResources,
-	shader::{RawShader, Shader, DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER},
+	shader::{DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER, RawShader, Shader},
 	texture::{RawTexture, Texture, TextureSettings},
-	RawCanvas, RawVertexAttributeBuffer,
 };
 
 pub(crate) struct GraphicsContext {

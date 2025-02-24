@@ -4,8 +4,8 @@ use derive_more::derive::{Display, Error, From};
 use serde::{Deserialize, Serialize};
 
 use micro::{
-	graphics::text::{Font, FontSettings, LoadFontError},
 	Context,
+	graphics::text::{Font, FontSettings, LoadFontError},
 };
 
 use super::ResourceLoader;

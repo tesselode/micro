@@ -3,8 +3,8 @@ use std::{
 	path::Path,
 	rc::Rc,
 	sync::{
-		atomic::{AtomicU64, Ordering},
 		Weak,
+		atomic::{AtomicU64, Ordering},
 	},
 };
 

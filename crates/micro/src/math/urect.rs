@@ -1,4 +1,4 @@
-use glam::{uvec2, UVec2};
+use glam::{UVec2, uvec2};
 
 use super::{IRect, Rect};
 

@@ -9,12 +9,13 @@ use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
-use crate::{color::ColorConstants, math::Rect, Context, IntoOffsetAndCount, OffsetAndCount};
+use crate::{Context, IntoOffsetAndCount, OffsetAndCount, color::ColorConstants, math::Rect};
 
 use super::{
+	BlendMode,
 	shader::Shader,
 	sprite_batch::{SpriteBatch, SpriteParams},
-	standard_draw_param_methods, BlendMode,
+	standard_draw_param_methods,
 };
 
 #[derive(Debug, Clone)]

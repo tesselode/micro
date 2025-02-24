@@ -1,9 +1,9 @@
 use micro::{
-	color::{rgb::channels::Rgba, Srgba},
+	Context,
+	color::{Srgba, rgb::channels::Rgba},
 	graphics::texture::{LoadTextureError, Texture, TextureSettings},
 	image::ImageBuffer,
 	math::{IVec2, UVec2},
-	Context,
 };
 
 use super::ResourceLoader;

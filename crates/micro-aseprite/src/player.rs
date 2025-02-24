@@ -4,10 +4,11 @@ use std::{
 };
 
 use micro::{
+	Context,
 	color::{ColorConstants, LinSrgba},
-	graphics::{shader::Shader, texture::Texture, BlendMode},
+	graphics::{BlendMode, shader::Shader, texture::Texture},
 	math::Mat4,
-	standard_draw_param_methods, Context,
+	standard_draw_param_methods,
 };
 
 use super::{AnimationData, Frame, Repeats};

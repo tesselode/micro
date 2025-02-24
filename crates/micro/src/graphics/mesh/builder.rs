@@ -4,20 +4,20 @@ use std::fmt::Debug;
 
 use glam::Vec2;
 use lyon_tessellation::{
-	geom::euclid::Point2D,
-	path::{
-		traits::{Build, PathBuilder},
-		Winding,
-	},
 	BuffersBuilder, FillOptions, FillTessellator, StrokeOptions, StrokeTessellator,
 	TessellationError, VertexBuffers,
+	geom::euclid::Point2D,
+	path::{
+		Winding,
+		traits::{Build, PathBuilder},
+	},
 };
 use palette::LinSrgba;
 
 use crate::{
+	Context,
 	graphics::Vertex2d,
 	math::{Circle, Rect},
-	Context,
 };
 
 use super::Mesh;

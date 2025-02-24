@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use kira::{
-	sound::static_sound::{StaticSoundData, StaticSoundSettings},
 	Frame,
+	sound::static_sound::{StaticSoundData, StaticSoundSettings},
 };
 use micro_resource::ResourceLoader;
 

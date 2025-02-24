@@ -10,13 +10,13 @@ use generational_arena::{Arena, Index};
 use glam::{Mat4, Vec2};
 
 use crate::{
+	Context, IntoOffsetAndCount, OffsetAndCount,
 	color::ColorConstants,
 	graphics::{mesh::Mesh, texture::Texture},
 	math::Rect,
-	Context, IntoOffsetAndCount, OffsetAndCount,
 };
 
-use super::{shader::Shader, standard_draw_param_methods, BlendMode, NineSlice, Vertex2d};
+use super::{BlendMode, NineSlice, Vertex2d, shader::Shader, standard_draw_param_methods};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {

@@ -4,10 +4,10 @@ use exhaust::Exhaust;
 use micro::{
 	control_mapping,
 	input::{
+		Axis, Button, Scancode,
 		virtual_controller::{
 			AxisDirection, DeadzoneShape, VirtualAnalogSticks, VirtualControllerConfig,
 		},
-		Axis, Button, Scancode,
 	},
 	math::CardinalDirection::{self, *},
 };

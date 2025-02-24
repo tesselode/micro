@@ -1,8 +1,8 @@
 use micro::{
+	Context,
 	color::LinSrgba,
 	graphics::mesh::{Mesh, ShapeStyle},
 	math::Vec2,
-	Context,
 };
 
 use super::{LayoutResult, Widget, WidgetMouseEventChannel};

@@ -1,5 +1,5 @@
 use glam::UVec2;
-use sdl2::{video::Window, VideoSubsystem};
+use sdl2::{VideoSubsystem, video::Window};
 
 use crate::ContextSettings;
 

@@ -5,8 +5,8 @@ use serde::Deserialize;
 use crate::Frame;
 
 use super::{
-	from_file::{RawFrame, RawMeta},
 	Animation, AnimationData, LoadAnimationDataError,
+	from_file::{RawFrame, RawMeta},
 };
 
 impl AnimationData {

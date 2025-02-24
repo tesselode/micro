@@ -1,4 +1,4 @@
-use micro::{math::Vec2, Context};
+use micro::{Context, math::Vec2};
 
 use crate::{with_child_fns, with_sizing_fns};
 

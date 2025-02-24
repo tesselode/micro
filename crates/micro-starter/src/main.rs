@@ -15,7 +15,7 @@ use micro::debug_ui::TopBottomPanel;
 use micro::log_if_err;
 use micro::math::UVec2;
 use micro::{
-	color::ColorConstants, input::Scancode, App, Context, ContextSettings, Event, WindowMode,
+	App, Context, ContextSettings, Event, WindowMode, color::ColorConstants, input::Scancode,
 };
 use scene::gameplay::Gameplay;
 use scene_manager::SceneManager;

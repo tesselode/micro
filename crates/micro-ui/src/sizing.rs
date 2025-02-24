@@ -1,4 +1,4 @@
-use micro::math::{vec2, Vec2};
+use micro::math::{Vec2, vec2};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Sizing {

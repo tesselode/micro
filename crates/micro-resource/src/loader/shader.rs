@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use micro::{
-	graphics::shader::{LoadShaderError, Shader},
 	Context,
+	graphics::shader::{LoadShaderError, Shader},
 };
 
 use super::ResourceLoader;

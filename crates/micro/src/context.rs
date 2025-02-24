@@ -7,26 +7,25 @@ use std::{
 	time::{Duration, Instant},
 };
 
-use glam::{vec2, Affine2, IVec2, Mat4, UVec2, Vec2, Vec3};
+use glam::{Affine2, IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
 use glow::HasContext;
 use palette::LinSrgba;
 use sdl2::{
-	video::{FullscreenType, GLProfile, SwapInterval, Window, WindowPos},
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
+	video::{FullscreenType, GLProfile, SwapInterval, Window, WindowPos},
 };
 use tracy_client::SpanLocation;
 
 use crate::{
-	build_window,
+	App, Event, SdlError, build_window,
 	color::ColorConstants,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	graphics::{
-		gpu_span::GpuSpan, Camera3d, Canvas, CanvasSettings, Msaa, StencilAction, StencilTest,
+		Camera3d, Canvas, CanvasSettings, Msaa, StencilAction, StencilTest, gpu_span::GpuSpan,
 	},
 	input::{Gamepad, MouseButton, Scancode},
 	time::FrameTimeTracker,
 	window::WindowMode,
-	App, Event, SdlError,
 };
 
 use self::graphics::GraphicsContext;

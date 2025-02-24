@@ -2,8 +2,8 @@ use std::{
 	path::Path,
 	rc::Rc,
 	sync::{
-		atomic::{AtomicU64, Ordering},
 		Weak,
+		atomic::{AtomicU64, Ordering},
 	},
 };
 
@@ -16,10 +16,11 @@ use palette::LinSrgba;
 use crate::{color::ColorConstants, context::Context, graphics::mesh::Mesh, math::Rect};
 
 use super::{
+	BlendMode, NineSlice,
 	resource::{GraphicsResource, GraphicsResourceId, GraphicsResources},
 	shader::Shader,
 	sprite_batch::{SpriteBatch, SpriteParams},
-	standard_draw_param_methods, BlendMode, NineSlice,
+	standard_draw_param_methods,
 };
 
 #[derive(Debug, Clone)]

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{event::Event, Context};
+use crate::{Context, event::Event};
 
 #[allow(unused_variables)]
 pub trait App {

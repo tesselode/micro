@@ -3,6 +3,7 @@ pub mod color;
 mod context;
 mod error;
 mod event;
+pub mod graphics;
 pub mod input;
 mod log;
 pub mod math;

@@ -1,22 +1,23 @@
 use glam::UVec2;
 use sdl2::video::Window;
 use wgpu::{
-	BindGroup, BindGroupDescriptor, BindGroupLayoutDescriptor, ColorTargetState, ColorWrites,
-	CompositeAlphaMode, Device, DeviceDescriptor, FragmentState, Instance, LoadOp,
-	MultisampleState, Operations, PipelineCompilationOptions, PipelineLayoutDescriptor,
-	PowerPreference, PresentMode, PrimitiveState, PrimitiveTopology, Queue,
-	RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-	RequestAdapterOptions, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe,
-	TextureFormat, TextureUsages, TextureViewDescriptor, VertexState, include_wgsl,
+	BindGroup, BindGroupDescriptor, BindGroupLayoutDescriptor, Buffer, CompositeAlphaMode, Device,
+	DeviceDescriptor, IndexFormat, Instance, LoadOp, Operations, PowerPreference, PresentMode,
+	Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RequestAdapterOptions,
+	StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureUsages,
+	TextureViewDescriptor,
 };
 
+use crate::graphics::{Vertex2d, graphics_pipeline::GraphicsPipeline};
+
 pub(crate) struct GraphicsContext<'window> {
-	device: Device,
+	pub(crate) device: Device,
 	queue: Queue,
-	render_pipeline: RenderPipeline,
 	bind_group: BindGroup,
 	config: SurfaceConfiguration,
 	surface: Surface<'window>,
+	default_render_pipeline: RenderPipeline,
+	draw_commands: Vec<DrawCommand>,
 }
 
 impl GraphicsContext<'_> {
@@ -38,7 +39,6 @@ impl GraphicsContext<'_> {
 		let (device, queue) =
 			pollster::block_on(adapter.request_device(&DeviceDescriptor::default(), None))
 				.expect("error getting graphics device");
-		let shader = device.create_shader_module(include_wgsl!("shader.wgsl"));
 		let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 			label: None,
 			entries: &[],
@@ -47,39 +47,6 @@ impl GraphicsContext<'_> {
 			label: None,
 			layout: &bind_group_layout,
 			entries: &[],
-		});
-		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-			label: None,
-			bind_group_layouts: &[&bind_group_layout],
-			push_constant_ranges: &[],
-		});
-		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
-			label: None,
-			layout: Some(&pipeline_layout),
-			vertex: VertexState {
-				module: &shader,
-				entry_point: Some("vs_main"),
-				compilation_options: PipelineCompilationOptions::default(),
-				buffers: &[],
-			},
-			primitive: PrimitiveState {
-				topology: PrimitiveTopology::TriangleList,
-				..Default::default()
-			},
-			depth_stencil: None,
-			multisample: MultisampleState::default(),
-			fragment: Some(FragmentState {
-				module: &shader,
-				entry_point: Some("fs_main"),
-				compilation_options: PipelineCompilationOptions::default(),
-				targets: &[Some(ColorTargetState {
-					format: TextureFormat::Rgba8UnormSrgb,
-					blend: None,
-					write_mask: ColorWrites::ALL,
-				})],
-			}),
-			multiview: None,
-			cache: None,
 		});
 		let surface_capabilities = surface.get_capabilities(&adapter);
 		let surface_format = surface_capabilities
@@ -100,14 +67,21 @@ impl GraphicsContext<'_> {
 			view_formats: vec![],
 		};
 		surface.configure(&device, &config);
+		let default_render_pipeline =
+			GraphicsPipeline::<Vertex2d>::new_from_device(&device).render_pipeline;
 		Self {
 			device,
 			queue,
-			render_pipeline,
 			bind_group,
 			config,
 			surface,
+			default_render_pipeline,
+			draw_commands: vec![],
 		}
+	}
+
+	pub(crate) fn queue_draw_command(&mut self, draw_command: DrawCommand) {
+		self.draw_commands.push(draw_command);
 	}
 
 	pub(crate) fn resize(&mut self, size: UVec2) {
@@ -139,12 +113,33 @@ impl GraphicsContext<'_> {
 				timestamp_writes: None,
 				occlusion_query_set: None,
 			});
-			render_pass.set_pipeline(&self.render_pipeline);
-			render_pass.set_bind_group(0, &self.bind_group, &[]);
-			render_pass.draw(0..3, 0..1);
+			for DrawCommand {
+				vertex_buffer,
+				index_buffer,
+				num_indices,
+				render_pipeline,
+			} in self.draw_commands.drain(..)
+			{
+				render_pass.set_pipeline(
+					render_pipeline
+						.as_ref()
+						.unwrap_or(&self.default_render_pipeline),
+				);
+				render_pass.set_bind_group(0, &self.bind_group, &[]);
+				render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+				render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
+				render_pass.draw_indexed(0..num_indices, 0, 0..1);
+			}
 		}
 
 		self.queue.submit([encoder.finish()]);
 		frame.present();
 	}
+}
+
+pub(crate) struct DrawCommand {
+	pub(crate) vertex_buffer: Buffer,
+	pub(crate) index_buffer: Buffer,
+	pub(crate) num_indices: u32,
+	pub(crate) render_pipeline: Option<RenderPipeline>,
 }

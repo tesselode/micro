@@ -1,5 +1,6 @@
 pub mod graphics_pipeline;
 pub mod mesh;
+pub mod texture;
 mod vertex;
 
 pub use vertex::*;

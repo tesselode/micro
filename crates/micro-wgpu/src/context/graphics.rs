@@ -4,26 +4,32 @@ use palette::{LinSrgb, LinSrgba};
 use sdl2::video::Window;
 use wgpu::{
 	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-	BindGroupLayoutEntry, BindingType, Buffer, BufferBindingType, BufferUsages, CompositeAlphaMode,
-	Device, DeviceDescriptor, IndexFormat, Instance, LoadOp, Operations, PowerPreference,
-	PresentMode, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
-	RequestAdapterOptions, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
-	SurfaceTargetUnsafe, TextureUsages, TextureViewDescriptor,
+	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
+	CompositeAlphaMode, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp, Operations,
+	PowerPreference, PresentMode, Queue, RenderPassColorAttachment, RenderPassDescriptor,
+	RenderPipeline, RequestAdapterOptions, SamplerBindingType, ShaderStages, StoreOp, Surface,
+	SurfaceConfiguration, SurfaceTargetUnsafe, TextureSampleType, TextureUsages,
+	TextureViewDescriptor, TextureViewDimension,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::{
 	color::{ColorConstants, lin_srgb_to_wgpu_color},
-	graphics::{Vertex2d, graphics_pipeline::GraphicsPipeline},
+	graphics::{
+		Vertex2d,
+		graphics_pipeline::GraphicsPipeline,
+		texture::{Texture, TextureSettings},
+	},
 };
 
 pub(crate) struct GraphicsContext<'window> {
 	pub(crate) device: Device,
-	queue: Queue,
+	pub(crate) queue: Queue,
 	config: SurfaceConfiguration,
 	surface: Surface<'window>,
-	pub(crate) draw_params_bind_group_layout: BindGroupLayout,
+	pub(crate) mesh_bind_group_layout: BindGroupLayout,
 	default_render_pipeline: RenderPipeline,
+	default_texture: Texture,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
 	draw_commands: Vec<DrawCommand>,
@@ -48,10 +54,10 @@ impl GraphicsContext<'_> {
 		let (device, queue) =
 			pollster::block_on(adapter.request_device(&DeviceDescriptor::default(), None))
 				.expect("error getting graphics device");
-		let draw_params_bind_group_layout =
-			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-				label: None,
-				entries: &[BindGroupLayoutEntry {
+		let mesh_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+			label: None,
+			entries: &[
+				BindGroupLayoutEntry {
 					binding: 0,
 					visibility: ShaderStages::VERTEX,
 					ty: BindingType::Buffer {
@@ -60,8 +66,25 @@ impl GraphicsContext<'_> {
 						min_binding_size: None,
 					},
 					count: None,
-				}],
-			});
+				},
+				BindGroupLayoutEntry {
+					binding: 1,
+					visibility: ShaderStages::FRAGMENT,
+					ty: BindingType::Texture {
+						sample_type: TextureSampleType::Float { filterable: true },
+						view_dimension: TextureViewDimension::D2,
+						multisampled: false,
+					},
+					count: None,
+				},
+				BindGroupLayoutEntry {
+					binding: 2,
+					visibility: ShaderStages::FRAGMENT,
+					ty: BindingType::Sampler(SamplerBindingType::Filtering),
+					count: None,
+				},
+			],
+		});
 		let surface_capabilities = surface.get_capabilities(&adapter);
 		let surface_format = surface_capabilities
 			.formats
@@ -82,15 +105,23 @@ impl GraphicsContext<'_> {
 		};
 		surface.configure(&device, &config);
 		let default_render_pipeline =
-			GraphicsPipeline::<Vertex2d>::new_internal(&device, &draw_params_bind_group_layout)
+			GraphicsPipeline::<Vertex2d>::new_internal(&device, &mesh_bind_group_layout)
 				.render_pipeline;
+		let default_texture = Texture::new(
+			&device,
+			&queue,
+			UVec2::new(1, 1),
+			Some(&[255, 255, 255, 255]),
+			TextureSettings::default(),
+		);
 		Self {
 			device,
 			queue,
 			config,
 			surface,
-			draw_params_bind_group_layout,
+			mesh_bind_group_layout,
 			default_render_pipeline,
+			default_texture,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
 			draw_commands: vec![],
@@ -151,6 +182,7 @@ impl GraphicsContext<'_> {
 				index_buffer,
 				num_indices,
 				render_pipeline,
+				texture,
 				draw_params,
 			} in self.draw_commands.drain(..)
 			{
@@ -159,20 +191,31 @@ impl GraphicsContext<'_> {
 					contents: bytemuck::cast_slice(&[draw_params]),
 					usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 				});
-				let draw_params_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
+				let texture = texture.unwrap_or(self.default_texture.clone());
+				let mesh_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
 					label: Some("Draw Params Bind Group"),
-					layout: &self.draw_params_bind_group_layout,
-					entries: &[BindGroupEntry {
-						binding: 0,
-						resource: draw_params_buffer.as_entire_binding(),
-					}],
+					layout: &self.mesh_bind_group_layout,
+					entries: &[
+						BindGroupEntry {
+							binding: 0,
+							resource: draw_params_buffer.as_entire_binding(),
+						},
+						BindGroupEntry {
+							binding: 1,
+							resource: BindingResource::TextureView(&texture.view),
+						},
+						BindGroupEntry {
+							binding: 2,
+							resource: BindingResource::Sampler(&texture.sampler),
+						},
+					],
 				});
 				render_pass.set_pipeline(
 					render_pipeline
 						.as_ref()
 						.unwrap_or(&self.default_render_pipeline),
 				);
-				render_pass.set_bind_group(0, &draw_params_bind_group, &[]);
+				render_pass.set_bind_group(0, &mesh_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 				render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 				render_pass.draw_indexed(0..num_indices, 0, 0..1);
@@ -189,6 +232,7 @@ pub(crate) struct DrawCommand {
 	pub(crate) index_buffer: Buffer,
 	pub(crate) num_indices: u32,
 	pub(crate) render_pipeline: Option<RenderPipeline>,
+	pub(crate) texture: Option<Texture>,
 	pub(crate) draw_params: DrawParams,
 }
 

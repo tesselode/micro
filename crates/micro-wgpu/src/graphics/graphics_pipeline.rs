@@ -19,10 +19,7 @@ pub struct GraphicsPipeline<V: Vertex = Vertex2d> {
 
 impl<V: Vertex> GraphicsPipeline<V> {
 	pub fn new(ctx: &mut Context) -> Self {
-		Self::new_internal(
-			&ctx.graphics.device,
-			&ctx.graphics.draw_params_bind_group_layout,
-		)
+		Self::new_internal(&ctx.graphics.device, &ctx.graphics.mesh_bind_group_layout)
 	}
 
 	pub(crate) fn new_internal(

@@ -15,6 +15,7 @@ use crate::{
 	Context,
 	color::ColorConstants,
 	context::graphics::{DrawCommand, DrawParams},
+	graphics::texture::Texture,
 	math::{Circle, Rect},
 	standard_draw_param_methods,
 };
@@ -29,6 +30,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	_phantom_data: PhantomData<V>,
 
 	// draw params
+	pub texture: Option<Texture>,
 	pub graphics_pipeline: Option<GraphicsPipeline<V>>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
@@ -57,18 +59,26 @@ impl<V: Vertex> Mesh<V> {
 			index_buffer,
 			num_indices: indices.len() as u32,
 			_phantom_data: PhantomData,
+			texture: None,
 			graphics_pipeline: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 		}
 	}
 
-	pub fn graphics_pipeline(
+	pub fn texture<'a>(&self, texture: impl Into<Option<&'a Texture>>) -> Self {
+		Self {
+			texture: texture.into().cloned(),
+			..self.clone()
+		}
+	}
+
+	pub fn graphics_pipeline<'a>(
 		&self,
-		graphics_pipeline: impl Into<Option<GraphicsPipeline<V>>>,
+		graphics_pipeline: impl Into<Option<&'a GraphicsPipeline<V>>>,
 	) -> Self {
 		Self {
-			graphics_pipeline: graphics_pipeline.into(),
+			graphics_pipeline: graphics_pipeline.into().cloned(),
 			..self.clone()
 		}
 	}
@@ -88,6 +98,7 @@ impl<V: Vertex> Mesh<V> {
 				transform: self.transform,
 				color: self.color,
 			},
+			texture: self.texture.clone(),
 		});
 	}
 }

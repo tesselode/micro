@@ -3,7 +3,10 @@ use std::error::Error;
 use micro_wgpu::{
 	App, Context, ContextSettings, Event,
 	color::ColorConstants,
-	graphics::mesh::{Mesh, builder::ShapeStyle},
+	graphics::{
+		mesh::{Mesh, builder::ShapeStyle},
+		texture::{Texture, TextureSettings},
+	},
 	input::Scancode,
 	math::Circle,
 };
@@ -19,11 +22,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 	)
 }
 
-struct Test {}
+struct Test {
+	texture: Texture,
+}
 
 impl Test {
-	fn new(_ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {})
+	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		Ok(Self {
+			texture: Texture::from_file(
+				ctx,
+				"resources/spritesheet_default.png",
+				TextureSettings::default(),
+			)?,
+		})
 	}
 }
 
@@ -42,7 +53,7 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(50.0))?
+		self.texture
 			.color(LinSrgb::RED)
 			.translated_2d(ctx.mouse_position().as_vec2())
 			.draw(ctx);

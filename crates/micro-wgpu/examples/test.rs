@@ -2,10 +2,12 @@ use std::error::Error;
 
 use glam::{Vec2, vec2};
 use micro_wgpu::{
-	App, Context, ContextSettings,
+	App, Context, ContextSettings, Event,
+	color::ColorConstants,
 	graphics::{Vertex2d, mesh::Mesh},
+	input::Scancode,
 };
-use palette::LinSrgba;
+use palette::{LinSrgb, LinSrgba};
 
 const VERTICES: &[Vertex2d] = &[
 	Vertex2d {
@@ -61,6 +63,17 @@ impl Test {
 
 impl App for Test {
 	type Error = Box<dyn Error>;
+
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
+		if let Event::KeyPressed {
+			key: Scancode::Return,
+			..
+		} = event
+		{
+			ctx.set_clear_color(LinSrgb::BLUE);
+		}
+		Ok(())
+	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
 		self.mesh.draw(ctx);

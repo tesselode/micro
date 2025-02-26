@@ -23,3 +23,12 @@ impl ColorConstants for LinSrgb {
 	const GREEN: Self = LinSrgb::new(0.0, 1.0, 0.0);
 	const BLUE: Self = LinSrgb::new(0.0, 0.0, 1.0);
 }
+
+pub(crate) fn lin_srgb_to_wgpu_color(lin_srgb: LinSrgb) -> wgpu::Color {
+	wgpu::Color {
+		r: lin_srgb.red.into(),
+		g: lin_srgb.green.into(),
+		b: lin_srgb.blue.into(),
+		a: 1.0,
+	}
+}

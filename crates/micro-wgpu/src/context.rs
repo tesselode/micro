@@ -4,6 +4,7 @@ use std::time::Instant;
 
 use glam::{IVec2, UVec2, vec2};
 use graphics::GraphicsContext;
+use palette::LinSrgb;
 use sdl2::{
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 	video::{FullscreenType, Window, WindowPos},
@@ -170,6 +171,10 @@ impl Context<'_> {
 			}
 		}
 		Ok(())
+	}
+
+	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
+		self.graphics.clear_color = color.into();
 	}
 
 	/// Returns `true` if the given keyboard key is currently held down.

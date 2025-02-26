@@ -1,4 +1,5 @@
 use glam::UVec2;
+use palette::LinSrgb;
 use sdl2::video::Window;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupLayoutDescriptor, Buffer, CompositeAlphaMode, Device,
@@ -8,7 +9,10 @@ use wgpu::{
 	TextureViewDescriptor,
 };
 
-use crate::graphics::{Vertex2d, graphics_pipeline::GraphicsPipeline};
+use crate::{
+	color::{ColorConstants, lin_srgb_to_wgpu_color},
+	graphics::{Vertex2d, graphics_pipeline::GraphicsPipeline},
+};
 
 pub(crate) struct GraphicsContext<'window> {
 	pub(crate) device: Device,
@@ -17,6 +21,7 @@ pub(crate) struct GraphicsContext<'window> {
 	config: SurfaceConfiguration,
 	surface: Surface<'window>,
 	default_render_pipeline: RenderPipeline,
+	pub(crate) clear_color: LinSrgb,
 	draw_commands: Vec<DrawCommand>,
 }
 
@@ -76,6 +81,7 @@ impl GraphicsContext<'_> {
 			config,
 			surface,
 			default_render_pipeline,
+			clear_color: LinSrgb::BLACK,
 			draw_commands: vec![],
 		}
 	}
@@ -105,7 +111,7 @@ impl GraphicsContext<'_> {
 					view: &output,
 					resolve_target: None,
 					ops: Operations {
-						load: LoadOp::Clear(wgpu::Color::GREEN),
+						load: LoadOp::Clear(lin_srgb_to_wgpu_color(self.clear_color)),
 						store: StoreOp::Store,
 					},
 				})],

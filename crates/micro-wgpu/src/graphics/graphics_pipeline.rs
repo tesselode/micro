@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use wgpu::{
-	BindGroupLayoutDescriptor, BufferAddress, ColorTargetState, ColorWrites, Device, FragmentState,
+	BindGroupLayout, BufferAddress, ColorTargetState, ColorWrites, Device, FragmentState,
 	MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor, PrimitiveState,
 	PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor, TextureFormat, VertexBufferLayout,
 	VertexState, VertexStepMode, include_wgsl,
@@ -19,18 +19,20 @@ pub struct GraphicsPipeline<V: Vertex = Vertex2d> {
 
 impl<V: Vertex> GraphicsPipeline<V> {
 	pub fn new(ctx: &mut Context) -> Self {
-		Self::new_from_device(&ctx.graphics.device)
+		Self::new_internal(
+			&ctx.graphics.device,
+			&ctx.graphics.transform_bind_group_layout,
+		)
 	}
 
-	pub(crate) fn new_from_device(device: &Device) -> Self {
+	pub(crate) fn new_internal(
+		device: &Device,
+		transform_bind_group_layout: &BindGroupLayout,
+	) -> Self {
 		let shader = device.create_shader_module(include_wgsl!("shader.wgsl"));
-		let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-			label: None,
-			entries: &[],
-		});
 		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 			label: None,
-			bind_group_layouts: &[&bind_group_layout],
+			bind_group_layouts: &[transform_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		Self {

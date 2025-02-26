@@ -11,27 +11,27 @@ use palette::{LinSrgb, LinSrgba};
 
 const VERTICES: &[Vertex2d] = &[
 	Vertex2d {
-		position: vec2(-0.0868241, 0.49240386),
+		position: vec2(-86.8241, 92.40386),
 		texture_coords: Vec2::ZERO,
 		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
 	},
 	Vertex2d {
-		position: vec2(-0.49513406, 0.06958647),
+		position: vec2(-95.13406, 69.58647),
 		texture_coords: Vec2::ZERO,
 		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
 	},
 	Vertex2d {
-		position: vec2(-0.21918549, -0.44939706),
+		position: vec2(-19.18549, -49.39706),
 		texture_coords: Vec2::ZERO,
 		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
 	},
 	Vertex2d {
-		position: vec2(0.35966998, -0.3473291),
+		position: vec2(59.66998, -47.3291),
 		texture_coords: Vec2::ZERO,
 		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
 	},
 	Vertex2d {
-		position: vec2(0.44147372, 0.2347359),
+		position: vec2(41.47372, 34.7359),
 		texture_coords: Vec2::ZERO,
 		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
 	},
@@ -76,6 +76,7 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
+		let ctx = &mut ctx.push_translation_2d(ctx.mouse_position().as_vec2());
 		self.mesh.draw(ctx);
 		Ok(())
 	}

@@ -1,8 +1,11 @@
 pub(crate) mod graphics;
 
-use std::time::Instant;
+use std::{
+	ops::{Deref, DerefMut},
+	time::Instant,
+};
 
-use glam::{IVec2, UVec2, vec2};
+use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
 use graphics::GraphicsContext;
 use palette::LinSrgb;
 use sdl2::{
@@ -121,7 +124,7 @@ pub struct Context<'window> {
 	pub(crate) should_quit: bool,
 }
 
-impl Context<'_> {
+impl<'window> Context<'window> {
 	/// Gets the drawable size of the window (in pixels).
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.drawable_size();
@@ -175,6 +178,71 @@ impl Context<'_> {
 
 	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
 		self.graphics.clear_color = color.into();
+	}
+
+	/// Creates a scope where all drawing operations have the given transform
+	/// applied.
+	///
+	/// Calls to `push_transform` can be nested.
+	pub fn push_transform(&mut self, transform: impl Into<Mat4>) -> OnDrop<'_, 'window> {
+		let transform = transform.into();
+		self.graphics.transform_stack.push(transform);
+		OnDrop {
+			ctx: self,
+			action: OnDropAction::PopTransform,
+		}
+	}
+
+	pub fn push_translation_2d(&mut self, translation: impl Into<Vec2>) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_translation(translation.into().extend(0.0)))
+	}
+
+	pub fn push_translation_3d(&mut self, translation: impl Into<Vec3>) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_translation(translation.into()))
+	}
+
+	pub fn push_translation_x(&mut self, translation: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
+	}
+
+	pub fn push_translation_y(&mut self, translation: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
+	}
+
+	pub fn push_translation_z(&mut self, translation: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
+	}
+
+	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_scale(scale.into().extend(0.0)))
+	}
+
+	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_scale(scale.into()))
+	}
+
+	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
+	}
+
+	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
+	}
+
+	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
+	}
+
+	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_rotation_x(rotation))
+	}
+
+	pub fn push_rotation_y(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_rotation_y(rotation))
+	}
+
+	pub fn push_rotation_z(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
+		self.push_transform(Mat4::from_rotation_z(rotation))
 	}
 
 	/// Returns `true` if the given keyboard key is currently held down.
@@ -249,4 +317,50 @@ impl Default for ContextSettings {
 			// scaling_mode: ScalingMode::default(),
 		}
 	}
+}
+
+#[must_use]
+pub struct OnDrop<'a, 'window> {
+	ctx: &'a mut Context<'window>,
+	action: OnDropAction,
+}
+
+impl<'a> Drop for OnDrop<'a, '_> {
+	fn drop(&mut self) {
+		match self.action {
+			OnDropAction::PopTransform => {
+				self.ctx.graphics.transform_stack.pop();
+			}
+			OnDropAction::StopUsingCamera => {
+				todo!()
+			}
+			OnDropAction::StopWritingToStencil => {
+				todo!()
+			}
+			OnDropAction::StopUsingStencil => {
+				todo!()
+			}
+		}
+	}
+}
+
+impl<'a, 'window> Deref for OnDrop<'a, 'window> {
+	type Target = Context<'window>;
+
+	fn deref(&self) -> &Self::Target {
+		self.ctx
+	}
+}
+
+impl<'a> DerefMut for OnDrop<'a, '_> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		self.ctx
+	}
+}
+
+enum OnDropAction {
+	PopTransform,
+	StopUsingCamera,
+	StopWritingToStencil,
+	StopUsingStencil,
 }

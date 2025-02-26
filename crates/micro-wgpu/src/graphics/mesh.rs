@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use glam::Mat4;
 use wgpu::{
 	Buffer, BufferUsages,
 	util::{BufferInitDescriptor, DeviceExt},
@@ -64,6 +65,7 @@ impl<V: Vertex> Mesh<V> {
 				.graphics_pipeline
 				.as_ref()
 				.map(|graphics_pipeline| graphics_pipeline.render_pipeline.clone()),
+			transform: Mat4::IDENTITY,
 		});
 	}
 }

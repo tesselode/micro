@@ -1,5 +1,8 @@
 // Vertex shader
 
+@group(0) @binding(0)
+var<uniform> transform: mat4x4<f32>;
+
 struct VertexInput {
     @location(0) position: vec2<f32>,
     @location(1) texture_coords: vec2<f32>,
@@ -17,7 +20,7 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.color = model.color;
-    out.clip_position = vec4<f32>(model.position, 0.0, 1.0);
+    out.clip_position = transform * vec4<f32>(model.position, 0.0, 1.0);
     return out;
 }
 

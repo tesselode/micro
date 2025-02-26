@@ -1,5 +1,6 @@
+use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, UVec2, vec3};
-use palette::LinSrgb;
+use palette::{LinSrgb, LinSrgba};
 use sdl2::video::Window;
 use wgpu::{
 	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
@@ -21,7 +22,7 @@ pub(crate) struct GraphicsContext<'window> {
 	queue: Queue,
 	config: SurfaceConfiguration,
 	surface: Surface<'window>,
-	pub(crate) transform_bind_group_layout: BindGroupLayout,
+	pub(crate) draw_params_bind_group_layout: BindGroupLayout,
 	default_render_pipeline: RenderPipeline,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
@@ -47,7 +48,7 @@ impl GraphicsContext<'_> {
 		let (device, queue) =
 			pollster::block_on(adapter.request_device(&DeviceDescriptor::default(), None))
 				.expect("error getting graphics device");
-		let transform_bind_group_layout =
+		let draw_params_bind_group_layout =
 			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 				label: None,
 				entries: &[BindGroupLayoutEntry {
@@ -81,14 +82,14 @@ impl GraphicsContext<'_> {
 		};
 		surface.configure(&device, &config);
 		let default_render_pipeline =
-			GraphicsPipeline::<Vertex2d>::new_internal(&device, &transform_bind_group_layout)
+			GraphicsPipeline::<Vertex2d>::new_internal(&device, &draw_params_bind_group_layout)
 				.render_pipeline;
 		Self {
 			device,
 			queue,
 			config,
 			surface,
-			transform_bind_group_layout,
+			draw_params_bind_group_layout,
 			default_render_pipeline,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
@@ -111,7 +112,8 @@ impl GraphicsContext<'_> {
 	}
 
 	pub(crate) fn queue_draw_command(&mut self, mut draw_command: DrawCommand) {
-		draw_command.transform = self.global_transform() * draw_command.transform;
+		draw_command.draw_params.transform =
+			self.global_transform() * draw_command.draw_params.transform;
 		self.draw_commands.push(draw_command);
 	}
 
@@ -149,20 +151,20 @@ impl GraphicsContext<'_> {
 				index_buffer,
 				num_indices,
 				render_pipeline,
-				transform,
+				draw_params,
 			} in self.draw_commands.drain(..)
 			{
-				let transform_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
-					label: Some("Transform Buffer"),
-					contents: bytemuck::cast_slice(&[transform]),
+				let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
+					label: Some("Draw Params Buffer"),
+					contents: bytemuck::cast_slice(&[draw_params]),
 					usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 				});
-				let transform_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
-					label: Some("Transform Bind Group"),
-					layout: &self.transform_bind_group_layout,
+				let draw_params_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
+					label: Some("Draw Params Bind Group"),
+					layout: &self.draw_params_bind_group_layout,
 					entries: &[BindGroupEntry {
 						binding: 0,
-						resource: transform_buffer.as_entire_binding(),
+						resource: draw_params_buffer.as_entire_binding(),
 					}],
 				});
 				render_pass.set_pipeline(
@@ -170,7 +172,7 @@ impl GraphicsContext<'_> {
 						.as_ref()
 						.unwrap_or(&self.default_render_pipeline),
 				);
-				render_pass.set_bind_group(0, &transform_bind_group, &[]);
+				render_pass.set_bind_group(0, &draw_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 				render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 				render_pass.draw_indexed(0..num_indices, 0, 0..1);
@@ -187,5 +189,12 @@ pub(crate) struct DrawCommand {
 	pub(crate) index_buffer: Buffer,
 	pub(crate) num_indices: u32,
 	pub(crate) render_pipeline: Option<RenderPipeline>,
-	pub(crate) transform: Mat4,
+	pub(crate) draw_params: DrawParams,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+#[repr(C)]
+pub(crate) struct DrawParams {
+	pub transform: Mat4,
+	pub color: LinSrgba,
 }

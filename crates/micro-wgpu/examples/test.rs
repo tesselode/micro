@@ -76,8 +76,10 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		let ctx = &mut ctx.push_translation_2d(ctx.mouse_position().as_vec2());
-		self.mesh.draw(ctx);
+		self.mesh
+			.color(LinSrgb::RED)
+			.translated_2d(ctx.mouse_position().as_vec2())
+			.draw(ctx);
 		Ok(())
 	}
 }

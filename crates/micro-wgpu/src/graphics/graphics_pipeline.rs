@@ -21,7 +21,7 @@ impl<V: Vertex> GraphicsPipeline<V> {
 	pub fn new(ctx: &mut Context) -> Self {
 		Self::new_internal(
 			&ctx.graphics.device,
-			&ctx.graphics.transform_bind_group_layout,
+			&ctx.graphics.draw_params_bind_group_layout,
 		)
 	}
 

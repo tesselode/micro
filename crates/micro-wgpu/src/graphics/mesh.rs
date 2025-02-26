@@ -1,22 +1,32 @@
 use std::marker::PhantomData;
 
 use glam::Mat4;
+use palette::LinSrgba;
 use wgpu::{
 	Buffer, BufferUsages,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
-use crate::{Context, context::graphics::DrawCommand};
+use crate::{
+	Context,
+	color::ColorConstants,
+	context::graphics::{DrawCommand, DrawParams},
+	standard_draw_param_methods,
+};
 
 use super::{Vertex, Vertex2d, graphics_pipeline::GraphicsPipeline};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Mesh<V: Vertex = Vertex2d> {
-	pub graphics_pipeline: Option<GraphicsPipeline<V>>,
 	vertex_buffer: Buffer,
 	index_buffer: Buffer,
 	num_indices: u32,
 	_phantom_data: PhantomData<V>,
+
+	// draw params
+	pub graphics_pipeline: Option<GraphicsPipeline<V>>,
+	pub transform: Mat4,
+	pub color: LinSrgba,
 }
 
 impl<V: Vertex> Mesh<V> {
@@ -38,11 +48,13 @@ impl<V: Vertex> Mesh<V> {
 				usage: BufferUsages::INDEX,
 			});
 		Self {
-			graphics_pipeline: None,
 			vertex_buffer,
 			index_buffer,
 			num_indices: indices.len() as u32,
 			_phantom_data: PhantomData,
+			graphics_pipeline: None,
+			transform: Mat4::IDENTITY,
+			color: LinSrgba::WHITE,
 		}
 	}
 
@@ -56,6 +68,8 @@ impl<V: Vertex> Mesh<V> {
 		}
 	}
 
+	standard_draw_param_methods!();
+
 	pub fn draw(&self, ctx: &mut Context) {
 		ctx.graphics.queue_draw_command(DrawCommand {
 			vertex_buffer: self.vertex_buffer.clone(),
@@ -65,7 +79,10 @@ impl<V: Vertex> Mesh<V> {
 				.graphics_pipeline
 				.as_ref()
 				.map(|graphics_pipeline| graphics_pipeline.render_pipeline.clone()),
-			transform: Mat4::IDENTITY,
+			draw_params: DrawParams {
+				transform: self.transform,
+				color: self.color,
+			},
 		});
 	}
 }

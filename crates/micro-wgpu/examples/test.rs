@@ -1,43 +1,13 @@
 use std::error::Error;
 
-use glam::{Vec2, vec2};
 use micro_wgpu::{
 	App, Context, ContextSettings, Event,
 	color::ColorConstants,
-	graphics::{Vertex2d, mesh::Mesh},
+	graphics::mesh::{Mesh, builder::ShapeStyle},
 	input::Scancode,
+	math::Circle,
 };
-use palette::{LinSrgb, LinSrgba};
-
-const VERTICES: &[Vertex2d] = &[
-	Vertex2d {
-		position: vec2(-86.8241, 92.40386),
-		texture_coords: Vec2::ZERO,
-		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
-	},
-	Vertex2d {
-		position: vec2(-95.13406, 69.58647),
-		texture_coords: Vec2::ZERO,
-		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
-	},
-	Vertex2d {
-		position: vec2(-19.18549, -49.39706),
-		texture_coords: Vec2::ZERO,
-		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
-	},
-	Vertex2d {
-		position: vec2(59.66998, -47.3291),
-		texture_coords: Vec2::ZERO,
-		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
-	},
-	Vertex2d {
-		position: vec2(41.47372, 34.7359),
-		texture_coords: Vec2::ZERO,
-		color: LinSrgba::new(0.5, 0.0, 0.5, 1.0),
-	},
-];
-
-const INDICES: &[u32] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
+use palette::LinSrgb;
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro_wgpu::run(
@@ -49,15 +19,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 	)
 }
 
-struct Test {
-	mesh: Mesh,
-}
+struct Test {}
 
 impl Test {
-	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {
-			mesh: Mesh::new(ctx, VERTICES, INDICES),
-		})
+	fn new(_ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		Ok(Self {})
 	}
 }
 
@@ -76,7 +42,7 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		self.mesh
+		Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(50.0))?
 			.color(LinSrgb::RED)
 			.translated_2d(ctx.mouse_position().as_vec2())
 			.draw(ctx);

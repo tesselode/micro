@@ -23,6 +23,7 @@ pub struct Texture {
 	size: UVec2,
 
 	// draw params
+	pub region: Rect,
 	pub graphics_pipeline: Option<GraphicsPipeline<Vertex2d>>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
@@ -65,6 +66,12 @@ impl Texture {
 		Ok(Self::from_image(ctx, &image, settings))
 	}
 
+	pub fn region(&self, region: Rect) -> Self {
+		let mut new = self.clone();
+		new.region = region;
+		new
+	}
+
 	pub fn graphics_pipeline(
 		&self,
 		graphics_pipeline: impl Into<Option<GraphicsPipeline<Vertex2d>>>,
@@ -93,8 +100,8 @@ impl Texture {
 		let _span = tracy_client::span!();
 		Mesh::rectangle_with_texture_region(
 			ctx,
-			Rect::new(Vec2::ZERO, self.size.as_vec2()),
-			Rect::new((0.0, 0.0), (1.0, 1.0)),
+			Rect::new(Vec2::ZERO, self.region.size),
+			self.relative_rect(self.region),
 		)
 		.texture(self)
 		.graphics_pipeline(&self.graphics_pipeline)
@@ -156,6 +163,7 @@ impl Texture {
 			view,
 			sampler,
 			size,
+			region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			graphics_pipeline: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,

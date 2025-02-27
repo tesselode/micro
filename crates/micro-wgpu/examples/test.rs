@@ -8,7 +8,7 @@ use micro_wgpu::{
 		texture::{Texture, TextureSettings},
 	},
 	input::Scancode,
-	math::Circle,
+	math::{Circle, Rect},
 };
 use palette::LinSrgb;
 
@@ -54,6 +54,7 @@ impl App for Test {
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
 		self.texture
+			.region(Rect::new((10.0, 10.0), (50.0, 50.0)))
 			.color(LinSrgb::RED)
 			.translated_2d(ctx.mouse_position().as_vec2())
 			.draw(ctx);

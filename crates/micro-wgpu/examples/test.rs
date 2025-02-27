@@ -11,7 +11,7 @@ use micro_wgpu::{
 	input::Scancode,
 	math::{Circle, Rect},
 };
-use palette::LinSrgb;
+use palette::{LinSrgb, LinSrgba};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro_wgpu::run(
@@ -36,8 +36,18 @@ impl Test {
 			TextureSettings::default(),
 		)?;
 		let mut sprite_batch = SpriteBatch::new(ctx, &texture, 100);
-		sprite_batch.add(ctx, SpriteParams::new().translated((100.0, 100.0)))?;
-		sprite_batch.add(ctx, SpriteParams::new().translated((200.0, 200.0)))?;
+		sprite_batch.add(
+			ctx,
+			SpriteParams::new()
+				.color(LinSrgba::new(1.0, 1.0, 1.0, 0.5))
+				.translated((100.0, 100.0)),
+		)?;
+		sprite_batch.add(
+			ctx,
+			SpriteParams::new()
+				.color(LinSrgba::new(1.0, 1.0, 1.0, 0.5))
+				.translated((200.0, 200.0)),
+		)?;
 		Ok(Self {
 			texture,
 			sprite_batch,
@@ -61,7 +71,6 @@ impl App for Test {
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
 		self.sprite_batch
-			.color(LinSrgb::RED)
 			.translated_2d(ctx.mouse_position().as_vec2())
 			.draw(ctx);
 		Ok(())

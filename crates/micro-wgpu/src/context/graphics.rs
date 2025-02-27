@@ -17,7 +17,7 @@ use crate::{
 	color::{ColorConstants, lin_srgb_to_wgpu_color},
 	graphics::{
 		Vertex2d,
-		graphics_pipeline::GraphicsPipeline,
+		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		texture::{Texture, TextureSettings},
 	},
 };
@@ -104,9 +104,12 @@ impl GraphicsContext<'_> {
 			view_formats: vec![],
 		};
 		surface.configure(&device, &config);
-		let default_render_pipeline =
-			GraphicsPipeline::<Vertex2d>::new_internal(&device, &mesh_bind_group_layout)
-				.render_pipeline;
+		let default_render_pipeline = GraphicsPipeline::<Vertex2d>::new_internal(
+			&device,
+			&mesh_bind_group_layout,
+			GraphicsPipelineSettings::default(),
+		)
+		.render_pipeline;
 		let default_texture = Texture::new(
 			&device,
 			&queue,

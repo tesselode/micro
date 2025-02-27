@@ -1,9 +1,11 @@
+mod blend_mode;
 pub mod graphics_pipeline;
 pub mod mesh;
 pub mod sprite_batch;
 pub mod texture;
 mod vertex;
 
+pub use blend_mode::*;
 pub use vertex::*;
 
 #[macro_export]

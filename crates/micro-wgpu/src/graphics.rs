@@ -1,5 +1,6 @@
 pub mod graphics_pipeline;
 pub mod mesh;
+pub mod sprite_batch;
 pub mod texture;
 mod vertex;
 

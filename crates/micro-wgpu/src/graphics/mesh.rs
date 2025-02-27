@@ -44,7 +44,7 @@ impl<V: Vertex> Mesh<V> {
 			.create_buffer_init(&BufferInitDescriptor {
 				label: None,
 				contents: bytemuck::cast_slice(vertices),
-				usage: BufferUsages::VERTEX,
+				usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
 			});
 		let index_buffer = ctx
 			.graphics
@@ -84,6 +84,14 @@ impl<V: Vertex> Mesh<V> {
 	}
 
 	standard_draw_param_methods!();
+
+	pub fn set_vertices(&self, ctx: &Context, index: usize, vertices: &[V]) {
+		ctx.graphics.queue.write_buffer(
+			&self.vertex_buffer,
+			(index * std::mem::size_of::<V>()) as u64,
+			bytemuck::cast_slice(vertices),
+		);
+	}
 
 	pub fn draw(&self, ctx: &mut Context) {
 		ctx.graphics.queue_draw_command(DrawCommand {

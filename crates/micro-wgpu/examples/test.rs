@@ -5,6 +5,7 @@ use micro_wgpu::{
 	color::ColorConstants,
 	graphics::{
 		mesh::{Mesh, builder::ShapeStyle},
+		sprite_batch::{SpriteBatch, SpriteParams},
 		texture::{Texture, TextureSettings},
 	},
 	input::Scancode,
@@ -24,16 +25,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 struct Test {
 	texture: Texture,
+	sprite_batch: SpriteBatch,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		let texture = Texture::from_file(
+			ctx,
+			"resources/spritesheet_default.png",
+			TextureSettings::default(),
+		)?;
+		let mut sprite_batch = SpriteBatch::new(ctx, &texture, 100);
+		sprite_batch.add(ctx, SpriteParams::new().translated((100.0, 100.0)))?;
+		sprite_batch.add(ctx, SpriteParams::new().translated((200.0, 200.0)))?;
 		Ok(Self {
-			texture: Texture::from_file(
-				ctx,
-				"resources/spritesheet_default.png",
-				TextureSettings::default(),
-			)?,
+			texture,
+			sprite_batch,
 		})
 	}
 }
@@ -53,8 +60,7 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		self.texture
-			.region(Rect::new((10.0, 10.0), (50.0, 50.0)))
+		self.sprite_batch
 			.color(LinSrgb::RED)
 			.translated_2d(ctx.mouse_position().as_vec2())
 			.draw(ctx);

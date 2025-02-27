@@ -37,7 +37,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 }
 
 impl<V: Vertex> Mesh<V> {
-	pub fn new(ctx: &mut Context, vertices: &[V], indices: &[u32]) -> Self {
+	pub fn new(ctx: &Context, vertices: &[V], indices: &[u32]) -> Self {
 		let vertex_buffer = ctx
 			.graphics
 			.device

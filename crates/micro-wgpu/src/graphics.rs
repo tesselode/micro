@@ -2,6 +2,7 @@ mod blend_mode;
 pub mod graphics_pipeline;
 pub mod mesh;
 pub mod sprite_batch;
+pub mod text;
 pub mod texture;
 mod vertex;
 

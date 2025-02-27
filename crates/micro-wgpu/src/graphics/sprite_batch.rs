@@ -33,7 +33,7 @@ pub struct SpriteBatch {
 }
 
 impl SpriteBatch {
-	pub fn new(ctx: &mut Context, texture: &Texture, capacity: usize) -> Self {
+	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
 		let _span = tracy_client::span!();
 		let vertices = vec![
 			Vertex2d {
@@ -65,6 +65,16 @@ impl SpriteBatch {
 			graphics_pipeline: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+		}
+	}
+
+	pub fn graphics_pipeline<'a>(
+		&self,
+		graphics_pipeline: impl Into<Option<&'a GraphicsPipeline<Vertex2d>>>,
+	) -> Self {
+		Self {
+			graphics_pipeline: graphics_pipeline.into().cloned(),
+			..self.clone()
 		}
 	}
 

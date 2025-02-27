@@ -3,7 +3,7 @@ use std::path::Path;
 pub use wgpu::{AddressMode, FilterMode, SamplerBorderColor};
 
 use derive_more::{Display, Error, From};
-use glam::{Mat4, UVec2, Vec2};
+use glam::{IVec2, Mat4, UVec2, Vec2};
 use image::{ImageBuffer, ImageError};
 use palette::LinSrgba;
 use wgpu::{
@@ -18,6 +18,7 @@ use super::{Vertex2d, graphics_pipeline::GraphicsPipeline, mesh::Mesh};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
+	texture: wgpu::Texture,
 	pub(crate) view: TextureView,
 	pub(crate) sampler: Sampler,
 	size: UVec2,
@@ -30,7 +31,7 @@ pub struct Texture {
 }
 
 impl Texture {
-	pub fn empty(ctx: &mut Context, size: UVec2, settings: TextureSettings) -> Self {
+	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
 			&ctx.graphics.device,
@@ -42,7 +43,7 @@ impl Texture {
 	}
 
 	pub fn from_image(
-		ctx: &mut Context,
+		ctx: &Context,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 		settings: TextureSettings,
 	) -> Self {
@@ -57,7 +58,7 @@ impl Texture {
 	}
 
 	pub fn from_file(
-		ctx: &mut Context,
+		ctx: &Context,
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
@@ -72,12 +73,12 @@ impl Texture {
 		new
 	}
 
-	pub fn graphics_pipeline(
+	pub fn graphics_pipeline<'a>(
 		&self,
-		graphics_pipeline: impl Into<Option<GraphicsPipeline<Vertex2d>>>,
+		graphics_pipeline: impl Into<Option<&'a GraphicsPipeline<Vertex2d>>>,
 	) -> Self {
 		Self {
-			graphics_pipeline: graphics_pipeline.into(),
+			graphics_pipeline: graphics_pipeline.into().cloned(),
 			..self.clone()
 		}
 	}
@@ -94,6 +95,39 @@ impl Texture {
 			absolute_rect.top_left / size,
 			absolute_rect.bottom_right() / size,
 		)
+	}
+
+	pub fn replace(
+		&self,
+		ctx: &Context,
+		top_left: UVec2,
+		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+	) {
+		let _span = tracy_client::span!();
+		let texture_extent = Extent3d {
+			width: image.width(),
+			height: image.height(),
+			depth_or_array_layers: 1,
+		};
+		ctx.graphics.queue.write_texture(
+			TexelCopyTextureInfo {
+				texture: &self.texture,
+				mip_level: 0,
+				origin: Origin3d {
+					x: top_left.x,
+					y: top_left.y,
+					z: 0,
+				},
+				aspect: TextureAspect::All,
+			},
+			image.as_raw(),
+			TexelCopyBufferLayout {
+				offset: 0,
+				bytes_per_row: Some(4 * image.width()),
+				rows_per_image: Some(image.height()),
+			},
+			texture_extent,
+		);
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
@@ -133,21 +167,23 @@ impl Texture {
 			usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
 			view_formats: &[],
 		});
-		queue.write_texture(
-			TexelCopyTextureInfo {
-				texture: &texture,
-				mip_level: 0,
-				origin: Origin3d::ZERO,
-				aspect: TextureAspect::All,
-			},
-			pixels.unwrap_or_default(),
-			TexelCopyBufferLayout {
-				offset: 0,
-				bytes_per_row: Some(4 * size.x),
-				rows_per_image: Some(size.y),
-			},
-			texture_extent,
-		);
+		if let Some(pixels) = pixels {
+			queue.write_texture(
+				TexelCopyTextureInfo {
+					texture: &texture,
+					mip_level: 0,
+					origin: Origin3d::ZERO,
+					aspect: TextureAspect::All,
+				},
+				pixels,
+				TexelCopyBufferLayout {
+					offset: 0,
+					bytes_per_row: Some(4 * size.x),
+					rows_per_image: Some(size.y),
+				},
+				texture_extent,
+			);
+		}
 		let view = texture.create_view(&TextureViewDescriptor::default());
 		let sampler = device.create_sampler(&SamplerDescriptor {
 			label: None,
@@ -160,6 +196,7 @@ impl Texture {
 			..Default::default()
 		});
 		Self {
+			texture,
 			view,
 			sampler,
 			size,

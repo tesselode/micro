@@ -6,6 +6,7 @@ use micro_wgpu::{
 	graphics::{
 		mesh::{Mesh, builder::ShapeStyle},
 		sprite_batch::{SpriteBatch, SpriteParams},
+		text::{Font, FontSettings, LayoutSettings, Text},
 		texture::{Texture, TextureSettings},
 	},
 	input::Scancode,
@@ -24,34 +25,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct Test {
-	texture: Texture,
-	sprite_batch: SpriteBatch,
+	text: Text,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let texture = Texture::from_file(
+		let font = Font::from_file(
 			ctx,
-			"resources/spritesheet_default.png",
-			TextureSettings::default(),
+			"resources/NotoSans-Regular.ttf",
+			FontSettings::default(),
 		)?;
-		let mut sprite_batch = SpriteBatch::new(ctx, &texture, 100);
-		sprite_batch.add(
-			ctx,
-			SpriteParams::new()
-				.color(LinSrgba::new(1.0, 1.0, 1.0, 0.5))
-				.translated((100.0, 100.0)),
-		)?;
-		sprite_batch.add(
-			ctx,
-			SpriteParams::new()
-				.color(LinSrgba::new(1.0, 1.0, 1.0, 0.5))
-				.translated((200.0, 200.0)),
-		)?;
-		Ok(Self {
-			texture,
-			sprite_batch,
-		})
+		let text = Text::new(ctx, &font, "Hello, world!", LayoutSettings::default());
+		Ok(Self { text })
 	}
 }
 
@@ -70,7 +55,8 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		self.sprite_batch
+		self.text
+			.color(LinSrgb::RED)
 			.translated_2d(ctx.mouse_position().as_vec2())
 			.draw(ctx);
 		Ok(())

@@ -1,16 +1,15 @@
 use std::error::Error;
 
+use glam::vec2;
 use micro_wgpu::{
 	App, Context, ContextSettings, Event,
 	color::ColorConstants,
 	graphics::{
+		canvas::{Canvas, CanvasSettings, RenderToCanvasSettings},
 		mesh::{Mesh, builder::ShapeStyle},
-		sprite_batch::{SpriteBatch, SpriteParams},
-		text::{Font, FontSettings, LayoutSettings, Text},
-		texture::{Texture, TextureSettings},
 	},
 	input::Scancode,
-	math::{Circle, Rect},
+	math::Circle,
 };
 use palette::{LinSrgb, LinSrgba};
 
@@ -25,18 +24,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct Test {
-	text: Text,
+	canvas: Canvas,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let font = Font::from_file(
-			ctx,
-			"resources/NotoSans-Regular.ttf",
-			FontSettings::default(),
-		)?;
-		let text = Text::new(ctx, &font, "Hello, world!", LayoutSettings::default());
-		Ok(Self { text })
+		Ok(Self {
+			canvas: Canvas::new(ctx, ctx.window_size() / 2, CanvasSettings::default()),
+		})
 	}
 }
 
@@ -55,10 +50,26 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		self.text
-			.color(LinSrgb::RED)
-			.translated_2d(ctx.mouse_position().as_vec2())
+		{
+			let ctx = &mut self.canvas.render_to(
+				ctx,
+				RenderToCanvasSettings {
+					clear_color: Some(LinSrgba::BLACK),
+				},
+			);
+			Mesh::circle(
+				ctx,
+				ShapeStyle::Fill,
+				Circle {
+					center: vec2(100.0, 100.0),
+					radius: 50.0,
+				},
+			)?
 			.draw(ctx);
+		}
+
+		self.canvas.draw(ctx);
+
 		Ok(())
 	}
 }

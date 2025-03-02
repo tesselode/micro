@@ -1,4 +1,5 @@
 mod blend_mode;
+pub mod canvas;
 pub mod graphics_pipeline;
 pub mod mesh;
 pub mod sprite_batch;

@@ -12,6 +12,7 @@ fontdue = "0.9.3"
 generational-arena = "0.2.9"
 glam = { version = "0.30.0", features = ["bytemuck"] }
 image = { version = "0.25.0", default-features = false, features = ["png"] }
+itertools = "0.14.0"
 lyon_tessellation = "1.0.15"
 palette = { version = "0.7.6", default-features = false, features = [
 	"std",

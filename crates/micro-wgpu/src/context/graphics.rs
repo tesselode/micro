@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use glam::{Mat4, UVec2, vec3};
+use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
 use sdl2::video::Window;
 use wgpu::{
@@ -14,9 +14,10 @@ use wgpu::{
 };
 
 use crate::{
-	color::{ColorConstants, lin_srgb_to_wgpu_color},
+	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
 		Vertex2d,
+		canvas::{Canvas, RenderToCanvasSettings},
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		texture::{Texture, TextureSettings},
 	},
@@ -32,7 +33,9 @@ pub(crate) struct GraphicsContext<'window> {
 	default_texture: Texture,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
-	draw_commands: Vec<DrawCommand>,
+	main_surface_draw_commands: Vec<DrawCommand>,
+	current_canvas_render_pass: Option<CanvasRenderPass>,
+	finished_canvas_render_passes: Vec<CanvasRenderPass>,
 }
 
 impl GraphicsContext<'_> {
@@ -127,15 +130,46 @@ impl GraphicsContext<'_> {
 			default_texture,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
-			draw_commands: vec![],
+			main_surface_draw_commands: vec![],
+			current_canvas_render_pass: None,
+			finished_canvas_render_passes: vec![],
 		}
 	}
 
+	pub(crate) fn start_canvas_render_pass(
+		&mut self,
+		canvas: Canvas,
+		settings: RenderToCanvasSettings,
+	) {
+		if self.current_canvas_render_pass.is_some() {
+			panic!("cannot nest render_to calls");
+		}
+		self.current_canvas_render_pass = Some(CanvasRenderPass {
+			canvas,
+			settings,
+			draw_commands: vec![],
+		});
+	}
+
+	pub(crate) fn finish_canvas_render_pass(&mut self) {
+		let canvas_render_pass = self
+			.current_canvas_render_pass
+			.take()
+			.expect("no current canvas render pass");
+		self.finished_canvas_render_passes.push(canvas_render_pass);
+	}
+
 	pub(crate) fn global_transform(&self) -> Mat4 {
-		let coordinate_system_transform = Mat4::from_translation(vec3(-1.0, 1.0, 0.0))
-			* Mat4::from_scale(vec3(
-				2.0 / self.config.width as f32,
-				-2.0 / self.config.height as f32,
+		let draw_target_size =
+			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+				canvas.size()
+			} else {
+				uvec2(self.config.width, self.config.height)
+			};
+		let coordinate_system_transform = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+			* Mat4::from_scale(Vec3::new(
+				2.0 / draw_target_size.x as f32,
+				-2.0 / draw_target_size.y as f32,
 				1.0,
 			));
 		self.transform_stack
@@ -148,7 +182,11 @@ impl GraphicsContext<'_> {
 	pub(crate) fn queue_draw_command(&mut self, mut draw_command: DrawCommand) {
 		draw_command.draw_params.transform =
 			self.global_transform() * draw_command.draw_params.transform;
-		self.draw_commands.push(draw_command);
+		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
+			draw_commands.push(draw_command);
+		} else {
+			self.main_surface_draw_commands.push(draw_command);
+		}
 	}
 
 	pub(crate) fn resize(&mut self, size: UVec2) {
@@ -165,8 +203,43 @@ impl GraphicsContext<'_> {
 		let output = frame.texture.create_view(&TextureViewDescriptor::default());
 		let mut encoder = self.device.create_command_encoder(&Default::default());
 
+		for CanvasRenderPass {
+			canvas,
+			settings,
+			mut draw_commands,
+		} in self.finished_canvas_render_passes.drain(..)
 		{
-			let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+				label: None,
+				color_attachments: &[Some(RenderPassColorAttachment {
+					view: &canvas.texture.view,
+					resolve_target: None,
+					ops: Operations {
+						load: match settings.clear_color {
+							Some(clear_color) => {
+								LoadOp::Clear(lin_srgba_to_wgpu_color(clear_color))
+							}
+							None => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					},
+				})],
+				depth_stencil_attachment: None,
+				timestamp_writes: None,
+				occlusion_query_set: None,
+			});
+			run_draw_commands(
+				render_pass,
+				&mut draw_commands,
+				&self.device,
+				&self.default_texture,
+				&self.mesh_bind_group_layout,
+				&self.default_render_pipeline,
+			);
+		}
+
+		{
+			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
 				label: None,
 				color_attachments: &[Some(RenderPassColorAttachment {
 					view: &output,
@@ -180,49 +253,14 @@ impl GraphicsContext<'_> {
 				timestamp_writes: None,
 				occlusion_query_set: None,
 			});
-			for DrawCommand {
-				vertex_buffer,
-				index_buffer,
-				num_indices,
-				render_pipeline,
-				texture,
-				draw_params,
-			} in self.draw_commands.drain(..)
-			{
-				let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
-					label: Some("Draw Params Buffer"),
-					contents: bytemuck::cast_slice(&[draw_params]),
-					usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-				});
-				let texture = texture.unwrap_or(self.default_texture.clone());
-				let mesh_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
-					label: Some("Draw Params Bind Group"),
-					layout: &self.mesh_bind_group_layout,
-					entries: &[
-						BindGroupEntry {
-							binding: 0,
-							resource: draw_params_buffer.as_entire_binding(),
-						},
-						BindGroupEntry {
-							binding: 1,
-							resource: BindingResource::TextureView(&texture.view),
-						},
-						BindGroupEntry {
-							binding: 2,
-							resource: BindingResource::Sampler(&texture.sampler),
-						},
-					],
-				});
-				render_pass.set_pipeline(
-					render_pipeline
-						.as_ref()
-						.unwrap_or(&self.default_render_pipeline),
-				);
-				render_pass.set_bind_group(0, &mesh_bind_group, &[]);
-				render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-				render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
-				render_pass.draw_indexed(0..num_indices, 0, 0..1);
-			}
+			run_draw_commands(
+				render_pass,
+				&mut self.main_surface_draw_commands,
+				&self.device,
+				&self.default_texture,
+				&self.mesh_bind_group_layout,
+				&self.default_render_pipeline,
+			);
 		}
 
 		self.queue.submit([encoder.finish()]);
@@ -244,4 +282,59 @@ pub(crate) struct DrawCommand {
 pub(crate) struct DrawParams {
 	pub transform: Mat4,
 	pub color: LinSrgba,
+}
+
+struct CanvasRenderPass {
+	canvas: Canvas,
+	settings: RenderToCanvasSettings,
+	draw_commands: Vec<DrawCommand>,
+}
+
+fn run_draw_commands(
+	mut render_pass: wgpu::RenderPass<'_>,
+	draw_commands: &mut Vec<DrawCommand>,
+	device: &Device,
+	default_texture: &Texture,
+	mesh_bind_group_layout: &BindGroupLayout,
+	default_render_pipeline: &RenderPipeline,
+) {
+	for DrawCommand {
+		vertex_buffer,
+		index_buffer,
+		num_indices,
+		render_pipeline,
+		texture,
+		draw_params,
+	} in draw_commands.drain(..)
+	{
+		let draw_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
+			label: Some("Draw Params Buffer"),
+			contents: bytemuck::cast_slice(&[draw_params]),
+			usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+		let texture = texture.unwrap_or(default_texture.clone());
+		let mesh_bind_group = device.create_bind_group(&BindGroupDescriptor {
+			label: Some("Draw Params Bind Group"),
+			layout: mesh_bind_group_layout,
+			entries: &[
+				BindGroupEntry {
+					binding: 0,
+					resource: draw_params_buffer.as_entire_binding(),
+				},
+				BindGroupEntry {
+					binding: 1,
+					resource: BindingResource::TextureView(&texture.view),
+				},
+				BindGroupEntry {
+					binding: 2,
+					resource: BindingResource::Sampler(&texture.sampler),
+				},
+			],
+		});
+		render_pass.set_pipeline(render_pipeline.as_ref().unwrap_or(default_render_pipeline));
+		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
+		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
+		render_pass.draw_indexed(0..num_indices, 0, 0..1);
+	}
 }

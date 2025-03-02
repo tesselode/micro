@@ -3,7 +3,7 @@ use std::path::Path;
 pub use wgpu::{AddressMode, FilterMode, SamplerBorderColor};
 
 use derive_more::{Display, Error, From};
-use glam::{IVec2, Mat4, UVec2, Vec2};
+use glam::{Mat4, UVec2, Vec2};
 use image::{ImageBuffer, ImageError};
 use palette::LinSrgba;
 use wgpu::{
@@ -18,7 +18,7 @@ use super::{Vertex2d, graphics_pipeline::GraphicsPipeline, mesh::Mesh};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
-	texture: wgpu::Texture,
+	pub(crate) texture: wgpu::Texture,
 	pub(crate) view: TextureView,
 	pub(crate) sampler: Sampler,
 	size: UVec2,
@@ -150,7 +150,6 @@ impl Texture {
 		size: UVec2,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
-		// float: bool,
 	) -> Self {
 		let texture_extent = Extent3d {
 			width: size.x,
@@ -164,7 +163,9 @@ impl Texture {
 			sample_count: 1,
 			dimension: TextureDimension::D2,
 			format: TextureFormat::Rgba8UnormSrgb,
-			usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
+			usage: TextureUsages::TEXTURE_BINDING
+				| TextureUsages::COPY_DST
+				| TextureUsages::RENDER_ATTACHMENT,
 			view_formats: &[],
 		});
 		if let Some(pixels) = pixels {

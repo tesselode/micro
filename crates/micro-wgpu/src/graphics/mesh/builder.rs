@@ -440,7 +440,7 @@ impl MeshBuilder {
 		self
 	}
 
-	pub fn build(self, ctx: &mut Context) -> Mesh {
+	pub fn build(self, ctx: &Context) -> Mesh {
 		let _span = tracy_client::span!();
 		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
 	}

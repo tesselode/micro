@@ -32,3 +32,12 @@ pub(crate) fn lin_srgb_to_wgpu_color(lin_srgb: LinSrgb) -> wgpu::Color {
 		a: 1.0,
 	}
 }
+
+pub(crate) fn lin_srgba_to_wgpu_color(lin_srgba: LinSrgba) -> wgpu::Color {
+	wgpu::Color {
+		r: lin_srgba.red.into(),
+		g: lin_srgba.green.into(),
+		b: lin_srgba.blue.into(),
+		a: lin_srgba.alpha.into(),
+	}
+}

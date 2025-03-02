@@ -24,9 +24,9 @@ use super::{Vertex, Vertex2d, graphics_pipeline::GraphicsPipeline};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh<V: Vertex = Vertex2d> {
-	vertex_buffer: Buffer,
-	index_buffer: Buffer,
-	num_indices: u32,
+	pub(crate) vertex_buffer: Buffer,
+	pub(crate) index_buffer: Buffer,
+	pub(crate) num_indices: u32,
 	_phantom_data: PhantomData<V>,
 
 	// draw params
@@ -112,13 +112,13 @@ impl<V: Vertex> Mesh<V> {
 }
 
 impl Mesh<Vertex2d> {
-	pub fn rectangle(ctx: &mut Context, rect: Rect) -> Self {
+	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
 		let _span = tracy_client::span!();
 		Self::rectangle_with_texture_region(ctx, rect, Rect::new((0.0, 0.0), (1.0, 1.0)))
 	}
 
 	pub fn rectangle_with_texture_region(
-		ctx: &mut Context,
+		ctx: &Context,
 		display_rect: Rect,
 		texture_region: Rect,
 	) -> Self {
@@ -138,7 +138,7 @@ impl Mesh<Vertex2d> {
 	}
 
 	pub fn outlined_rectangle(
-		ctx: &mut Context,
+		ctx: &Context,
 		stroke_width: f32,
 		rect: Rect,
 	) -> Result<Self, TessellationError> {
@@ -149,7 +149,7 @@ impl Mesh<Vertex2d> {
 	}
 
 	pub fn circle(
-		ctx: &mut Context,
+		ctx: &Context,
 		style: ShapeStyle,
 		circle: Circle,
 	) -> Result<Self, TessellationError> {
@@ -160,7 +160,7 @@ impl Mesh<Vertex2d> {
 	}
 
 	pub fn ellipse(
-		ctx: &mut Context,
+		ctx: &Context,
 		style: ShapeStyle,
 		center: impl Into<Vec2>,
 		radii: impl Into<Vec2>,
@@ -173,7 +173,7 @@ impl Mesh<Vertex2d> {
 	}
 
 	pub fn filled_polygon(
-		ctx: &mut Context,
+		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Result<Self, TessellationError> {
 		let _span = tracy_client::span!();
@@ -181,7 +181,7 @@ impl Mesh<Vertex2d> {
 	}
 
 	pub fn polyline(
-		ctx: &mut Context,
+		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Result<Self, TessellationError> {
@@ -190,7 +190,7 @@ impl Mesh<Vertex2d> {
 	}
 
 	pub fn simple_polygon(
-		ctx: &mut Context,
+		ctx: &Context,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Result<Self, TessellationError> {
@@ -201,7 +201,7 @@ impl Mesh<Vertex2d> {
 	}
 
 	pub fn simple_polyline(
-		ctx: &mut Context,
+		ctx: &Context,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Result<Self, TessellationError> {

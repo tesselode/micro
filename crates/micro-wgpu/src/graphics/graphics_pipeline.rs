@@ -2,9 +2,10 @@ use std::{borrow::Cow, marker::PhantomData};
 
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, Buffer, BufferAddress,
-	BufferUsages, ColorTargetState, ColorWrites, Device, FragmentState, MultisampleState,
-	PipelineCompilationOptions, PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology,
-	RenderPipeline, RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, TextureFormat,
+	BufferUsages, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
+	DepthStencilState, Device, FragmentState, MultisampleState, PipelineCompilationOptions,
+	PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology, RenderPipeline,
+	RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, StencilState, TextureFormat,
 	VertexBufferLayout, VertexState, VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
@@ -76,42 +77,53 @@ where
 				resource: shader_params_buffer.as_entire_binding(),
 			}],
 		});
-		Self {
-			render_pipeline: device.create_render_pipeline(&RenderPipelineDescriptor {
-				label: None,
-				layout: Some(&pipeline_layout),
-				vertex: VertexState {
-					module: &shader,
-					entry_point: Some("vs_main"),
-					compilation_options: PipelineCompilationOptions::default(),
-					buffers: &[VertexBufferLayout {
-						array_stride: std::mem::size_of::<V>() as BufferAddress,
-						step_mode: VertexStepMode::Vertex,
-						attributes: &V::attributes(),
-					}],
+		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+			label: Some(&settings.label),
+			layout: Some(&pipeline_layout),
+			vertex: VertexState {
+				module: &shader,
+				entry_point: Some("vs_main"),
+				compilation_options: PipelineCompilationOptions::default(),
+				buffers: &[VertexBufferLayout {
+					array_stride: std::mem::size_of::<V>() as BufferAddress,
+					step_mode: VertexStepMode::Vertex,
+					attributes: &V::attributes(),
+				}],
+			},
+			primitive: PrimitiveState {
+				topology: PrimitiveTopology::TriangleList,
+				..Default::default()
+			},
+			depth_stencil: Some(DepthStencilState {
+				format: TextureFormat::Depth24PlusStencil8,
+				depth_write_enabled: settings.enable_depth_testing,
+				depth_compare: if settings.enable_depth_testing {
+					CompareFunction::Less
+				} else {
+					CompareFunction::Always
 				},
-				primitive: PrimitiveState {
-					topology: PrimitiveTopology::TriangleList,
-					..Default::default()
-				},
-				depth_stencil: None,
-				multisample: MultisampleState {
-					count: settings.sample_count,
-					..Default::default()
-				},
-				fragment: Some(FragmentState {
-					module: &shader,
-					entry_point: Some("fs_main"),
-					compilation_options: PipelineCompilationOptions::default(),
-					targets: &[Some(ColorTargetState {
-						format: TextureFormat::Rgba8UnormSrgb,
-						blend: Some(settings.blend_mode.to_blend_state()),
-						write_mask: ColorWrites::ALL,
-					})],
-				}),
-				multiview: None,
-				cache: None,
+				stencil: StencilState::default(),
+				bias: DepthBiasState::default(),
 			}),
+			multisample: MultisampleState {
+				count: settings.sample_count,
+				..Default::default()
+			},
+			fragment: Some(FragmentState {
+				module: &shader,
+				entry_point: Some("fs_main"),
+				compilation_options: PipelineCompilationOptions::default(),
+				targets: &[Some(ColorTargetState {
+					format: TextureFormat::Rgba8UnormSrgb,
+					blend: Some(settings.blend_mode.to_blend_state()),
+					write_mask: ColorWrites::ALL,
+				})],
+			}),
+			multiview: None,
+			cache: None,
+		});
+		Self {
+			render_pipeline,
 			shader_params_buffer,
 			shader_params_bind_group,
 			_vertex: PhantomData,
@@ -128,9 +140,10 @@ where
 }
 
 pub struct GraphicsPipelineSettings<S: Shader> {
-	// pub label: String,
+	pub label: String,
 	pub blend_mode: BlendMode,
 	pub shader_params: S::Params,
+	pub enable_depth_testing: bool,
 	// pub stencil_state: StencilState,
 	// pub enable_color_writes: bool,
 	pub sample_count: u32,
@@ -143,9 +156,10 @@ where
 {
 	fn default() -> Self {
 		Self {
-			// label: "Graphics Pipeline".into(),
+			label: "Graphics Pipeline".into(),
 			blend_mode: Default::default(),
 			shader_params: Default::default(),
+			enable_depth_testing: false,
 			// stencil_state: Default::default(),
 			// enable_color_writes: true,
 			sample_count: 1,

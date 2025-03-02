@@ -3,13 +3,13 @@ use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
 use sdl2::video::Window;
 use wgpu::{
-	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
 	CompositeAlphaMode, Device, DeviceDescriptor, Features, IndexFormat, Instance, LoadOp,
 	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
-	RenderPassDescriptor, RenderPipeline, RequestAdapterOptions, SamplerBindingType, ShaderStages,
-	StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureSampleType,
-	TextureUsages, TextureViewDescriptor, TextureViewDimension,
+	RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
+	SamplerBindingType, ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe,
+	TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -29,6 +29,7 @@ pub(crate) struct GraphicsContext<'window> {
 	pub(crate) supported_sample_counts: Vec<u32>,
 	config: SurfaceConfiguration,
 	surface: Surface<'window>,
+	main_surface_depth_stencil_texture: Texture,
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
 	pub(crate) graphics_pipeline_stack: Vec<RawGraphicsPipeline>,
@@ -132,6 +133,17 @@ impl GraphicsContext<'_> {
 			view_formats: vec![],
 		};
 		surface.configure(&device, &config);
+		let main_surface_depth_stencil_texture = Texture::new(
+			&device,
+			&queue,
+			uvec2(width, height),
+			None,
+			TextureSettings::default(),
+			InternalTextureSettings {
+				format: TextureFormat::Depth24PlusStencil8,
+				sample_count: 1,
+			},
+		);
 		let default_graphics_pipeline = GraphicsPipeline::<DefaultShader, Vertex2d>::new_internal(
 			&device,
 			&mesh_bind_group_layout,
@@ -153,6 +165,7 @@ impl GraphicsContext<'_> {
 			supported_sample_counts,
 			config,
 			surface,
+			main_surface_depth_stencil_texture,
 			mesh_bind_group_layout,
 			shader_params_bind_group_layout,
 			graphics_pipeline_stack: vec![default_graphics_pipeline],
@@ -229,6 +242,17 @@ impl GraphicsContext<'_> {
 		self.config.width = size.x;
 		self.config.height = size.y;
 		self.surface.configure(&self.device, &self.config);
+		self.main_surface_depth_stencil_texture = Texture::new(
+			&self.device,
+			&self.queue,
+			size,
+			None,
+			TextureSettings::default(),
+			InternalTextureSettings {
+				format: TextureFormat::Depth24PlusStencil8,
+				sample_count: 1,
+			},
+		);
 	}
 
 	pub(crate) fn present(&mut self) {
@@ -268,7 +292,17 @@ impl GraphicsContext<'_> {
 						store: StoreOp::Store,
 					},
 				})],
-				depth_stencil_attachment: None,
+				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+					view: &canvas.depth_stencil_texture.view,
+					depth_ops: Some(Operations {
+						load: match settings.clear_depth_buffer {
+							true => LoadOp::Clear(1.0),
+							false => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					}),
+					stencil_ops: None,
+				}),
 				timestamp_writes: None,
 				occlusion_query_set: None,
 			});
@@ -292,7 +326,14 @@ impl GraphicsContext<'_> {
 						store: StoreOp::Store,
 					},
 				})],
-				depth_stencil_attachment: None,
+				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+					view: &self.main_surface_depth_stencil_texture.view,
+					depth_ops: Some(Operations {
+						load: LoadOp::Clear(1.0),
+						store: StoreOp::Store,
+					}),
+					stencil_ops: None,
+				}),
 				timestamp_writes: None,
 				occlusion_query_set: None,
 			});

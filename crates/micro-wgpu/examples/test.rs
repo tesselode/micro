@@ -1,20 +1,17 @@
 use std::error::Error;
 
-use bytemuck::{Pod, Zeroable};
 use glam::vec2;
 use micro_wgpu::{
-	App, Context, ContextSettings, Event,
+	App, Context, ContextSettings,
 	color::ColorConstants,
 	graphics::{
-		Shader, Vertex2d,
 		canvas::{Canvas, CanvasSettings, RenderToCanvasSettings},
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		mesh::{Mesh, builder::ShapeStyle},
 	},
-	input::Scancode,
 	math::Circle,
 };
-use palette::{LinSrgb, LinSrgba};
+use palette::LinSrgba;
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro_wgpu::run(
@@ -28,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 struct Test {
 	canvas: Canvas,
-	graphics_pipeline: GraphicsPipeline<WigglyShader>,
+	graphics_pipeline: GraphicsPipeline,
 }
 
 impl Test {
@@ -46,7 +43,7 @@ impl Test {
 				ctx,
 				GraphicsPipelineSettings {
 					sample_count: 8,
-					shader_params: WigglyShaderParams { wiggliness: 10.0 },
+					enable_depth_testing: true,
 					..Default::default()
 				},
 			),
@@ -57,56 +54,30 @@ impl Test {
 impl App for Test {
 	type Error = Box<dyn Error>;
 
-	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
-		if let Event::KeyPressed {
-			key: Scancode::Return,
-			..
-		} = event
-		{
-			self.graphics_pipeline
-				.set_shader_params(ctx, WigglyShaderParams { wiggliness: 20.0 });
-		}
-		Ok(())
-	}
-
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
 		{
 			let ctx = &mut self.canvas.render_to(
 				ctx,
 				RenderToCanvasSettings {
 					clear_color: Some(LinSrgba::BLACK),
+					clear_depth_buffer: true,
 				},
 			);
 			let ctx = &mut ctx.push_graphics_pipeline(&self.graphics_pipeline);
-			Mesh::circle(
+			let mesh = Mesh::circle(
 				ctx,
 				ShapeStyle::Fill,
 				Circle {
 					center: vec2(100.0, 100.0),
 					radius: 50.0,
 				},
-			)?
-			.draw(ctx);
+			)?;
+			mesh.translated_z(0.5).draw(ctx);
+			mesh.color(LinSrgba::RED).translated_x(50.0).draw(ctx);
 		}
 
 		self.canvas.draw(ctx);
 
 		Ok(())
 	}
-}
-
-struct WigglyShader;
-
-impl Shader for WigglyShader {
-	const SOURCE: &'static str = include_str!("wiggly.wgsl");
-
-	type Vertex = Vertex2d;
-
-	type Params = WigglyShaderParams;
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable, Default)]
-#[repr(C)]
-struct WigglyShaderParams {
-	wiggliness: f32,
 }

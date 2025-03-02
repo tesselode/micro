@@ -154,7 +154,7 @@ impl Texture {
 			mip_level_count: 1,
 			sample_count: internal_settings.sample_count,
 			dimension: TextureDimension::D2,
-			format: TextureFormat::Rgba8UnormSrgb,
+			format: internal_settings.format,
 			usage: TextureUsages::TEXTURE_BINDING
 				| TextureUsages::COPY_DST
 				| TextureUsages::RENDER_ATTACHMENT,
@@ -232,11 +232,15 @@ pub enum LoadTextureError {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct InternalTextureSettings {
+	pub(crate) format: TextureFormat,
 	pub(crate) sample_count: u32,
 }
 
 impl Default for InternalTextureSettings {
 	fn default() -> Self {
-		Self { sample_count: 1 }
+		Self {
+			format: TextureFormat::Rgba8UnormSrgb,
+			sample_count: 1,
+		}
 	}
 }

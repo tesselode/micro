@@ -2,6 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use glam::{Mat4, UVec2};
 use palette::LinSrgba;
+use wgpu::TextureFormat;
 
 use crate::{Context, color::ColorConstants, standard_draw_param_methods};
 
@@ -10,6 +11,7 @@ use super::texture::{InternalTextureSettings, Texture, TextureSettings};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
 	pub(crate) kind: CanvasKind,
+	pub(crate) depth_stencil_texture: Texture,
 
 	// draw params
 	pub transform: Mat4,
@@ -21,7 +23,17 @@ impl Canvas {
 		Self {
 			kind: match settings.sample_count {
 				1 => CanvasKind::Normal {
-					texture: Texture::empty(ctx, size, settings.texture_settings),
+					texture: Texture::new(
+						&ctx.graphics.device,
+						&ctx.graphics.queue,
+						size,
+						None,
+						settings.texture_settings,
+						InternalTextureSettings {
+							sample_count: 1,
+							..Default::default()
+						},
+					),
 				},
 				sample_count => CanvasKind::Multisampled {
 					texture: Texture::new(
@@ -30,11 +42,25 @@ impl Canvas {
 						size,
 						None,
 						settings.texture_settings,
-						InternalTextureSettings { sample_count },
+						InternalTextureSettings {
+							sample_count,
+							..Default::default()
+						},
 					),
 					resolve_texture: Texture::empty(ctx, size, settings.texture_settings),
 				},
 			},
+			depth_stencil_texture: Texture::new(
+				&ctx.graphics.device,
+				&ctx.graphics.queue,
+				size,
+				None,
+				settings.texture_settings,
+				InternalTextureSettings {
+					format: TextureFormat::Depth24PlusStencil8,
+					sample_count: settings.sample_count,
+				},
+			),
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
@@ -96,6 +122,7 @@ impl Default for CanvasSettings {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderToCanvasSettings {
 	pub clear_color: Option<LinSrgba>,
+	pub clear_depth_buffer: bool,
 	// pub clear_stencil_value: Option<u32>,
 }
 

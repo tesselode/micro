@@ -1,13 +1,13 @@
 mod sprite_params;
 
+pub use sprite_params::SpriteParams;
+
 use std::sync::{Arc, Mutex};
 
 use derive_more::derive::{Display, Error};
-use palette::LinSrgba;
-pub use sprite_params::SpriteParams;
-
 use generational_arena::{Arena, Index};
 use glam::{Mat4, Vec2};
+use palette::LinSrgba;
 
 use crate::{
 	Context,

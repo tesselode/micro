@@ -3,7 +3,7 @@ use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
 use sdl2::video::Window;
 use wgpu::{
-	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
 	CompositeAlphaMode, Device, DeviceDescriptor, Features, IndexFormat, Instance, LoadOp,
 	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
@@ -16,9 +16,9 @@ use wgpu::{
 use crate::{
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
-		Vertex2d,
+		DefaultShader, Vertex2d,
 		canvas::{Canvas, CanvasKind, RenderToCanvasSettings},
-		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
+		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings, RawGraphicsPipeline},
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 };
@@ -30,7 +30,8 @@ pub(crate) struct GraphicsContext<'window> {
 	config: SurfaceConfiguration,
 	surface: Surface<'window>,
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
-	pub(crate) render_pipeline_stack: Vec<RenderPipeline>,
+	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
+	pub(crate) graphics_pipeline_stack: Vec<RawGraphicsPipeline>,
 	default_texture: Texture,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
@@ -98,6 +99,20 @@ impl GraphicsContext<'_> {
 				},
 			],
 		});
+		let shader_params_bind_group_layout =
+			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+				label: None,
+				entries: &[BindGroupLayoutEntry {
+					binding: 0,
+					visibility: ShaderStages::VERTEX_FRAGMENT,
+					ty: BindingType::Buffer {
+						ty: BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+			});
 		let surface_capabilities = surface.get_capabilities(&adapter);
 		let surface_format = surface_capabilities
 			.formats
@@ -117,12 +132,13 @@ impl GraphicsContext<'_> {
 			view_formats: vec![],
 		};
 		surface.configure(&device, &config);
-		let default_render_pipeline = GraphicsPipeline::<Vertex2d>::new_internal(
+		let default_graphics_pipeline = GraphicsPipeline::<DefaultShader, Vertex2d>::new_internal(
 			&device,
 			&mesh_bind_group_layout,
+			&shader_params_bind_group_layout,
 			GraphicsPipelineSettings::default(),
 		)
-		.render_pipeline;
+		.raw();
 		let default_texture = Texture::new(
 			&device,
 			&queue,
@@ -138,7 +154,8 @@ impl GraphicsContext<'_> {
 			config,
 			surface,
 			mesh_bind_group_layout,
-			render_pipeline_stack: vec![default_render_pipeline],
+			shader_params_bind_group_layout,
+			graphics_pipeline_stack: vec![default_graphics_pipeline],
 			default_texture,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
@@ -197,7 +214,7 @@ impl GraphicsContext<'_> {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
 			num_indices: settings.num_indices,
-			render_pipeline: self.render_pipeline_stack.last().unwrap().clone(),
+			graphics_pipeline: self.graphics_pipeline_stack.last().unwrap().clone(),
 			texture: settings.texture,
 			draw_params: settings.draw_params,
 		};
@@ -312,7 +329,7 @@ struct DrawCommand {
 	vertex_buffer: Buffer,
 	index_buffer: Buffer,
 	num_indices: u32,
-	render_pipeline: RenderPipeline,
+	graphics_pipeline: RawGraphicsPipeline,
 	texture: Option<Texture>,
 	draw_params: DrawParams,
 }
@@ -334,7 +351,7 @@ fn run_draw_commands(
 		vertex_buffer,
 		index_buffer,
 		num_indices,
-		render_pipeline,
+		graphics_pipeline,
 		texture,
 		draw_params,
 	} in draw_commands.drain(..)
@@ -363,8 +380,9 @@ fn run_draw_commands(
 				},
 			],
 		});
-		render_pass.set_pipeline(&render_pipeline);
+		render_pass.set_pipeline(&graphics_pipeline.render_pipeline);
 		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
+		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.draw_indexed(0..num_indices, 0, 0..1);

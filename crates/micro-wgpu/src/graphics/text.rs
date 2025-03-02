@@ -11,11 +11,7 @@ use palette::LinSrgba;
 
 use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
 
-use super::{
-	Vertex2d,
-	graphics_pipeline::GraphicsPipeline,
-	sprite_batch::{SpriteBatch, SpriteParams},
-};
+use super::sprite_batch::{SpriteBatch, SpriteParams};
 
 #[derive(Debug, Clone)]
 pub struct Text {

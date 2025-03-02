@@ -1,10 +1,12 @@
 use std::error::Error;
 
+use bytemuck::{Pod, Zeroable};
 use glam::vec2;
 use micro_wgpu::{
 	App, Context, ContextSettings, Event,
 	color::ColorConstants,
 	graphics::{
+		Shader, Vertex2d,
 		canvas::{Canvas, CanvasSettings, RenderToCanvasSettings},
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		mesh::{Mesh, builder::ShapeStyle},
@@ -26,7 +28,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 struct Test {
 	canvas: Canvas,
-	graphics_pipeline: GraphicsPipeline,
+	graphics_pipeline: GraphicsPipeline<WigglyShader>,
 }
 
 impl Test {
@@ -44,6 +46,7 @@ impl Test {
 				ctx,
 				GraphicsPipelineSettings {
 					sample_count: 8,
+					shader_params: WigglyShaderParams { wiggliness: 10.0 },
 					..Default::default()
 				},
 			),
@@ -60,7 +63,8 @@ impl App for Test {
 			..
 		} = event
 		{
-			ctx.set_clear_color(LinSrgb::BLUE);
+			self.graphics_pipeline
+				.set_shader_params(ctx, WigglyShaderParams { wiggliness: 20.0 });
 		}
 		Ok(())
 	}
@@ -89,4 +93,20 @@ impl App for Test {
 
 		Ok(())
 	}
+}
+
+struct WigglyShader;
+
+impl Shader for WigglyShader {
+	const SOURCE: &'static str = include_str!("wiggly.wgsl");
+
+	type Vertex = Vertex2d;
+
+	type Params = WigglyShaderParams;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable, Default)]
+#[repr(C)]
+struct WigglyShaderParams {
+	wiggliness: f32,
 }

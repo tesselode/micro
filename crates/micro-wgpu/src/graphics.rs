@@ -2,12 +2,14 @@ mod blend_mode;
 pub mod canvas;
 pub mod graphics_pipeline;
 pub mod mesh;
+mod shader;
 pub mod sprite_batch;
 pub mod text;
 pub mod texture;
 mod vertex;
 
 pub use blend_mode::*;
+pub use shader::*;
 pub use vertex::*;
 
 #[macro_export]

@@ -15,7 +15,7 @@ use sdl2::{
 
 use crate::{
 	App, Event, SdlError,
-	graphics::graphics_pipeline::GraphicsPipeline,
+	graphics::{Shader, Vertex, graphics_pipeline::GraphicsPipeline},
 	input::{Gamepad, MouseButton, Scancode},
 	window::{WindowMode, build_window},
 };
@@ -185,13 +185,17 @@ impl<'window> Context<'window> {
 		self.graphics.clear_color = color.into();
 	}
 
-	pub fn push_graphics_pipeline(
+	pub fn push_graphics_pipeline<S, V>(
 		&mut self,
-		graphics_pipeline: &GraphicsPipeline,
-	) -> OnDrop<'_, 'window> {
+		graphics_pipeline: &GraphicsPipeline<S, V>,
+	) -> OnDrop<'_, 'window>
+	where
+		S: Shader<Vertex = V>,
+		V: Vertex,
+	{
 		self.graphics
-			.render_pipeline_stack
-			.push(graphics_pipeline.render_pipeline.clone());
+			.graphics_pipeline_stack
+			.push(graphics_pipeline.raw());
 		OnDrop {
 			ctx: self,
 			action: OnDropAction::PopGraphicsPipeline,
@@ -350,7 +354,7 @@ impl Drop for OnDrop<'_, '_> {
 				self.ctx.graphics.transform_stack.pop();
 			}
 			OnDropAction::PopGraphicsPipeline => {
-				self.ctx.graphics.render_pipeline_stack.pop();
+				self.ctx.graphics.graphics_pipeline_stack.pop();
 			}
 		}
 	}

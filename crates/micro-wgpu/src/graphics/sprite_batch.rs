@@ -17,16 +17,16 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::Vertex2d;
+use super::{IntoRange, Vertex2d};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
 	inner: Arc<Mutex<SpriteBatchInner>>,
 	texture: Texture,
 	mesh: Mesh,
-	// pub range: Option<OffsetAndCount>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub range: Option<(u32, u32)>,
 	pub stencil_reference: u32,
 }
 
@@ -62,17 +62,18 @@ impl SpriteBatch {
 			mesh: Mesh::new(ctx, &vertices, &indices),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			range: None,
 			stencil_reference: 0,
 		}
 	}
 
 	standard_draw_param_methods!();
 
-	/* pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
+	pub fn range(&self, range: impl IntoRange) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_offset_and_count(self.inner.try_lock().unwrap().sprites.len());
+		new.range = range.into_range(self.len() as u32);
 		new
-	} */
+	}
 
 	pub fn len(&self) -> usize {
 		self.inner.try_lock().unwrap().sprites.len()
@@ -184,6 +185,7 @@ impl SpriteBatch {
 			.texture(&self.texture)
 			.transformed(self.transform)
 			.color(self.color)
+			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
 			.stencil_reference(self.stencil_reference)
 			.draw(ctx);
 	}

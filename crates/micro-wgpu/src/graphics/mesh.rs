@@ -20,7 +20,7 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::{Vertex, Vertex2d};
+use super::{IntoRange, Vertex, Vertex2d};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh<V: Vertex = Vertex2d> {
@@ -33,6 +33,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub texture: Option<Texture>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub range: Option<(u32, u32)>,
 	pub stencil_reference: u32,
 }
 
@@ -54,14 +55,16 @@ impl<V: Vertex> Mesh<V> {
 				contents: bytemuck::cast_slice(indices),
 				usage: BufferUsages::INDEX,
 			});
+		let num_indices = indices.len() as u32;
 		Self {
 			vertex_buffer,
 			index_buffer,
-			num_indices: indices.len() as u32,
+			num_indices,
 			_phantom_data: PhantomData,
 			texture: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			range: None,
 			stencil_reference: 0,
 		}
 	}
@@ -75,6 +78,12 @@ impl<V: Vertex> Mesh<V> {
 
 	standard_draw_param_methods!();
 
+	pub fn range(&self, range: impl IntoRange) -> Self {
+		let mut new = self.clone();
+		new.range = range.into_range(self.num_indices);
+		new
+	}
+
 	pub fn set_vertices(&self, ctx: &Context, index: usize, vertices: &[V]) {
 		ctx.graphics.queue.write_buffer(
 			&self.vertex_buffer,
@@ -87,7 +96,7 @@ impl<V: Vertex> Mesh<V> {
 		ctx.graphics.queue_draw_command(QueueDrawCommandSettings {
 			vertex_buffer: self.vertex_buffer.clone(),
 			index_buffer: self.index_buffer.clone(),
-			num_indices: self.num_indices,
+			range: self.range.unwrap_or((0, self.num_indices)),
 			draw_params: DrawParams {
 				transform: self.transform,
 				color: self.color,

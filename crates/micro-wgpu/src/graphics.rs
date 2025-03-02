@@ -1,6 +1,7 @@
 mod blend_mode;
 pub mod canvas;
 pub mod graphics_pipeline;
+mod into_range;
 pub mod mesh;
 mod shader;
 pub mod sprite_batch;
@@ -9,6 +10,7 @@ pub mod texture;
 mod vertex;
 
 pub use blend_mode::*;
+pub use into_range::*;
 pub use shader::*;
 pub use vertex::*;
 

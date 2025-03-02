@@ -11,7 +11,10 @@ use palette::LinSrgba;
 
 use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
 
-use super::sprite_batch::{SpriteBatch, SpriteParams};
+use super::{
+	IntoRange,
+	sprite_batch::{SpriteBatch, SpriteParams},
+};
 
 #[derive(Debug, Clone)]
 pub struct Text {
@@ -21,6 +24,7 @@ pub struct Text {
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub stencil_reference: u32,
+	pub range: Option<(u32, u32)>,
 }
 
 impl Text {
@@ -71,11 +75,11 @@ impl Text {
 
 	standard_draw_param_methods!();
 
-	/* pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
+	pub fn range(&self, range: impl IntoRange) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_offset_and_count(self.inner.num_glyphs);
+		new.range = range.into_range(self.inner.num_glyphs);
 		new
-	} */
+	}
 
 	pub fn num_glyphs(&self) -> usize {
 		self.inner
@@ -95,17 +99,17 @@ impl Text {
 
 	pub fn draw(&self, ctx: &mut Context) {
 		let _span = tracy_client::span!();
-		/* if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
+		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
 			unimplemented!(
 				"drawing a text range is not implemented for text with more than one font"
 			);
-		} */
+		}
 		for sprite_batch in &self.inner.sprite_batches {
 			sprite_batch
 				.transformed(self.transform)
 				.color(self.color)
 				.stencil_reference(self.stencil_reference)
-				// .range(self.range)
+				.range(self.range)
 				.draw(ctx);
 		}
 	}
@@ -169,6 +173,7 @@ impl Text {
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			range: None,
 			stencil_reference: 0,
 		}
 	}
@@ -179,7 +184,7 @@ struct TextInner {
 	pub(crate) sprite_batches: Vec<SpriteBatch>,
 	pub(crate) bounds: Option<Rect>,
 	pub(crate) lowest_baseline: Option<f32>,
-	pub(crate) num_glyphs: usize,
+	pub(crate) num_glyphs: u32,
 }
 
 #[derive(Clone, Copy, PartialEq)]

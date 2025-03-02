@@ -226,7 +226,7 @@ impl GraphicsContext<'_> {
 		let command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
-			num_indices: settings.num_indices,
+			range: settings.range,
 			graphics_pipeline: self.graphics_pipeline_stack.last().unwrap().clone(),
 			texture: settings.texture,
 			draw_params: settings.draw_params,
@@ -364,7 +364,7 @@ impl GraphicsContext<'_> {
 pub(crate) struct QueueDrawCommandSettings {
 	pub vertex_buffer: Buffer,
 	pub index_buffer: Buffer,
-	pub num_indices: u32,
+	pub range: (u32, u32),
 	pub texture: Option<Texture>,
 	pub draw_params: DrawParams,
 	pub stencil_reference: u32,
@@ -380,7 +380,7 @@ pub(crate) struct DrawParams {
 struct DrawCommand {
 	vertex_buffer: Buffer,
 	index_buffer: Buffer,
-	num_indices: u32,
+	range: (u32, u32),
 	graphics_pipeline: RawGraphicsPipeline,
 	texture: Option<Texture>,
 	draw_params: DrawParams,
@@ -403,7 +403,7 @@ fn run_draw_commands(
 	for DrawCommand {
 		vertex_buffer,
 		index_buffer,
-		num_indices,
+		range,
 		graphics_pipeline,
 		texture,
 		draw_params,
@@ -440,6 +440,6 @@ fn run_draw_commands(
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.set_stencil_reference(stencil_reference);
-		render_pass.draw_indexed(0..num_indices, 0, 0..1);
+		render_pass.draw_indexed(range.0..range.1, 0, 0..1);
 	}
 }

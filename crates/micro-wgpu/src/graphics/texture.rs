@@ -28,6 +28,7 @@ pub struct Texture {
 
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub stencil_reference: u32,
 }
 
 impl Texture {
@@ -132,6 +133,7 @@ impl Texture {
 		.texture(self)
 		.transformed(self.transform)
 		.color(self.color)
+		.stencil_reference(self.stencil_reference)
 		.draw(ctx);
 	}
 
@@ -197,6 +199,7 @@ impl Texture {
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			stencil_reference: 0,
 		}
 	}
 }

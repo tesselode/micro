@@ -102,7 +102,7 @@ where
 				} else {
 					CompareFunction::Always
 				},
-				stencil: StencilState::default(),
+				stencil: settings.stencil_state,
 				bias: DepthBiasState::default(),
 			}),
 			multisample: MultisampleState {
@@ -116,7 +116,11 @@ where
 				targets: &[Some(ColorTargetState {
 					format: TextureFormat::Rgba8UnormSrgb,
 					blend: Some(settings.blend_mode.to_blend_state()),
-					write_mask: ColorWrites::ALL,
+					write_mask: if settings.enable_color_writes {
+						ColorWrites::ALL
+					} else {
+						ColorWrites::empty()
+					},
 				})],
 			}),
 			multiview: None,
@@ -144,10 +148,9 @@ pub struct GraphicsPipelineSettings<S: Shader> {
 	pub blend_mode: BlendMode,
 	pub shader_params: S::Params,
 	pub enable_depth_testing: bool,
-	// pub stencil_state: StencilState,
-	// pub enable_color_writes: bool,
+	pub stencil_state: StencilState,
+	pub enable_color_writes: bool,
 	pub sample_count: u32,
-	// pub textures: Vec<MeshTexture>,
 }
 
 impl<S: Shader> Default for GraphicsPipelineSettings<S>
@@ -160,10 +163,9 @@ where
 			blend_mode: Default::default(),
 			shader_params: Default::default(),
 			enable_depth_testing: false,
-			// stencil_state: Default::default(),
-			// enable_color_writes: true,
+			stencil_state: Default::default(),
+			enable_color_writes: true,
 			sample_count: 1,
-			// textures: vec![],
 		}
 	}
 }

@@ -16,6 +16,7 @@ pub struct Canvas {
 	// draw params
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub stencil_reference: u32,
 }
 
 impl Canvas {
@@ -64,6 +65,7 @@ impl Canvas {
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			stencil_reference: 0,
 		}
 	}
 
@@ -99,6 +101,7 @@ impl Canvas {
 		texture
 			.transformed(self.transform)
 			.color(self.color)
+			.stencil_reference(self.stencil_reference)
 			.draw(ctx);
 	}
 }
@@ -123,7 +126,17 @@ impl Default for CanvasSettings {
 pub struct RenderToCanvasSettings {
 	pub clear_color: Option<LinSrgba>,
 	pub clear_depth_buffer: bool,
-	// pub clear_stencil_value: Option<u32>,
+	pub clear_stencil_value: bool,
+}
+
+impl Default for RenderToCanvasSettings {
+	fn default() -> Self {
+		Self {
+			clear_color: Some(LinSrgba::BLACK),
+			clear_depth_buffer: true,
+			clear_stencil_value: true,
+		}
+	}
 }
 
 #[must_use]

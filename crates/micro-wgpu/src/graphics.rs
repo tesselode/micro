@@ -12,6 +12,8 @@ pub use blend_mode::*;
 pub use shader::*;
 pub use vertex::*;
 
+pub use wgpu::{StencilFaceState, StencilOperation, StencilState};
+
 #[macro_export]
 macro_rules! standard_draw_param_methods {
 	() => {
@@ -80,6 +82,12 @@ macro_rules! standard_draw_param_methods {
 		pub fn color(&self, color: impl Into<$crate::color::LinSrgba>) -> Self {
 			let mut new = self.clone();
 			new.color = color.into();
+			new
+		}
+
+		pub fn stencil_reference(&self, stencil_reference: u32) -> Self {
+			let mut new = self.clone();
+			new.stencil_reference = stencil_reference;
 			new
 		}
 	};

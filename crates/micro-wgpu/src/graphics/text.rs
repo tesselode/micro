@@ -20,6 +20,7 @@ pub struct Text {
 	// params
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub stencil_reference: u32,
 }
 
 impl Text {
@@ -103,6 +104,7 @@ impl Text {
 			sprite_batch
 				.transformed(self.transform)
 				.color(self.color)
+				.stencil_reference(self.stencil_reference)
 				// .range(self.range)
 				.draw(ctx);
 		}
@@ -167,6 +169,7 @@ impl Text {
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			stencil_reference: 0,
 		}
 	}
 }

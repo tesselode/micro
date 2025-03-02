@@ -25,10 +25,9 @@ pub struct SpriteBatch {
 	texture: Texture,
 	mesh: Mesh,
 	// pub range: Option<OffsetAndCount>,
-	// pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	// pub blend_mode: BlendMode,
+	pub stencil_reference: u32,
 }
 
 impl SpriteBatch {
@@ -63,6 +62,7 @@ impl SpriteBatch {
 			mesh: Mesh::new(ctx, &vertices, &indices),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			stencil_reference: 0,
 		}
 	}
 
@@ -184,6 +184,7 @@ impl SpriteBatch {
 			.texture(&self.texture)
 			.transformed(self.transform)
 			.color(self.color)
+			.stencil_reference(self.stencil_reference)
 			.draw(ctx);
 	}
 }

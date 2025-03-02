@@ -33,6 +33,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub texture: Option<Texture>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub stencil_reference: u32,
 }
 
 impl<V: Vertex> Mesh<V> {
@@ -61,6 +62,7 @@ impl<V: Vertex> Mesh<V> {
 			texture: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			stencil_reference: 0,
 		}
 	}
 
@@ -90,6 +92,7 @@ impl<V: Vertex> Mesh<V> {
 				transform: self.transform,
 				color: self.color,
 			},
+			stencil_reference: self.stencil_reference,
 			texture: self.texture.clone(),
 		});
 	}

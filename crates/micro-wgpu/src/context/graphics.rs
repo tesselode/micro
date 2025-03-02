@@ -230,6 +230,7 @@ impl GraphicsContext<'_> {
 			graphics_pipeline: self.graphics_pipeline_stack.last().unwrap().clone(),
 			texture: settings.texture,
 			draw_params: settings.draw_params,
+			stencil_reference: settings.stencil_reference,
 		};
 		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
 			draw_commands.push(command);
@@ -301,7 +302,13 @@ impl GraphicsContext<'_> {
 						},
 						store: StoreOp::Store,
 					}),
-					stencil_ops: None,
+					stencil_ops: Some(Operations {
+						load: match settings.clear_stencil_value {
+							true => LoadOp::Clear(0),
+							false => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					}),
 				}),
 				timestamp_writes: None,
 				occlusion_query_set: None,
@@ -332,7 +339,10 @@ impl GraphicsContext<'_> {
 						load: LoadOp::Clear(1.0),
 						store: StoreOp::Store,
 					}),
-					stencil_ops: None,
+					stencil_ops: Some(Operations {
+						load: LoadOp::Clear(0),
+						store: StoreOp::Store,
+					}),
 				}),
 				timestamp_writes: None,
 				occlusion_query_set: None,
@@ -352,11 +362,12 @@ impl GraphicsContext<'_> {
 }
 
 pub(crate) struct QueueDrawCommandSettings {
-	pub(crate) vertex_buffer: Buffer,
-	pub(crate) index_buffer: Buffer,
-	pub(crate) num_indices: u32,
-	pub(crate) texture: Option<Texture>,
-	pub(crate) draw_params: DrawParams,
+	pub vertex_buffer: Buffer,
+	pub index_buffer: Buffer,
+	pub num_indices: u32,
+	pub texture: Option<Texture>,
+	pub draw_params: DrawParams,
+	pub stencil_reference: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
@@ -373,6 +384,7 @@ struct DrawCommand {
 	graphics_pipeline: RawGraphicsPipeline,
 	texture: Option<Texture>,
 	draw_params: DrawParams,
+	stencil_reference: u32,
 }
 
 struct CanvasRenderPass {
@@ -395,6 +407,7 @@ fn run_draw_commands(
 		graphics_pipeline,
 		texture,
 		draw_params,
+		stencil_reference,
 	} in draw_commands.drain(..)
 	{
 		let draw_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -426,6 +439,7 @@ fn run_draw_commands(
 		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
+		render_pass.set_stencil_reference(stencil_reference);
 		render_pass.draw_indexed(0..num_indices, 0, 0..1);
 	}
 }

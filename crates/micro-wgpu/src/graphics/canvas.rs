@@ -5,18 +5,13 @@ use palette::LinSrgba;
 
 use crate::{Context, color::ColorConstants, standard_draw_param_methods};
 
-use super::{
-	Vertex2d,
-	graphics_pipeline::GraphicsPipeline,
-	texture::{InternalTextureSettings, Texture, TextureSettings},
-};
+use super::texture::{InternalTextureSettings, Texture, TextureSettings};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
 	pub(crate) kind: CanvasKind,
 
 	// draw params
-	pub graphics_pipeline: Option<GraphicsPipeline<Vertex2d>>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
 }
@@ -40,19 +35,9 @@ impl Canvas {
 					resolve_texture: Texture::empty(ctx, size, settings.texture_settings),
 				},
 			},
-			graphics_pipeline: None,
+
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-		}
-	}
-
-	pub fn graphics_pipeline<'a>(
-		&self,
-		graphics_pipeline: impl Into<Option<&'a GraphicsPipeline<Vertex2d>>>,
-	) -> Self {
-		Self {
-			graphics_pipeline: graphics_pipeline.into().cloned(),
-			..self.clone()
 		}
 	}
 
@@ -86,7 +71,6 @@ impl Canvas {
 			} => resolve_texture,
 		};
 		texture
-			.graphics_pipeline(&self.graphics_pipeline)
 			.transformed(self.transform)
 			.color(self.color)
 			.draw(ctx);

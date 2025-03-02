@@ -30,7 +30,7 @@ pub(crate) struct GraphicsContext<'window> {
 	config: SurfaceConfiguration,
 	surface: Surface<'window>,
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
-	default_render_pipeline: RenderPipeline,
+	pub(crate) render_pipeline_stack: Vec<RenderPipeline>,
 	default_texture: Texture,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
@@ -138,7 +138,7 @@ impl GraphicsContext<'_> {
 			config,
 			surface,
 			mesh_bind_group_layout,
-			default_render_pipeline,
+			render_pipeline_stack: vec![default_render_pipeline],
 			default_texture,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
@@ -191,13 +191,20 @@ impl GraphicsContext<'_> {
 			})
 	}
 
-	pub(crate) fn queue_draw_command(&mut self, mut draw_command: DrawCommand) {
-		draw_command.draw_params.transform =
-			self.global_transform() * draw_command.draw_params.transform;
+	pub(crate) fn queue_draw_command(&mut self, mut settings: QueueDrawCommandSettings) {
+		settings.draw_params.transform = self.global_transform() * settings.draw_params.transform;
+		let command = DrawCommand {
+			vertex_buffer: settings.vertex_buffer,
+			index_buffer: settings.index_buffer,
+			num_indices: settings.num_indices,
+			render_pipeline: self.render_pipeline_stack.last().unwrap().clone(),
+			texture: settings.texture,
+			draw_params: settings.draw_params,
+		};
 		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
-			draw_commands.push(draw_command);
+			draw_commands.push(command);
 		} else {
-			self.main_surface_draw_commands.push(draw_command);
+			self.main_surface_draw_commands.push(command);
 		}
 	}
 
@@ -254,7 +261,6 @@ impl GraphicsContext<'_> {
 				&self.device,
 				&self.default_texture,
 				&self.mesh_bind_group_layout,
-				&self.default_render_pipeline,
 			);
 		}
 
@@ -279,7 +285,6 @@ impl GraphicsContext<'_> {
 				&self.device,
 				&self.default_texture,
 				&self.mesh_bind_group_layout,
-				&self.default_render_pipeline,
 			);
 		}
 
@@ -288,11 +293,10 @@ impl GraphicsContext<'_> {
 	}
 }
 
-pub(crate) struct DrawCommand {
+pub(crate) struct QueueDrawCommandSettings {
 	pub(crate) vertex_buffer: Buffer,
 	pub(crate) index_buffer: Buffer,
 	pub(crate) num_indices: u32,
-	pub(crate) render_pipeline: Option<RenderPipeline>,
 	pub(crate) texture: Option<Texture>,
 	pub(crate) draw_params: DrawParams,
 }
@@ -302,6 +306,15 @@ pub(crate) struct DrawCommand {
 pub(crate) struct DrawParams {
 	pub transform: Mat4,
 	pub color: LinSrgba,
+}
+
+struct DrawCommand {
+	vertex_buffer: Buffer,
+	index_buffer: Buffer,
+	num_indices: u32,
+	render_pipeline: RenderPipeline,
+	texture: Option<Texture>,
+	draw_params: DrawParams,
 }
 
 struct CanvasRenderPass {
@@ -316,7 +329,6 @@ fn run_draw_commands(
 	device: &Device,
 	default_texture: &Texture,
 	mesh_bind_group_layout: &BindGroupLayout,
-	default_render_pipeline: &RenderPipeline,
 ) {
 	for DrawCommand {
 		vertex_buffer,
@@ -351,7 +363,7 @@ fn run_draw_commands(
 				},
 			],
 		});
-		render_pass.set_pipeline(render_pipeline.as_ref().unwrap_or(default_render_pipeline));
+		render_pass.set_pipeline(&render_pipeline);
 		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);

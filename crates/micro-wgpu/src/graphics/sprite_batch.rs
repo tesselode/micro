@@ -17,7 +17,7 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::{Vertex2d, graphics_pipeline::GraphicsPipeline};
+use super::Vertex2d;
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
@@ -26,7 +26,6 @@ pub struct SpriteBatch {
 	mesh: Mesh,
 	// pub range: Option<OffsetAndCount>,
 	// pub shader: Option<Shader>,
-	pub graphics_pipeline: Option<GraphicsPipeline<Vertex2d>>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	// pub blend_mode: BlendMode,
@@ -62,19 +61,8 @@ impl SpriteBatch {
 			})),
 			texture: texture.clone(),
 			mesh: Mesh::new(ctx, &vertices, &indices),
-			graphics_pipeline: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-		}
-	}
-
-	pub fn graphics_pipeline<'a>(
-		&self,
-		graphics_pipeline: impl Into<Option<&'a GraphicsPipeline<Vertex2d>>>,
-	) -> Self {
-		Self {
-			graphics_pipeline: graphics_pipeline.into().cloned(),
-			..self.clone()
 		}
 	}
 
@@ -194,7 +182,6 @@ impl SpriteBatch {
 		let _span = tracy_client::span!();
 		self.mesh
 			.texture(&self.texture)
-			.graphics_pipeline(self.graphics_pipeline.as_ref())
 			.transformed(self.transform)
 			.color(self.color)
 			.draw(ctx);

@@ -14,7 +14,7 @@ use wgpu::{
 
 use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
 
-use super::{Vertex2d, graphics_pipeline::GraphicsPipeline, mesh::Mesh};
+use super::mesh::Mesh;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
@@ -25,7 +25,7 @@ pub struct Texture {
 
 	// draw params
 	pub region: Rect,
-	pub graphics_pipeline: Option<GraphicsPipeline<Vertex2d>>,
+
 	pub transform: Mat4,
 	pub color: LinSrgba,
 }
@@ -73,16 +73,6 @@ impl Texture {
 		let mut new = self.clone();
 		new.region = region;
 		new
-	}
-
-	pub fn graphics_pipeline<'a>(
-		&self,
-		graphics_pipeline: impl Into<Option<&'a GraphicsPipeline<Vertex2d>>>,
-	) -> Self {
-		Self {
-			graphics_pipeline: graphics_pipeline.into().cloned(),
-			..self.clone()
-		}
 	}
 
 	standard_draw_param_methods!();
@@ -140,7 +130,6 @@ impl Texture {
 			self.relative_rect(self.region),
 		)
 		.texture(self)
-		.graphics_pipeline(&self.graphics_pipeline)
 		.transformed(self.transform)
 		.color(self.color)
 		.draw(ctx);
@@ -205,7 +194,7 @@ impl Texture {
 			sampler,
 			size,
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
-			graphics_pipeline: None,
+
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 		}

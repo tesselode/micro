@@ -15,6 +15,7 @@ use sdl2::{
 
 use crate::{
 	App, Event, SdlError,
+	graphics::graphics_pipeline::GraphicsPipeline,
 	input::{Gamepad, MouseButton, Scancode},
 	window::{WindowMode, build_window},
 };
@@ -184,6 +185,19 @@ impl<'window> Context<'window> {
 		self.graphics.clear_color = color.into();
 	}
 
+	pub fn push_graphics_pipeline(
+		&mut self,
+		graphics_pipeline: &GraphicsPipeline,
+	) -> OnDrop<'_, 'window> {
+		self.graphics
+			.render_pipeline_stack
+			.push(graphics_pipeline.render_pipeline.clone());
+		OnDrop {
+			ctx: self,
+			action: OnDropAction::PopGraphicsPipeline,
+		}
+	}
+
 	/// Creates a scope where all drawing operations have the given transform
 	/// applied.
 	///
@@ -335,14 +349,8 @@ impl Drop for OnDrop<'_, '_> {
 			OnDropAction::PopTransform => {
 				self.ctx.graphics.transform_stack.pop();
 			}
-			OnDropAction::StopUsingCamera => {
-				todo!()
-			}
-			OnDropAction::StopWritingToStencil => {
-				todo!()
-			}
-			OnDropAction::StopUsingStencil => {
-				todo!()
+			OnDropAction::PopGraphicsPipeline => {
+				self.ctx.graphics.render_pipeline_stack.pop();
 			}
 		}
 	}
@@ -364,7 +372,5 @@ impl DerefMut for OnDrop<'_, '_> {
 
 enum OnDropAction {
 	PopTransform,
-	StopUsingCamera,
-	StopWritingToStencil,
-	StopUsingStencil,
+	PopGraphicsPipeline,
 }

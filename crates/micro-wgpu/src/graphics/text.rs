@@ -22,7 +22,6 @@ pub struct Text {
 	inner: Arc<TextInner>,
 
 	// params
-	pub graphics_pipeline: Option<GraphicsPipeline<Vertex2d>>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
 }
@@ -73,16 +72,6 @@ impl Text {
 		Self::from_layout(ctx, layout, fonts)
 	}
 
-	pub fn graphics_pipeline<'a>(
-		&self,
-		graphics_pipeline: impl Into<Option<&'a GraphicsPipeline<Vertex2d>>>,
-	) -> Self {
-		Self {
-			graphics_pipeline: graphics_pipeline.into().cloned(),
-			..self.clone()
-		}
-	}
-
 	standard_draw_param_methods!();
 
 	/* pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
@@ -116,7 +105,6 @@ impl Text {
 		} */
 		for sprite_batch in &self.inner.sprite_batches {
 			sprite_batch
-				.graphics_pipeline(self.graphics_pipeline.as_ref())
 				.transformed(self.transform)
 				.color(self.color)
 				// .range(self.range)
@@ -180,7 +168,7 @@ impl Text {
 				num_glyphs,
 				lowest_baseline,
 			}),
-			graphics_pipeline: None,
+
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 		}

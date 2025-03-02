@@ -14,13 +14,13 @@ use wgpu::{
 use crate::{
 	Context,
 	color::ColorConstants,
-	context::graphics::{DrawCommand, DrawParams},
+	context::graphics::{DrawParams, QueueDrawCommandSettings},
 	graphics::texture::Texture,
 	math::{Circle, Rect},
 	standard_draw_param_methods,
 };
 
-use super::{Vertex, Vertex2d, graphics_pipeline::GraphicsPipeline};
+use super::{Vertex, Vertex2d};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh<V: Vertex = Vertex2d> {
@@ -31,7 +31,6 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 
 	// draw params
 	pub texture: Option<Texture>,
-	pub graphics_pipeline: Option<GraphicsPipeline<V>>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
 }
@@ -60,7 +59,6 @@ impl<V: Vertex> Mesh<V> {
 			num_indices: indices.len() as u32,
 			_phantom_data: PhantomData,
 			texture: None,
-			graphics_pipeline: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 		}
@@ -69,16 +67,6 @@ impl<V: Vertex> Mesh<V> {
 	pub fn texture<'a>(&self, texture: impl Into<Option<&'a Texture>>) -> Self {
 		Self {
 			texture: texture.into().cloned(),
-			..self.clone()
-		}
-	}
-
-	pub fn graphics_pipeline<'a>(
-		&self,
-		graphics_pipeline: impl Into<Option<&'a GraphicsPipeline<V>>>,
-	) -> Self {
-		Self {
-			graphics_pipeline: graphics_pipeline.into().cloned(),
 			..self.clone()
 		}
 	}
@@ -94,14 +82,10 @@ impl<V: Vertex> Mesh<V> {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
-		ctx.graphics.queue_draw_command(DrawCommand {
+		ctx.graphics.queue_draw_command(QueueDrawCommandSettings {
 			vertex_buffer: self.vertex_buffer.clone(),
 			index_buffer: self.index_buffer.clone(),
 			num_indices: self.num_indices,
-			render_pipeline: self
-				.graphics_pipeline
-				.as_ref()
-				.map(|graphics_pipeline| graphics_pipeline.render_pipeline.clone()),
 			draw_params: DrawParams {
 				transform: self.transform,
 				color: self.color,

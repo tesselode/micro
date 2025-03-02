@@ -73,6 +73,7 @@ impl App for Test {
 					clear_color: Some(LinSrgba::BLACK),
 				},
 			);
+			let ctx = &mut ctx.push_graphics_pipeline(&self.graphics_pipeline);
 			Mesh::circle(
 				ctx,
 				ShapeStyle::Fill,
@@ -81,7 +82,6 @@ impl App for Test {
 					radius: 50.0,
 				},
 			)?
-			.graphics_pipeline(&self.graphics_pipeline)
 			.draw(ctx);
 		}
 

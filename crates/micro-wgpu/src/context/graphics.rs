@@ -5,11 +5,11 @@ use sdl2::video::Window;
 use wgpu::{
 	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
-	CompositeAlphaMode, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp, Operations,
-	PowerPreference, PresentMode, Queue, RenderPassColorAttachment, RenderPassDescriptor,
-	RenderPipeline, RequestAdapterOptions, SamplerBindingType, ShaderStages, StoreOp, Surface,
-	SurfaceConfiguration, SurfaceTargetUnsafe, TextureSampleType, TextureUsages,
-	TextureViewDescriptor, TextureViewDimension,
+	CompositeAlphaMode, Device, DeviceDescriptor, Features, IndexFormat, Instance, LoadOp,
+	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
+	RenderPassDescriptor, RenderPipeline, RequestAdapterOptions, SamplerBindingType, ShaderStages,
+	StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureSampleType,
+	TextureUsages, TextureViewDescriptor, TextureViewDimension,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -17,15 +17,16 @@ use crate::{
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
 		Vertex2d,
-		canvas::{Canvas, RenderToCanvasSettings},
+		canvas::{Canvas, CanvasKind, RenderToCanvasSettings},
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
-		texture::{Texture, TextureSettings},
+		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 };
 
 pub(crate) struct GraphicsContext<'window> {
 	pub(crate) device: Device,
 	pub(crate) queue: Queue,
+	pub(crate) supported_sample_counts: Vec<u32>,
 	config: SurfaceConfiguration,
 	surface: Surface<'window>,
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
@@ -54,9 +55,18 @@ impl GraphicsContext<'_> {
 			..Default::default()
 		}))
 		.expect("error getting graphics adapter");
-		let (device, queue) =
-			pollster::block_on(adapter.request_device(&DeviceDescriptor::default(), None))
-				.expect("error getting graphics device");
+		let supported_sample_counts = adapter
+			.get_texture_format_features(TextureFormat::Rgba8UnormSrgb)
+			.flags
+			.supported_sample_counts();
+		let (device, queue) = pollster::block_on(adapter.request_device(
+			&DeviceDescriptor {
+				required_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+				..Default::default()
+			},
+			None,
+		))
+		.expect("error getting graphics device");
 		let mesh_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 			label: None,
 			entries: &[
@@ -119,10 +129,12 @@ impl GraphicsContext<'_> {
 			UVec2::new(1, 1),
 			Some(&[255, 255, 255, 255]),
 			TextureSettings::default(),
+			InternalTextureSettings::default(),
 		);
 		Self {
 			device,
 			queue,
+			supported_sample_counts,
 			config,
 			surface,
 			mesh_bind_group_layout,
@@ -212,8 +224,16 @@ impl GraphicsContext<'_> {
 			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
 				label: None,
 				color_attachments: &[Some(RenderPassColorAttachment {
-					view: &canvas.texture.view,
-					resolve_target: None,
+					view: match &canvas.kind {
+						CanvasKind::Normal { texture }
+						| CanvasKind::Multisampled { texture, .. } => &texture.view,
+					},
+					resolve_target: match &canvas.kind {
+						CanvasKind::Normal { .. } => None,
+						CanvasKind::Multisampled {
+							resolve_texture, ..
+						} => Some(&resolve_texture.view),
+					},
 					ops: Operations {
 						load: match settings.clear_color {
 							Some(clear_color) => {

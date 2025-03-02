@@ -1,8 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use exhaust::Exhaust;
 use glam::{Mat4, UVec2};
-use itertools::Itertools;
 use palette::LinSrgba;
 
 use crate::{Context, color::ColorConstants, standard_draw_param_methods};
@@ -10,12 +8,12 @@ use crate::{Context, color::ColorConstants, standard_draw_param_methods};
 use super::{
 	Vertex2d,
 	graphics_pipeline::GraphicsPipeline,
-	texture::{Texture, TextureSettings},
+	texture::{InternalTextureSettings, Texture, TextureSettings},
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
-	pub(crate) texture: Texture,
+	pub(crate) kind: CanvasKind,
 
 	// draw params
 	pub graphics_pipeline: Option<GraphicsPipeline<Vertex2d>>,
@@ -26,7 +24,22 @@ pub struct Canvas {
 impl Canvas {
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
 		Self {
-			texture: Texture::empty(ctx, size, settings.texture_settings),
+			kind: match settings.sample_count {
+				1 => CanvasKind::Normal {
+					texture: Texture::empty(ctx, size, settings.texture_settings),
+				},
+				sample_count => CanvasKind::Multisampled {
+					texture: Texture::new(
+						&ctx.graphics.device,
+						&ctx.graphics.queue,
+						size,
+						None,
+						settings.texture_settings,
+						InternalTextureSettings { sample_count },
+					),
+					resolve_texture: Texture::empty(ctx, size, settings.texture_settings),
+				},
+			},
 			graphics_pipeline: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
@@ -46,7 +59,11 @@ impl Canvas {
 	standard_draw_param_methods!();
 
 	pub fn size(&self) -> UVec2 {
-		self.texture.size()
+		match &self.kind {
+			CanvasKind::Normal { texture } | CanvasKind::Multisampled { texture, .. } => {
+				texture.size()
+			}
+		}
 	}
 
 	pub fn render_to<'a, 'window>(
@@ -62,7 +79,13 @@ impl Canvas {
 
 	pub fn draw(&self, ctx: &mut Context) {
 		let _span = tracy_client::span!();
-		self.texture
+		let texture = match &self.kind {
+			CanvasKind::Normal { texture } => texture,
+			CanvasKind::Multisampled {
+				resolve_texture, ..
+			} => resolve_texture,
+		};
+		texture
 			.graphics_pipeline(&self.graphics_pipeline)
 			.transformed(self.transform)
 			.color(self.color)
@@ -70,62 +93,19 @@ impl Canvas {
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CanvasSettings {
 	pub texture_settings: TextureSettings,
-	// pub msaa: Msaa,
+	pub sample_count: u32,
 	// pub hdr: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Exhaust)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub enum Msaa {
-	#[default]
-	None,
-	X2,
-	X4,
-	X8,
-	X16,
-}
-
-impl Msaa {
-	pub fn levels_up_to(max: Self) -> impl Iterator<Item = Self> {
-		Self::exhaust().take_while_inclusive(move |&level| level < max)
-	}
-
-	fn num_samples(&self) -> u8 {
-		match self {
-			Msaa::None => 0,
-			Msaa::X2 => 2,
-			Msaa::X4 => 4,
-			Msaa::X8 => 8,
-			Msaa::X16 => 16,
+impl Default for CanvasSettings {
+	fn default() -> Self {
+		Self {
+			texture_settings: Default::default(),
+			sample_count: 1,
 		}
-	}
-}
-
-impl From<i32> for Msaa {
-	fn from(value: i32) -> Self {
-		match value {
-			0 => Self::None,
-			2 => Self::X2,
-			4 => Self::X4,
-			8 => Self::X8,
-			16.. => Self::X16,
-			_ => panic!("unexpected MSAA value"),
-		}
-	}
-}
-
-impl std::fmt::Display for Msaa {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.write_str(match self {
-			Msaa::None => "None",
-			Msaa::X2 => "X2",
-			Msaa::X4 => "X4",
-			Msaa::X8 => "X8",
-			Msaa::X16 => "X16",
-		})
 	}
 }
 
@@ -140,7 +120,7 @@ pub struct OnDrop<'window, 'a> {
 	pub(crate) ctx: &'a mut Context<'window>,
 }
 
-impl<'window> Drop for OnDrop<'window, '_> {
+impl Drop for OnDrop<'_, '_> {
 	fn drop(&mut self) {
 		self.ctx.graphics.finish_canvas_render_pass();
 	}
@@ -154,8 +134,19 @@ impl<'window> Deref for OnDrop<'window, '_> {
 	}
 }
 
-impl<'window> DerefMut for OnDrop<'window, '_> {
+impl DerefMut for OnDrop<'_, '_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum CanvasKind {
+	Normal {
+		texture: Texture,
+	},
+	Multisampled {
+		texture: Texture,
+		resolve_texture: Texture,
+	},
 }

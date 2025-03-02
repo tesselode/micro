@@ -176,6 +176,10 @@ impl<'window> Context<'window> {
 		Ok(())
 	}
 
+	pub fn supported_sample_counts(&self) -> &[u32] {
+		&self.graphics.supported_sample_counts
+	}
+
 	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
 		self.graphics.clear_color = color.into();
 	}

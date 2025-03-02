@@ -6,6 +6,7 @@ use micro_wgpu::{
 	color::ColorConstants,
 	graphics::{
 		canvas::{Canvas, CanvasSettings, RenderToCanvasSettings},
+		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		mesh::{Mesh, builder::ShapeStyle},
 	},
 	input::Scancode,
@@ -25,12 +26,27 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 struct Test {
 	canvas: Canvas,
+	graphics_pipeline: GraphicsPipeline,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			canvas: Canvas::new(ctx, ctx.window_size() / 2, CanvasSettings::default()),
+			canvas: Canvas::new(
+				ctx,
+				ctx.window_size() / 2,
+				CanvasSettings {
+					sample_count: 8,
+					..Default::default()
+				},
+			),
+			graphics_pipeline: GraphicsPipeline::new(
+				ctx,
+				GraphicsPipelineSettings {
+					sample_count: 8,
+					..Default::default()
+				},
+			),
 		})
 	}
 }
@@ -65,6 +81,7 @@ impl App for Test {
 					radius: 50.0,
 				},
 			)?
+			.graphics_pipeline(&self.graphics_pipeline)
 			.draw(ctx);
 		}
 

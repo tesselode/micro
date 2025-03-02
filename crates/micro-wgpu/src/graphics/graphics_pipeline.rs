@@ -56,7 +56,10 @@ impl<V: Vertex> GraphicsPipeline<V> {
 					..Default::default()
 				},
 				depth_stencil: None,
-				multisample: MultisampleState::default(),
+				multisample: MultisampleState {
+					count: settings.sample_count,
+					..Default::default()
+				},
 				fragment: Some(FragmentState {
 					module: &shader,
 					entry_point: Some("fs_main"),
@@ -81,7 +84,7 @@ pub struct GraphicsPipelineSettings {
 	// pub shader_params: S::Params,
 	// pub stencil_state: StencilState,
 	// pub enable_color_writes: bool,
-	// pub sample_count: u32,
+	pub sample_count: u32,
 	// pub textures: Vec<MeshTexture>,
 }
 
@@ -93,7 +96,7 @@ impl Default for GraphicsPipelineSettings {
 			// shader_params: Default::default(),
 			// stencil_state: Default::default(),
 			// enable_color_writes: true,
-			// sample_count: 1,
+			sample_count: 1,
 			// textures: vec![],
 		}
 	}

@@ -39,6 +39,7 @@ impl Texture {
 			size,
 			None,
 			settings,
+			InternalTextureSettings::default(),
 		)
 	}
 
@@ -54,6 +55,7 @@ impl Texture {
 			UVec2::new(image.width(), image.height()),
 			Some(image.as_raw()),
 			settings,
+			InternalTextureSettings::default(),
 		)
 	}
 
@@ -150,6 +152,7 @@ impl Texture {
 		size: UVec2,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
+		internal_settings: InternalTextureSettings,
 	) -> Self {
 		let texture_extent = Extent3d {
 			width: size.x,
@@ -160,7 +163,7 @@ impl Texture {
 			label: None,
 			size: texture_extent,
 			mip_level_count: 1,
-			sample_count: 1,
+			sample_count: internal_settings.sample_count,
 			dimension: TextureDimension::D2,
 			format: TextureFormat::Rgba8UnormSrgb,
 			usage: TextureUsages::TEXTURE_BINDING
@@ -236,4 +239,15 @@ impl Default for TextureSettings {
 pub enum LoadTextureError {
 	IoError(std::io::Error),
 	ImageError(ImageError),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct InternalTextureSettings {
+	pub(crate) sample_count: u32,
+}
+
+impl Default for InternalTextureSettings {
+	fn default() -> Self {
+		Self { sample_count: 1 }
+	}
 }

@@ -1,8 +1,8 @@
-use wgpu::{BufferAddress, StencilState, VertexAttribute};
+use wgpu::{BufferAddress, VertexAttribute};
 
 use crate::{
 	Context,
-	graphics::{BlendMode, HasVertexAttributes, Shader, Vertex},
+	graphics::{BlendMode, HasVertexAttributes, Shader, StencilState, Vertex},
 };
 
 use super::GraphicsPipeline;

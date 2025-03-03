@@ -33,10 +33,11 @@ pub(crate) struct GraphicsContext<'window> {
 	main_surface_depth_stencil_texture: Texture,
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
-	pub(crate) graphics_pipeline_stack: Vec<RawGraphicsPipeline>,
 	default_texture: Texture,
 	pub(crate) clear_color: LinSrgb,
+	pub(crate) graphics_pipeline_stack: Vec<RawGraphicsPipeline>,
 	pub(crate) transform_stack: Vec<Mat4>,
+	pub(crate) stencil_reference_stack: Vec<u8>,
 	main_surface_draw_commands: Vec<DrawCommand>,
 	current_canvas_render_pass: Option<CanvasRenderPass>,
 	finished_canvas_render_passes: Vec<CanvasRenderPass>,
@@ -169,10 +170,11 @@ impl GraphicsContext<'_> {
 			main_surface_depth_stencil_texture,
 			mesh_bind_group_layout,
 			shader_params_bind_group_layout,
-			graphics_pipeline_stack: vec![default_graphics_pipeline],
 			default_texture,
 			clear_color: LinSrgb::BLACK,
+			graphics_pipeline_stack: vec![default_graphics_pipeline],
 			transform_stack: vec![],
+			stencil_reference_stack: vec![0],
 			main_surface_draw_commands: vec![],
 			current_canvas_render_pass: None,
 			finished_canvas_render_passes: vec![],
@@ -214,7 +216,7 @@ impl GraphicsContext<'_> {
 			scissor_rect: settings
 				.scissor_rect
 				.unwrap_or_else(|| self.default_scissor_rect()),
-			stencil_reference: settings.stencil_reference,
+			stencil_reference: *self.stencil_reference_stack.last().unwrap(),
 			num_instances: settings.num_instances,
 			instance_buffers: settings.instance_buffers,
 		};
@@ -392,7 +394,6 @@ pub(crate) struct QueueDrawCommandSettings {
 	pub texture: Option<Texture>,
 	pub draw_params: DrawParams,
 	pub scissor_rect: Option<URect>,
-	pub stencil_reference: u32,
 	pub num_instances: u32,
 	pub instance_buffers: Vec<InstanceBuffer>,
 }
@@ -412,7 +413,7 @@ struct DrawCommand {
 	texture: Option<Texture>,
 	draw_params: DrawParams,
 	scissor_rect: URect,
-	stencil_reference: u32,
+	stencil_reference: u8,
 	num_instances: u32,
 	instance_buffers: Vec<InstanceBuffer>,
 }
@@ -481,7 +482,7 @@ fn run_draw_commands(
 			scissor_rect.size.x,
 			scissor_rect.size.y,
 		);
-		render_pass.set_stencil_reference(stencil_reference);
+		render_pass.set_stencil_reference(stencil_reference as u32);
 		render_pass.draw_indexed(range.0..range.1, 0, 0..num_instances);
 	}
 }

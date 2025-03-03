@@ -1,54 +1,51 @@
 use std::error::Error;
 
-use bytemuck::{Pod, Zeroable};
-use glam::{Vec2, vec2};
 use micro_wgpu::{
-	App, Context, ContextSettings, Event,
+	App, Context, ContextSettings,
 	graphics::{
-		HasVertexAttributes, InstanceBuffer, Shader, Vertex2d,
+		StencilState,
 		graphics_pipeline::GraphicsPipeline,
 		mesh::{Mesh, builder::ShapeStyle},
 	},
-	input::Scancode,
 	math::Circle,
 };
-use wgpu::{PresentMode, VertexAttribute, vertex_attr_array};
+use wgpu::{CompareFunction, StencilOperation};
 
 fn main() -> Result<(), Box<dyn Error>> {
-	micro_wgpu::run(
-		ContextSettings {
-			resizable: true,
-			..Default::default()
-		},
-		Test::new,
-	)
+	micro_wgpu::run(ContextSettings::default(), Test::new)
 }
 
 struct Test {
-	graphics_pipeline: GraphicsPipeline<InstancedShader>,
-	instance_buffer: InstanceBuffer,
+	mesh: Mesh,
+	write_stencil_pipeline: GraphicsPipeline,
+	read_stencil_pipeline: GraphicsPipeline,
 }
 
 impl Test {
-	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			graphics_pipeline: GraphicsPipeline::builder()
-				.with_instance_buffer::<InstanceInfo>()
+			mesh: Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(100.0))?,
+			write_stencil_pipeline: GraphicsPipeline::builder()
+				.stencil_state(StencilState {
+					compare: CompareFunction::Always,
+					on_fail: StencilOperation::Replace,
+					on_depth_fail: StencilOperation::Replace,
+					on_pass: StencilOperation::Replace,
+					read_mask: 255,
+					write_mask: 255,
+				})
+				.enable_color_writes(false)
 				.build(ctx),
-			instance_buffer: InstanceBuffer::new(
-				ctx,
-				&[
-					InstanceInfo {
-						translation: Vec2::ZERO,
-					},
-					InstanceInfo {
-						translation: vec2(100.0, 0.0),
-					},
-					InstanceInfo {
-						translation: vec2(200.0, 0.0),
-					},
-				],
-			),
+			read_stencil_pipeline: GraphicsPipeline::builder()
+				.stencil_state(StencilState {
+					compare: CompareFunction::Equal,
+					on_fail: StencilOperation::Keep,
+					on_depth_fail: StencilOperation::Keep,
+					on_pass: StencilOperation::Keep,
+					read_mask: 255,
+					write_mask: 255,
+				})
+				.build(ctx),
 		})
 	}
 }
@@ -57,34 +54,15 @@ impl App for Test {
 	type Error = Box<dyn Error>;
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		let ctx = &mut ctx.push_graphics_pipeline(&self.graphics_pipeline);
-		Mesh::circle(ctx, ShapeStyle::Fill, Circle::new(vec2(50.0, 50.0), 50.0))?.draw_instanced(
-			ctx,
-			3,
-			vec![self.instance_buffer.clone()],
-		);
+		let ctx = &mut ctx.push_stencil_reference(1);
+		{
+			let ctx = &mut ctx.push_graphics_pipeline(&self.write_stencil_pipeline);
+			self.mesh.translated_2d((200.0, 200.0)).draw(ctx);
+		}
+		{
+			let ctx = &mut ctx.push_graphics_pipeline(&self.read_stencil_pipeline);
+			self.mesh.translated_2d((300.0, 200.0)).draw(ctx);
+		}
 		Ok(())
-	}
-}
-
-pub struct InstancedShader;
-
-impl Shader for InstancedShader {
-	const SOURCE: &'static str = include_str!("shader.wgsl");
-
-	type Vertex = Vertex2d;
-
-	type Params = i32;
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
-#[repr(C)]
-pub struct InstanceInfo {
-	translation: Vec2,
-}
-
-impl HasVertexAttributes for InstanceInfo {
-	fn attributes() -> Vec<VertexAttribute> {
-		vertex_attr_array![3 => Float32x2].into()
 	}
 }

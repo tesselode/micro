@@ -35,7 +35,6 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub color: LinSrgba,
 	pub scissor_rect: Option<URect>,
 	pub range: Option<(u32, u32)>,
-	pub stencil_reference: u32,
 }
 
 impl<V: Vertex> Mesh<V> {
@@ -67,7 +66,6 @@ impl<V: Vertex> Mesh<V> {
 			color: LinSrgba::WHITE,
 			scissor_rect: None,
 			range: None,
-			stencil_reference: 0,
 		}
 	}
 
@@ -104,7 +102,6 @@ impl<V: Vertex> Mesh<V> {
 				color: self.color,
 			},
 			scissor_rect: self.scissor_rect,
-			stencil_reference: self.stencil_reference,
 			texture: self.texture.clone(),
 			num_instances: 1,
 			instance_buffers: vec![],
@@ -126,7 +123,6 @@ impl<V: Vertex> Mesh<V> {
 				color: self.color,
 			},
 			scissor_rect: self.scissor_rect,
-			stencil_reference: self.stencil_reference,
 			texture: self.texture.clone(),
 			num_instances,
 			instance_buffers,

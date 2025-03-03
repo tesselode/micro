@@ -117,7 +117,7 @@ where
 				} else {
 					CompareFunction::Always
 				},
-				stencil: builder.stencil_state,
+				stencil: builder.stencil_state.as_wgpu_stencil_state(),
 				bias: DepthBiasState::default(),
 			}),
 			multisample: MultisampleState {

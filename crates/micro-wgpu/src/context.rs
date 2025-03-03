@@ -283,6 +283,16 @@ impl<'window> Context<'window> {
 		self.push_transform(Mat4::from_rotation_z(rotation))
 	}
 
+	pub fn push_stencil_reference(&mut self, stencil_reference: u8) -> OnDrop<'_, 'window> {
+		self.graphics
+			.stencil_reference_stack
+			.push(stencil_reference);
+		OnDrop {
+			ctx: self,
+			action: OnDropAction::PopStencilReference,
+		}
+	}
+
 	/// Returns `true` if the given keyboard key is currently held down.
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
 		self.event_pump
@@ -374,6 +384,9 @@ impl Drop for OnDrop<'_, '_> {
 			OnDropAction::PopGraphicsPipeline => {
 				self.ctx.graphics.graphics_pipeline_stack.pop();
 			}
+			OnDropAction::PopStencilReference => {
+				self.ctx.graphics.stencil_reference_stack.pop();
+			}
 		}
 	}
 }
@@ -395,4 +408,5 @@ impl DerefMut for OnDrop<'_, '_> {
 enum OnDropAction {
 	PopTransform,
 	PopGraphicsPipeline,
+	PopStencilReference,
 }

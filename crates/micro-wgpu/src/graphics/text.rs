@@ -29,7 +29,7 @@ pub struct Text {
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub scissor_rect: Option<URect>,
-	pub stencil_reference: u32,
+
 	pub range: Option<(u32, u32)>,
 }
 
@@ -114,7 +114,6 @@ impl Text {
 			sprite_batch
 				.transformed(self.transform)
 				.color(self.color)
-				.stencil_reference(self.stencil_reference)
 				.range(self.range)
 				.draw(ctx);
 		}
@@ -181,7 +180,6 @@ impl Text {
 			color: LinSrgba::WHITE,
 			scissor_rect: None,
 			range: None,
-			stencil_reference: 0,
 		}
 	}
 }

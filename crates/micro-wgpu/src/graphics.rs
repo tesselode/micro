@@ -6,6 +6,7 @@ mod into_range;
 pub mod mesh;
 mod shader;
 pub mod sprite_batch;
+mod stencil;
 pub mod text;
 pub mod texture;
 mod vertex;
@@ -14,9 +15,10 @@ pub use blend_mode::*;
 pub use instance_buffer::*;
 pub use into_range::*;
 pub use shader::*;
+pub use stencil::*;
 pub use vertex::*;
 
-pub use wgpu::{PresentMode, StencilFaceState, StencilOperation, StencilState};
+pub use wgpu::PresentMode;
 
 #[macro_export]
 macro_rules! standard_draw_param_methods {
@@ -92,12 +94,6 @@ macro_rules! standard_draw_param_methods {
 		pub fn scissor_rect(&self, scissor_rect: impl Into<Option<$crate::math::URect>>) -> Self {
 			let mut new = self.clone();
 			new.scissor_rect = scissor_rect.into();
-			new
-		}
-
-		pub fn stencil_reference(&self, stencil_reference: u32) -> Self {
-			let mut new = self.clone();
-			new.stencil_reference = stencil_reference;
 			new
 		}
 	};

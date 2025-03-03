@@ -17,7 +17,6 @@ pub struct Canvas {
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub scissor_rect: Option<URect>,
-	pub stencil_reference: u32,
 }
 
 impl Canvas {
@@ -67,7 +66,6 @@ impl Canvas {
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			scissor_rect: None,
-			stencil_reference: 0,
 		}
 	}
 
@@ -103,7 +101,6 @@ impl Canvas {
 		texture
 			.transformed(self.transform)
 			.color(self.color)
-			.stencil_reference(self.stencil_reference)
 			.draw(ctx);
 	}
 }

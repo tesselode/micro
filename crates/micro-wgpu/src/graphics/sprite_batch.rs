@@ -28,7 +28,7 @@ pub struct SpriteBatch {
 	pub color: LinSrgba,
 	pub range: Option<(u32, u32)>,
 	pub scissor_rect: Option<URect>,
-	pub stencil_reference: u32,
+	
 }
 
 impl SpriteBatch {
@@ -64,7 +64,7 @@ impl SpriteBatch {
 			color: LinSrgba::WHITE,
 			scissor_rect: None,
 			range: None,
-			stencil_reference: 0,
+			
 		}
 	}
 
@@ -161,7 +161,7 @@ impl SpriteBatch {
 			.transformed(self.transform)
 			.color(self.color)
 			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
-			.stencil_reference(self.stencil_reference)
+			
 			.draw(ctx);
 	}
 }

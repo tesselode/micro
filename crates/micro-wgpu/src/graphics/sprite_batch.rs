@@ -57,7 +57,6 @@ impl SpriteBatch {
 		Self {
 			inner: Arc::new(Mutex::new(SpriteBatchInner {
 				sprites: Arena::with_capacity(capacity),
-				capacity,
 			})),
 			texture: texture.clone(),
 			mesh: Mesh::new(ctx, &vertices, &indices),
@@ -132,32 +131,6 @@ impl SpriteBatch {
 		Ok(id)
 	}
 
-	/* pub fn add_nine_slice(
-		&mut self,
-		ctx: &Context,
-		nine_slice: NineSlice,
-		display_rect: Rect,
-		params: impl Into<SpriteParams>,
-	) -> Result<[SpriteId; 9], SpriteLimitReached> {
-		let _span = tracy_client::span!();
-		if self.inner.try_lock().unwrap().sprites.len() + 9
-			> self.inner.try_lock().unwrap().capacity
-		{
-			return Err(SpriteLimitReached);
-		}
-		let params: SpriteParams = params.into();
-		Ok(nine_slice.slices(display_rect).map(|slice| {
-			self.add_region(
-				ctx,
-				slice.texture_region,
-				params
-					.scaled(slice.display_rect.size / slice.texture_region.size)
-					.translated(slice.display_rect.top_left),
-			)
-			.unwrap()
-		}))
-	} */
-
 	pub fn remove(&mut self, ctx: &Context, id: SpriteId) -> Result<(), InvalidSpriteId> {
 		let _span = tracy_client::span!();
 		if self
@@ -196,7 +169,6 @@ impl SpriteBatch {
 #[derive(Debug)]
 struct SpriteBatchInner {
 	sprites: Arena<()>,
-	capacity: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

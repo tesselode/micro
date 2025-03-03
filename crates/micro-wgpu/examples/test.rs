@@ -51,6 +51,17 @@ impl Test {
 impl App for Test {
 	type Error = Box<dyn Error>;
 
+	fn debug_ui(
+		&mut self,
+		ctx: &mut Context,
+		egui_ctx: &micro_wgpu::debug_ui::Context,
+	) -> Result<(), Self::Error> {
+		egui::Window::new("Test").show(egui_ctx, |ui| {
+			ui.label("Hello!");
+		});
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
 		{
 			let ctx = &mut self

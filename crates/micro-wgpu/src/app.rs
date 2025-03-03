@@ -6,9 +6,13 @@ use crate::{Context, event::Event};
 pub trait App {
 	type Error;
 
-	/* fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &egui::Context) -> Result<(), Self::Error> {
+	fn debug_ui(
+		&mut self,
+		ctx: &mut Context,
+		egui_ctx: &crate::debug_ui::Context,
+	) -> Result<(), Self::Error> {
 		Ok(())
-	} */
+	}
 
 	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
 		Ok(())

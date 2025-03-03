@@ -1,6 +1,7 @@
 pub(crate) mod graphics;
 
 use std::{
+	collections::HashMap,
 	ops::{Deref, DerefMut},
 	time::Instant,
 };
@@ -14,7 +15,8 @@ use sdl2::{
 };
 
 use crate::{
-	App, Event, SdlError,
+	App, Event, FrameTimeTracker, SdlError,
+	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
 	graphics::{Shader, Vertex, graphics_pipeline::GraphicsPipeline},
 	input::{Gamepad, MouseButton, Scancode},
 	window::{WindowMode, build_window},
@@ -40,9 +42,14 @@ where
 		window: &mut window,
 		controller,
 		event_pump,
+		egui_wants_keyboard_input: false,
+		egui_wants_mouse_input: false,
+		frame_time_tracker: FrameTimeTracker::new(),
 		graphics,
 		should_quit: false,
 	};
+	let egui_ctx = egui::Context::default();
+	let mut egui_textures = HashMap::new();
 	let mut app = app_constructor(&mut ctx)?;
 
 	let mut last_update_time = Instant::now();
@@ -52,26 +59,26 @@ where
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
 		last_update_time = now;
-		// ctx.frame_time_tracker.record(delta_time);
+		ctx.frame_time_tracker.record(delta_time);
 
 		// poll for events
-		// let span = tracy_client::span!("poll events");
+		let span = tracy_client::span!("poll events");
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
-		// drop(span);
+		drop(span);
 
 		// create egui UI
-		/* let span = tracy_client::span!("create egui UI");
+		let span = tracy_client::span!("create egui UI");
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_pass(egui_input);
 		app.debug_ui(&mut ctx, &egui_ctx)?;
 		let egui_output = egui_ctx.end_pass();
-		drop(span); */
+		drop(span);
 
 		// dispatch events to state
-		// let span = tracy_client::span!("dispatch events");
+		let span = tracy_client::span!("dispatch events");
 		for event in events
 			.drain(..)
-			// .filter(|event| !egui_took_sdl2_event(&egui_ctx, event))
+			.filter(|event| !egui_took_sdl2_event(&egui_ctx, event))
 			.filter_map(Event::from_sdl2_event)
 		{
 			match event {
@@ -79,32 +86,29 @@ where
 				Event::Exited => ctx.should_quit = true,
 				_ => {}
 			}
-			// let transform = ctx.scaling_mode.transform_affine2(&ctx).inverse();
-			// let dpi_scaling = ctx.window_size().y as f32 / ctx.logical_window_size().y as f32;
-			app.event(
-				&mut ctx, event, /* .transform_mouse_events(transform, dpi_scaling) */
-			)?;
+			let dpi_scaling = ctx.window_size().y as f32 / ctx.logical_window_size().y as f32;
+			app.event(&mut ctx, event.transform_mouse_events(dpi_scaling))?;
 		}
-		// drop(span);
-		// ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
-		// ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
+		drop(span);
+		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
+		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
 
 		// update state
-		// let span = tracy_client::span!("update");
+		let span = tracy_client::span!("update");
 		app.update(&mut ctx, delta_time)?;
-		// drop(span);
+		drop(span);
 
 		// draw state and egui UI
-		// let span = tracy_client::span!("draw");
+		let span = tracy_client::span!("draw");
 
-		// drop(span);
-		// let span = tracy_client::span!("draw egui UI");
-		// draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
-		// drop(span);
+		drop(span);
 		app.draw(&mut ctx)?;
+		let span = tracy_client::span!("draw egui UI");
+		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
+		drop(span);
 		ctx.graphics.present();
 
-		// tracy_client::frame_mark();
+		tracy_client::frame_mark();
 		// ctx.graphics.record_queries();
 
 		if ctx.should_quit {
@@ -121,7 +125,10 @@ pub struct Context<'window> {
 	pub(crate) window: &'window mut Window,
 	pub(crate) controller: GameControllerSubsystem,
 	pub(crate) event_pump: EventPump,
+	pub(crate) egui_wants_keyboard_input: bool,
+	pub(crate) egui_wants_mouse_input: bool,
 	pub(crate) graphics: GraphicsContext<'window>,
+	pub(crate) frame_time_tracker: FrameTimeTracker,
 	pub(crate) should_quit: bool,
 }
 
@@ -272,7 +279,7 @@ impl<'window> Context<'window> {
 		self.event_pump
 			.keyboard_state()
 			.is_scancode_pressed(scancode.into())
-		/* && !self.egui_wants_keyboard_input */
+			&& !self.egui_wants_keyboard_input
 	}
 
 	/// Returns `true` if the given mouse button is currently held down.
@@ -280,7 +287,7 @@ impl<'window> Context<'window> {
 		self.event_pump
 			.mouse_state()
 			.is_mouse_button_pressed(mouse_button.into())
-		/* && !self.egui_wants_mouse_input */
+			&& !self.egui_wants_mouse_input
 	}
 
 	/// Returns the current mouse position (in pixels, relative to the top-left
@@ -288,17 +295,11 @@ impl<'window> Context<'window> {
 	pub fn mouse_position(&self) -> IVec2 {
 		let mouse_state = self.event_pump.mouse_state();
 		let dpi_scaling = self.window_size().y as f32 / self.logical_window_size().y as f32;
-		let untransformed = vec2(
+		vec2(
 			mouse_state.x() as f32 * dpi_scaling,
 			mouse_state.y() as f32 * dpi_scaling,
 		)
-		.as_ivec2();
-		untransformed
-		/* self.scaling_mode
-		.transform_affine2(self)
-		.inverse()
-		.transform_point2(untransformed.as_vec2())
-		.as_ivec2() */
+		.as_ivec2()
 	}
 
 	/// Gets the gamepad with the given index if it's connected.
@@ -326,7 +327,6 @@ pub struct ContextSettings {
 	pub window_mode: WindowMode,
 	pub resizable: bool,
 	// pub swap_interval: SwapInterval,
-	// pub scaling_mode: ScalingMode,
 }
 
 impl Default for ContextSettings {
@@ -336,7 +336,6 @@ impl Default for ContextSettings {
 			window_mode: WindowMode::default(),
 			resizable: false,
 			// swap_interval: SwapInterval::VSync,
-			// scaling_mode: ScalingMode::default(),
 		}
 	}
 }

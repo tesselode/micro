@@ -43,7 +43,7 @@ pub(crate) struct GraphicsContext<'window> {
 }
 
 impl GraphicsContext<'_> {
-	pub(crate) fn new(window: &Window) -> Self {
+	pub(crate) fn new(window: &Window, present_mode: PresentMode) -> Self {
 		let instance = Instance::new(&Default::default());
 		let surface = unsafe {
 			instance.create_surface_unsafe(
@@ -128,7 +128,7 @@ impl GraphicsContext<'_> {
 			format: surface_format,
 			width,
 			height,
-			present_mode: PresentMode::AutoVsync,
+			present_mode,
 			desired_maximum_frame_latency: 1,
 			alpha_mode: CompositeAlphaMode::Auto,
 			view_formats: vec![],
@@ -238,6 +238,15 @@ impl GraphicsContext<'_> {
 				sample_count: 1,
 			},
 		);
+	}
+
+	pub(crate) fn present_mode(&self) -> PresentMode {
+		self.config.present_mode
+	}
+
+	pub(crate) fn set_present_mode(&mut self, present_mode: PresentMode) {
+		self.config.present_mode = present_mode;
+		self.surface.configure(&self.device, &self.config);
 	}
 
 	pub(crate) fn present(&mut self) {

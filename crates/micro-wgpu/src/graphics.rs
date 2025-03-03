@@ -14,7 +14,7 @@ pub use into_range::*;
 pub use shader::*;
 pub use vertex::*;
 
-pub use wgpu::{StencilFaceState, StencilOperation, StencilState};
+pub use wgpu::{PresentMode, StencilFaceState, StencilOperation, StencilState};
 
 #[macro_export]
 macro_rules! standard_draw_param_methods {

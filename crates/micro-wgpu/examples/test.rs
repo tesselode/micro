@@ -2,18 +2,21 @@ use std::error::Error;
 
 use glam::{Vec2, vec2};
 use micro_wgpu::{
-	App, Context, ContextSettings,
+	App, Context, ContextSettings, Event,
 	graphics::{
 		canvas::{Canvas, CanvasSettings, RenderToCanvasSettings},
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
 		mesh::{Mesh, builder::ShapeStyle},
 	},
+	input::Scancode,
 	math::{Circle, URect},
 };
+use wgpu::PresentMode;
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro_wgpu::run(
 		ContextSettings {
+			present_mode: PresentMode::AutoNoVsync,
 			resizable: true,
 			..Default::default()
 		},
@@ -21,30 +24,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 	)
 }
 
-struct Test {
-	canvas: Canvas,
-	graphics_pipeline: GraphicsPipeline,
-}
+struct Test {}
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {
-			canvas: Canvas::new(
-				ctx,
-				ctx.window_size(),
-				CanvasSettings {
-					sample_count: 8,
-					..Default::default()
-				},
-			),
-			graphics_pipeline: GraphicsPipeline::new(
-				ctx,
-				GraphicsPipelineSettings {
-					sample_count: 8,
-					..Default::default()
-				},
-			),
-		})
+		Ok(Self {})
 	}
 }
 
@@ -56,30 +40,32 @@ impl App for Test {
 		ctx: &mut Context,
 		egui_ctx: &micro_wgpu::debug_ui::Context,
 	) -> Result<(), Self::Error> {
+		egui::TopBottomPanel::top("main_menu").show(egui_ctx, |ui| {
+			egui::menu::bar(ui, |ui| {
+				ui.label(format!("FPS: {}", ctx.fps()));
+			});
+		});
 		egui::Window::new("Test").show(egui_ctx, |ui| {
 			ui.label("Hello!");
 		});
 		Ok(())
 	}
 
-	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
+		if let Event::KeyPressed {
+			key: Scancode::Space,
+			..
+		} = event
 		{
-			let ctx = &mut self
-				.canvas
-				.render_to(ctx, RenderToCanvasSettings::default());
-			let ctx = &mut ctx.push_graphics_pipeline(&self.graphics_pipeline);
-			let ctx = &mut ctx.push_scale_2d(Vec2::splat(2.0));
-			Mesh::circle(
-				ctx,
-				ShapeStyle::Fill,
-				Circle::new(vec2(100.0, 100.0), 100.0),
-			)?
-			.scissor_rect(URect::new((0, 0), (100, 100)))
-			.draw(ctx);
+			ctx.set_present_mode(match ctx.present_mode() {
+				PresentMode::AutoVsync => PresentMode::AutoNoVsync,
+				_ => PresentMode::AutoVsync,
+			});
 		}
+		Ok(())
+	}
 
-		self.canvas.draw(ctx);
-
+	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
 		Ok(())
 	}
 }

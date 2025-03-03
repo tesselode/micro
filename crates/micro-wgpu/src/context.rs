@@ -3,7 +3,7 @@ pub(crate) mod graphics;
 use std::{
 	collections::HashMap,
 	ops::{Deref, DerefMut},
-	time::Instant,
+	time::{Duration, Instant},
 };
 
 use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
@@ -13,6 +13,7 @@ use sdl2::{
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 	video::{FullscreenType, Window, WindowPos},
 };
+use wgpu::PresentMode;
 
 use crate::{
 	App, Event, FrameTimeTracker, SdlError,
@@ -34,7 +35,7 @@ where
 		.expect("error initializing controller subsystem");
 	let mut window = build_window(&video, &settings);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
-	let graphics = GraphicsContext::new(&window);
+	let graphics = GraphicsContext::new(&window, settings.present_mode);
 
 	let mut ctx = Context {
 		_sdl: sdl,
@@ -184,6 +185,14 @@ impl<'window> Context<'window> {
 		Ok(())
 	}
 
+	pub fn present_mode(&self) -> PresentMode {
+		self.graphics.present_mode()
+	}
+
+	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
+		self.graphics.set_present_mode(present_mode);
+	}
+
 	pub fn supported_sample_counts(&self) -> &[u32] {
 		&self.graphics.supported_sample_counts
 	}
@@ -315,6 +324,16 @@ impl<'window> Context<'window> {
 		}
 	}
 
+	/// Returns the average duration of a frame over the past 30 frames.
+	pub fn average_frame_time(&self) -> Duration {
+		self.frame_time_tracker.average()
+	}
+
+	/// Returns the current frames per second the game is running at.
+	pub fn fps(&self) -> f32 {
+		1.0 / self.average_frame_time().as_secs_f32()
+	}
+
 	/// Quits the game.
 	pub fn quit(&mut self) {
 		self.should_quit = true;
@@ -326,7 +345,7 @@ pub struct ContextSettings {
 	pub window_title: String,
 	pub window_mode: WindowMode,
 	pub resizable: bool,
-	// pub swap_interval: SwapInterval,
+	pub present_mode: PresentMode,
 }
 
 impl Default for ContextSettings {
@@ -335,7 +354,7 @@ impl Default for ContextSettings {
 			window_title: "Game".into(),
 			window_mode: WindowMode::default(),
 			resizable: false,
-			// swap_interval: SwapInterval::VSync,
+			present_mode: PresentMode::AutoVsync,
 		}
 	}
 }

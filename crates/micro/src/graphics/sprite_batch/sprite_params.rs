@@ -24,16 +24,16 @@ impl SpriteParams {
 		}
 	}
 
-	pub fn translated(self, translation: Vec2) -> Self {
+	pub fn translated(self, translation: impl Into<Vec2>) -> Self {
 		Self {
-			transform: Affine2::from_translation(translation) * self.transform,
+			transform: Affine2::from_translation(translation.into()) * self.transform,
 			..self
 		}
 	}
 
-	pub fn scaled(self, scale: Vec2) -> Self {
+	pub fn scaled(self, scale: impl Into<Vec2>) -> Self {
 		Self {
-			transform: Affine2::from_scale(scale) * self.transform,
+			transform: Affine2::from_scale(scale.into()) * self.transform,
 			..self
 		}
 	}

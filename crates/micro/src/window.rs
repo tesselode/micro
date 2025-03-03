@@ -1,7 +1,7 @@
 use glam::UVec2;
 use sdl2::{VideoSubsystem, video::Window};
 
-use crate::ContextSettings;
+use crate::context::ContextSettings;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -24,12 +24,11 @@ pub(crate) fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -
 		WindowMode::Fullscreen => UVec2::new(800, 600),
 		WindowMode::Windowed { size } => size,
 	};
-	let mut window_builder = video.window(&settings.window_title, window_size.x, window_size.y);
+	let mut window_builder = video.window("Micro", window_size.x, window_size.y);
 	window_builder.allow_highdpi();
 	if settings.window_mode == WindowMode::Fullscreen {
 		window_builder.fullscreen_desktop();
 	}
-	window_builder.opengl();
 	if settings.resizable {
 		window_builder.resizable();
 	}

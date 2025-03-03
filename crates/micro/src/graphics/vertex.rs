@@ -1,11 +1,13 @@
+pub use wgpu::{VertexAttribute, vertex_attr_array};
+
 use bytemuck::{Pod, Zeroable};
 use glam::Vec2;
 use palette::LinSrgba;
 
-use super::VertexAttributeKind;
+pub trait Vertex: Copy + Pod + HasVertexAttributes {}
 
-pub trait Vertex: Copy + Pod + Zeroable {
-	const ATTRIBUTE_KINDS: &'static [VertexAttributeKind];
+pub trait HasVertexAttributes {
+	fn attributes() -> Vec<VertexAttribute>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
@@ -16,10 +18,10 @@ pub struct Vertex2d {
 	pub color: LinSrgba,
 }
 
-impl Vertex for Vertex2d {
-	const ATTRIBUTE_KINDS: &'static [VertexAttributeKind] = &[
-		VertexAttributeKind::Vec2,
-		VertexAttributeKind::Vec2,
-		VertexAttributeKind::Vec4,
-	];
+impl Vertex for Vertex2d {}
+
+impl HasVertexAttributes for Vertex2d {
+	fn attributes() -> Vec<VertexAttribute> {
+		vertex_attr_array![0 => Float32x2, 1 => Float32x2, 2 => Float32x4].into()
+	}
 }

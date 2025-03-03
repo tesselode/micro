@@ -1,75 +1,68 @@
-use std::{error::Error, time::Duration};
+use std::error::Error;
 
-use glam::{Vec2, vec2};
-use micro::{
+use micro_wgpu::{
 	App, Context, ContextSettings,
-	color::ColorConstants,
-	graphics::mesh::{MeshBuilder, ShapeStyle},
-	input::MouseButton,
-	math::{Circle, Ray, VecConstants},
+	graphics::{
+		StencilState,
+		graphics_pipeline::GraphicsPipeline,
+		mesh::{Mesh, builder::ShapeStyle},
+	},
+	math::Circle,
 };
-use palette::{LinSrgb, LinSrgba};
+use wgpu::{CompareFunction, StencilOperation};
 
 fn main() -> Result<(), Box<dyn Error>> {
-	micro::run(ContextSettings::default(), RaycastTest::new)
+	micro_wgpu::run(ContextSettings::default(), Test::new)
 }
 
-struct RaycastTest {
-	ray: Ray,
-	circle: Circle,
+struct Test {
+	mesh: Mesh,
+	write_stencil_pipeline: GraphicsPipeline,
+	read_stencil_pipeline: GraphicsPipeline,
 }
 
-impl RaycastTest {
-	fn new(_ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+impl Test {
+	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			ray: Ray {
-				origin: vec2(50.0, 300.0),
-				direction: Vec2::RIGHT,
-			},
-			circle: Circle {
-				center: vec2(400.0, 300.0),
-				radius: 50.0,
-			},
+			mesh: Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(100.0))?,
+			write_stencil_pipeline: GraphicsPipeline::builder()
+				.stencil_state(StencilState {
+					compare: CompareFunction::Always,
+					on_fail: StencilOperation::Replace,
+					on_depth_fail: StencilOperation::Replace,
+					on_pass: StencilOperation::Replace,
+					read_mask: 255,
+					write_mask: 255,
+				})
+				.enable_color_writes(false)
+				.build(ctx),
+			read_stencil_pipeline: GraphicsPipeline::builder()
+				.stencil_state(StencilState {
+					compare: CompareFunction::Equal,
+					on_fail: StencilOperation::Keep,
+					on_depth_fail: StencilOperation::Keep,
+					on_pass: StencilOperation::Keep,
+					read_mask: 255,
+					write_mask: 255,
+				})
+				.build(ctx),
 		})
 	}
 }
 
-impl App for RaycastTest {
+impl App for Test {
 	type Error = Box<dyn Error>;
 
-	fn update(&mut self, ctx: &mut Context, _delta_time: Duration) -> Result<(), Self::Error> {
-		if ctx.is_mouse_button_down(MouseButton::Left) {
-			self.ray.origin = ctx.mouse_position().as_vec2();
-		} else {
-			self.ray.direction =
-				(ctx.mouse_position().as_vec2() - self.ray.origin).normalize_or_zero();
-		}
-		Ok(())
-	}
-
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		ctx.clear(LinSrgb::BLACK);
-		let mut mesh_builder = MeshBuilder::new()
-			.with_simple_polyline(
-				2.0,
-				[
-					self.ray.origin,
-					self.ray.origin + self.ray.direction * 10000.0,
-				],
-				LinSrgba::WHITE,
-			)?
-			.with_circle(ShapeStyle::Stroke(2.0), self.circle, LinSrgba::WHITE)?;
-		for point in self.ray.circle_intersection_points(self.circle) {
-			mesh_builder.add_circle(
-				ShapeStyle::Fill,
-				Circle {
-					center: point,
-					radius: 5.0,
-				},
-				LinSrgba::RED,
-			)?;
+		let ctx = &mut ctx.push_stencil_reference(1);
+		{
+			let ctx = &mut ctx.push_graphics_pipeline(&self.write_stencil_pipeline);
+			self.mesh.translated_2d((200.0, 200.0)).draw(ctx);
 		}
-		mesh_builder.build(ctx).draw(ctx);
+		{
+			let ctx = &mut ctx.push_graphics_pipeline(&self.read_stencil_pipeline);
+			self.mesh.translated_2d((300.0, 200.0)).draw(ctx);
+		}
 		Ok(())
 	}
 }

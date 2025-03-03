@@ -6,8 +6,8 @@ use std::{
 use micro::{
 	Context,
 	color::{ColorConstants, LinSrgba},
-	graphics::{BlendMode, shader::Shader, texture::Texture},
-	math::Mat4,
+	graphics::texture::Texture,
+	math::{Mat4, URect},
 	standard_draw_param_methods,
 };
 
@@ -16,10 +16,9 @@ use super::{AnimationData, Frame, Repeats};
 #[derive(Debug, Clone)]
 pub struct AnimationPlayer {
 	inner: Arc<Mutex<AnimationPlayerInner>>,
-	pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
+	pub scissor_rect: Option<URect>,
 }
 
 impl AnimationPlayer {
@@ -38,10 +37,9 @@ impl AnimationPlayer {
 				current_animation_finished: false,
 				paused: false,
 			})),
-			shader: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
+			scissor_rect: None,
 		}
 	}
 
@@ -113,10 +111,9 @@ impl AnimationPlayer {
 					[self.inner.try_lock().unwrap().current_frame_index]
 					.texture_region,
 			)
-			.shader(&self.shader)
 			.transformed(self.transform)
 			.color(self.color)
-			.blend_mode(self.blend_mode)
+			.scissor_rect(self.scissor_rect)
 			.draw(ctx);
 	}
 }

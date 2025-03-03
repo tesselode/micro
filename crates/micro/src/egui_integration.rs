@@ -1,14 +1,14 @@
 use std::{collections::HashMap, time::Duration};
 
 use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
-use glam::IVec2;
+use glam::UVec2;
 use image::ImageBuffer;
 use palette::{LinSrgba, Srgba};
 
 use crate::{
 	context::Context,
 	graphics::{
-		StencilAction, StencilTest, Vertex2d,
+		Vertex2d,
 		mesh::Mesh,
 		texture::{Texture, TextureSettings},
 	},
@@ -62,28 +62,21 @@ pub fn draw_egui_output(
 ) {
 	patch_textures(ctx, &output, textures);
 	let scaling_factor = egui_scaling_factor(ctx);
-	ctx.clear_stencil();
 	for clipped_primitive in egui_ctx.tessellate(output.shapes, scaling_factor) {
 		match clipped_primitive.primitive {
 			egui::epaint::Primitive::Mesh(mesh) => {
-				{
-					let ctx = &mut ctx.write_to_stencil(StencilAction::Replace(1));
-					let clip_rect_points = egui_rect_to_micro_rect(clipped_primitive.clip_rect);
-					let clip_rect_pixels = crate::math::Rect::from_corners(
-						clip_rect_points.top_left * scaling_factor,
-						clip_rect_points.bottom_right() * scaling_factor,
-					);
-					Mesh::rectangle(ctx, clip_rect_pixels).draw(ctx);
-				}
-				{
-					let ctx = &mut ctx.use_stencil(StencilTest::Equal, 1);
-					let texture_id = mesh.texture_id;
-					egui_mesh_to_micro_mesh(ctx, mesh)
-						.texture(textures.get(&texture_id).expect("missing egui texture"))
-						.scaled_2d(glam::Vec2::splat(scaling_factor))
-						.draw(ctx);
-				}
-				ctx.clear_stencil();
+				let texture_id = mesh.texture_id;
+				let clip_rect_points = egui_rect_to_micro_rect(clipped_primitive.clip_rect);
+				let clip_rect_pixels = crate::math::Rect::from_corners(
+					clip_rect_points.top_left * scaling_factor,
+					clip_rect_points.bottom_right() * scaling_factor,
+				)
+				.as_urect();
+				egui_mesh_to_micro_mesh(ctx, mesh)
+					.texture(textures.get(&texture_id).expect("missing egui texture"))
+					.scaled_2d(glam::Vec2::splat(scaling_factor))
+					.scissor_rect(clip_rect_pixels)
+					.draw(ctx);
 			}
 			egui::epaint::Primitive::Callback(_) => unimplemented!(),
 		}
@@ -102,7 +95,7 @@ fn patch_textures(
 		if let Some(texture) = textures.get(texture_id) {
 			let top_left = delta
 				.pos
-				.map(|[x, y]| IVec2::new(x as i32, y as i32))
+				.map(|[x, y]| UVec2::new(x as u32, y as u32))
 				.unwrap_or_default();
 			texture.replace(
 				ctx,

@@ -26,7 +26,7 @@ pub use vec_constants::*;
 
 pub use glam::*;
 
-use lyon_tessellation::{TessellationError, VertexBuffers};
+/* use lyon_tessellation::{TessellationError, VertexBuffers};
 use palette::LinSrgba;
 
 use crate::{
@@ -59,4 +59,4 @@ fn triangle_points(indices: &[u32], buffers: &VertexBuffers<Vertex2d, u32>) -> V
 			Vec2::new(position.x, position.y)
 		})
 		.collect()
-}
+} */

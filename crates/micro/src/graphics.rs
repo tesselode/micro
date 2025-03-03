@@ -1,42 +1,28 @@
 mod blend_mode;
-mod camera_3d;
-mod canvas;
-mod culling;
-pub(crate) mod gpu_span;
+pub mod canvas;
+pub mod graphics_pipeline;
+mod instance_buffer;
+mod into_range;
 pub mod mesh;
-mod nine_slice;
-pub(crate) mod resource;
-pub mod shader;
+mod shader;
 pub mod sprite_batch;
 mod stencil;
 pub mod text;
 pub mod texture;
 mod vertex;
-mod vertex_attributes;
 
 pub use blend_mode::*;
-pub use camera_3d::*;
-pub use canvas::*;
-pub use culling::*;
-pub use nine_slice::*;
+pub use instance_buffer::*;
+pub use into_range::*;
+pub use shader::*;
 pub use stencil::*;
 pub use vertex::*;
-pub use vertex_attributes::*;
 
-pub use sdl2::video::SwapInterval;
+pub use wgpu::PresentMode;
 
 #[macro_export]
 macro_rules! standard_draw_param_methods {
 	() => {
-		pub fn shader<'a>(
-			&self,
-			shader: impl Into<Option<&'a $crate::graphics::shader::Shader>>,
-		) -> Self {
-			let mut new = self.clone();
-			new.shader = shader.into().cloned();
-			new
-		}
-
 		pub fn transformed(&self, transform: impl Into<$crate::math::Mat4>) -> Self {
 			let mut new = self.clone();
 			new.transform = transform.into() * self.transform;
@@ -105,12 +91,10 @@ macro_rules! standard_draw_param_methods {
 			new
 		}
 
-		pub fn blend_mode(&self, blend_mode: $crate::graphics::BlendMode) -> Self {
+		pub fn scissor_rect(&self, scissor_rect: impl Into<Option<$crate::math::URect>>) -> Self {
 			let mut new = self.clone();
-			new.blend_mode = blend_mode;
+			new.scissor_rect = scissor_rect.into();
 			new
 		}
 	};
 }
-
-pub(crate) use standard_draw_param_methods;

@@ -1,45 +1,46 @@
+use wgpu::StencilFaceState;
+pub use wgpu::{CompareFunction, StencilOperation};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum StencilTest {
-	LessThan,
-	LessThanOrEqual,
-	GreaterThan,
-	GreaterThanOrEqual,
-	Equal,
-	NotEqual,
+pub struct StencilState {
+	pub compare: CompareFunction,
+	pub on_fail: StencilOperation,
+	pub on_depth_fail: StencilOperation,
+	pub on_pass: StencilOperation,
+	pub read_mask: u8,
+	pub write_mask: u8,
 }
 
-impl StencilTest {
-	pub(crate) fn as_glow_stencil_func(&self) -> u32 {
-		match self {
-			StencilTest::LessThan => glow::LESS,
-			StencilTest::LessThanOrEqual => glow::LEQUAL,
-			StencilTest::GreaterThan => glow::GREATER,
-			StencilTest::GreaterThanOrEqual => glow::GEQUAL,
-			StencilTest::Equal => glow::EQUAL,
-			StencilTest::NotEqual => glow::NOTEQUAL,
+impl StencilState {
+	pub(crate) fn as_wgpu_stencil_state(self) -> wgpu::StencilState {
+		wgpu::StencilState {
+			front: StencilFaceState {
+				compare: self.compare,
+				fail_op: self.on_fail,
+				depth_fail_op: self.on_depth_fail,
+				pass_op: self.on_pass,
+			},
+			back: StencilFaceState {
+				compare: self.compare,
+				fail_op: self.on_fail,
+				depth_fail_op: self.on_depth_fail,
+				pass_op: self.on_pass,
+			},
+			read_mask: self.read_mask.into(),
+			write_mask: self.write_mask.into(),
 		}
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum StencilAction {
-	Replace(u8),
-	Increment,
-	IncrementWrap,
-	Decrement,
-	DecrementWrap,
-	Invert,
-}
-
-impl StencilAction {
-	pub(crate) fn as_glow_stencil_op(&self) -> u32 {
-		match self {
-			StencilAction::Replace(_) => glow::REPLACE,
-			StencilAction::Increment => glow::INCR,
-			StencilAction::IncrementWrap => glow::INCR_WRAP,
-			StencilAction::Decrement => glow::DECR,
-			StencilAction::DecrementWrap => glow::DECR_WRAP,
-			StencilAction::Invert => glow::INVERT,
+impl Default for StencilState {
+	fn default() -> Self {
+		Self {
+			compare: CompareFunction::Never,
+			on_fail: StencilOperation::Keep,
+			on_depth_fail: StencilOperation::Keep,
+			on_pass: StencilOperation::Keep,
+			read_mask: 0,
+			write_mask: 0,
 		}
 	}
 }

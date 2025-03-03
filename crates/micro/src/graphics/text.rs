@@ -9,13 +9,16 @@ use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
-use crate::{Context, IntoOffsetAndCount, OffsetAndCount, color::ColorConstants, math::Rect};
+use crate::{
+	Context,
+	color::ColorConstants,
+	math::{Rect, URect},
+	standard_draw_param_methods,
+};
 
 use super::{
-	BlendMode,
-	shader::Shader,
+	IntoRange,
 	sprite_batch::{SpriteBatch, SpriteParams},
-	standard_draw_param_methods,
 };
 
 #[derive(Debug, Clone)]
@@ -23,16 +26,16 @@ pub struct Text {
 	inner: Arc<TextInner>,
 
 	// params
-	pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
-	pub range: Option<OffsetAndCount>,
+	pub scissor_rect: Option<URect>,
+
+	pub range: Option<(u32, u32)>,
 }
 
 impl Text {
 	pub fn new(
-		ctx: &mut Context,
+		ctx: &Context,
 		font: &Font,
 		text: impl Into<String>,
 		layout_settings: LayoutSettings,
@@ -50,7 +53,7 @@ impl Text {
 	}
 
 	pub fn with_multiple_fonts<'a>(
-		ctx: &mut Context,
+		ctx: &Context,
 		fonts: &[&Font],
 		text_fragments: impl IntoIterator<Item = &'a TextFragment>,
 		layout_settings: LayoutSettings,
@@ -78,9 +81,9 @@ impl Text {
 
 	standard_draw_param_methods!();
 
-	pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
+	pub fn range(&self, range: impl IntoRange) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_offset_and_count(self.inner.num_glyphs);
+		new.range = range.into_range(self.inner.num_glyphs);
 		new
 	}
 
@@ -109,16 +112,14 @@ impl Text {
 		}
 		for sprite_batch in &self.inner.sprite_batches {
 			sprite_batch
-				.shader(&self.shader)
 				.transformed(self.transform)
 				.color(self.color)
-				.blend_mode(self.blend_mode)
 				.range(self.range)
 				.draw(ctx);
 		}
 	}
 
-	fn from_layout(ctx: &mut Context, layout: Layout, fonts: &[&Font]) -> Text {
+	fn from_layout(ctx: &Context, layout: Layout, fonts: &[&Font]) -> Text {
 		let glyphs = layout.glyphs();
 		let lowest_baseline = layout.lines().map(|lines| {
 			lines
@@ -174,10 +175,10 @@ impl Text {
 				num_glyphs,
 				lowest_baseline,
 			}),
-			shader: None,
+
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
+			scissor_rect: None,
 			range: None,
 		}
 	}
@@ -188,7 +189,7 @@ struct TextInner {
 	pub(crate) sprite_batches: Vec<SpriteBatch>,
 	pub(crate) bounds: Option<Rect>,
 	pub(crate) lowest_baseline: Option<f32>,
-	pub(crate) num_glyphs: usize,
+	pub(crate) num_glyphs: u32,
 }
 
 #[derive(Clone, Copy, PartialEq)]

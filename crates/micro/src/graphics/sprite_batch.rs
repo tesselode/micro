@@ -1,37 +1,38 @@
 mod sprite_params;
 
+pub use sprite_params::SpriteParams;
+
 use std::sync::{Arc, Mutex};
 
 use derive_more::derive::{Display, Error};
-use palette::LinSrgba;
-pub use sprite_params::SpriteParams;
-
 use generational_arena::{Arena, Index};
 use glam::{Mat4, Vec2};
+use palette::LinSrgba;
 
 use crate::{
-	Context, IntoOffsetAndCount, OffsetAndCount,
+	Context,
 	color::ColorConstants,
 	graphics::{mesh::Mesh, texture::Texture},
-	math::Rect,
+	math::{Rect, URect},
+	standard_draw_param_methods,
 };
 
-use super::{BlendMode, NineSlice, Vertex2d, shader::Shader, standard_draw_param_methods};
+use super::{IntoRange, Vertex2d};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
 	inner: Arc<Mutex<SpriteBatchInner>>,
 	texture: Texture,
 	mesh: Mesh,
-	pub range: Option<OffsetAndCount>,
-	pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
+	pub range: Option<(u32, u32)>,
+	pub scissor_rect: Option<URect>,
+	
 }
 
 impl SpriteBatch {
-	pub fn new(ctx: &mut Context, texture: &Texture, capacity: usize) -> Self {
+	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
 		let _span = tracy_client::span!();
 		let vertices = vec![
 			Vertex2d {
@@ -56,23 +57,22 @@ impl SpriteBatch {
 		Self {
 			inner: Arc::new(Mutex::new(SpriteBatchInner {
 				sprites: Arena::with_capacity(capacity),
-				capacity,
 			})),
 			texture: texture.clone(),
 			mesh: Mesh::new(ctx, &vertices, &indices),
-			shader: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
+			scissor_rect: None,
 			range: None,
+			
 		}
 	}
 
 	standard_draw_param_methods!();
 
-	pub fn range(&self, range: impl IntoOffsetAndCount) -> Self {
+	pub fn range(&self, range: impl IntoRange) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_offset_and_count(self.inner.try_lock().unwrap().sprites.len());
+		new.range = range.into_range(self.len() as u32);
 		new
 	}
 
@@ -126,37 +126,9 @@ impl SpriteBatch {
 				texture_coords,
 				color: params.color,
 			})
-			.enumerate();
-		for (i, vertex) in vertices {
-			self.mesh.set_vertex(ctx, start_vertex_index + i, vertex);
-		}
+			.collect::<Vec<_>>();
+		self.mesh.set_vertices(ctx, start_vertex_index, &vertices);
 		Ok(id)
-	}
-
-	pub fn add_nine_slice(
-		&mut self,
-		ctx: &Context,
-		nine_slice: NineSlice,
-		display_rect: Rect,
-		params: impl Into<SpriteParams>,
-	) -> Result<[SpriteId; 9], SpriteLimitReached> {
-		let _span = tracy_client::span!();
-		if self.inner.try_lock().unwrap().sprites.len() + 9
-			> self.inner.try_lock().unwrap().capacity
-		{
-			return Err(SpriteLimitReached);
-		}
-		let params: SpriteParams = params.into();
-		Ok(nine_slice.slices(display_rect).map(|slice| {
-			self.add_region(
-				ctx,
-				slice.texture_region,
-				params
-					.scaled(slice.display_rect.size / slice.texture_region.size)
-					.translated(slice.display_rect.top_left),
-			)
-			.unwrap()
-		}))
 	}
 
 	pub fn remove(&mut self, ctx: &Context, id: SpriteId) -> Result<(), InvalidSpriteId> {
@@ -173,17 +145,12 @@ impl SpriteBatch {
 		}
 		let (sprite_index, _) = id.0.into_raw_parts();
 		let start_vertex_index = sprite_index * 4;
-		for i in 0..4 {
-			self.mesh.set_vertex(
-				ctx,
-				start_vertex_index + i,
-				Vertex2d {
-					position: Vec2::ZERO,
-					texture_coords: Vec2::ZERO,
-					color: LinSrgba::WHITE,
-				},
-			);
-		}
+		let vertices = [Vertex2d {
+			position: Vec2::ZERO,
+			texture_coords: Vec2::ZERO,
+			color: LinSrgba::WHITE,
+		}; 4];
+		self.mesh.set_vertices(ctx, start_vertex_index, &vertices);
 		Ok(())
 	}
 
@@ -191,14 +158,10 @@ impl SpriteBatch {
 		let _span = tracy_client::span!();
 		self.mesh
 			.texture(&self.texture)
-			.range(self.range.map(|range| OffsetAndCount {
-				offset: range.offset * 6,
-				count: range.count * 6,
-			}))
-			.shader(&self.shader)
 			.transformed(self.transform)
 			.color(self.color)
-			.blend_mode(self.blend_mode)
+			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
+			
 			.draw(ctx);
 	}
 }
@@ -206,7 +169,6 @@ impl SpriteBatch {
 #[derive(Debug)]
 struct SpriteBatchInner {
 	sprites: Arena<()>,
-	capacity: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -20,7 +20,7 @@ pub struct Font {
 
 impl Font {
 	pub fn from_file(
-		ctx: &mut Context,
+		ctx: &Context,
 		path: impl AsRef<Path>,
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
@@ -29,7 +29,7 @@ impl Font {
 	}
 
 	pub fn from_bytes(
-		ctx: &mut Context,
+		ctx: &Context,
 		data: &[u8],
 		settings: FontSettings,
 	) -> Result<Self, LoadFontError> {
@@ -167,7 +167,7 @@ fn pack_glyphs(
 }
 
 fn create_texture(
-	ctx: &mut Context,
+	ctx: &Context,
 	size: UVec2,
 	glyph_image_data: &HashMap<char, ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
 	glyph_rects: &HashMap<char, Rect>,
@@ -177,7 +177,7 @@ fn create_texture(
 	for (char, rect) in glyph_rects {
 		texture.replace(
 			ctx,
-			rect.top_left.as_ivec2(),
+			rect.top_left.as_uvec2(),
 			glyph_image_data.get(char).expect("No image data for glyph"),
 		);
 	}

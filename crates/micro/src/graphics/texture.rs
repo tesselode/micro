@@ -1,71 +1,72 @@
-use std::{
-	path::Path,
-	rc::Rc,
-	sync::{
-		Weak,
-		atomic::{AtomicU64, Ordering},
-	},
-};
+pub use wgpu::{AddressMode, FilterMode, SamplerBorderColor};
 
-use derive_more::derive::{Display, Error, From};
-use glam::{IVec2, Mat4, UVec2, Vec2};
-use glow::{HasContext, NativeTexture, PixelUnpackData};
+use std::path::Path;
+
+use derive_more::{Display, Error, From};
+use glam::{Mat4, UVec2, Vec2};
 use image::{ImageBuffer, ImageError};
 use palette::LinSrgba;
+use wgpu::{
+	Device, Extent3d, Origin3d, Queue, Sampler, SamplerDescriptor, TexelCopyBufferLayout,
+	TexelCopyTextureInfo, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
+	TextureUsages, TextureView, TextureViewDescriptor,
+};
 
-use crate::{color::ColorConstants, context::Context, graphics::mesh::Mesh, math::Rect};
-
-use super::{
-	BlendMode, NineSlice,
-	resource::{GraphicsResource, GraphicsResourceId, GraphicsResources},
-	shader::Shader,
-	sprite_batch::{SpriteBatch, SpriteParams},
+use crate::{
+	Context,
+	color::ColorConstants,
+	math::{Rect, URect},
 	standard_draw_param_methods,
 };
 
-#[derive(Debug, Clone)]
+use super::mesh::Mesh;
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
-	pub(crate) id: TextureId,
-	_weak: Weak<()>,
+	pub(crate) texture: wgpu::Texture,
+	pub(crate) view: TextureView,
+	pub(crate) sampler: Sampler,
 	size: UVec2,
+
+	// draw params
 	pub region: Rect,
-	pub shader: Option<Shader>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
+	pub scissor_rect: Option<URect>,
+	
 }
 
 impl Texture {
-	pub fn empty(ctx: &mut Context, size: UVec2, settings: TextureSettings) -> Self {
+	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
-			ctx.graphics.gl.clone(),
-			&mut ctx.graphics.textures,
+			&ctx.graphics.device,
+			&ctx.graphics.queue,
 			size,
 			None,
 			settings,
-			false,
+			InternalTextureSettings::default(),
 		)
 	}
 
 	pub fn from_image(
-		ctx: &mut Context,
+		ctx: &Context,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 		settings: TextureSettings,
 	) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
-			ctx.graphics.gl.clone(),
-			&mut ctx.graphics.textures,
+			&ctx.graphics.device,
+			&ctx.graphics.queue,
 			UVec2::new(image.width(), image.height()),
 			Some(image.as_raw()),
 			settings,
-			false,
+			InternalTextureSettings::default(),
 		)
 	}
 
 	pub fn from_file(
-		ctx: &mut Context,
+		ctx: &Context,
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
@@ -97,26 +98,34 @@ impl Texture {
 	pub fn replace(
 		&self,
 		ctx: &Context,
-		top_left: IVec2,
+		top_left: UVec2,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 	) {
 		let _span = tracy_client::span!();
-		let gl = &ctx.graphics.gl;
-		let texture = &ctx.graphics.textures.get(self.id);
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(texture.texture));
-			gl.tex_sub_image_2d(
-				glow::TEXTURE_2D,
-				0,
-				top_left.x,
-				top_left.y,
-				image.width() as i32,
-				image.height() as i32,
-				glow::RGBA,
-				glow::UNSIGNED_BYTE,
-				PixelUnpackData::Slice(Some(image.as_raw())),
-			);
-		}
+		let texture_extent = Extent3d {
+			width: image.width(),
+			height: image.height(),
+			depth_or_array_layers: 1,
+		};
+		ctx.graphics.queue.write_texture(
+			TexelCopyTextureInfo {
+				texture: &self.texture,
+				mip_level: 0,
+				origin: Origin3d {
+					x: top_left.x,
+					y: top_left.y,
+					z: 0,
+				},
+				aspect: TextureAspect::All,
+			},
+			image.as_raw(),
+			TexelCopyBufferLayout {
+				offset: 0,
+				bytes_per_row: Some(4 * image.width()),
+				rows_per_image: Some(image.height()),
+			},
+			texture_extent,
+		);
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
@@ -127,154 +136,99 @@ impl Texture {
 			self.relative_rect(self.region),
 		)
 		.texture(self)
-		.shader(&self.shader)
 		.transformed(self.transform)
 		.color(self.color)
-		.blend_mode(self.blend_mode)
+		
 		.draw(ctx);
 	}
 
-	pub fn draw_nine_slice(&self, ctx: &mut Context, nine_slice: NineSlice, display_rect: Rect) {
-		let _span = tracy_client::span!();
-		let mut sprite_batch = SpriteBatch::new(ctx, self, 9);
-		sprite_batch
-			.add_nine_slice(ctx, nine_slice, display_rect, SpriteParams::default())
-			.unwrap();
-		sprite_batch
-			.shader(&self.shader)
-			.transformed(self.transform)
-			.color(self.color)
-			.blend_mode(self.blend_mode)
-			.draw(ctx);
-	}
-
 	pub(crate) fn new(
-		gl: Rc<glow::Context>,
-		raw_textures: &mut GraphicsResources<RawTexture>,
+		device: &Device,
+		queue: &Queue,
 		size: UVec2,
 		pixels: Option<&[u8]>,
 		settings: TextureSettings,
-		float: bool,
+		internal_settings: InternalTextureSettings,
 	) -> Self {
-		let texture = unsafe { gl.create_texture().expect("error creating texture") };
-		unsafe {
-			gl.bind_texture(glow::TEXTURE_2D, Some(texture));
-			gl.tex_parameter_i32(
-				glow::TEXTURE_2D,
-				glow::TEXTURE_WRAP_S,
-				settings.wrapping.as_u32() as i32,
-			);
-			gl.tex_parameter_i32(
-				glow::TEXTURE_2D,
-				glow::TEXTURE_WRAP_T,
-				settings.wrapping.as_u32() as i32,
-			);
-			if let TextureWrapping::ClampToBorder(color) = settings.wrapping {
-				let color: [f32; 4] = color.into();
-				gl.tex_parameter_f32_slice(glow::TEXTURE_2D, glow::TEXTURE_BORDER_COLOR, &color);
-			}
-			gl.tex_parameter_i32(
-				glow::TEXTURE_2D,
-				glow::TEXTURE_MIN_FILTER,
-				settings.minifying_filter.as_u32() as i32,
-			);
-			gl.tex_parameter_i32(
-				glow::TEXTURE_2D,
-				glow::TEXTURE_MAG_FILTER,
-				settings.magnifying_filter.as_u32() as i32,
-			);
-			gl.tex_image_2d(
-				glow::TEXTURE_2D,
-				0,
-				if float {
-					glow::RGBA16F
-				} else {
-					glow::SRGB8_ALPHA8
-				} as i32,
-				size.x as i32,
-				size.y as i32,
-				0,
-				glow::RGBA,
-				if float {
-					glow::FLOAT
-				} else {
-					glow::UNSIGNED_BYTE
+		let texture_extent = Extent3d {
+			width: size.x,
+			height: size.y,
+			depth_or_array_layers: 1,
+		};
+		let texture = device.create_texture(&TextureDescriptor {
+			label: None,
+			size: texture_extent,
+			mip_level_count: 1,
+			sample_count: internal_settings.sample_count,
+			dimension: TextureDimension::D2,
+			format: internal_settings.format,
+			usage: TextureUsages::TEXTURE_BINDING
+				| TextureUsages::COPY_DST
+				| TextureUsages::RENDER_ATTACHMENT,
+			view_formats: &[],
+		});
+		if let Some(pixels) = pixels {
+			queue.write_texture(
+				TexelCopyTextureInfo {
+					texture: &texture,
+					mip_level: 0,
+					origin: Origin3d::ZERO,
+					aspect: TextureAspect::All,
 				},
-				PixelUnpackData::Slice(pixels),
+				pixels,
+				TexelCopyBufferLayout {
+					offset: 0,
+					bytes_per_row: Some(4 * size.x),
+					rows_per_image: Some(size.y),
+				},
+				texture_extent,
 			);
-			gl.generate_mipmap(glow::TEXTURE_2D);
 		}
-		let (id, weak) = raw_textures.insert(RawTexture {
-			gl: gl.clone(),
-			texture,
+		let view = texture.create_view(&TextureViewDescriptor::default());
+		let sampler = device.create_sampler(&SamplerDescriptor {
+			label: None,
+			address_mode_u: settings.address_mode_x,
+			address_mode_v: settings.address_mode_y,
+			address_mode_w: AddressMode::default(),
+			mag_filter: settings.magnifying_filter,
+			min_filter: settings.minifying_filter,
+			border_color: Some(settings.border_color),
+			..Default::default()
 		});
 		Self {
-			id,
-			_weak: weak,
+			texture,
+			view,
+			sampler,
 			size,
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
-			shader: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
+			scissor_rect: None,
+			
 		}
 	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serializing", serde(default))]
-pub struct TextureSettings {
-	pub wrapping: TextureWrapping,
-	pub minifying_filter: TextureFilter,
-	pub magnifying_filter: TextureFilter,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub enum TextureWrapping {
-	Repeat,
-	MirroredRepeat,
-	ClampToEdge,
-	ClampToBorder(LinSrgba),
+#[cfg_attr(feature = "serializing", serde(default))]
+pub struct TextureSettings {
+	pub address_mode_x: AddressMode,
+	pub address_mode_y: AddressMode,
+	pub border_color: SamplerBorderColor,
+	pub minifying_filter: FilterMode,
+	pub magnifying_filter: FilterMode,
 }
 
-impl TextureWrapping {
-	fn as_u32(&self) -> u32 {
-		match self {
-			TextureWrapping::Repeat => glow::REPEAT,
-			TextureWrapping::MirroredRepeat => glow::MIRRORED_REPEAT,
-			TextureWrapping::ClampToEdge => glow::CLAMP_TO_EDGE,
-			TextureWrapping::ClampToBorder(_) => glow::CLAMP_TO_BORDER,
-		}
-	}
-}
-
-impl Default for TextureWrapping {
+impl Default for TextureSettings {
 	fn default() -> Self {
-		Self::Repeat
-	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub enum TextureFilter {
-	Nearest,
-	Linear,
-}
-
-impl TextureFilter {
-	fn as_u32(&self) -> u32 {
-		match self {
-			TextureFilter::Nearest => glow::NEAREST,
-			TextureFilter::Linear => glow::LINEAR,
+		Self {
+			address_mode_x: Default::default(),
+			address_mode_y: Default::default(),
+			border_color: SamplerBorderColor::TransparentBlack,
+			minifying_filter: Default::default(),
+			magnifying_filter: Default::default(),
 		}
-	}
-}
-
-impl Default for TextureFilter {
-	fn default() -> Self {
-		Self::Nearest
 	}
 }
 
@@ -284,31 +238,17 @@ pub enum LoadTextureError {
 	ImageError(ImageError),
 }
 
-#[derive(Debug)]
-pub(crate) struct RawTexture {
-	gl: Rc<glow::Context>,
-	pub texture: NativeTexture,
-}
-
-impl Drop for RawTexture {
-	fn drop(&mut self) {
-		unsafe {
-			self.gl.delete_texture(self.texture);
-		}
-	}
-}
-
-impl GraphicsResource for RawTexture {
-	type Id = TextureId;
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct TextureId(pub u64);
+pub(crate) struct InternalTextureSettings {
+	pub(crate) format: TextureFormat,
+	pub(crate) sample_count: u32,
+}
 
-static NEXT_TEXTURE_ID: AtomicU64 = AtomicU64::new(0);
-
-impl GraphicsResourceId for TextureId {
-	fn next() -> Self {
-		TextureId(NEXT_TEXTURE_ID.fetch_add(1, Ordering::SeqCst))
+impl Default for InternalTextureSettings {
+	fn default() -> Self {
+		Self {
+			format: TextureFormat::Rgba8UnormSrgb,
+			sample_count: 1,
+		}
 	}
 }

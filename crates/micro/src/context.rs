@@ -2,64 +2,56 @@ pub(crate) mod graphics;
 
 use std::{
 	collections::HashMap,
-	fmt::Debug,
 	ops::{Deref, DerefMut},
 	time::{Duration, Instant},
 };
 
-use glam::{Affine2, IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
-use glow::HasContext;
-use palette::LinSrgba;
+use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
+use graphics::GraphicsContext;
+use palette::LinSrgb;
 use sdl2::{
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
-	video::{FullscreenType, GLProfile, SwapInterval, Window, WindowPos},
+	video::{FullscreenType, Window, WindowPos},
 };
-use tracy_client::SpanLocation;
+use wgpu::PresentMode;
 
 use crate::{
-	App, Event, SdlError, build_window,
-	color::ColorConstants,
+	App, Event, FrameTimeTracker, SdlError,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	graphics::{
-		Camera3d, Canvas, CanvasSettings, Msaa, StencilAction, StencilTest, gpu_span::GpuSpan,
-	},
+	graphics::{Shader, Vertex, graphics_pipeline::GraphicsPipeline},
 	input::{Gamepad, MouseButton, Scancode},
-	time::FrameTimeTracker,
-	window::WindowMode,
+	window::{WindowMode, build_window},
 };
 
-use self::graphics::GraphicsContext;
-
-/// Runs the game. Call this in your `main` function.
-pub fn run<S, F, E>(settings: ContextSettings, app_constructor: F) -> Result<(), E>
-where
-	S: App<Error = E>,
-	F: FnMut(&mut Context) -> Result<S, E>,
-	E: Debug,
-{
-	run_inner(settings, app_constructor)
-}
-
-fn run_inner<S, F, E>(settings: ContextSettings, mut app_constructor: F) -> Result<(), E>
+pub fn run<S, F, E>(settings: ContextSettings, mut app_constructor: F) -> Result<(), E>
 where
 	S: App<Error = E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 {
-	tracy_client::Client::start();
+	let sdl = sdl2::init().expect("error initializing SDL");
+	let video = sdl.video().expect("error initializing video subsystem");
+	let controller = sdl
+		.game_controller()
+		.expect("error initializing controller subsystem");
+	let mut window = build_window(&video, &settings);
+	let event_pump = sdl.event_pump().expect("error creating event pump");
+	let graphics = GraphicsContext::new(&window, settings.present_mode);
 
-	// create contexts and resources
-	let mut ctx = Context::new(&settings);
+	let mut ctx = Context {
+		_sdl: sdl,
+		video,
+		window: &mut window,
+		controller,
+		event_pump,
+		egui_wants_keyboard_input: false,
+		egui_wants_mouse_input: false,
+		frame_time_tracker: FrameTimeTracker::new(),
+		graphics,
+		should_quit: false,
+	};
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
 	let mut app = app_constructor(&mut ctx)?;
-	let main_canvas = if let ScalingMode::Pixelated {
-		base_size: size, ..
-	} = settings.scaling_mode
-	{
-		Some(Canvas::new(&mut ctx, size, CanvasSettings::default()))
-	} else {
-		None
-	};
 
 	let mut last_update_time = Instant::now();
 
@@ -95,12 +87,8 @@ where
 				Event::Exited => ctx.should_quit = true,
 				_ => {}
 			}
-			let transform = ctx.scaling_mode.transform_affine2(&ctx).inverse();
 			let dpi_scaling = ctx.window_size().y as f32 / ctx.logical_window_size().y as f32;
-			app.event(
-				&mut ctx,
-				event.transform_mouse_events(transform, dpi_scaling),
-			)?;
+			app.event(&mut ctx, event.transform_mouse_events(dpi_scaling))?;
 		}
 		drop(span);
 		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
@@ -113,59 +101,39 @@ where
 
 		// draw state and egui UI
 		let span = tracy_client::span!("draw");
-		if let Some(main_canvas) = &main_canvas {
-			ctx.clear(LinSrgba::BLACK);
-			{
-				let ctx = &mut main_canvas.render_to(&mut ctx);
-				app.draw(ctx)?;
-			}
-			let transform = ctx.scaling_mode.transform_mat4(&ctx);
-			main_canvas.transformed(transform).draw(&mut ctx);
-		} else {
-			let ctx = &mut ctx.push_transform(ctx.scaling_mode.transform_mat4(&ctx));
-			app.draw(ctx)?;
-		}
+
 		drop(span);
+		app.draw(&mut ctx)?;
 		let span = tracy_client::span!("draw egui UI");
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		drop(span);
-		ctx.window.gl_swap_window();
+		ctx.graphics.present();
 
 		tracy_client::frame_mark();
-		ctx.graphics.record_queries();
-
-		let span = tracy_client::span!("delete unused resources");
-		ctx.graphics.delete_unused_resources();
-		drop(span);
+		// ctx.graphics.record_queries();
 
 		if ctx.should_quit {
 			break;
 		}
 	}
+
 	Ok(())
 }
 
-/// The main interface between your game code and functionality provided
-/// by the framework.
-pub struct Context {
+pub struct Context<'window> {
 	_sdl: Sdl,
 	pub(crate) video: VideoSubsystem,
-	pub(crate) window: Window,
+	pub(crate) window: &'window mut Window,
 	pub(crate) controller: GameControllerSubsystem,
 	pub(crate) event_pump: EventPump,
 	pub(crate) egui_wants_keyboard_input: bool,
 	pub(crate) egui_wants_mouse_input: bool,
-	pub(crate) graphics: GraphicsContext,
-	pub(crate) scaling_mode: ScalingMode,
+	pub(crate) graphics: GraphicsContext<'window>,
 	pub(crate) frame_time_tracker: FrameTimeTracker,
 	pub(crate) should_quit: bool,
 }
 
-impl Context {
-	pub fn max_msaa_level(&self) -> Msaa {
-		unsafe { self.graphics.gl.get_parameter_i32(glow::MAX_SAMPLES) }.into()
-	}
-
+impl<'window> Context<'window> {
 	/// Gets the drawable size of the window (in pixels).
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.drawable_size();
@@ -187,11 +155,6 @@ impl Context {
 			FullscreenType::True => WindowMode::Fullscreen,
 			FullscreenType::Desktop => WindowMode::Fullscreen,
 		}
-	}
-
-	/// Returns the current swap interval (vsync on or off).
-	pub fn swap_interval(&self) -> SwapInterval {
-		self.video.gl_get_swap_interval()
 	}
 
 	/// Returns the resolution of the monitor the window is on.
@@ -222,42 +185,36 @@ impl Context {
 		Ok(())
 	}
 
-	/// Sets the swap interval (vsync on or off).
-	pub fn set_swap_interval(&self, swap_interval: SwapInterval) -> Result<(), SdlError> {
-		self.video.gl_set_swap_interval(swap_interval)?;
-		Ok(())
+	pub fn present_mode(&self) -> PresentMode {
+		self.graphics.present_mode()
 	}
 
-	/// Clears the window surface to the given color. Also clears the stencil buffer and depth buffer.
-	pub fn clear(&self, color: impl Into<LinSrgba>) {
-		let color = color.into();
-		unsafe {
-			self.graphics
-				.gl
-				.clear_color(color.red, color.green, color.blue, color.alpha);
-			self.graphics.gl.stencil_mask(0xFF);
-			self.graphics.gl.clear_stencil(0);
-			self.graphics
-				.gl
-				.clear(glow::COLOR_BUFFER_BIT | glow::STENCIL_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
-			self.graphics.gl.stencil_mask(0x00);
-		}
+	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
+		self.graphics.set_present_mode(present_mode);
 	}
 
-	/// Clears the stencil buffer.
-	pub fn clear_stencil(&self) {
-		unsafe {
-			self.graphics.gl.stencil_mask(0xFF);
-			self.graphics.gl.clear_stencil(0);
-			self.graphics.gl.clear(glow::STENCIL_BUFFER_BIT);
-			self.graphics.gl.stencil_mask(0x00);
-		}
+	pub fn supported_sample_counts(&self) -> &[u32] {
+		&self.graphics.supported_sample_counts
 	}
 
-	/// Clears the depth buffer.
-	pub fn clear_depth_buffer(&self) {
-		unsafe {
-			self.graphics.gl.clear(glow::DEPTH_BUFFER_BIT);
+	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
+		self.graphics.clear_color = color.into();
+	}
+
+	pub fn push_graphics_pipeline<S, V>(
+		&mut self,
+		graphics_pipeline: &GraphicsPipeline<S, V>,
+	) -> OnDrop<'_, 'window>
+	where
+		S: Shader<Vertex = V>,
+		V: Vertex,
+	{
+		self.graphics
+			.graphics_pipeline_stack
+			.push(graphics_pipeline.raw());
+		OnDrop {
+			ctx: self,
+			action: OnDropAction::PopGraphicsPipeline,
 		}
 	}
 
@@ -265,7 +222,7 @@ impl Context {
 	/// applied.
 	///
 	/// Calls to `push_transform` can be nested.
-	pub fn push_transform(&mut self, transform: impl Into<Mat4>) -> OnDrop {
+	pub fn push_transform(&mut self, transform: impl Into<Mat4>) -> OnDrop<'_, 'window> {
 		let transform = transform.into();
 		self.graphics.transform_stack.push(transform);
 		OnDrop {
@@ -274,117 +231,66 @@ impl Context {
 		}
 	}
 
-	pub fn push_translation_2d(&mut self, translation: impl Into<Vec2>) -> OnDrop<'_> {
+	pub fn push_translation_2d(&mut self, translation: impl Into<Vec2>) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_translation(translation.into().extend(0.0)))
 	}
 
-	pub fn push_translation_3d(&mut self, translation: impl Into<Vec3>) -> OnDrop<'_> {
+	pub fn push_translation_3d(&mut self, translation: impl Into<Vec3>) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_translation(translation.into()))
 	}
 
-	pub fn push_translation_x(&mut self, translation: f32) -> OnDrop<'_> {
+	pub fn push_translation_x(&mut self, translation: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
 	}
 
-	pub fn push_translation_y(&mut self, translation: f32) -> OnDrop<'_> {
+	pub fn push_translation_y(&mut self, translation: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
 	}
 
-	pub fn push_translation_z(&mut self, translation: f32) -> OnDrop<'_> {
+	pub fn push_translation_z(&mut self, translation: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
 	}
 
-	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_> {
+	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_scale(scale.into().extend(0.0)))
 	}
 
-	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_> {
+	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_scale(scale.into()))
 	}
 
-	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_> {
+	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
 	}
 
-	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_> {
+	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
 	}
 
-	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_> {
+	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
 	}
 
-	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_> {
+	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_rotation_x(rotation))
 	}
 
-	pub fn push_rotation_y(&mut self, rotation: f32) -> OnDrop<'_> {
+	pub fn push_rotation_y(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_rotation_y(rotation))
 	}
 
-	pub fn push_rotation_z(&mut self, rotation: f32) -> OnDrop<'_> {
+	pub fn push_rotation_z(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
 		self.push_transform(Mat4::from_rotation_z(rotation))
 	}
 
-	/// Creates a scope where all drawing operations use the given 3D camera.
-	///
-	/// This also turns on the depth buffer.
-	pub fn use_3d_camera(&mut self, camera: Camera3d) -> OnDrop {
-		let _span = tracy_client::span!();
-		let transform = camera.transform(self);
-		self.graphics.transform_stack.push(transform);
-		unsafe {
-			self.graphics.gl.enable(glow::DEPTH_TEST);
-		}
+	pub fn push_stencil_reference(&mut self, stencil_reference: u8) -> OnDrop<'_, 'window> {
+		self.graphics
+			.stencil_reference_stack
+			.push(stencil_reference);
 		OnDrop {
 			ctx: self,
-			action: OnDropAction::StopUsingCamera,
+			action: OnDropAction::PopStencilReference,
 		}
-	}
-
-	pub fn write_to_stencil(&mut self, action: StencilAction) -> OnDrop {
-		let _span = tracy_client::span!();
-		unsafe {
-			self.graphics.gl.color_mask(false, false, false, false);
-			self.graphics.gl.enable(glow::STENCIL_TEST);
-			let op = action.as_glow_stencil_op();
-			self.graphics.gl.stencil_op(glow::KEEP, glow::KEEP, op);
-			let reference = match action {
-				StencilAction::Replace(value) => value,
-				_ => 0,
-			};
-			self.graphics
-				.gl
-				.stencil_func(glow::ALWAYS, reference.into(), 0xFF);
-			self.graphics.gl.stencil_mask(0xFF);
-			self.graphics.gl.depth_mask(false);
-		}
-		OnDrop {
-			ctx: self,
-			action: OnDropAction::StopWritingToStencil,
-		}
-	}
-
-	pub fn use_stencil(&mut self, test: StencilTest, reference: u8) -> OnDrop {
-		let _span = tracy_client::span!();
-		unsafe {
-			self.graphics.gl.enable(glow::STENCIL_TEST);
-			self.graphics
-				.gl
-				.stencil_op(glow::KEEP, glow::KEEP, glow::KEEP);
-			self.graphics
-				.gl
-				.stencil_func(test.as_glow_stencil_func(), reference.into(), 0xFF);
-			self.graphics.gl.stencil_mask(0x00);
-		}
-		OnDrop {
-			ctx: self,
-			action: OnDropAction::StopUsingStencil,
-		}
-	}
-
-	pub fn create_gpu_span(&mut self, span_location: &'static SpanLocation) -> GpuSpan {
-		self.graphics.create_gpu_span(span_location)
 	}
 
 	/// Returns `true` if the given keyboard key is currently held down.
@@ -408,16 +314,11 @@ impl Context {
 	pub fn mouse_position(&self) -> IVec2 {
 		let mouse_state = self.event_pump.mouse_state();
 		let dpi_scaling = self.window_size().y as f32 / self.logical_window_size().y as f32;
-		let untransformed = vec2(
+		vec2(
 			mouse_state.x() as f32 * dpi_scaling,
 			mouse_state.y() as f32 * dpi_scaling,
 		)
-		.as_ivec2();
-		self.scaling_mode
-			.transform_affine2(self)
-			.inverse()
-			.transform_point2(untransformed.as_vec2())
-			.as_ivec2()
+		.as_ivec2()
 	}
 
 	/// Gets the gamepad with the given index if it's connected.
@@ -447,38 +348,6 @@ impl Context {
 	pub fn quit(&mut self) {
 		self.should_quit = true;
 	}
-
-	fn new(settings: &ContextSettings) -> Self {
-		let sdl = sdl2::init().expect("error initializing SDL");
-		let video = sdl.video().expect("error initializing video subsystem");
-		let controller = sdl
-			.game_controller()
-			.expect("error initializing controller subsystem");
-		let gl_attr = video.gl_attr();
-		gl_attr.set_context_profile(GLProfile::Core);
-		gl_attr.set_context_version(3, 3);
-		gl_attr.set_stencil_size(8);
-		gl_attr.set_framebuffer_srgb_compatible(true);
-		let window = build_window(&video, settings);
-		let event_pump = sdl.event_pump().expect("error creating event pump");
-		let graphics = GraphicsContext::new(&video, &window);
-		video
-			.gl_set_swap_interval(settings.swap_interval)
-			.expect("error setting swap interval");
-		Self {
-			_sdl: sdl,
-			video,
-			window,
-			controller,
-			event_pump,
-			egui_wants_keyboard_input: false,
-			egui_wants_mouse_input: false,
-			graphics,
-			scaling_mode: settings.scaling_mode,
-			frame_time_tracker: FrameTimeTracker::new(),
-			should_quit: false,
-		}
-	}
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -486,8 +355,7 @@ pub struct ContextSettings {
 	pub window_title: String,
 	pub window_mode: WindowMode,
 	pub resizable: bool,
-	pub swap_interval: SwapInterval,
-	pub scaling_mode: ScalingMode,
+	pub present_mode: PresentMode,
 }
 
 impl Default for ContextSettings {
@@ -496,124 +364,42 @@ impl Default for ContextSettings {
 			window_title: "Game".into(),
 			window_mode: WindowMode::default(),
 			resizable: false,
-			swap_interval: SwapInterval::VSync,
-			scaling_mode: ScalingMode::default(),
-		}
-	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum ScalingMode {
-	#[default]
-	None,
-	Smooth {
-		base_size: UVec2,
-	},
-	Pixelated {
-		base_size: UVec2,
-		integer_scale: bool,
-	},
-}
-
-impl ScalingMode {
-	pub(crate) fn transform_affine2(&self, ctx: &Context) -> Affine2 {
-		let _span = tracy_client::span!();
-		match self {
-			ScalingMode::None => Affine2::IDENTITY,
-			ScalingMode::Smooth { base_size } => {
-				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
-				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
-				let scale = max_horizontal_scale.min(max_vertical_scale);
-				Affine2::from_translation(ctx.window_size().as_vec2() / 2.0)
-					* Affine2::from_scale(Vec2::splat(scale))
-					* Affine2::from_translation(-base_size.as_vec2() / 2.0)
-			}
-			ScalingMode::Pixelated {
-				base_size,
-				integer_scale,
-			} => {
-				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
-				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
-				let mut scale = max_horizontal_scale.min(max_vertical_scale);
-				if *integer_scale {
-					scale = scale.floor();
-				}
-				Affine2::from_translation((ctx.window_size().as_vec2() / 2.0).round())
-					* Affine2::from_scale(Vec2::splat(scale))
-					* Affine2::from_translation((-base_size.as_vec2() / 2.0).round())
-			}
-		}
-	}
-
-	fn transform_mat4(&self, ctx: &Context) -> Mat4 {
-		let _span = tracy_client::span!();
-		match self {
-			ScalingMode::None => Mat4::IDENTITY,
-			ScalingMode::Smooth { base_size } => {
-				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
-				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
-				let scale = max_horizontal_scale.min(max_vertical_scale);
-				Mat4::from_translation((ctx.window_size().as_vec2() / 2.0).extend(0.0))
-					* Mat4::from_scale(Vec2::splat(scale).extend(1.0))
-					* Mat4::from_translation((-base_size.as_vec2() / 2.0).extend(0.0))
-			}
-			ScalingMode::Pixelated {
-				base_size,
-				integer_scale,
-			} => {
-				let max_horizontal_scale = ctx.window_size().x as f32 / base_size.x as f32;
-				let max_vertical_scale = ctx.window_size().y as f32 / base_size.y as f32;
-				let mut scale = max_horizontal_scale.min(max_vertical_scale);
-				if *integer_scale {
-					scale = scale.floor();
-				}
-				Mat4::from_translation((ctx.window_size().as_vec2() / 2.0).extend(0.0))
-					* Mat4::from_scale(Vec2::splat(scale).extend(1.0))
-					* Mat4::from_translation((-base_size.as_vec2() / 2.0).extend(0.0))
-			}
+			present_mode: PresentMode::AutoVsync,
 		}
 	}
 }
 
 #[must_use]
-pub struct OnDrop<'a> {
-	ctx: &'a mut Context,
+pub struct OnDrop<'a, 'window> {
+	ctx: &'a mut Context<'window>,
 	action: OnDropAction,
 }
 
-impl Drop for OnDrop<'_> {
+impl Drop for OnDrop<'_, '_> {
 	fn drop(&mut self) {
 		match self.action {
 			OnDropAction::PopTransform => {
 				self.ctx.graphics.transform_stack.pop();
 			}
-			OnDropAction::StopUsingCamera => {
-				self.ctx.graphics.transform_stack.pop();
-				unsafe {
-					self.ctx.graphics.gl.disable(glow::DEPTH_TEST);
-				}
+			OnDropAction::PopGraphicsPipeline => {
+				self.ctx.graphics.graphics_pipeline_stack.pop();
 			}
-			OnDropAction::StopWritingToStencil => unsafe {
-				self.ctx.graphics.gl.color_mask(true, true, true, true);
-				self.ctx.graphics.gl.disable(glow::STENCIL_TEST);
-				self.ctx.graphics.gl.depth_mask(true);
-			},
-			OnDropAction::StopUsingStencil => unsafe {
-				self.ctx.graphics.gl.disable(glow::STENCIL_TEST);
-			},
+			OnDropAction::PopStencilReference => {
+				self.ctx.graphics.stencil_reference_stack.pop();
+			}
 		}
 	}
 }
 
-impl Deref for OnDrop<'_> {
-	type Target = Context;
+impl<'window> Deref for OnDrop<'_, 'window> {
+	type Target = Context<'window>;
 
 	fn deref(&self) -> &Self::Target {
 		self.ctx
 	}
 }
 
-impl DerefMut for OnDrop<'_> {
+impl DerefMut for OnDrop<'_, '_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}
@@ -621,7 +407,6 @@ impl DerefMut for OnDrop<'_> {
 
 enum OnDropAction {
 	PopTransform,
-	StopUsingCamera,
-	StopWritingToStencil,
-	StopUsingStencil,
+	PopGraphicsPipeline,
+	PopStencilReference,
 }

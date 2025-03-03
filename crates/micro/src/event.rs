@@ -1,4 +1,4 @@
-use glam::{Affine2, IVec2, UVec2};
+use glam::{IVec2, UVec2};
 
 use crate::input::{Axis, Button, MouseButton, Scancode};
 
@@ -42,33 +42,25 @@ pub enum Event {
 }
 
 impl Event {
-	pub fn transform_mouse_events(self, transform: Affine2, dpi_scaling: f32) -> Self {
+	pub fn transform_mouse_events(self, dpi_scaling: f32) -> Self {
 		match self {
 			Self::MouseMoved { position, delta } => Self::MouseMoved {
-				position: transform
-					.transform_point2(position.as_vec2() * dpi_scaling)
-					.as_ivec2(),
-				delta: transform
-					.transform_vector2(delta.as_vec2() * dpi_scaling)
-					.as_ivec2(),
+				position: (position.as_vec2() * dpi_scaling).as_ivec2(),
+				delta: (delta.as_vec2() * dpi_scaling).as_ivec2(),
 			},
 			Self::MouseButtonPressed {
 				button,
 				mouse_position,
 			} => Self::MouseButtonPressed {
 				button,
-				mouse_position: transform
-					.transform_point2(mouse_position.as_vec2() * dpi_scaling)
-					.as_ivec2(),
+				mouse_position: (mouse_position.as_vec2() * dpi_scaling).as_ivec2(),
 			},
 			Self::MouseButtonReleased {
 				button,
 				mouse_position,
 			} => Self::MouseButtonReleased {
 				button,
-				mouse_position: transform
-					.transform_point2(mouse_position.as_vec2() * dpi_scaling)
-					.as_ivec2(),
+				mouse_position: (mouse_position.as_vec2() * dpi_scaling).as_ivec2(),
 			},
 			_ => self,
 		}

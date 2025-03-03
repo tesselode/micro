@@ -1,145 +1,375 @@
-use std::{cell::RefCell, rc::Rc};
-
-use glam::{IVec2, Mat4, UVec2, Vec3};
-use glow::HasContext;
-use sdl2::{
-	VideoSubsystem,
-	video::{GLContext, Window},
-};
-use tracy_client::{GpuContextType, SpanLocation};
-
-use crate::graphics::{
-	RawCanvas, RawVertexAttributeBuffer,
-	gpu_span::{GpuSpan, GpuSpanInner},
-	mesh::RawMesh,
-	resource::GraphicsResources,
-	shader::{DEFAULT_FRAGMENT_SHADER, DEFAULT_VERTEX_SHADER, RawShader, Shader},
-	texture::{RawTexture, Texture, TextureSettings},
+use bytemuck::{Pod, Zeroable};
+use glam::{Mat4, UVec2, Vec3, uvec2};
+use palette::{LinSrgb, LinSrgba};
+use sdl2::video::Window;
+use wgpu::{
+	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
+	CompositeAlphaMode, Device, DeviceDescriptor, Features, IndexFormat, Instance, LoadOp,
+	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
+	RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
+	SamplerBindingType, ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe,
+	TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension,
+	util::{BufferInitDescriptor, DeviceExt},
 };
 
-pub(crate) struct GraphicsContext {
-	pub(crate) gl: Rc<glow::Context>,
-	pub(crate) meshes: GraphicsResources<RawMesh>,
-	pub(crate) textures: GraphicsResources<RawTexture>,
-	pub(crate) shaders: GraphicsResources<RawShader>,
-	pub(crate) canvases: GraphicsResources<RawCanvas>,
-	pub(crate) vertex_attribute_buffers: GraphicsResources<RawVertexAttributeBuffer>,
-	pub(crate) default_texture: Texture,
-	pub(crate) default_shader: Shader,
+use crate::{
+	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
+	graphics::{
+		DefaultShader, InstanceBuffer, Vertex2d,
+		canvas::{Canvas, CanvasKind, RenderToCanvasSettings},
+		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineBuilder, RawGraphicsPipeline},
+		texture::{InternalTextureSettings, Texture, TextureSettings},
+	},
+	math::URect,
+};
+
+pub(crate) struct GraphicsContext<'window> {
+	pub(crate) device: Device,
+	pub(crate) queue: Queue,
+	pub(crate) supported_sample_counts: Vec<u32>,
+	config: SurfaceConfiguration,
+	surface: Surface<'window>,
+	main_surface_depth_stencil_texture: Texture,
+	pub(crate) mesh_bind_group_layout: BindGroupLayout,
+	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
+	default_texture: Texture,
+	pub(crate) clear_color: LinSrgb,
+	pub(crate) graphics_pipeline_stack: Vec<RawGraphicsPipeline>,
 	pub(crate) transform_stack: Vec<Mat4>,
-	pub(crate) render_target: RenderTarget,
-	pub(crate) tracy_gpu_ctx: tracy_client::GpuContext,
-	gpu_spans: Vec<Rc<RefCell<GpuSpanInner>>>,
-	viewport_size: IVec2,
-	_sdl_gl_ctx: GLContext,
+	pub(crate) stencil_reference_stack: Vec<u8>,
+	main_surface_draw_commands: Vec<DrawCommand>,
+	current_canvas_render_pass: Option<CanvasRenderPass>,
+	finished_canvas_render_passes: Vec<CanvasRenderPass>,
 }
 
-impl GraphicsContext {
-	pub(crate) fn new(video: &VideoSubsystem, window: &Window) -> Self {
-		let _sdl_gl_ctx = window
-			.gl_create_context()
-			.expect("error creating OpenGL context");
-		let (window_width, window_height) = window.drawable_size();
-		let viewport_size = UVec2::new(window_width, window_height).as_ivec2();
-		let gl = Rc::new(unsafe {
-			glow::Context::from_loader_function(|name| video.gl_get_proc_address(name) as *const _)
-		});
-		unsafe {
-			gl.enable(glow::BLEND);
-			gl.enable(glow::FRAMEBUFFER_SRGB);
-			gl.enable(glow::CLIP_DISTANCE0);
-			gl.blend_func(glow::SRC_ALPHA, glow::ONE_MINUS_SRC_ALPHA);
-			gl.viewport(0, 0, viewport_size.x, viewport_size.y);
+impl GraphicsContext<'_> {
+	pub(crate) fn new(window: &Window, present_mode: PresentMode) -> Self {
+		let instance = Instance::new(&Default::default());
+		let surface = unsafe {
+			instance.create_surface_unsafe(
+				SurfaceTargetUnsafe::from_window(window)
+					.expect("error creating surface target from window"),
+			)
 		}
-		let meshes = GraphicsResources::new();
-		let mut textures = GraphicsResources::new();
-		let mut shaders = GraphicsResources::new();
-		let canvases = GraphicsResources::new();
-		let vertex_attribute_buffers = GraphicsResources::new();
+		.expect("error creating surface");
+		let adapter = pollster::block_on(instance.request_adapter(&RequestAdapterOptions {
+			power_preference: PowerPreference::HighPerformance,
+			compatible_surface: Some(&surface),
+			..Default::default()
+		}))
+		.expect("error getting graphics adapter");
+		let supported_sample_counts = adapter
+			.get_texture_format_features(TextureFormat::Rgba8UnormSrgb)
+			.flags
+			.supported_sample_counts();
+		let (device, queue) = pollster::block_on(adapter.request_device(
+			&DeviceDescriptor {
+				required_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+				..Default::default()
+			},
+			None,
+		))
+		.expect("error getting graphics device");
+		let mesh_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+			label: None,
+			entries: &[
+				BindGroupLayoutEntry {
+					binding: 0,
+					visibility: ShaderStages::VERTEX,
+					ty: BindingType::Buffer {
+						ty: BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				},
+				BindGroupLayoutEntry {
+					binding: 1,
+					visibility: ShaderStages::FRAGMENT,
+					ty: BindingType::Texture {
+						sample_type: TextureSampleType::Float { filterable: true },
+						view_dimension: TextureViewDimension::D2,
+						multisampled: false,
+					},
+					count: None,
+				},
+				BindGroupLayoutEntry {
+					binding: 2,
+					visibility: ShaderStages::FRAGMENT,
+					ty: BindingType::Sampler(SamplerBindingType::Filtering),
+					count: None,
+				},
+			],
+		});
+		let shader_params_bind_group_layout =
+			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+				label: None,
+				entries: &[BindGroupLayoutEntry {
+					binding: 0,
+					visibility: ShaderStages::VERTEX_FRAGMENT,
+					ty: BindingType::Buffer {
+						ty: BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+			});
+		let surface_capabilities = surface.get_capabilities(&adapter);
+		let surface_format = surface_capabilities
+			.formats
+			.iter()
+			.copied()
+			.find(|f| f.is_srgb())
+			.unwrap_or(surface_capabilities.formats[0]);
+		let (width, height) = window.size();
+		let config = SurfaceConfiguration {
+			usage: TextureUsages::RENDER_ATTACHMENT,
+			format: surface_format,
+			width,
+			height,
+			present_mode,
+			desired_maximum_frame_latency: 1,
+			alpha_mode: CompositeAlphaMode::Auto,
+			view_formats: vec![],
+		};
+		surface.configure(&device, &config);
+		let main_surface_depth_stencil_texture = Texture::new(
+			&device,
+			&queue,
+			uvec2(width, height),
+			None,
+			TextureSettings::default(),
+			InternalTextureSettings {
+				format: TextureFormat::Depth24PlusStencil8,
+				sample_count: 1,
+			},
+		);
+		let default_graphics_pipeline = GraphicsPipeline::<DefaultShader, Vertex2d>::new_internal(
+			&device,
+			&mesh_bind_group_layout,
+			&shader_params_bind_group_layout,
+			GraphicsPipelineBuilder::default(),
+		)
+		.raw();
 		let default_texture = Texture::new(
-			gl.clone(),
-			&mut textures,
+			&device,
+			&queue,
 			UVec2::new(1, 1),
 			Some(&[255, 255, 255, 255]),
 			TextureSettings::default(),
-			false,
+			InternalTextureSettings::default(),
 		);
-		let default_shader = Shader::new(
-			gl.clone(),
-			&mut shaders,
-			DEFAULT_VERTEX_SHADER,
-			DEFAULT_FRAGMENT_SHADER,
-		)
-		.expect("error compiling default shader");
-		let gpu_timestamp = unsafe { gl.get_parameter_i64(glow::TIMESTAMP) };
 		Self {
-			gl,
-			meshes,
-			textures,
-			shaders,
-			canvases,
+			device,
+			queue,
+			supported_sample_counts,
+			config,
+			surface,
+			main_surface_depth_stencil_texture,
+			mesh_bind_group_layout,
+			shader_params_bind_group_layout,
 			default_texture,
-			default_shader,
-			vertex_attribute_buffers,
+			clear_color: LinSrgb::BLACK,
+			graphics_pipeline_stack: vec![default_graphics_pipeline],
 			transform_stack: vec![],
-			render_target: RenderTarget::Window,
-			tracy_gpu_ctx: tracy_client::Client::running()
-				.unwrap()
-				.new_gpu_context(
-					Some("GPU context"),
-					GpuContextType::OpenGL,
-					gpu_timestamp,
-					1.0,
-				)
-				.unwrap(),
-			gpu_spans: vec![],
-			viewport_size,
-			_sdl_gl_ctx,
+			stencil_reference_stack: vec![0],
+			main_surface_draw_commands: vec![],
+			current_canvas_render_pass: None,
+			finished_canvas_render_passes: vec![],
 		}
 	}
 
-	pub(crate) fn set_render_target(&mut self, render_target: RenderTarget) {
-		self.render_target = render_target;
-		let viewport_size: IVec2 = match render_target {
-			RenderTarget::Window => self.viewport_size,
-			RenderTarget::Canvas { size } => size.as_ivec2(),
+	pub(crate) fn start_canvas_render_pass(
+		&mut self,
+		canvas: Canvas,
+		settings: RenderToCanvasSettings,
+	) {
+		if self.current_canvas_render_pass.is_some() {
+			panic!("cannot nest render_to calls");
+		}
+		self.current_canvas_render_pass = Some(CanvasRenderPass {
+			canvas,
+			settings,
+			draw_commands: vec![],
+		});
+	}
+
+	pub(crate) fn finish_canvas_render_pass(&mut self) {
+		let canvas_render_pass = self
+			.current_canvas_render_pass
+			.take()
+			.expect("no current canvas render pass");
+		self.finished_canvas_render_passes.push(canvas_render_pass);
+	}
+
+	pub(crate) fn queue_draw_command(&mut self, mut settings: QueueDrawCommandSettings) {
+		settings.draw_params.transform = self.global_transform() * settings.draw_params.transform;
+		let command = DrawCommand {
+			vertex_buffer: settings.vertex_buffer,
+			index_buffer: settings.index_buffer,
+			range: settings.range,
+			graphics_pipeline: self.graphics_pipeline_stack.last().unwrap().clone(),
+			texture: settings.texture,
+			draw_params: settings.draw_params,
+			scissor_rect: settings
+				.scissor_rect
+				.unwrap_or_else(|| self.default_scissor_rect()),
+			stencil_reference: *self.stencil_reference_stack.last().unwrap(),
+			num_instances: settings.num_instances,
+			instance_buffers: settings.instance_buffers,
 		};
-		unsafe {
-			self.gl.viewport(0, 0, viewport_size.x, viewport_size.y);
+		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
+			draw_commands.push(command);
+		} else {
+			self.main_surface_draw_commands.push(command);
 		}
 	}
 
 	pub(crate) fn resize(&mut self, size: UVec2) {
-		self.viewport_size = size.as_ivec2();
-		unsafe {
-			self.gl
-				.viewport(0, 0, self.viewport_size.x, self.viewport_size.y);
+		self.config.width = size.x;
+		self.config.height = size.y;
+		self.surface.configure(&self.device, &self.config);
+		self.main_surface_depth_stencil_texture = Texture::new(
+			&self.device,
+			&self.queue,
+			size,
+			None,
+			TextureSettings::default(),
+			InternalTextureSettings {
+				format: TextureFormat::Depth24PlusStencil8,
+				sample_count: 1,
+			},
+		);
+	}
+
+	pub(crate) fn present_mode(&self) -> PresentMode {
+		self.config.present_mode
+	}
+
+	pub(crate) fn set_present_mode(&mut self, present_mode: PresentMode) {
+		self.config.present_mode = present_mode;
+		self.surface.configure(&self.device, &self.config);
+	}
+
+	pub(crate) fn present(&mut self) {
+		let frame = self
+			.surface
+			.get_current_texture()
+			.expect("error getting surface texture");
+		let output = frame.texture.create_view(&TextureViewDescriptor::default());
+		let mut encoder = self.device.create_command_encoder(&Default::default());
+
+		for CanvasRenderPass {
+			canvas,
+			settings,
+			mut draw_commands,
+		} in self.finished_canvas_render_passes.drain(..)
+		{
+			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+				label: None,
+				color_attachments: &[Some(RenderPassColorAttachment {
+					view: match &canvas.kind {
+						CanvasKind::Normal { texture }
+						| CanvasKind::Multisampled { texture, .. } => &texture.view,
+					},
+					resolve_target: match &canvas.kind {
+						CanvasKind::Normal { .. } => None,
+						CanvasKind::Multisampled {
+							resolve_texture, ..
+						} => Some(&resolve_texture.view),
+					},
+					ops: Operations {
+						load: match settings.clear_color {
+							Some(clear_color) => {
+								LoadOp::Clear(lin_srgba_to_wgpu_color(clear_color))
+							}
+							None => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					},
+				})],
+				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+					view: &canvas.depth_stencil_texture.view,
+					depth_ops: Some(Operations {
+						load: match settings.clear_depth_buffer {
+							true => LoadOp::Clear(1.0),
+							false => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					}),
+					stencil_ops: Some(Operations {
+						load: match settings.clear_stencil_value {
+							true => LoadOp::Clear(0),
+							false => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					}),
+				}),
+				timestamp_writes: None,
+				occlusion_query_set: None,
+			});
+			run_draw_commands(
+				render_pass,
+				&mut draw_commands,
+				&self.device,
+				&self.default_texture,
+				&self.mesh_bind_group_layout,
+			);
 		}
+
+		{
+			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+				label: None,
+				color_attachments: &[Some(RenderPassColorAttachment {
+					view: &output,
+					resolve_target: None,
+					ops: Operations {
+						load: LoadOp::Clear(lin_srgb_to_wgpu_color(self.clear_color)),
+						store: StoreOp::Store,
+					},
+				})],
+				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+					view: &self.main_surface_depth_stencil_texture.view,
+					depth_ops: Some(Operations {
+						load: LoadOp::Clear(1.0),
+						store: StoreOp::Store,
+					}),
+					stencil_ops: Some(Operations {
+						load: LoadOp::Clear(0),
+						store: StoreOp::Store,
+					}),
+				}),
+				timestamp_writes: None,
+				occlusion_query_set: None,
+			});
+			run_draw_commands(
+				render_pass,
+				&mut self.main_surface_draw_commands,
+				&self.device,
+				&self.default_texture,
+				&self.mesh_bind_group_layout,
+			);
+		}
+
+		self.queue.submit([encoder.finish()]);
+		frame.present();
 	}
 
-	pub(crate) fn delete_unused_resources(&mut self) {
-		self.meshes.delete_unused();
-		self.textures.delete_unused();
-		self.shaders.delete_unused();
-		self.canvases.delete_unused();
-		self.vertex_attribute_buffers.delete_unused();
-	}
-
-	pub(crate) fn global_transform(&self) -> Mat4 {
-		let coordinate_system_transform = match self.render_target {
-			RenderTarget::Window => {
-				Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
-					* Mat4::from_scale(Vec3::new(
-						2.0 / self.viewport_size.x as f32,
-						-2.0 / self.viewport_size.y as f32,
-						1.0,
-					))
-			}
-			RenderTarget::Canvas { size } => {
-				Mat4::from_translation(Vec3::new(-1.0, -1.0, 0.0))
-					* Mat4::from_scale(Vec3::new(2.0 / size.x as f32, 2.0 / size.y as f32, 1.0))
-			}
-		};
+	fn global_transform(&self) -> Mat4 {
+		let draw_target_size =
+			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+				canvas.size()
+			} else {
+				uvec2(self.config.width, self.config.height)
+			};
+		let coordinate_system_transform = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+			* Mat4::from_scale(Vec3::new(
+				2.0 / draw_target_size.x as f32,
+				-2.0 / draw_target_size.y as f32,
+				1.0,
+			));
 		self.transform_stack
 			.iter()
 			.fold(coordinate_system_transform, |previous, transform| {
@@ -147,34 +377,112 @@ impl GraphicsContext {
 			})
 	}
 
-	pub(crate) fn create_gpu_span(&mut self, span_location: &'static SpanLocation) -> GpuSpan {
-		let start_query = unsafe { self.gl.create_query() }.unwrap();
-		unsafe {
-			self.gl.query_counter(start_query, glow::TIMESTAMP);
-		}
-		let end_query = unsafe { self.gl.create_query() }.unwrap();
-		let inner = Rc::new(RefCell::new(GpuSpanInner {
-			tracy_gpu_span: self.tracy_gpu_ctx.span(span_location).unwrap(),
-			start_query,
-			end_query,
-		}));
-		self.gpu_spans.push(inner.clone());
-		GpuSpan {
-			gl: self.gl.clone(),
-			inner,
-		}
-	}
-
-	pub(crate) fn record_queries(&mut self) {
-		self.gpu_spans.retain_mut(|span| {
-			let recorded = span.borrow_mut().try_record(self.gl.clone());
-			!recorded
-		});
+	fn default_scissor_rect(&self) -> URect {
+		let size = if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			canvas.size()
+		} else {
+			uvec2(self.config.width, self.config.height)
+		};
+		URect::new(UVec2::ZERO, size)
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum RenderTarget {
-	Window,
-	Canvas { size: UVec2 },
+pub(crate) struct QueueDrawCommandSettings {
+	pub vertex_buffer: Buffer,
+	pub index_buffer: Buffer,
+	pub range: (u32, u32),
+	pub texture: Option<Texture>,
+	pub draw_params: DrawParams,
+	pub scissor_rect: Option<URect>,
+	pub num_instances: u32,
+	pub instance_buffers: Vec<InstanceBuffer>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+#[repr(C)]
+pub(crate) struct DrawParams {
+	pub transform: Mat4,
+	pub color: LinSrgba,
+}
+
+struct DrawCommand {
+	vertex_buffer: Buffer,
+	index_buffer: Buffer,
+	range: (u32, u32),
+	graphics_pipeline: RawGraphicsPipeline,
+	texture: Option<Texture>,
+	draw_params: DrawParams,
+	scissor_rect: URect,
+	stencil_reference: u8,
+	num_instances: u32,
+	instance_buffers: Vec<InstanceBuffer>,
+}
+
+struct CanvasRenderPass {
+	canvas: Canvas,
+	settings: RenderToCanvasSettings,
+	draw_commands: Vec<DrawCommand>,
+}
+
+fn run_draw_commands(
+	mut render_pass: wgpu::RenderPass<'_>,
+	draw_commands: &mut Vec<DrawCommand>,
+	device: &Device,
+	default_texture: &Texture,
+	mesh_bind_group_layout: &BindGroupLayout,
+) {
+	for DrawCommand {
+		vertex_buffer,
+		index_buffer,
+		range,
+		graphics_pipeline,
+		texture,
+		draw_params,
+		scissor_rect,
+		stencil_reference,
+		num_instances,
+		mut instance_buffers,
+	} in draw_commands.drain(..)
+	{
+		let draw_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
+			label: Some("Draw Params Buffer"),
+			contents: bytemuck::cast_slice(&[draw_params]),
+			usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+		let texture = texture.unwrap_or(default_texture.clone());
+		let mesh_bind_group = device.create_bind_group(&BindGroupDescriptor {
+			label: Some("Draw Params Bind Group"),
+			layout: mesh_bind_group_layout,
+			entries: &[
+				BindGroupEntry {
+					binding: 0,
+					resource: draw_params_buffer.as_entire_binding(),
+				},
+				BindGroupEntry {
+					binding: 1,
+					resource: BindingResource::TextureView(&texture.view),
+				},
+				BindGroupEntry {
+					binding: 2,
+					resource: BindingResource::Sampler(&texture.sampler),
+				},
+			],
+		});
+		render_pass.set_pipeline(&graphics_pipeline.render_pipeline);
+		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
+		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
+		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+		for (i, instance_buffer) in instance_buffers.drain(..).enumerate() {
+			render_pass.set_vertex_buffer((i + 1) as u32, instance_buffer.0.slice(..));
+		}
+		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
+		render_pass.set_scissor_rect(
+			scissor_rect.left(),
+			scissor_rect.top(),
+			scissor_rect.size.x,
+			scissor_rect.size.y,
+		);
+		render_pass.set_stencil_reference(stencil_reference as u32);
+		render_pass.draw_indexed(range.0..range.1, 0, 0..num_instances);
+	}
 }

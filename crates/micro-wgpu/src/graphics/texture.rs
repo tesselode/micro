@@ -12,7 +12,12 @@ use wgpu::{
 	TextureUsages, TextureView, TextureViewDescriptor,
 };
 
-use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
+use crate::{
+	Context,
+	color::ColorConstants,
+	math::{Rect, URect},
+	standard_draw_param_methods,
+};
 
 use super::mesh::Mesh;
 
@@ -25,9 +30,9 @@ pub struct Texture {
 
 	// draw params
 	pub region: Rect,
-
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub scissor_rect: Option<URect>,
 	pub stencil_reference: u32,
 }
 
@@ -196,9 +201,9 @@ impl Texture {
 			sampler,
 			size,
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
-
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			scissor_rect: None,
 			stencil_reference: 0,
 		}
 	}

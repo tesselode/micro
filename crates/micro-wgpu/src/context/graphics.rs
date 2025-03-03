@@ -21,6 +21,7 @@ use crate::{
 		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings, RawGraphicsPipeline},
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
+	math::URect,
 };
 
 pub(crate) struct GraphicsContext<'window> {
@@ -201,26 +202,6 @@ impl GraphicsContext<'_> {
 		self.finished_canvas_render_passes.push(canvas_render_pass);
 	}
 
-	pub(crate) fn global_transform(&self) -> Mat4 {
-		let draw_target_size =
-			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
-				canvas.size()
-			} else {
-				uvec2(self.config.width, self.config.height)
-			};
-		let coordinate_system_transform = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
-			* Mat4::from_scale(Vec3::new(
-				2.0 / draw_target_size.x as f32,
-				-2.0 / draw_target_size.y as f32,
-				1.0,
-			));
-		self.transform_stack
-			.iter()
-			.fold(coordinate_system_transform, |previous, transform| {
-				previous * *transform
-			})
-	}
-
 	pub(crate) fn queue_draw_command(&mut self, mut settings: QueueDrawCommandSettings) {
 		settings.draw_params.transform = self.global_transform() * settings.draw_params.transform;
 		let command = DrawCommand {
@@ -230,6 +211,9 @@ impl GraphicsContext<'_> {
 			graphics_pipeline: self.graphics_pipeline_stack.last().unwrap().clone(),
 			texture: settings.texture,
 			draw_params: settings.draw_params,
+			scissor_rect: settings
+				.scissor_rect
+				.unwrap_or_else(|| self.default_scissor_rect()),
 			stencil_reference: settings.stencil_reference,
 		};
 		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
@@ -359,6 +343,35 @@ impl GraphicsContext<'_> {
 		self.queue.submit([encoder.finish()]);
 		frame.present();
 	}
+
+	fn global_transform(&self) -> Mat4 {
+		let draw_target_size =
+			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+				canvas.size()
+			} else {
+				uvec2(self.config.width, self.config.height)
+			};
+		let coordinate_system_transform = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+			* Mat4::from_scale(Vec3::new(
+				2.0 / draw_target_size.x as f32,
+				-2.0 / draw_target_size.y as f32,
+				1.0,
+			));
+		self.transform_stack
+			.iter()
+			.fold(coordinate_system_transform, |previous, transform| {
+				previous * *transform
+			})
+	}
+
+	fn default_scissor_rect(&self) -> URect {
+		let size = if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			canvas.size()
+		} else {
+			uvec2(self.config.width, self.config.height)
+		};
+		URect::new(UVec2::ZERO, size)
+	}
 }
 
 pub(crate) struct QueueDrawCommandSettings {
@@ -367,6 +380,7 @@ pub(crate) struct QueueDrawCommandSettings {
 	pub range: (u32, u32),
 	pub texture: Option<Texture>,
 	pub draw_params: DrawParams,
+	pub scissor_rect: Option<URect>,
 	pub stencil_reference: u32,
 }
 
@@ -384,6 +398,7 @@ struct DrawCommand {
 	graphics_pipeline: RawGraphicsPipeline,
 	texture: Option<Texture>,
 	draw_params: DrawParams,
+	scissor_rect: URect,
 	stencil_reference: u32,
 }
 
@@ -407,6 +422,7 @@ fn run_draw_commands(
 		graphics_pipeline,
 		texture,
 		draw_params,
+		scissor_rect,
 		stencil_reference,
 	} in draw_commands.drain(..)
 	{
@@ -439,6 +455,12 @@ fn run_draw_commands(
 		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
+		render_pass.set_scissor_rect(
+			scissor_rect.left(),
+			scissor_rect.top(),
+			scissor_rect.size.x,
+			scissor_rect.size.y,
+		);
 		render_pass.set_stencil_reference(stencil_reference);
 		render_pass.draw_indexed(range.0..range.1, 0, 0..1);
 	}

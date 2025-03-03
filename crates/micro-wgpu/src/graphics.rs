@@ -87,6 +87,12 @@ macro_rules! standard_draw_param_methods {
 			new
 		}
 
+		pub fn scissor_rect(&self, scissor_rect: impl Into<Option<$crate::math::URect>>) -> Self {
+			let mut new = self.clone();
+			new.scissor_rect = scissor_rect.into();
+			new
+		}
+
 		pub fn stencil_reference(&self, stencil_reference: u32) -> Self {
 			let mut new = self.clone();
 			new.stencil_reference = stencil_reference;

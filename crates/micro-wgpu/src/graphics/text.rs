@@ -9,7 +9,12 @@ use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
-use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
+use crate::{
+	Context,
+	color::ColorConstants,
+	math::{Rect, URect},
+	standard_draw_param_methods,
+};
 
 use super::{
 	IntoRange,
@@ -23,6 +28,7 @@ pub struct Text {
 	// params
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub scissor_rect: Option<URect>,
 	pub stencil_reference: u32,
 	pub range: Option<(u32, u32)>,
 }
@@ -173,6 +179,7 @@ impl Text {
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			scissor_rect: None,
 			range: None,
 			stencil_reference: 0,
 		}

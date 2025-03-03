@@ -16,7 +16,7 @@ use crate::{
 	color::ColorConstants,
 	context::graphics::{DrawParams, QueueDrawCommandSettings},
 	graphics::texture::Texture,
-	math::{Circle, Rect},
+	math::{Circle, Rect, URect},
 	standard_draw_param_methods,
 };
 
@@ -33,6 +33,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub texture: Option<Texture>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub scissor_rect: Option<URect>,
 	pub range: Option<(u32, u32)>,
 	pub stencil_reference: u32,
 }
@@ -64,6 +65,7 @@ impl<V: Vertex> Mesh<V> {
 			texture: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			scissor_rect: None,
 			range: None,
 			stencil_reference: 0,
 		}
@@ -101,6 +103,7 @@ impl<V: Vertex> Mesh<V> {
 				transform: self.transform,
 				color: self.color,
 			},
+			scissor_rect: self.scissor_rect,
 			stencil_reference: self.stencil_reference,
 			texture: self.texture.clone(),
 		});

@@ -1,22 +1,22 @@
 use std::error::Error;
 
+use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, vec2};
 use micro_wgpu::{
 	App, Context, ContextSettings, Event,
 	graphics::{
-		canvas::{Canvas, CanvasSettings, RenderToCanvasSettings},
-		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings},
+		HasVertexAttributes, InstanceBuffer, Shader, Vertex2d,
+		graphics_pipeline::GraphicsPipeline,
 		mesh::{Mesh, builder::ShapeStyle},
 	},
 	input::Scancode,
-	math::{Circle, URect},
+	math::Circle,
 };
-use wgpu::PresentMode;
+use wgpu::{PresentMode, VertexAttribute, vertex_attr_array};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro_wgpu::run(
 		ContextSettings {
-			present_mode: PresentMode::AutoNoVsync,
 			resizable: true,
 			..Default::default()
 		},
@@ -24,48 +24,67 @@ fn main() -> Result<(), Box<dyn Error>> {
 	)
 }
 
-struct Test {}
+struct Test {
+	graphics_pipeline: GraphicsPipeline<InstancedShader>,
+	instance_buffer: InstanceBuffer,
+}
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		Ok(Self {})
+		Ok(Self {
+			graphics_pipeline: GraphicsPipeline::builder()
+				.with_instance_buffer::<InstanceInfo>()
+				.build(ctx),
+			instance_buffer: InstanceBuffer::new(
+				ctx,
+				&[
+					InstanceInfo {
+						translation: Vec2::ZERO,
+					},
+					InstanceInfo {
+						translation: vec2(100.0, 0.0),
+					},
+					InstanceInfo {
+						translation: vec2(200.0, 0.0),
+					},
+				],
+			),
+		})
 	}
 }
 
 impl App for Test {
 	type Error = Box<dyn Error>;
 
-	fn debug_ui(
-		&mut self,
-		ctx: &mut Context,
-		egui_ctx: &micro_wgpu::debug_ui::Context,
-	) -> Result<(), Self::Error> {
-		egui::TopBottomPanel::top("main_menu").show(egui_ctx, |ui| {
-			egui::menu::bar(ui, |ui| {
-				ui.label(format!("FPS: {}", ctx.fps()));
-			});
-		});
-		egui::Window::new("Test").show(egui_ctx, |ui| {
-			ui.label("Hello!");
-		});
-		Ok(())
-	}
-
-	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
-		if let Event::KeyPressed {
-			key: Scancode::Space,
-			..
-		} = event
-		{
-			ctx.set_present_mode(match ctx.present_mode() {
-				PresentMode::AutoVsync => PresentMode::AutoNoVsync,
-				_ => PresentMode::AutoVsync,
-			});
-		}
-		Ok(())
-	}
-
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
+		let ctx = &mut ctx.push_graphics_pipeline(&self.graphics_pipeline);
+		Mesh::circle(ctx, ShapeStyle::Fill, Circle::new(vec2(50.0, 50.0), 50.0))?.draw_instanced(
+			ctx,
+			3,
+			vec![self.instance_buffer.clone()],
+		);
 		Ok(())
+	}
+}
+
+pub struct InstancedShader;
+
+impl Shader for InstancedShader {
+	const SOURCE: &'static str = include_str!("shader.wgsl");
+
+	type Vertex = Vertex2d;
+
+	type Params = i32;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+#[repr(C)]
+pub struct InstanceInfo {
+	translation: Vec2,
+}
+
+impl HasVertexAttributes for InstanceInfo {
+	fn attributes() -> Vec<VertexAttribute> {
+		vertex_attr_array![3 => Float32x2].into()
 	}
 }

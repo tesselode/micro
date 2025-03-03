@@ -20,7 +20,7 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::{IntoRange, Vertex, Vertex2d};
+use super::{InstanceBuffer, IntoRange, Vertex, Vertex2d};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh<V: Vertex = Vertex2d> {
@@ -106,6 +106,30 @@ impl<V: Vertex> Mesh<V> {
 			scissor_rect: self.scissor_rect,
 			stencil_reference: self.stencil_reference,
 			texture: self.texture.clone(),
+			num_instances: 1,
+			instance_buffers: vec![],
+		});
+	}
+
+	pub fn draw_instanced(
+		&self,
+		ctx: &mut Context,
+		num_instances: u32,
+		instance_buffers: Vec<InstanceBuffer>,
+	) {
+		ctx.graphics.queue_draw_command(QueueDrawCommandSettings {
+			vertex_buffer: self.vertex_buffer.clone(),
+			index_buffer: self.index_buffer.clone(),
+			range: self.range.unwrap_or((0, self.num_indices)),
+			draw_params: DrawParams {
+				transform: self.transform,
+				color: self.color,
+			},
+			scissor_rect: self.scissor_rect,
+			stencil_reference: self.stencil_reference,
+			texture: self.texture.clone(),
+			num_instances,
+			instance_buffers,
 		});
 	}
 }

@@ -16,9 +16,9 @@ use wgpu::{
 use crate::{
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
-		DefaultShader, Vertex2d,
+		DefaultShader, InstanceBuffer, Vertex2d,
 		canvas::{Canvas, CanvasKind, RenderToCanvasSettings},
-		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineSettings, RawGraphicsPipeline},
+		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineBuilder, RawGraphicsPipeline},
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -149,7 +149,7 @@ impl GraphicsContext<'_> {
 			&device,
 			&mesh_bind_group_layout,
 			&shader_params_bind_group_layout,
-			GraphicsPipelineSettings::default(),
+			GraphicsPipelineBuilder::default(),
 		)
 		.raw();
 		let default_texture = Texture::new(
@@ -215,6 +215,8 @@ impl GraphicsContext<'_> {
 				.scissor_rect
 				.unwrap_or_else(|| self.default_scissor_rect()),
 			stencil_reference: settings.stencil_reference,
+			num_instances: settings.num_instances,
+			instance_buffers: settings.instance_buffers,
 		};
 		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
 			draw_commands.push(command);
@@ -391,6 +393,8 @@ pub(crate) struct QueueDrawCommandSettings {
 	pub draw_params: DrawParams,
 	pub scissor_rect: Option<URect>,
 	pub stencil_reference: u32,
+	pub num_instances: u32,
+	pub instance_buffers: Vec<InstanceBuffer>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
@@ -409,6 +413,8 @@ struct DrawCommand {
 	draw_params: DrawParams,
 	scissor_rect: URect,
 	stencil_reference: u32,
+	num_instances: u32,
+	instance_buffers: Vec<InstanceBuffer>,
 }
 
 struct CanvasRenderPass {
@@ -433,6 +439,8 @@ fn run_draw_commands(
 		draw_params,
 		scissor_rect,
 		stencil_reference,
+		num_instances,
+		mut instance_buffers,
 	} in draw_commands.drain(..)
 	{
 		let draw_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -463,6 +471,9 @@ fn run_draw_commands(
 		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
 		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+		for (i, instance_buffer) in instance_buffers.drain(..).enumerate() {
+			render_pass.set_vertex_buffer((i + 1) as u32, instance_buffer.0.slice(..));
+		}
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.set_scissor_rect(
 			scissor_rect.left(),
@@ -471,6 +482,6 @@ fn run_draw_commands(
 			scissor_rect.size.y,
 		);
 		render_pass.set_stencil_reference(stencil_reference);
-		render_pass.draw_indexed(range.0..range.1, 0, 0..1);
+		render_pass.draw_indexed(range.0..range.1, 0, 0..num_instances);
 	}
 }

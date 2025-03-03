@@ -7,17 +7,15 @@ struct DrawParams {
 @group(0) @binding(0)
 var<uniform> draw_params: DrawParams;
 
-struct WiggleParams {
-    wiggliness: f32,
-}
-@group(1) @binding(0)
-var<uniform> wiggle_params: WiggleParams;
-
 struct VertexInput {
     @location(0) position: vec2<f32>,
     @location(1) texture_coords: vec2<f32>,
     @location(2) color: vec4<f32>,
 };
+
+struct InstanceInput {
+    @location(3) translation: vec2<f32>,
+}
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -28,9 +26,9 @@ struct VertexOutput {
 @vertex
 fn vs_main(
     model: VertexInput,
+    instance: InstanceInput
 ) -> VertexOutput {
-    var position = model.position;
-    position.x += wiggle_params.wiggliness * sin(position.y / 2.0);
+    var position = model.position + instance.translation;
     var out: VertexOutput;
     out.clip_position = draw_params.transform * vec4<f32>(position, 0.0, 1.0);
     out.texture_coords = model.texture_coords;

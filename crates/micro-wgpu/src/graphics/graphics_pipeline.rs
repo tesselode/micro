@@ -1,3 +1,7 @@
+mod builder;
+
+pub use builder::*;
+
 use std::{borrow::Cow, marker::PhantomData};
 
 use wgpu::{
@@ -5,14 +9,14 @@ use wgpu::{
 	BufferUsages, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
 	DepthStencilState, Device, FragmentState, MultisampleState, PipelineCompilationOptions,
 	PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology, RenderPipeline,
-	RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, StencilState, TextureFormat,
+	RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, TextureFormat,
 	VertexBufferLayout, VertexState, VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::Context;
 
-use super::{BlendMode, DefaultShader, Shader, Vertex, Vertex2d};
+use super::{DefaultShader, Shader, Vertex, Vertex2d};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GraphicsPipeline<S = DefaultShader, V = Vertex2d>
@@ -32,13 +36,11 @@ where
 	V: Vertex,
 	S: Shader<Vertex = V>,
 {
-	pub fn new(ctx: &Context, settings: GraphicsPipelineSettings<S>) -> Self {
-		Self::new_internal(
-			&ctx.graphics.device,
-			&ctx.graphics.mesh_bind_group_layout,
-			&ctx.graphics.shader_params_bind_group_layout,
-			settings,
-		)
+	pub fn builder() -> GraphicsPipelineBuilder<S, V>
+	where
+		S::Params: Default,
+	{
+		GraphicsPipelineBuilder::new()
 	}
 
 	pub fn set_shader_params(&self, ctx: &Context, params: S::Params) {
@@ -53,7 +55,7 @@ where
 		device: &Device,
 		mesh_bind_group_layout: &BindGroupLayout,
 		shader_params_bind_group_layout: &BindGroupLayout,
-		settings: GraphicsPipelineSettings<S>,
+		builder: GraphicsPipelineBuilder<S, V>,
 	) -> Self {
 		let shader = device.create_shader_module(ShaderModuleDescriptor {
 			label: None,
@@ -66,7 +68,7 @@ where
 		});
 		let shader_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
 			label: Some("Shader Params Buffer"),
-			contents: bytemuck::cast_slice(&[settings.shader_params]),
+			contents: bytemuck::cast_slice(&[builder.shader_params]),
 			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
 		});
 		let shader_params_bind_group = device.create_bind_group(&BindGroupDescriptor {
@@ -77,18 +79,31 @@ where
 				resource: shader_params_buffer.as_entire_binding(),
 			}],
 		});
+		let vertex_attributes = V::attributes();
+		let mut vertex_buffers = vec![VertexBufferLayout {
+			array_stride: std::mem::size_of::<V>() as BufferAddress,
+			step_mode: VertexStepMode::Vertex,
+			attributes: &vertex_attributes,
+		}];
+		for InstanceBufferSettings {
+			array_stride,
+			attributes,
+		} in &builder.instance_buffers
+		{
+			vertex_buffers.push(VertexBufferLayout {
+				array_stride: *array_stride,
+				step_mode: VertexStepMode::Instance,
+				attributes,
+			});
+		}
 		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
-			label: Some(&settings.label),
+			label: Some(&builder.label),
 			layout: Some(&pipeline_layout),
 			vertex: VertexState {
 				module: &shader,
 				entry_point: Some("vs_main"),
 				compilation_options: PipelineCompilationOptions::default(),
-				buffers: &[VertexBufferLayout {
-					array_stride: std::mem::size_of::<V>() as BufferAddress,
-					step_mode: VertexStepMode::Vertex,
-					attributes: &V::attributes(),
-				}],
+				buffers: &vertex_buffers,
 			},
 			primitive: PrimitiveState {
 				topology: PrimitiveTopology::TriangleList,
@@ -96,17 +111,17 @@ where
 			},
 			depth_stencil: Some(DepthStencilState {
 				format: TextureFormat::Depth24PlusStencil8,
-				depth_write_enabled: settings.enable_depth_testing,
-				depth_compare: if settings.enable_depth_testing {
+				depth_write_enabled: builder.enable_depth_testing,
+				depth_compare: if builder.enable_depth_testing {
 					CompareFunction::Less
 				} else {
 					CompareFunction::Always
 				},
-				stencil: settings.stencil_state,
+				stencil: builder.stencil_state,
 				bias: DepthBiasState::default(),
 			}),
 			multisample: MultisampleState {
-				count: settings.sample_count,
+				count: builder.sample_count,
 				..Default::default()
 			},
 			fragment: Some(FragmentState {
@@ -115,8 +130,8 @@ where
 				compilation_options: PipelineCompilationOptions::default(),
 				targets: &[Some(ColorTargetState {
 					format: TextureFormat::Rgba8UnormSrgb,
-					blend: Some(settings.blend_mode.to_blend_state()),
-					write_mask: if settings.enable_color_writes {
+					blend: Some(builder.blend_mode.to_blend_state()),
+					write_mask: if builder.enable_color_writes {
 						ColorWrites::ALL
 					} else {
 						ColorWrites::empty()
@@ -139,33 +154,6 @@ where
 		RawGraphicsPipeline {
 			render_pipeline: self.render_pipeline.clone(),
 			shader_params_bind_group: self.shader_params_bind_group.clone(),
-		}
-	}
-}
-
-pub struct GraphicsPipelineSettings<S: Shader> {
-	pub label: String,
-	pub blend_mode: BlendMode,
-	pub shader_params: S::Params,
-	pub enable_depth_testing: bool,
-	pub stencil_state: StencilState,
-	pub enable_color_writes: bool,
-	pub sample_count: u32,
-}
-
-impl<S: Shader> Default for GraphicsPipelineSettings<S>
-where
-	S::Params: Default,
-{
-	fn default() -> Self {
-		Self {
-			label: "Graphics Pipeline".into(),
-			blend_mode: Default::default(),
-			shader_params: Default::default(),
-			enable_depth_testing: false,
-			stencil_state: Default::default(),
-			enable_color_writes: true,
-			sample_count: 1,
 		}
 	}
 }

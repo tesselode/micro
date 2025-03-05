@@ -33,14 +33,14 @@ where
 	let controller = sdl
 		.game_controller()
 		.expect("error initializing controller subsystem");
-	let mut window = build_window(&video, &settings);
+	let window = build_window(&video, &settings);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
 	let graphics = GraphicsContext::new(&window, settings.present_mode);
 
 	let mut ctx = Context {
 		_sdl: sdl,
 		video,
-		window: &mut window,
+		window,
 		controller,
 		event_pump,
 		egui_wants_keyboard_input: false,
@@ -120,20 +120,22 @@ where
 	Ok(())
 }
 
-pub struct Context<'window> {
+pub struct Context {
 	_sdl: Sdl,
 	pub(crate) video: VideoSubsystem,
-	pub(crate) window: &'window mut Window,
 	pub(crate) controller: GameControllerSubsystem,
 	pub(crate) event_pump: EventPump,
 	pub(crate) egui_wants_keyboard_input: bool,
 	pub(crate) egui_wants_mouse_input: bool,
-	pub(crate) graphics: GraphicsContext<'window>,
+	// `graphics` needs to be before `window`, since it holds
+	// a `Surface` that must be dropped before the `Window`
+	pub(crate) graphics: GraphicsContext,
+	pub(crate) window: Window,
 	pub(crate) frame_time_tracker: FrameTimeTracker,
 	pub(crate) should_quit: bool,
 }
 
-impl<'window> Context<'window> {
+impl Context {
 	/// Gets the drawable size of the window (in pixels).
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.drawable_size();
@@ -204,7 +206,7 @@ impl<'window> Context<'window> {
 	pub fn push_graphics_pipeline<S, V>(
 		&mut self,
 		graphics_pipeline: &GraphicsPipeline<S, V>,
-	) -> OnDrop<'_, 'window>
+	) -> OnDrop<'_>
 	where
 		S: Shader<Vertex = V>,
 		V: Vertex,
@@ -214,7 +216,7 @@ impl<'window> Context<'window> {
 			.push(graphics_pipeline.raw());
 		OnDrop {
 			ctx: self,
-			action: OnDropAction::PopGraphicsPipeline,
+			pop: Pop::GraphicsPipeline,
 		}
 	}
 
@@ -222,74 +224,74 @@ impl<'window> Context<'window> {
 	/// applied.
 	///
 	/// Calls to `push_transform` can be nested.
-	pub fn push_transform(&mut self, transform: impl Into<Mat4>) -> OnDrop<'_, 'window> {
+	pub fn push_transform(&mut self, transform: impl Into<Mat4>) -> OnDrop<'_> {
 		let transform = transform.into();
 		self.graphics.transform_stack.push(transform);
 		OnDrop {
 			ctx: self,
-			action: OnDropAction::PopTransform,
+			pop: Pop::Transform,
 		}
 	}
 
-	pub fn push_translation_2d(&mut self, translation: impl Into<Vec2>) -> OnDrop<'_, 'window> {
+	pub fn push_translation_2d(&mut self, translation: impl Into<Vec2>) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_translation(translation.into().extend(0.0)))
 	}
 
-	pub fn push_translation_3d(&mut self, translation: impl Into<Vec3>) -> OnDrop<'_, 'window> {
+	pub fn push_translation_3d(&mut self, translation: impl Into<Vec3>) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_translation(translation.into()))
 	}
 
-	pub fn push_translation_x(&mut self, translation: f32) -> OnDrop<'_, 'window> {
+	pub fn push_translation_x(&mut self, translation: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
 	}
 
-	pub fn push_translation_y(&mut self, translation: f32) -> OnDrop<'_, 'window> {
+	pub fn push_translation_y(&mut self, translation: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
 	}
 
-	pub fn push_translation_z(&mut self, translation: f32) -> OnDrop<'_, 'window> {
+	pub fn push_translation_z(&mut self, translation: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
 	}
 
-	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_, 'window> {
+	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_scale(scale.into().extend(0.0)))
 	}
 
-	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_, 'window> {
+	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_scale(scale.into()))
 	}
 
-	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_, 'window> {
+	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
 	}
 
-	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_, 'window> {
+	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
 	}
 
-	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_, 'window> {
+	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
 	}
 
-	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
+	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_rotation_x(rotation))
 	}
 
-	pub fn push_rotation_y(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
+	pub fn push_rotation_y(&mut self, rotation: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_rotation_y(rotation))
 	}
 
-	pub fn push_rotation_z(&mut self, rotation: f32) -> OnDrop<'_, 'window> {
+	pub fn push_rotation_z(&mut self, rotation: f32) -> OnDrop<'_> {
 		self.push_transform(Mat4::from_rotation_z(rotation))
 	}
 
-	pub fn push_stencil_reference(&mut self, stencil_reference: u8) -> OnDrop<'_, 'window> {
+	pub fn push_stencil_reference(&mut self, stencil_reference: u8) -> OnDrop<'_> {
 		self.graphics
 			.stencil_reference_stack
 			.push(stencil_reference);
 		OnDrop {
 			ctx: self,
-			action: OnDropAction::PopStencilReference,
+			pop: Pop::StencilReference,
 		}
 	}
 
@@ -370,43 +372,43 @@ impl Default for ContextSettings {
 }
 
 #[must_use]
-pub struct OnDrop<'a, 'window> {
-	ctx: &'a mut Context<'window>,
-	action: OnDropAction,
+pub struct OnDrop<'a> {
+	ctx: &'a mut Context,
+	pop: Pop,
 }
 
-impl Drop for OnDrop<'_, '_> {
+impl Drop for OnDrop<'_> {
 	fn drop(&mut self) {
-		match self.action {
-			OnDropAction::PopTransform => {
+		match self.pop {
+			Pop::Transform => {
 				self.ctx.graphics.transform_stack.pop();
 			}
-			OnDropAction::PopGraphicsPipeline => {
+			Pop::GraphicsPipeline => {
 				self.ctx.graphics.graphics_pipeline_stack.pop();
 			}
-			OnDropAction::PopStencilReference => {
+			Pop::StencilReference => {
 				self.ctx.graphics.stencil_reference_stack.pop();
 			}
 		}
 	}
 }
 
-impl<'window> Deref for OnDrop<'_, 'window> {
-	type Target = Context<'window>;
+impl Deref for OnDrop<'_> {
+	type Target = Context;
 
 	fn deref(&self) -> &Self::Target {
 		self.ctx
 	}
 }
 
-impl DerefMut for OnDrop<'_, '_> {
+impl DerefMut for OnDrop<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}
 }
 
-enum OnDropAction {
-	PopTransform,
-	PopGraphicsPipeline,
-	PopStencilReference,
+enum Pop {
+	Transform,
+	GraphicsPipeline,
+	StencilReference,
 }

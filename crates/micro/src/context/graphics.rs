@@ -24,12 +24,12 @@ use crate::{
 	math::URect,
 };
 
-pub(crate) struct GraphicsContext<'window> {
+pub(crate) struct GraphicsContext {
 	pub(crate) device: Device,
 	pub(crate) queue: Queue,
 	pub(crate) supported_sample_counts: Vec<u32>,
 	config: SurfaceConfiguration,
-	surface: Surface<'window>,
+	surface: Surface<'static>,
 	main_surface_depth_stencil_texture: Texture,
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
@@ -43,7 +43,7 @@ pub(crate) struct GraphicsContext<'window> {
 	finished_canvas_render_passes: Vec<CanvasRenderPass>,
 }
 
-impl GraphicsContext<'_> {
+impl GraphicsContext {
 	pub(crate) fn new(window: &Window, present_mode: PresentMode) -> Self {
 		let instance = Instance::new(&Default::default());
 		let surface = unsafe {

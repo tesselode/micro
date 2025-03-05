@@ -79,11 +79,11 @@ impl Canvas {
 		}
 	}
 
-	pub fn render_to<'a, 'window>(
+	pub fn render_to<'a>(
 		&'a self,
-		ctx: &'a mut Context<'window>,
+		ctx: &'a mut Context,
 		settings: RenderToCanvasSettings,
-	) -> OnDrop<'window, 'a> {
+	) -> OnDrop<'a> {
 		let _span = tracy_client::span!();
 		ctx.graphics
 			.start_canvas_render_pass(self.clone(), settings);
@@ -139,25 +139,25 @@ impl Default for RenderToCanvasSettings {
 }
 
 #[must_use]
-pub struct OnDrop<'window, 'a> {
-	pub(crate) ctx: &'a mut Context<'window>,
+pub struct OnDrop<'a> {
+	pub(crate) ctx: &'a mut Context,
 }
 
-impl Drop for OnDrop<'_, '_> {
+impl Drop for OnDrop<'_> {
 	fn drop(&mut self) {
 		self.ctx.graphics.finish_canvas_render_pass();
 	}
 }
 
-impl<'window> Deref for OnDrop<'window, '_> {
-	type Target = Context<'window>;
+impl Deref for OnDrop<'_> {
+	type Target = Context;
 
 	fn deref(&self) -> &Self::Target {
 		self.ctx
 	}
 }
 
-impl DerefMut for OnDrop<'_, '_> {
+impl DerefMut for OnDrop<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}

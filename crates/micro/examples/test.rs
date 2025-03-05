@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use micro_wgpu::{
+use micro::{
 	App, Context, ContextSettings,
 	graphics::{
 		StencilState,
@@ -12,7 +12,7 @@ use micro_wgpu::{
 use wgpu::{CompareFunction, StencilOperation};
 
 fn main() -> Result<(), Box<dyn Error>> {
-	micro_wgpu::run(ContextSettings::default(), Test::new)
+	micro::run(ContextSettings::default(), Test::new)
 }
 
 struct Test {

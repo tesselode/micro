@@ -10,13 +10,10 @@ use std::time::Duration;
 use backtrace::Backtrace;
 use globals::Globals;
 use log::setup_logging;
-use micro::color::LinSrgba;
 use micro::debug_ui::TopBottomPanel;
 use micro::log_if_err;
 use micro::math::UVec2;
-use micro::{
-	App, Context, ContextSettings, Event, WindowMode, color::ColorConstants, input::Scancode,
-};
+use micro::{App, Context, ContextSettings, Event, WindowMode, input::Scancode};
 use scene::gameplay::Gameplay;
 use scene_manager::SceneManager;
 
@@ -120,7 +117,6 @@ impl App for Game {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) -> anyhow::Result<()> {
-		ctx.clear(LinSrgba::BLACK);
 		self.scene_manager.draw(ctx, &mut self.globals)?;
 		Ok(())
 	}

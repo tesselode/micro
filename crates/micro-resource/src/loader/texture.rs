@@ -3,7 +3,7 @@ use micro::{
 	color::{Srgba, rgb::channels::Rgba},
 	graphics::texture::{LoadTextureError, Texture, TextureSettings},
 	image::ImageBuffer,
-	math::{IVec2, UVec2},
+	math::UVec2,
 };
 
 use super::ResourceLoader;
@@ -46,7 +46,7 @@ impl ResourceLoader for TextureLoader {
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
-		resource.replace(ctx, IVec2::ZERO, &image);
+		resource.replace(ctx, UVec2::ZERO, &image);
 		Ok(())
 	}
 

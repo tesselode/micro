@@ -17,5 +17,7 @@ pub use context::{Context, ContextSettings, run};
 pub use error::*;
 pub use event::*;
 pub use time::*;
+pub use window::*;
 
 pub use egui as debug_ui;
+pub use image;

@@ -1,14 +1,15 @@
 mod align;
 mod ellipse;
+mod graphics_pipeline_widget;
 mod image;
 mod macros;
-mod mask;
 mod padding;
 mod polygon;
 mod polyline;
 mod rectangle;
 mod sizing;
 mod stack;
+mod stencil_reference_widget;
 mod text;
 mod transform;
 #[allow(clippy::module_inception)]
@@ -16,14 +17,15 @@ mod ui;
 
 pub use align::*;
 pub use ellipse::*;
+pub use graphics_pipeline_widget::*;
 pub use image::*;
-pub use mask::*;
 pub use padding::*;
 pub use polygon::*;
 pub use polyline::*;
 pub use rectangle::*;
 pub use sizing::*;
 pub use stack::*;
+pub use stencil_reference_widget::*;
 pub use text::*;
 pub use transform::*;
 pub use ui::Ui;
@@ -32,6 +34,7 @@ use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 
 use micro::{
 	Context,
+	graphics::graphics_pipeline::GraphicsPipeline,
 	math::{Mat4, Vec2},
 };
 
@@ -41,12 +44,16 @@ pub trait Widget: Debug {
 
 	fn children(&self) -> &[Box<dyn Widget>];
 
-	fn mask(&self) -> Option<&dyn Widget> {
+	fn transform(&self, size: Vec2) -> Mat4 {
+		Mat4::IDENTITY
+	}
+
+	fn graphics_pipeline(&self) -> Option<GraphicsPipeline> {
 		None
 	}
 
-	fn transform(&self, size: Vec2) -> Mat4 {
-		Mat4::IDENTITY
+	fn stencil_reference(&self) -> Option<u8> {
+		None
 	}
 
 	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel>;

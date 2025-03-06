@@ -8,7 +8,7 @@ use itertools::izip;
 use micro::{
 	Context,
 	color::{LinSrgb, LinSrgba},
-	graphics::{StencilAction, StencilTest, mesh::Mesh},
+	graphics::mesh::Mesh,
 	math::{Mat4, Rect, Vec2},
 };
 use mouse_input::MouseInput;
@@ -80,7 +80,6 @@ struct BakedWidget {
 	name: &'static str,
 	path: PathBuf,
 	children: Vec<BakedWidget>,
-	mask: Option<Box<BakedWidget>>,
 	layout_result: LayoutResult,
 	allotted_size_from_parent: Vec2,
 }
@@ -107,19 +106,10 @@ impl BakedWidget {
 			children.push(baked_child);
 		}
 		let layout_result = raw_widget.layout(ctx, allotted_size_from_parent, &child_sizes);
-		let mask = raw_widget.mask().map(|mask| {
-			Box::new(BakedWidget::new(
-				ctx,
-				path.join("mask"),
-				mask,
-				layout_result.size,
-			))
-		});
 		Self {
 			name: raw_widget.name(),
 			path,
 			children,
-			mask,
 			layout_result,
 			allotted_size_from_parent,
 		}
@@ -172,29 +162,18 @@ impl BakedWidget {
 
 	fn draw(&self, ctx: &mut Context, raw_widget: &dyn Widget) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
-		let ctx = &mut ctx.push_transform(raw_widget.transform(self.layout_result.size));
-		if let Some((raw_mask, baked_mask)) = raw_widget.mask().zip(self.mask.as_ref()) {
-			{
-				let ctx = &mut ctx.write_to_stencil(StencilAction::Replace(1));
-				baked_mask.draw(ctx, raw_mask)?;
-			}
-			{
-				let ctx = &mut ctx.use_stencil(StencilTest::Equal, 1);
-				self.draw_non_mask_contents(ctx, raw_widget)?;
-			}
+		let mut ctx = ctx.push_transform(raw_widget.transform(self.layout_result.size));
+		let mut ctx = if let Some(graphics_pipeline) = raw_widget.graphics_pipeline() {
+			ctx.push_graphics_pipeline(&graphics_pipeline)
 		} else {
-			self.draw_non_mask_contents(ctx, raw_widget)?;
-		}
-		Ok(())
-	}
-
-	fn draw_non_mask_contents(
-		&self,
-		ctx: &mut Context,
-		raw_widget: &dyn Widget,
-	) -> anyhow::Result<()> {
-		let _span = tracy_client::span!();
-		raw_widget.draw_before_children(ctx, self.layout_result.size)?;
+			ctx
+		};
+		let mut ctx = if let Some(stencil_reference) = raw_widget.stencil_reference() {
+			ctx.push_stencil_reference(stencil_reference)
+		} else {
+			ctx
+		};
+		raw_widget.draw_before_children(&mut ctx, self.layout_result.size)?;
 		for (raw_child, baked_child, position) in izip!(
 			raw_widget.children(),
 			&self.children,
@@ -203,7 +182,7 @@ impl BakedWidget {
 			let ctx = &mut ctx.push_translation_2d(position.round());
 			baked_child.draw(ctx, raw_child.as_ref())?;
 		}
-		raw_widget.draw_after_children(ctx, self.layout_result.size)?;
+		raw_widget.draw_after_children(&mut ctx, self.layout_result.size)?;
 		Ok(())
 	}
 

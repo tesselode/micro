@@ -5,19 +5,19 @@ use crate::{with_child_fns, with_sizing_fns};
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
 #[derive(Debug)]
-pub struct Mask {
+pub struct StencilReferenceWidget {
 	sizing: Sizing,
+	stencil_reference: u8,
 	children: Vec<Box<dyn Widget>>,
-	mask: Box<dyn Widget>,
 	mouse_event_channel: Option<WidgetMouseEventChannel>,
 }
 
-impl Mask {
-	pub fn new(mask: impl Widget + 'static) -> Self {
+impl StencilReferenceWidget {
+	pub fn new(stencil_reference: u8) -> Self {
 		Self {
 			sizing: Sizing::SHRINK,
+			stencil_reference,
 			children: vec![],
-			mask: Box::new(mask),
 			mouse_event_channel: None,
 		}
 	}
@@ -33,17 +33,17 @@ impl Mask {
 	with_sizing_fns!();
 }
 
-impl Widget for Mask {
+impl Widget for StencilReferenceWidget {
 	fn name(&self) -> &'static str {
-		"mask"
+		"stencil reference"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
 		&self.children
 	}
 
-	fn mask(&self) -> Option<&dyn Widget> {
-		Some(self.mask.as_ref())
+	fn stencil_reference(&self) -> Option<u8> {
+		Some(self.stencil_reference)
 	}
 
 	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
@@ -65,7 +65,8 @@ impl Widget for Mask {
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
-	) -> super::LayoutResult {
+	) -> LayoutResult {
+		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self
 				.sizing

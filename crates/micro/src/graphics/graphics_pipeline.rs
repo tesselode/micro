@@ -2,7 +2,7 @@ mod builder;
 
 pub use builder::*;
 
-use std::{borrow::Cow, marker::PhantomData};
+use std::{borrow::Cow, fmt::Debug, hash::Hash, marker::PhantomData};
 
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, Buffer, BufferAddress,
@@ -18,7 +18,6 @@ use crate::Context;
 
 use super::{DefaultShader, Shader, Vertex, Vertex2d};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GraphicsPipeline<S = DefaultShader, V = Vertex2d>
 where
 	V: Vertex,
@@ -155,6 +154,73 @@ where
 			render_pipeline: self.render_pipeline.clone(),
 			shader_params_bind_group: self.shader_params_bind_group.clone(),
 		}
+	}
+}
+
+impl<S, V> Debug for GraphicsPipeline<S, V>
+where
+	V: Vertex,
+	S: Shader<Vertex = V>,
+{
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("GraphicsPipeline")
+			.field("render_pipeline", &self.render_pipeline)
+			.field("shader_params_buffer", &self.shader_params_buffer)
+			.field("shader_params_bind_group", &self.shader_params_bind_group)
+			.field("_vertex", &self._vertex)
+			.field("_shader", &self._shader)
+			.finish()
+	}
+}
+
+impl<S, V> Clone for GraphicsPipeline<S, V>
+where
+	V: Vertex,
+	S: Shader<Vertex = V>,
+{
+	fn clone(&self) -> Self {
+		Self {
+			render_pipeline: self.render_pipeline.clone(),
+			shader_params_buffer: self.shader_params_buffer.clone(),
+			shader_params_bind_group: self.shader_params_bind_group.clone(),
+			_vertex: self._vertex,
+			_shader: self._shader,
+		}
+	}
+}
+
+impl<S, V> PartialEq for GraphicsPipeline<S, V>
+where
+	V: Vertex,
+	S: Shader<Vertex = V>,
+{
+	fn eq(&self, other: &Self) -> bool {
+		self.render_pipeline == other.render_pipeline
+			&& self.shader_params_buffer == other.shader_params_buffer
+			&& self.shader_params_bind_group == other.shader_params_bind_group
+			&& self._vertex == other._vertex
+			&& self._shader == other._shader
+	}
+}
+
+impl<S, V> Eq for GraphicsPipeline<S, V>
+where
+	V: Vertex,
+	S: Shader<Vertex = V>,
+{
+}
+
+impl<V, S> Hash for GraphicsPipeline<S, V>
+where
+	V: Vertex,
+	S: Shader<Vertex = V>,
+{
+	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+		self.render_pipeline.hash(state);
+		self.shader_params_buffer.hash(state);
+		self.shader_params_bind_group.hash(state);
+		self._vertex.hash(state);
+		self._shader.hash(state);
 	}
 }
 

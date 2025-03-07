@@ -1,7 +1,7 @@
 mod blend_mode;
 mod camera_3d;
-pub mod canvas;
-pub mod graphics_pipeline;
+mod canvas;
+mod graphics_pipeline;
 mod instance_buffer;
 mod into_range;
 pub mod mesh;
@@ -14,6 +14,8 @@ mod vertex;
 
 pub use blend_mode::*;
 pub use camera_3d::*;
+pub use canvas::*;
+pub use graphics_pipeline::*;
 pub use instance_buffer::*;
 pub use into_range::*;
 pub use shader::*;

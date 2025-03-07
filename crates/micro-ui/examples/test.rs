@@ -3,9 +3,7 @@ use std::error::Error;
 use micro::{
 	App, Context, ContextSettings,
 	color::{ColorConstants, LinSrgb},
-	graphics::{
-		CompareFunction, StencilOperation, StencilState, graphics_pipeline::GraphicsPipeline,
-	},
+	graphics::{CompareFunction, GraphicsPipeline, StencilOperation, StencilState},
 };
 use micro_ui::{Ellipse, GraphicsPipelineWidget, Padding, Rectangle, StencilReferenceWidget, Ui};
 

@@ -34,7 +34,7 @@ use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 
 use micro::{
 	Context,
-	graphics::graphics_pipeline::GraphicsPipeline,
+	graphics::GraphicsPipeline,
 	math::{Mat4, Vec2},
 };
 

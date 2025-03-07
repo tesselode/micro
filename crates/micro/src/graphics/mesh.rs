@@ -1,10 +1,9 @@
-pub mod builder;
+mod builder;
 
-pub use builder::ShapeStyle;
+pub use builder::*;
 
 use std::marker::PhantomData;
 
-use builder::{FilledPolygonPoint, MeshBuilder, StrokePoint};
 use glam::{Mat4, Vec2};
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;

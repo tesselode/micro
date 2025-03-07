@@ -1,4 +1,4 @@
-use micro::{Context, graphics::graphics_pipeline::GraphicsPipeline, math::Vec2};
+use micro::{Context, graphics::GraphicsPipeline, math::Vec2};
 
 use crate::{with_child_fns, with_sizing_fns};
 

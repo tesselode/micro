@@ -16,9 +16,8 @@ use wgpu::{
 use crate::{
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
-		DefaultShader, InstanceBuffer, Vertex2d,
-		canvas::{Canvas, CanvasKind, RenderToCanvasSettings},
-		graphics_pipeline::{GraphicsPipeline, GraphicsPipelineBuilder, RawGraphicsPipeline},
+		Canvas, CanvasKind, DefaultShader, GraphicsPipeline, GraphicsPipelineBuilder,
+		InstanceBuffer, RawGraphicsPipeline, RenderToCanvasSettings, Vertex2d,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,

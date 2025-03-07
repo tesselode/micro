@@ -3,9 +3,8 @@ use std::error::Error;
 use micro::{
 	App, Context, ContextSettings,
 	graphics::{
-		StencilState,
-		graphics_pipeline::GraphicsPipeline,
-		mesh::{Mesh, builder::ShapeStyle},
+		GraphicsPipeline, StencilState,
+		mesh::{Mesh, ShapeStyle},
 	},
 	math::Circle,
 };

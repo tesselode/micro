@@ -181,6 +181,14 @@ impl GraphicsContext {
 		}
 	}
 
+	pub(crate) fn current_render_target_size(&self) -> UVec2 {
+		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			canvas.size()
+		} else {
+			uvec2(self.config.width, self.config.height)
+		}
+	}
+
 	pub(crate) fn start_canvas_render_pass(
 		&mut self,
 		canvas: Canvas,
@@ -358,16 +366,11 @@ impl GraphicsContext {
 	}
 
 	fn global_transform(&self) -> Mat4 {
-		let draw_target_size =
-			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
-				canvas.size()
-			} else {
-				uvec2(self.config.width, self.config.height)
-			};
+		let current_render_target_size = self.current_render_target_size();
 		let coordinate_system_transform = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
 			* Mat4::from_scale(Vec3::new(
-				2.0 / draw_target_size.x as f32,
-				-2.0 / draw_target_size.y as f32,
+				2.0 / current_render_target_size.x as f32,
+				-2.0 / current_render_target_size.y as f32,
 				1.0,
 			));
 		self.transform_stack

@@ -199,6 +199,10 @@ impl Context {
 		&self.graphics.supported_sample_counts
 	}
 
+	pub fn current_render_target_size(&self) -> UVec2 {
+		self.graphics.current_render_target_size()
+	}
+
 	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
 		self.graphics.clear_color = color.into();
 	}

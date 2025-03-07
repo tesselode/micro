@@ -32,7 +32,7 @@ impl Canvas {
 						settings.texture_settings,
 						InternalTextureSettings {
 							sample_count: 1,
-							..Default::default()
+							format: TextureFormat::Rgba16Float,
 						},
 					),
 				},
@@ -45,10 +45,20 @@ impl Canvas {
 						settings.texture_settings,
 						InternalTextureSettings {
 							sample_count,
-							..Default::default()
+							format: TextureFormat::Rgba16Float,
 						},
 					),
-					resolve_texture: Texture::empty(ctx, size, settings.texture_settings),
+					resolve_texture: Texture::new(
+						&ctx.graphics.device,
+						&ctx.graphics.queue,
+						size,
+						None,
+						settings.texture_settings,
+						InternalTextureSettings {
+							sample_count: 1,
+							format: TextureFormat::Rgba16Float,
+						},
+					),
 				},
 			},
 			depth_stencil_texture: Texture::new(
@@ -109,7 +119,7 @@ impl Canvas {
 pub struct CanvasSettings {
 	pub texture_settings: TextureSettings,
 	pub sample_count: u32,
-	// pub hdr: bool,
+	pub hdr: bool,
 }
 
 impl Default for CanvasSettings {
@@ -117,6 +127,7 @@ impl Default for CanvasSettings {
 		Self {
 			texture_settings: Default::default(),
 			sample_count: 1,
+			hdr: false,
 		}
 	}
 }

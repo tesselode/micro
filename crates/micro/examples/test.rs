@@ -1,13 +1,16 @@
 use std::error::Error;
 
+use glam::vec2;
 use micro::{
 	App, Context, ContextSettings,
+	color::ColorConstants,
 	graphics::{
-		GraphicsPipeline, StencilState,
+		Canvas, CanvasSettings, GraphicsPipeline, RenderToCanvasSettings, StencilState,
 		mesh::{Mesh, ShapeStyle},
 	},
 	math::Circle,
 };
+use palette::LinSrgba;
 use wgpu::{CompareFunction, StencilOperation};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -15,36 +18,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct Test {
-	mesh: Mesh,
-	write_stencil_pipeline: GraphicsPipeline,
-	read_stencil_pipeline: GraphicsPipeline,
+	canvas: Canvas,
+	graphics_pipeline: GraphicsPipeline,
 }
 
 impl Test {
 	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			mesh: Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(100.0))?,
-			write_stencil_pipeline: GraphicsPipeline::builder()
-				.stencil_state(StencilState {
-					compare: CompareFunction::Always,
-					on_fail: StencilOperation::Replace,
-					on_depth_fail: StencilOperation::Replace,
-					on_pass: StencilOperation::Replace,
-					read_mask: 255,
-					write_mask: 255,
-				})
-				.enable_color_writes(false)
-				.build(ctx),
-			read_stencil_pipeline: GraphicsPipeline::builder()
-				.stencil_state(StencilState {
-					compare: CompareFunction::Equal,
-					on_fail: StencilOperation::Keep,
-					on_depth_fail: StencilOperation::Keep,
-					on_pass: StencilOperation::Keep,
-					read_mask: 255,
-					write_mask: 255,
-				})
-				.build(ctx),
+			canvas: Canvas::new(
+				ctx,
+				ctx.window_size(),
+				CanvasSettings {
+					hdr: true,
+					..Default::default()
+				},
+			),
+			graphics_pipeline: GraphicsPipeline::builder().hdr(true).build(ctx),
 		})
 	}
 }
@@ -53,15 +42,25 @@ impl App for Test {
 	type Error = Box<dyn Error>;
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		let ctx = &mut ctx.push_stencil_reference(1);
 		{
-			let ctx = &mut ctx.push_graphics_pipeline(&self.write_stencil_pipeline);
-			self.mesh.translated_2d((200.0, 200.0)).draw(ctx);
+			let ctx = &mut self
+				.canvas
+				.render_to(ctx, RenderToCanvasSettings::default());
+			let ctx = &mut ctx.push_graphics_pipeline(&self.graphics_pipeline);
+			Mesh::circle(
+				ctx,
+				ShapeStyle::Fill,
+				Circle {
+					center: vec2(400.0, 300.0),
+					radius: 100.0,
+				},
+			)?
+			.color(LinSrgba::RED)
+			.draw(ctx);
 		}
-		{
-			let ctx = &mut ctx.push_graphics_pipeline(&self.read_stencil_pipeline);
-			self.mesh.translated_2d((300.0, 200.0)).draw(ctx);
-		}
+
+		self.canvas.draw(ctx);
+
 		Ok(())
 	}
 }

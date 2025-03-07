@@ -20,6 +20,7 @@ where
 	pub stencil_state: StencilState,
 	pub enable_color_writes: bool,
 	pub sample_count: u32,
+	pub hdr: bool,
 	pub instance_buffers: Vec<InstanceBufferSettings>,
 }
 
@@ -81,6 +82,10 @@ where
 		}
 	}
 
+	pub fn hdr(self, hdr: bool) -> Self {
+		Self { hdr, ..self }
+	}
+
 	pub fn with_instance_buffer<T: HasVertexAttributes>(mut self) -> Self {
 		self.instance_buffers.push(InstanceBufferSettings {
 			array_stride: std::mem::size_of::<T>() as BufferAddress,
@@ -114,6 +119,7 @@ where
 			stencil_state: Default::default(),
 			enable_color_writes: true,
 			sample_count: 1,
+			hdr: false,
 			instance_buffers: vec![],
 		}
 	}

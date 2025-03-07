@@ -2,7 +2,7 @@ use wgpu::{BufferAddress, VertexAttribute};
 
 use crate::{
 	Context,
-	graphics::{BlendMode, HasVertexAttributes, Shader, StencilState, Vertex},
+	graphics::{BlendMode, Canvas, HasVertexAttributes, Shader, StencilState, Vertex},
 };
 
 use super::GraphicsPipeline;
@@ -34,6 +34,15 @@ where
 		S::Params: Default,
 	{
 		Self::default()
+	}
+
+	pub fn for_canvas(canvas: &Canvas) -> Self
+	where
+		S::Params: Default,
+	{
+		Self::new()
+			.sample_count(canvas.sample_count())
+			.hdr(canvas.hdr())
 	}
 
 	pub fn label(self, label: impl Into<String>) -> Self {

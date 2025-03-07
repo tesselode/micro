@@ -35,13 +35,6 @@ where
 	V: Vertex,
 	S: Shader<Vertex = V>,
 {
-	pub fn builder() -> GraphicsPipelineBuilder<S, V>
-	where
-		S::Params: Default,
-	{
-		GraphicsPipelineBuilder::new()
-	}
-
 	pub fn set_shader_params(&self, ctx: &Context, params: S::Params) {
 		ctx.graphics.queue.write_buffer(
 			&self.shader_params_buffer,

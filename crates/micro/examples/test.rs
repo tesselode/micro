@@ -5,7 +5,8 @@ use micro::{
 	App, Context, ContextSettings,
 	color::ColorConstants,
 	graphics::{
-		Canvas, CanvasSettings, GraphicsPipeline, RenderToCanvasSettings, StencilState,
+		Canvas, CanvasSettings, GraphicsPipeline, GraphicsPipelineBuilder, RenderToCanvasSettings,
+		StencilState,
 		mesh::{Mesh, ShapeStyle},
 	},
 	math::Circle,
@@ -24,16 +25,19 @@ struct Test {
 
 impl Test {
 	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		let canvas = Canvas::new(
+			ctx,
+			ctx.window_size(),
+			CanvasSettings {
+				sample_count: 8,
+				hdr: true,
+				..Default::default()
+			},
+		);
+		let graphics_pipeline = GraphicsPipelineBuilder::for_canvas(&canvas).build(ctx);
 		Ok(Self {
-			canvas: Canvas::new(
-				ctx,
-				ctx.window_size(),
-				CanvasSettings {
-					hdr: true,
-					..Default::default()
-				},
-			),
-			graphics_pipeline: GraphicsPipeline::builder().hdr(true).build(ctx),
+			canvas,
+			graphics_pipeline,
 		})
 	}
 }

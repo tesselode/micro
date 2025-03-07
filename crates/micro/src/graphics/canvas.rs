@@ -12,6 +12,7 @@ use super::texture::{InternalTextureSettings, Texture, TextureSettings};
 pub struct Canvas {
 	pub(crate) kind: CanvasKind,
 	pub(crate) depth_stencil_texture: Texture,
+	hdr: bool,
 
 	// draw params
 	pub transform: Mat4,
@@ -59,6 +60,7 @@ impl Canvas {
 							format: TextureFormat::Rgba16Float,
 						},
 					),
+					sample_count,
 				},
 			},
 			depth_stencil_texture: Texture::new(
@@ -72,6 +74,7 @@ impl Canvas {
 					sample_count: settings.sample_count,
 				},
 			),
+			hdr: settings.hdr,
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
@@ -87,6 +90,17 @@ impl Canvas {
 				texture.size()
 			}
 		}
+	}
+
+	pub fn sample_count(&self) -> u32 {
+		match &self.kind {
+			CanvasKind::Normal { .. } => 1,
+			CanvasKind::Multisampled { sample_count, .. } => *sample_count,
+		}
+	}
+
+	pub fn hdr(&self) -> bool {
+		self.hdr
 	}
 
 	pub fn render_to<'a>(
@@ -182,5 +196,6 @@ pub(crate) enum CanvasKind {
 	Multisampled {
 		texture: Texture,
 		resolve_texture: Texture,
+		sample_count: u32,
 	},
 }

@@ -216,14 +216,17 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn queue_draw_command(&mut self, mut settings: QueueDrawCommandSettings) {
-		settings.draw_params.transform = self.global_transform() * settings.draw_params.transform;
 		let command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
 			range: settings.range,
 			graphics_pipeline: self.graphics_pipeline_stack.last().unwrap().clone(),
 			texture: settings.texture,
-			draw_params: settings.draw_params,
+			draw_params: DrawParams {
+				transform: self.global_transform() * settings.local_transform,
+				local_transform: settings.local_transform,
+				color: settings.color,
+			},
 			scissor_rect: settings
 				.scissor_rect
 				.unwrap_or_else(|| self.default_scissor_rect()),
@@ -398,7 +401,8 @@ pub(crate) struct QueueDrawCommandSettings {
 	pub index_buffer: Buffer,
 	pub range: (u32, u32),
 	pub texture: Option<Texture>,
-	pub draw_params: DrawParams,
+	pub local_transform: Mat4,
+	pub color: LinSrgba,
 	pub scissor_rect: Option<URect>,
 	pub num_instances: u32,
 	pub instance_buffers: Vec<InstanceBuffer>,
@@ -406,9 +410,10 @@ pub(crate) struct QueueDrawCommandSettings {
 
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
-pub(crate) struct DrawParams {
-	pub transform: Mat4,
-	pub color: LinSrgba,
+struct DrawParams {
+	transform: Mat4,
+	local_transform: Mat4,
+	color: LinSrgba,
 }
 
 struct DrawCommand {

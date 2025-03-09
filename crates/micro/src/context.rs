@@ -13,7 +13,7 @@ use sdl2::{
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 	video::{FullscreenType, Window, WindowPos},
 };
-use wgpu::PresentMode;
+use wgpu::{Features, PresentMode};
 
 use crate::{
 	App, Event, FrameTimeTracker, SdlError,
@@ -35,7 +35,11 @@ where
 		.expect("error initializing controller subsystem");
 	let window = build_window(&video, &settings);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
-	let graphics = GraphicsContext::new(&window, settings.present_mode);
+	let graphics = GraphicsContext::new(
+		&window,
+		settings.present_mode,
+		settings.required_graphics_features,
+	);
 
 	let mut ctx = Context {
 		_sdl: sdl,
@@ -362,6 +366,7 @@ pub struct ContextSettings {
 	pub window_mode: WindowMode,
 	pub resizable: bool,
 	pub present_mode: PresentMode,
+	pub required_graphics_features: Features,
 }
 
 impl Default for ContextSettings {
@@ -371,6 +376,7 @@ impl Default for ContextSettings {
 			window_mode: WindowMode::default(),
 			resizable: false,
 			present_mode: PresentMode::AutoVsync,
+			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
 		}
 	}
 }

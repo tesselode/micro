@@ -43,7 +43,11 @@ pub(crate) struct GraphicsContext {
 }
 
 impl GraphicsContext {
-	pub(crate) fn new(window: &Window, present_mode: PresentMode) -> Self {
+	pub(crate) fn new(
+		window: &Window,
+		present_mode: PresentMode,
+		required_features: Features,
+	) -> Self {
 		let instance = Instance::new(&Default::default());
 		let surface = unsafe {
 			instance.create_surface_unsafe(
@@ -64,7 +68,7 @@ impl GraphicsContext {
 			.supported_sample_counts();
 		let (device, queue) = pollster::block_on(adapter.request_device(
 			&DeviceDescriptor {
-				required_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+				required_features,
 				..Default::default()
 			},
 			None,

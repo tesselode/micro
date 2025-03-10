@@ -50,17 +50,17 @@ where
 	) -> Self {
 		let shader = device.create_shader_module(S::DESCRIPTOR);
 		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-			label: None,
+			label: Some(&format!("{} - Pipeline Layout", &builder.label)),
 			bind_group_layouts: &[mesh_bind_group_layout, shader_params_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		let shader_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
-			label: Some("Shader Params Buffer"),
+			label: Some(&format!("{} - Shader Params Buffer", &builder.label)),
 			contents: bytemuck::cast_slice(&[builder.shader_params]),
 			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
 		});
 		let shader_params_bind_group = device.create_bind_group(&BindGroupDescriptor {
-			label: Some("Shader Params Bind Group"),
+			label: Some(&format!("{} - Shader Params Bind Group", &builder.label)),
 			layout: shader_params_bind_group_layout,
 			entries: &[BindGroupEntry {
 				binding: 0,

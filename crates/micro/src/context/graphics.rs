@@ -75,7 +75,7 @@ impl GraphicsContext {
 		))
 		.expect("error getting graphics device");
 		let mesh_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-			label: None,
+			label: Some("Mesh Bind Group Layout"),
 			entries: &[
 				BindGroupLayoutEntry {
 					binding: 0,
@@ -107,7 +107,7 @@ impl GraphicsContext {
 		});
 		let shader_params_bind_group_layout =
 			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-				label: None,
+				label: Some("Shader Params Bind Group Layout"),
 				entries: &[BindGroupLayoutEntry {
 					binding: 0,
 					visibility: ShaderStages::VERTEX_FRAGMENT,
@@ -153,7 +153,7 @@ impl GraphicsContext {
 			&device,
 			&mesh_bind_group_layout,
 			&shader_params_bind_group_layout,
-			GraphicsPipelineBuilder::default(),
+			GraphicsPipelineBuilder::default().label("Default Graphics Pipeline"),
 		)
 		.raw();
 		let default_texture = Texture::new(
@@ -282,7 +282,7 @@ impl GraphicsContext {
 		} in self.finished_canvas_render_passes.drain(..)
 		{
 			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-				label: None,
+				label: Some("Canvas Render Pass"),
 				color_attachments: &[Some(RenderPassColorAttachment {
 					view: match &canvas.kind {
 						CanvasKind::Normal { texture }
@@ -335,7 +335,7 @@ impl GraphicsContext {
 
 		{
 			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-				label: None,
+				label: Some("Main Surface Render Pass"),
 				color_attachments: &[Some(RenderPassColorAttachment {
 					view: &output,
 					resolve_target: None,

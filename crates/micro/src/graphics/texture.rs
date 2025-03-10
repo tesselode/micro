@@ -33,7 +33,6 @@ pub struct Texture {
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub scissor_rect: Option<URect>,
-	
 }
 
 impl Texture {
@@ -138,7 +137,6 @@ impl Texture {
 		.texture(self)
 		.transformed(self.transform)
 		.color(self.color)
-		
 		.draw(ctx);
 	}
 
@@ -204,7 +202,6 @@ impl Texture {
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			scissor_rect: None,
-			
 		}
 	}
 }

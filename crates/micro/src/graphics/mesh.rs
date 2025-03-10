@@ -44,7 +44,7 @@ impl<V: Vertex> Mesh<V> {
 			.graphics
 			.device
 			.create_buffer_init(&BufferInitDescriptor {
-				label: None,
+				label: Some("Mesh Vertex Buffer"),
 				contents: bytemuck::cast_slice(vertices),
 				usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
 			});
@@ -52,7 +52,7 @@ impl<V: Vertex> Mesh<V> {
 			.graphics
 			.device
 			.create_buffer_init(&BufferInitDescriptor {
-				label: None,
+				label: Some("Mesh Index Buffer"),
 				contents: bytemuck::cast_slice(indices),
 				usage: BufferUsages::INDEX,
 			});

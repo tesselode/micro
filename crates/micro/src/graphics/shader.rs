@@ -1,9 +1,11 @@
+pub use wgpu::{ShaderModuleDescriptor, include_wgsl};
+
 use bytemuck::Pod;
 
 use super::{Vertex, Vertex2d};
 
 pub trait Shader {
-	const SOURCE: &'static str;
+	const DESCRIPTOR: ShaderModuleDescriptor<'_>;
 
 	type Vertex: Vertex;
 	type Params: Pod;
@@ -12,7 +14,7 @@ pub trait Shader {
 pub struct DefaultShader;
 
 impl Shader for DefaultShader {
-	const SOURCE: &'static str = include_str!("shader.wgsl");
+	const DESCRIPTOR: ShaderModuleDescriptor<'_> = include_wgsl!("shader.wgsl");
 
 	type Vertex = Vertex2d;
 	type Params = i32;

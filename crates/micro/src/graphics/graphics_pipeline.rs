@@ -2,15 +2,14 @@ mod builder;
 
 pub use builder::*;
 
-use std::{borrow::Cow, fmt::Debug, hash::Hash, marker::PhantomData};
+use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, Buffer, BufferAddress,
 	BufferUsages, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
 	DepthStencilState, Device, FragmentState, MultisampleState, PipelineCompilationOptions,
 	PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology, RenderPipeline,
-	RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, TextureFormat,
-	VertexBufferLayout, VertexState, VertexStepMode,
+	RenderPipelineDescriptor, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -49,10 +48,7 @@ where
 		shader_params_bind_group_layout: &BindGroupLayout,
 		builder: GraphicsPipelineBuilder<S, V>,
 	) -> Self {
-		let shader = device.create_shader_module(ShaderModuleDescriptor {
-			label: None,
-			source: ShaderSource::Wgsl(Cow::Borrowed(S::SOURCE)),
-		});
+		let shader = device.create_shader_module(S::DESCRIPTOR);
 		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 			label: None,
 			bind_group_layouts: &[mesh_bind_group_layout, shader_params_bind_group_layout],

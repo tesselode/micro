@@ -153,6 +153,16 @@ pub struct RenderToCanvasSettings {
 	pub clear_stencil_value: bool,
 }
 
+impl RenderToCanvasSettings {
+	pub fn no_clear() -> Self {
+		Self {
+			clear_color: None,
+			clear_depth_buffer: false,
+			clear_stencil_value: false,
+		}
+	}
+}
+
 impl Default for RenderToCanvasSettings {
 	fn default() -> Self {
 		Self {

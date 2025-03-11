@@ -17,7 +17,7 @@ use crate::{
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
 		Canvas, CanvasKind, DefaultShader, GraphicsPipeline, GraphicsPipelineBuilder,
-		InstanceBuffer, RawGraphicsPipeline, RenderToCanvasSettings, Vertex2d,
+		InstanceBuffer, RawGraphicsPipeline, RenderToCanvasSettings,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -149,7 +149,7 @@ impl GraphicsContext {
 				sample_count: 1,
 			},
 		);
-		let default_graphics_pipeline = GraphicsPipeline::<DefaultShader, Vertex2d>::new_internal(
+		let default_graphics_pipeline = GraphicsPipeline::<DefaultShader>::new_internal(
 			&device,
 			&mesh_bind_group_layout,
 			&shader_params_bind_group_layout,
@@ -215,7 +215,7 @@ impl GraphicsContext {
 		self.finished_canvas_render_passes.push(canvas_render_pass);
 	}
 
-	pub(crate) fn queue_draw_command(&mut self, mut settings: QueueDrawCommandSettings) {
+	pub(crate) fn queue_draw_command(&mut self, settings: QueueDrawCommandSettings) {
 		let command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,

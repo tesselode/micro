@@ -15,25 +15,16 @@ use wgpu::{
 
 use crate::Context;
 
-use super::{DefaultShader, Shader, Vertex, Vertex2d};
+use super::{DefaultShader, HasVertexAttributes, Shader};
 
-pub struct GraphicsPipeline<S = DefaultShader, V = Vertex2d>
-where
-	V: Vertex,
-	S: Shader<Vertex = V>,
-{
+pub struct GraphicsPipeline<S: Shader = DefaultShader> {
 	pub(crate) render_pipeline: RenderPipeline,
 	pub(crate) shader_params_buffer: Buffer,
 	pub(crate) shader_params_bind_group: BindGroup,
-	_vertex: PhantomData<V>,
 	_shader: PhantomData<S>,
 }
 
-impl<S, V> GraphicsPipeline<S, V>
-where
-	V: Vertex,
-	S: Shader<Vertex = V>,
-{
+impl<S: Shader> GraphicsPipeline<S> {
 	pub fn set_shader_params(&self, ctx: &Context, params: S::Params) {
 		ctx.graphics.queue.write_buffer(
 			&self.shader_params_buffer,
@@ -46,7 +37,7 @@ where
 		device: &Device,
 		mesh_bind_group_layout: &BindGroupLayout,
 		shader_params_bind_group_layout: &BindGroupLayout,
-		builder: GraphicsPipelineBuilder<S, V>,
+		builder: GraphicsPipelineBuilder<S>,
 	) -> Self {
 		let shader = device.create_shader_module(S::DESCRIPTOR);
 		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
@@ -67,9 +58,9 @@ where
 				resource: shader_params_buffer.as_entire_binding(),
 			}],
 		});
-		let vertex_attributes = V::attributes();
+		let vertex_attributes = S::Vertex::attributes();
 		let mut vertex_buffers = vec![VertexBufferLayout {
-			array_stride: std::mem::size_of::<V>() as BufferAddress,
+			array_stride: std::mem::size_of::<S::Vertex>() as BufferAddress,
 			step_mode: VertexStepMode::Vertex,
 			attributes: &vertex_attributes,
 		}];
@@ -137,7 +128,6 @@ where
 			render_pipeline,
 			shader_params_buffer,
 			shader_params_bind_group,
-			_vertex: PhantomData,
 			_shader: PhantomData,
 		}
 	}
@@ -150,69 +140,44 @@ where
 	}
 }
 
-impl<S, V> Debug for GraphicsPipeline<S, V>
-where
-	V: Vertex,
-	S: Shader<Vertex = V>,
-{
+impl<S: Shader> Debug for GraphicsPipeline<S> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("GraphicsPipeline")
 			.field("render_pipeline", &self.render_pipeline)
 			.field("shader_params_buffer", &self.shader_params_buffer)
 			.field("shader_params_bind_group", &self.shader_params_bind_group)
-			.field("_vertex", &self._vertex)
 			.field("_shader", &self._shader)
 			.finish()
 	}
 }
 
-impl<S, V> Clone for GraphicsPipeline<S, V>
-where
-	V: Vertex,
-	S: Shader<Vertex = V>,
-{
+impl<S: Shader> Clone for GraphicsPipeline<S> {
 	fn clone(&self) -> Self {
 		Self {
 			render_pipeline: self.render_pipeline.clone(),
 			shader_params_buffer: self.shader_params_buffer.clone(),
 			shader_params_bind_group: self.shader_params_bind_group.clone(),
-			_vertex: self._vertex,
 			_shader: self._shader,
 		}
 	}
 }
 
-impl<S, V> PartialEq for GraphicsPipeline<S, V>
-where
-	V: Vertex,
-	S: Shader<Vertex = V>,
-{
+impl<S: Shader> PartialEq for GraphicsPipeline<S> {
 	fn eq(&self, other: &Self) -> bool {
 		self.render_pipeline == other.render_pipeline
 			&& self.shader_params_buffer == other.shader_params_buffer
 			&& self.shader_params_bind_group == other.shader_params_bind_group
-			&& self._vertex == other._vertex
 			&& self._shader == other._shader
 	}
 }
 
-impl<S, V> Eq for GraphicsPipeline<S, V>
-where
-	V: Vertex,
-	S: Shader<Vertex = V>,
-{
-}
+impl<S: Shader> Eq for GraphicsPipeline<S> {}
 
-impl<V, S> Hash for GraphicsPipeline<S, V>
-where
-	V: Vertex,
-	S: Shader<Vertex = V>,
-{
+impl<S: Shader> Hash for GraphicsPipeline<S> {
 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
 		self.render_pipeline.hash(state);
 		self.shader_params_buffer.hash(state);
 		self.shader_params_bind_group.hash(state);
-		self._vertex.hash(state);
 		self._shader.hash(state);
 	}
 }

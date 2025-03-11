@@ -8,11 +8,7 @@ use crate::{
 use super::GraphicsPipeline;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GraphicsPipelineBuilder<S, V>
-where
-	S: Shader<Vertex = V>,
-	V: Vertex,
-{
+pub struct GraphicsPipelineBuilder<S: Shader> {
 	pub label: String,
 	pub blend_mode: BlendMode,
 	pub shader_params: S::Params,
@@ -24,11 +20,7 @@ where
 	pub instance_buffers: Vec<InstanceBufferSettings>,
 }
 
-impl<S, V> GraphicsPipelineBuilder<S, V>
-where
-	S: Shader<Vertex = V>,
-	V: Vertex,
-{
+impl<S: Shader> GraphicsPipelineBuilder<S> {
 	pub fn new() -> Self
 	where
 		S::Params: Default,
@@ -103,7 +95,7 @@ where
 		self
 	}
 
-	pub fn build(self, ctx: &Context) -> GraphicsPipeline<S, V> {
+	pub fn build(self, ctx: &Context) -> GraphicsPipeline<S> {
 		GraphicsPipeline::new_internal(
 			&ctx.graphics.device,
 			&ctx.graphics.mesh_bind_group_layout,
@@ -113,10 +105,8 @@ where
 	}
 }
 
-impl<S, V> Default for GraphicsPipelineBuilder<S, V>
+impl<S: Shader> Default for GraphicsPipelineBuilder<S>
 where
-	S: Shader<Vertex = V>,
-	V: Vertex,
 	S::Params: Default,
 {
 	fn default() -> Self {

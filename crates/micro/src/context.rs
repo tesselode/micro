@@ -18,7 +18,7 @@ use wgpu::{Features, PresentMode};
 use crate::{
 	App, Event, FrameTimeTracker, SdlError,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	graphics::{GraphicsPipeline, Shader, Vertex},
+	graphics::{GraphicsPipeline, Shader},
 	input::{Gamepad, MouseButton, Scancode},
 	window::{WindowMode, build_window},
 };
@@ -211,14 +211,10 @@ impl Context {
 		self.graphics.clear_color = color.into();
 	}
 
-	pub fn push_graphics_pipeline<S, V>(
+	pub fn push_graphics_pipeline<S: Shader>(
 		&mut self,
-		graphics_pipeline: &GraphicsPipeline<S, V>,
-	) -> OnDrop<'_>
-	where
-		S: Shader<Vertex = V>,
-		V: Vertex,
-	{
+		graphics_pipeline: &GraphicsPipeline<S>,
+	) -> OnDrop<'_> {
 		self.graphics
 			.graphics_pipeline_stack
 			.push(graphics_pipeline.raw());

@@ -104,7 +104,7 @@ impl Canvas {
 	}
 
 	pub fn render_to<'a>(
-		&'a self,
+		&self,
 		ctx: &'a mut Context,
 		settings: RenderToCanvasSettings,
 	) -> OnDrop<'a> {

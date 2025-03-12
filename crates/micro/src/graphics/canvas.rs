@@ -146,11 +146,12 @@ impl Default for CanvasSettings {
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RenderToCanvasSettings {
 	pub clear_color: Option<LinSrgba>,
 	pub clear_depth_buffer: bool,
 	pub clear_stencil_value: bool,
+	pub render_pass_label: String,
 }
 
 impl RenderToCanvasSettings {
@@ -159,6 +160,7 @@ impl RenderToCanvasSettings {
 			clear_color: None,
 			clear_depth_buffer: false,
 			clear_stencil_value: false,
+			render_pass_label: "Canvas Render Pass".into(),
 		}
 	}
 }
@@ -169,6 +171,7 @@ impl Default for RenderToCanvasSettings {
 			clear_color: Some(LinSrgba::BLACK),
 			clear_depth_buffer: true,
 			clear_stencil_value: true,
+			render_pass_label: "Canvas Render Pass".into(),
 		}
 	}
 }

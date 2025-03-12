@@ -282,7 +282,7 @@ impl GraphicsContext {
 		} in self.finished_canvas_render_passes.drain(..)
 		{
 			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-				label: Some("Canvas Render Pass"),
+				label: Some(&settings.render_pass_label),
 				color_attachments: &[Some(RenderPassColorAttachment {
 					view: match &canvas.kind {
 						CanvasKind::Normal { texture }

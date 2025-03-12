@@ -22,6 +22,11 @@ pub struct Canvas {
 
 impl Canvas {
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
+		let format = if settings.hdr {
+			TextureFormat::Rgba16Float
+		} else {
+			TextureFormat::Rgba8UnormSrgb
+		};
 		Self {
 			kind: match settings.sample_count {
 				1 => CanvasKind::Normal {
@@ -33,7 +38,7 @@ impl Canvas {
 						settings.texture_settings,
 						InternalTextureSettings {
 							sample_count: 1,
-							format: TextureFormat::Rgba16Float,
+							format,
 						},
 					),
 				},
@@ -46,7 +51,7 @@ impl Canvas {
 						settings.texture_settings,
 						InternalTextureSettings {
 							sample_count,
-							format: TextureFormat::Rgba16Float,
+							format,
 						},
 					),
 					resolve_texture: Texture::new(
@@ -57,7 +62,7 @@ impl Canvas {
 						settings.texture_settings,
 						InternalTextureSettings {
 							sample_count: 1,
-							format: TextureFormat::Rgba16Float,
+							format,
 						},
 					),
 					sample_count,

@@ -69,31 +69,39 @@ impl Camera3d {
 		}
 	}
 
-	pub fn transform(self, ctx: &Context) -> Mat4 {
-		let _span = tracy_client::span!();
-		let (projection, up_y) = match self.kind {
+	pub fn up_y(self) -> f32 {
+		match self.kind {
+			Camera3dKind::Perspective { up_y, .. } => up_y,
+			Camera3dKind::Orthographic { .. } => 1.0,
+		}
+	}
+
+	pub fn projection(self) -> Mat4 {
+		match self.kind {
 			Camera3dKind::Perspective {
 				field_of_view,
 				aspect_ratio,
-				up_y,
-			} => (
-				Mat4::perspective_rh(field_of_view, aspect_ratio, self.z_near, self.z_far),
-				up_y,
+				..
+			} => Mat4::perspective_rh(field_of_view, aspect_ratio, self.z_near, self.z_far),
+			Camera3dKind::Orthographic { xy_bounds } => Mat4::orthographic_rh(
+				xy_bounds.left(),
+				xy_bounds.right(),
+				xy_bounds.bottom(),
+				xy_bounds.top(),
+				self.z_near,
+				self.z_far,
 			),
-			Camera3dKind::Orthographic { xy_bounds } => (
-				Mat4::orthographic_rh(
-					xy_bounds.left(),
-					xy_bounds.right(),
-					xy_bounds.bottom(),
-					xy_bounds.top(),
-					self.z_near,
-					self.z_far,
-				),
-				1.0,
-			),
-		};
-		let view = Mat4::look_at_rh(self.position, self.look_at, Vec3::new(0.0, up_y, 0.0));
-		Self::undo_2d_coordinate_system_transform(ctx) * projection * view
+		}
+	}
+
+	pub fn view(self) -> Mat4 {
+		let up_y = self.up_y();
+		Mat4::look_at_rh(self.position, self.look_at, Vec3::new(0.0, up_y, 0.0))
+	}
+
+	pub fn transform(self, ctx: &Context) -> Mat4 {
+		let _span = tracy_client::span!();
+		Self::undo_2d_coordinate_system_transform(ctx) * self.projection() * self.view()
 	}
 
 	fn undo_2d_coordinate_system_transform(ctx: &Context) -> Mat4 {

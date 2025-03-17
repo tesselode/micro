@@ -12,7 +12,7 @@ use super::texture::{InternalTextureSettings, Texture, TextureSettings};
 pub struct Canvas {
 	pub(crate) kind: CanvasKind,
 	pub(crate) depth_stencil_texture: Texture,
-	hdr: bool,
+	format: TextureFormat,
 
 	// draw params
 	pub transform: Mat4,
@@ -22,11 +22,6 @@ pub struct Canvas {
 
 impl Canvas {
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
-		let format = if settings.hdr {
-			TextureFormat::Rgba16Float
-		} else {
-			TextureFormat::Rgba8UnormSrgb
-		};
 		Self {
 			kind: match settings.sample_count {
 				1 => CanvasKind::Normal {
@@ -38,7 +33,7 @@ impl Canvas {
 						settings.texture_settings,
 						InternalTextureSettings {
 							sample_count: 1,
-							format,
+							format: settings.format,
 						},
 					),
 				},
@@ -51,7 +46,7 @@ impl Canvas {
 						settings.texture_settings,
 						InternalTextureSettings {
 							sample_count,
-							format,
+							format: settings.format,
 						},
 					),
 					resolve_texture: Texture::new(
@@ -62,7 +57,7 @@ impl Canvas {
 						settings.texture_settings,
 						InternalTextureSettings {
 							sample_count: 1,
-							format,
+							format: settings.format,
 						},
 					),
 					sample_count,
@@ -79,7 +74,7 @@ impl Canvas {
 					sample_count: settings.sample_count,
 				},
 			),
-			hdr: settings.hdr,
+			format: settings.format,
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
@@ -104,8 +99,8 @@ impl Canvas {
 		}
 	}
 
-	pub fn hdr(&self) -> bool {
-		self.hdr
+	pub fn format(&self) -> TextureFormat {
+		self.format
 	}
 
 	pub fn render_to<'a>(
@@ -138,7 +133,7 @@ impl Canvas {
 pub struct CanvasSettings {
 	pub texture_settings: TextureSettings,
 	pub sample_count: u32,
-	pub hdr: bool,
+	pub format: TextureFormat,
 }
 
 impl Default for CanvasSettings {
@@ -146,7 +141,7 @@ impl Default for CanvasSettings {
 		Self {
 			texture_settings: Default::default(),
 			sample_count: 1,
-			hdr: false,
+			format: TextureFormat::Rgba8UnormSrgb,
 		}
 	}
 }

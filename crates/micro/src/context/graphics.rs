@@ -153,7 +153,17 @@ impl GraphicsContext {
 			&device,
 			&mesh_bind_group_layout,
 			&shader_params_bind_group_layout,
-			GraphicsPipelineBuilder::default().label("Default Graphics Pipeline"),
+			GraphicsPipelineBuilder {
+				label: "Default Graphics Pipeline".into(),
+				blend_mode: Default::default(),
+				shader_params: Default::default(),
+				enable_depth_testing: false,
+				stencil_state: Default::default(),
+				enable_color_writes: true,
+				sample_count: 1,
+				format: config.format,
+				instance_buffers: vec![],
+			},
 		)
 		.raw();
 		let default_texture = Texture::new(
@@ -260,6 +270,10 @@ impl GraphicsContext {
 
 	pub(crate) fn present_mode(&self) -> PresentMode {
 		self.config.present_mode
+	}
+
+	pub(crate) fn surface_format(&self) -> TextureFormat {
+		self.config.format
 	}
 
 	pub(crate) fn set_present_mode(&mut self, present_mode: PresentMode) {

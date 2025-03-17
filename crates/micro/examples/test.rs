@@ -30,7 +30,6 @@ impl Test {
 			ctx.window_size(),
 			CanvasSettings {
 				sample_count: 8,
-				hdr: true,
 				..Default::default()
 			},
 		);

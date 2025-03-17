@@ -13,7 +13,7 @@ use sdl2::{
 	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 	video::{FullscreenType, Window, WindowPos},
 };
-use wgpu::{Features, PresentMode};
+use wgpu::{Features, PresentMode, TextureFormat};
 
 use crate::{
 	App, Event, FrameTimeTracker, SdlError,
@@ -193,6 +193,10 @@ impl Context {
 
 	pub fn present_mode(&self) -> PresentMode {
 		self.graphics.present_mode()
+	}
+
+	pub fn surface_format(&self) -> TextureFormat {
+		self.graphics.surface_format()
 	}
 
 	pub fn set_present_mode(&mut self, present_mode: PresentMode) {

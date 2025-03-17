@@ -22,7 +22,7 @@ pub use shader::*;
 pub use stencil::*;
 pub use vertex::*;
 
-pub use wgpu::{Features, PresentMode};
+pub use wgpu::{Features, PresentMode, TextureFormat};
 
 #[macro_export]
 macro_rules! standard_draw_param_methods {

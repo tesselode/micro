@@ -108,11 +108,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 				entry_point: Some("fs_main"),
 				compilation_options: PipelineCompilationOptions::default(),
 				targets: &[Some(ColorTargetState {
-					format: if builder.hdr {
-						TextureFormat::Rgba16Float
-					} else {
-						TextureFormat::Rgba8UnormSrgb
-					},
+					format: builder.format,
 					blend: Some(builder.blend_mode.to_blend_state()),
 					write_mask: if builder.enable_color_writes {
 						ColorWrites::ALL

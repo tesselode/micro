@@ -1,8 +1,8 @@
-use wgpu::{BufferAddress, VertexAttribute};
+use wgpu::{BufferAddress, TextureFormat, VertexAttribute};
 
 use crate::{
 	Context,
-	graphics::{BlendMode, Canvas, HasVertexAttributes, Shader, StencilState, Vertex},
+	graphics::{BlendMode, Canvas, HasVertexAttributes, Shader, StencilState},
 };
 
 use super::GraphicsPipeline;
@@ -16,25 +16,43 @@ pub struct GraphicsPipelineBuilder<S: Shader> {
 	pub stencil_state: StencilState,
 	pub enable_color_writes: bool,
 	pub sample_count: u32,
-	pub hdr: bool,
+	pub format: TextureFormat,
 	pub instance_buffers: Vec<InstanceBufferSettings>,
 }
 
 impl<S: Shader> GraphicsPipelineBuilder<S> {
-	pub fn new() -> Self
+	pub fn new(ctx: &Context) -> Self
 	where
 		S::Params: Default,
 	{
-		Self::default()
+		Self {
+			label: "Graphics Pipeline".into(),
+			blend_mode: Default::default(),
+			shader_params: Default::default(),
+			enable_depth_testing: false,
+			stencil_state: Default::default(),
+			enable_color_writes: true,
+			sample_count: 1,
+			format: ctx.surface_format(),
+			instance_buffers: vec![],
+		}
 	}
 
 	pub fn for_canvas(canvas: &Canvas) -> Self
 	where
 		S::Params: Default,
 	{
-		Self::new()
-			.sample_count(canvas.sample_count())
-			.hdr(canvas.hdr())
+		Self {
+			label: "Graphics Pipeline".into(),
+			blend_mode: Default::default(),
+			shader_params: Default::default(),
+			enable_depth_testing: false,
+			stencil_state: Default::default(),
+			enable_color_writes: true,
+			sample_count: canvas.sample_count(),
+			format: canvas.format(),
+			instance_buffers: vec![],
+		}
 	}
 
 	pub fn label(self, label: impl Into<String>) -> Self {
@@ -83,8 +101,8 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 		}
 	}
 
-	pub fn hdr(self, hdr: bool) -> Self {
-		Self { hdr, ..self }
+	pub fn format(self, format: TextureFormat) -> Self {
+		Self { format, ..self }
 	}
 
 	pub fn with_instance_buffer<T: HasVertexAttributes>(mut self) -> Self {
@@ -102,25 +120,6 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			&ctx.graphics.shader_params_bind_group_layout,
 			self,
 		)
-	}
-}
-
-impl<S: Shader> Default for GraphicsPipelineBuilder<S>
-where
-	S::Params: Default,
-{
-	fn default() -> Self {
-		Self {
-			label: "Graphics Pipeline".into(),
-			blend_mode: Default::default(),
-			shader_params: Default::default(),
-			enable_depth_testing: false,
-			stencil_state: Default::default(),
-			enable_color_writes: true,
-			sample_count: 1,
-			hdr: false,
-			instance_buffers: vec![],
-		}
 	}
 }
 

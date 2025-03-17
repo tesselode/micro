@@ -353,7 +353,7 @@ fn egui_scaling_factor(ctx: &Context) -> f32 {
 	{
 		ctx.window_size().y as f32 / ctx.logical_window_size().y as f32
 	}
-	#[cfg(target_os = "windows")]
+	#[cfg(not(target_os = "macos"))]
 	{
 		let Ok(monitor_resolution) = ctx.monitor_resolution() else {
 			return 1.0;

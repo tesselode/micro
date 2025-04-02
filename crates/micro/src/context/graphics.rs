@@ -33,8 +33,8 @@ pub(crate) struct GraphicsContext {
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
 	default_texture: Texture,
+	pub(crate) default_graphics_pipeline: GraphicsPipeline,
 	pub(crate) clear_color: LinSrgb,
-	pub(crate) graphics_pipeline_stack: Vec<RawGraphicsPipeline>,
 	pub(crate) transform_stack: Vec<Mat4>,
 	pub(crate) stencil_reference_stack: Vec<u8>,
 	main_surface_draw_commands: Vec<DrawCommand>,
@@ -164,8 +164,7 @@ impl GraphicsContext {
 				format: config.format,
 				instance_buffers: vec![],
 			},
-		)
-		.raw();
+		);
 		let default_texture = Texture::new(
 			&device,
 			&queue,
@@ -185,7 +184,7 @@ impl GraphicsContext {
 			shader_params_bind_group_layout,
 			default_texture,
 			clear_color: LinSrgb::BLACK,
-			graphics_pipeline_stack: vec![default_graphics_pipeline],
+			default_graphics_pipeline,
 			transform_stack: vec![],
 			stencil_reference_stack: vec![0],
 			main_surface_draw_commands: vec![],
@@ -225,12 +224,16 @@ impl GraphicsContext {
 		self.finished_canvas_render_passes.push(canvas_render_pass);
 	}
 
-	pub(crate) fn queue_draw_command(&mut self, settings: QueueDrawCommandSettings) {
+	pub(crate) fn queue_draw_command(
+		&mut self,
+		graphics_pipeline: RawGraphicsPipeline,
+		settings: QueueDrawCommandSettings,
+	) {
 		let command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
 			range: settings.range,
-			graphics_pipeline: self.graphics_pipeline_stack.last().unwrap().clone(),
+			graphics_pipeline,
 			texture: settings.texture,
 			draw_params: DrawParams {
 				transform: self.global_transform() * settings.local_transform,

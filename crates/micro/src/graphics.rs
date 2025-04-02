@@ -1,6 +1,7 @@
 mod blend_mode;
 mod camera_3d;
 mod canvas;
+pub(crate) mod drawable;
 mod graphics_pipeline;
 mod instance_buffer;
 mod into_range;

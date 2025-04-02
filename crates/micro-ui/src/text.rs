@@ -116,20 +116,22 @@ impl Widget for TextWidget {
 	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		if let Some(TextShadow { color, offset }) = self.settings.shadow {
+			ctx.draw(
+				self.rendered
+					.borrow()
+					.as_ref()
+					.unwrap()
+					.translated_2d(offset)
+					.color(color),
+			);
+		}
+		ctx.draw(
 			self.rendered
 				.borrow()
 				.as_ref()
 				.unwrap()
-				.translated_2d(offset)
-				.color(color)
-				.draw(ctx);
-		}
-		self.rendered
-			.borrow()
-			.as_ref()
-			.unwrap()
-			.color(self.settings.color)
-			.draw(ctx);
+				.color(self.settings.color),
+		);
 		Ok(())
 	}
 }

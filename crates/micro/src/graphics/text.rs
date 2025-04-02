@@ -17,7 +17,8 @@ use crate::{
 };
 
 use super::{
-	IntoRange,
+	IntoRange, RawGraphicsPipeline, Vertex2d,
+	drawable::Drawable,
 	sprite_batch::{SpriteBatch, SpriteParams},
 };
 
@@ -103,22 +104,6 @@ impl Text {
 		self.inner.lowest_baseline
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
-		let _span = tracy_client::span!();
-		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
-			unimplemented!(
-				"drawing a text range is not implemented for text with more than one font"
-			);
-		}
-		for sprite_batch in &self.inner.sprite_batches {
-			sprite_batch
-				.transformed(self.transform)
-				.color(self.color)
-				.range(self.range)
-				.draw(ctx);
-		}
-	}
-
 	fn from_layout(ctx: &Context, layout: Layout, fonts: &[&Font]) -> Text {
 		let glyphs = layout.glyphs();
 		let lowest_baseline = layout.lines().map(|lines| {
@@ -184,12 +169,25 @@ impl Text {
 	}
 }
 
-#[derive(Debug)]
-struct TextInner {
-	pub(crate) sprite_batches: Vec<SpriteBatch>,
-	pub(crate) bounds: Option<Rect>,
-	pub(crate) lowest_baseline: Option<f32>,
-	pub(crate) num_glyphs: u32,
+impl Drawable for Text {
+	type Vertex = Vertex2d;
+
+	#[allow(private_interfaces)]
+	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
+		let _span = tracy_client::span!();
+		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
+			unimplemented!(
+				"drawing a text range is not implemented for text with more than one font"
+			);
+		}
+		for sprite_batch in &self.inner.sprite_batches {
+			sprite_batch
+				.transformed(self.transform)
+				.color(self.color)
+				.range(self.range)
+				.draw(ctx, graphics_pipeline.clone());
+		}
+	}
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -253,4 +251,12 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 pub struct TextFragment {
 	pub font_index: usize,
 	pub text: String,
+}
+
+#[derive(Debug)]
+struct TextInner {
+	pub(crate) sprite_batches: Vec<SpriteBatch>,
+	pub(crate) bounds: Option<Rect>,
+	pub(crate) lowest_baseline: Option<f32>,
+	pub(crate) num_glyphs: u32,
 }

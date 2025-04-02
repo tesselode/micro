@@ -17,7 +17,7 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::{IntoRange, Vertex2d};
+use super::{IntoRange, RawGraphicsPipeline, Vertex2d, drawable::Drawable};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
@@ -28,7 +28,6 @@ pub struct SpriteBatch {
 	pub color: LinSrgba,
 	pub range: Option<(u32, u32)>,
 	pub scissor_rect: Option<URect>,
-	
 }
 
 impl SpriteBatch {
@@ -64,7 +63,6 @@ impl SpriteBatch {
 			color: LinSrgba::WHITE,
 			scissor_rect: None,
 			range: None,
-			
 		}
 	}
 
@@ -153,22 +151,21 @@ impl SpriteBatch {
 		self.mesh.set_vertices(ctx, start_vertex_index, &vertices);
 		Ok(())
 	}
+}
 
-	pub fn draw(&self, ctx: &mut Context) {
+impl Drawable for SpriteBatch {
+	type Vertex = Vertex2d;
+
+	#[allow(private_interfaces)]
+	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
 		let _span = tracy_client::span!();
 		self.mesh
 			.texture(&self.texture)
 			.transformed(self.transform)
 			.color(self.color)
 			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
-			
-			.draw(ctx);
+			.draw(ctx, graphics_pipeline)
 	}
-}
-
-#[derive(Debug)]
-struct SpriteBatchInner {
-	sprites: Arena<()>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -181,3 +178,8 @@ pub struct SpriteLimitReached;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error, Display)]
 #[display("No sprite with this ID exists")]
 pub struct InvalidSpriteId;
+
+#[derive(Debug)]
+struct SpriteBatchInner {
+	sprites: Arena<()>,
+}

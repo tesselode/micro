@@ -18,7 +18,7 @@ use wgpu::{Features, PresentMode, TextureFormat};
 use crate::{
 	App, Event, FrameTimeTracker, SdlError,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	graphics::{GraphicsPipeline, Shader},
+	graphics::{GraphicsPipeline, Vertex2d, drawable::Drawable},
 	input::{Gamepad, MouseButton, Scancode},
 	window::{WindowMode, build_window},
 };
@@ -215,17 +215,8 @@ impl Context {
 		self.graphics.clear_color = color.into();
 	}
 
-	pub fn push_graphics_pipeline<S: Shader>(
-		&mut self,
-		graphics_pipeline: &GraphicsPipeline<S>,
-	) -> OnDrop<'_> {
-		self.graphics
-			.graphics_pipeline_stack
-			.push(graphics_pipeline.raw());
-		OnDrop {
-			ctx: self,
-			pop: Pop::GraphicsPipeline,
-		}
+	pub fn default_graphics_pipeline(&self) -> GraphicsPipeline {
+		self.graphics.default_graphics_pipeline.clone()
 	}
 
 	/// Creates a scope where all drawing operations have the given transform
@@ -301,6 +292,10 @@ impl Context {
 			ctx: self,
 			pop: Pop::StencilReference,
 		}
+	}
+
+	pub fn draw(&mut self, drawable: impl Drawable<Vertex = Vertex2d>) {
+		drawable.draw(self, self.graphics.default_graphics_pipeline.raw());
 	}
 
 	/// Returns `true` if the given keyboard key is currently held down.
@@ -393,9 +388,6 @@ impl Drop for OnDrop<'_> {
 			Pop::Transform => {
 				self.ctx.graphics.transform_stack.pop();
 			}
-			Pop::GraphicsPipeline => {
-				self.ctx.graphics.graphics_pipeline_stack.pop();
-			}
 			Pop::StencilReference => {
 				self.ctx.graphics.stencil_reference_stack.pop();
 			}
@@ -419,6 +411,5 @@ impl DerefMut for OnDrop<'_> {
 
 enum Pop {
 	Transform,
-	GraphicsPipeline,
 	StencilReference,
 }

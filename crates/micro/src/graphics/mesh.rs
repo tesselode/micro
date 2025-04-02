@@ -21,7 +21,7 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::{InstanceBuffer, IntoRange, Vertex, Vertex2d};
+use super::{IntoRange, RawGraphicsPipeline, Vertex, Vertex2d, drawable::Drawable};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh<V: Vertex = Vertex2d> {
@@ -92,38 +92,28 @@ impl<V: Vertex> Mesh<V> {
 			bytemuck::cast_slice(vertices),
 		);
 	}
+}
 
-	pub fn draw(&self, ctx: &mut Context) {
-		ctx.graphics.queue_draw_command(QueueDrawCommandSettings {
-			vertex_buffer: self.vertex_buffer.clone(),
-			index_buffer: self.index_buffer.clone(),
-			range: self.range.unwrap_or((0, self.num_indices)),
-			local_transform: self.transform,
-			color: self.color,
-			scissor_rect: self.scissor_rect,
-			texture: self.texture.clone(),
-			num_instances: 1,
-			instance_buffers: vec![],
-		});
-	}
+impl<V: Vertex> Drawable for Mesh<V> {
+	type Vertex = V;
 
-	pub fn draw_instanced(
-		&self,
-		ctx: &mut Context,
-		num_instances: u32,
-		instance_buffers: Vec<InstanceBuffer>,
-	) {
-		ctx.graphics.queue_draw_command(QueueDrawCommandSettings {
-			vertex_buffer: self.vertex_buffer.clone(),
-			index_buffer: self.index_buffer.clone(),
-			range: self.range.unwrap_or((0, self.num_indices)),
-			local_transform: self.transform,
-			color: self.color,
-			scissor_rect: self.scissor_rect,
-			texture: self.texture.clone(),
-			num_instances,
-			instance_buffers,
-		});
+	#[allow(private_interfaces)]
+	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
+		let _span = tracy_client::span!();
+		ctx.graphics.queue_draw_command(
+			graphics_pipeline,
+			QueueDrawCommandSettings {
+				vertex_buffer: self.vertex_buffer.clone(),
+				index_buffer: self.index_buffer.clone(),
+				range: self.range.unwrap_or((0, self.num_indices)),
+				local_transform: self.transform,
+				color: self.color,
+				scissor_rect: self.scissor_rect,
+				texture: self.texture.clone(),
+				num_instances: 1,
+				instance_buffers: vec![],
+			},
+		);
 	}
 }
 

@@ -49,8 +49,7 @@ impl App for Test {
 			let ctx = &mut self
 				.canvas
 				.render_to(ctx, RenderToCanvasSettings::default());
-			let ctx = &mut ctx.push_graphics_pipeline(&self.graphics_pipeline);
-			Mesh::circle(
+			let mesh = Mesh::circle(
 				ctx,
 				ShapeStyle::Fill,
 				Circle {
@@ -58,11 +57,11 @@ impl App for Test {
 					radius: 100.0,
 				},
 			)?
-			.color(LinSrgba::RED)
-			.draw(ctx);
+			.color(LinSrgba::RED);
+			self.graphics_pipeline.draw(ctx, mesh);
 		}
 
-		self.canvas.draw(ctx);
+		ctx.draw(self.canvas.clone());
 
 		Ok(())
 	}

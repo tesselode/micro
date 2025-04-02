@@ -19,7 +19,7 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::mesh::Mesh;
+use super::{RawGraphicsPipeline, Vertex2d, drawable::Drawable, mesh::Mesh};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
@@ -127,19 +127,6 @@ impl Texture {
 		);
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
-		let _span = tracy_client::span!();
-		Mesh::rectangle_with_texture_region(
-			ctx,
-			Rect::new(Vec2::ZERO, self.region.size),
-			self.relative_rect(self.region),
-		)
-		.texture(self)
-		.transformed(self.transform)
-		.color(self.color)
-		.draw(ctx);
-	}
-
 	pub(crate) fn new(
 		device: &Device,
 		queue: &Queue,
@@ -203,6 +190,24 @@ impl Texture {
 			color: LinSrgba::WHITE,
 			scissor_rect: None,
 		}
+	}
+}
+
+impl Drawable for Texture {
+	type Vertex = Vertex2d;
+
+	#[allow(private_interfaces)]
+	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
+		let _span = tracy_client::span!();
+		Mesh::rectangle_with_texture_region(
+			ctx,
+			Rect::new(Vec2::ZERO, self.region.size),
+			self.relative_rect(self.region),
+		)
+		.texture(self)
+		.transformed(self.transform)
+		.color(self.color)
+		.draw(ctx, graphics_pipeline);
 	}
 }
 

@@ -15,7 +15,7 @@ use wgpu::{
 
 use crate::Context;
 
-use super::{DefaultShader, HasVertexAttributes, Shader};
+use super::{DefaultShader, HasVertexAttributes, Shader, drawable::Drawable};
 
 pub struct GraphicsPipeline<S: Shader = DefaultShader> {
 	pub(crate) render_pipeline: RenderPipeline,
@@ -31,6 +31,10 @@ impl<S: Shader> GraphicsPipeline<S> {
 			0,
 			bytemuck::cast_slice(&[params]),
 		);
+	}
+
+	pub fn draw(&self, ctx: &mut Context, drawable: impl Drawable<Vertex = S::Vertex>) {
+		drawable.draw(ctx, self.raw());
 	}
 
 	pub(crate) fn new_internal(

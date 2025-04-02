@@ -105,9 +105,7 @@ impl Widget for Rectangle {
 	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, size))
-				.color(fill)
-				.draw(ctx);
+			ctx.draw(Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, size)).color(fill));
 		}
 		Ok(())
 	}
@@ -115,9 +113,9 @@ impl Widget for Rectangle {
 	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, size))?
-				.color(color)
-				.draw(ctx);
+			ctx.draw(
+				Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, size))?.color(color),
+			);
 		}
 		Ok(())
 	}

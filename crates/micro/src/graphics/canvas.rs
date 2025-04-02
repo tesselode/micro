@@ -6,7 +6,11 @@ use wgpu::TextureFormat;
 
 use crate::{Context, color::ColorConstants, math::URect, standard_draw_param_methods};
 
-use super::texture::{InternalTextureSettings, Texture, TextureSettings};
+use super::{
+	RawGraphicsPipeline, Vertex2d,
+	drawable::Drawable,
+	texture::{InternalTextureSettings, Texture, TextureSettings},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
@@ -113,8 +117,13 @@ impl Canvas {
 			.start_canvas_render_pass(self.clone(), settings);
 		OnDrop { ctx }
 	}
+}
 
-	pub fn draw(&self, ctx: &mut Context) {
+impl Drawable for Canvas {
+	type Vertex = Vertex2d;
+
+	#[allow(private_interfaces)]
+	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
 		let _span = tracy_client::span!();
 		let texture = match &self.kind {
 			CanvasKind::Normal { texture } => texture,
@@ -125,7 +134,7 @@ impl Canvas {
 		texture
 			.transformed(self.transform)
 			.color(self.color)
-			.draw(ctx);
+			.draw(ctx, graphics_pipeline);
 	}
 }
 

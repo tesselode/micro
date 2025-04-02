@@ -105,16 +105,17 @@ impl AnimationPlayer {
 	}
 
 	pub fn draw(&self, ctx: &mut Context, texture: &Texture) {
-		texture
-			.region(
-				self.inner.try_lock().unwrap().animation_data.frames
-					[self.inner.try_lock().unwrap().current_frame_index]
-					.texture_region,
-			)
-			.transformed(self.transform)
-			.color(self.color)
-			.scissor_rect(self.scissor_rect)
-			.draw(ctx);
+		ctx.draw(
+			texture
+				.region(
+					self.inner.try_lock().unwrap().animation_data.frames
+						[self.inner.try_lock().unwrap().current_frame_index]
+						.texture_region,
+				)
+				.transformed(self.transform)
+				.color(self.color)
+				.scissor_rect(self.scissor_rect),
+		);
 	}
 }
 

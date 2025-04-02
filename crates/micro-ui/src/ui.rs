@@ -163,11 +163,11 @@ impl BakedWidget {
 	fn draw(&self, ctx: &mut Context, raw_widget: &dyn Widget) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		let mut ctx = ctx.push_transform(raw_widget.transform(self.layout_result.size));
-		let mut ctx = if let Some(graphics_pipeline) = raw_widget.graphics_pipeline() {
+		/* let mut ctx = if let Some(graphics_pipeline) = raw_widget.graphics_pipeline() {
 			ctx.push_graphics_pipeline(&graphics_pipeline)
 		} else {
 			ctx
-		};
+		}; */
 		let mut ctx = if let Some(stencil_reference) = raw_widget.stencil_reference() {
 			ctx.push_stencil_reference(stencil_reference)
 		} else {
@@ -196,13 +196,15 @@ impl BakedWidget {
 			.as_ref()
 			.is_some_and(|path| *path == self.path)
 		{
-			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
-				.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25))
-				.draw(ctx);
+			ctx.draw(
+				Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
+					.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25)),
+			);
 		}
-		Mesh::outlined_rectangle(ctx, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))?
-			.color(LinSrgb::new(1.0, 0.0, 1.0))
-			.draw(ctx);
+		ctx.draw(
+			Mesh::outlined_rectangle(ctx, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))?
+				.color(LinSrgb::new(1.0, 0.0, 1.0)),
+		);
 		for (baked_child, position) in self
 			.children
 			.iter()

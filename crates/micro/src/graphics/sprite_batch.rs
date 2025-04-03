@@ -12,12 +12,13 @@ use palette::LinSrgba;
 use crate::{
 	Context,
 	color::ColorConstants,
+	context::graphics::QueueDrawCommandSettings,
 	graphics::{mesh::Mesh, texture::Texture},
 	math::{Rect, URect},
 	standard_draw_param_methods,
 };
 
-use super::{IntoRange, RawGraphicsPipeline, Vertex2d, drawable::Drawable};
+use super::{IntoRange, Vertex2d, drawable::Drawable};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
@@ -157,14 +158,14 @@ impl Drawable for SpriteBatch {
 	type Vertex = Vertex2d;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
+	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		self.mesh
 			.texture(&self.texture)
 			.transformed(self.transform)
 			.color(self.color)
 			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
-			.draw(ctx, graphics_pipeline)
+			.draw(ctx)
 	}
 }
 

@@ -4,10 +4,13 @@ use glam::{Mat4, UVec2};
 use palette::LinSrgba;
 use wgpu::TextureFormat;
 
-use crate::{Context, color::ColorConstants, math::URect, standard_draw_param_methods};
+use crate::{
+	Context, color::ColorConstants, context::graphics::QueueDrawCommandSettings, math::URect,
+	standard_draw_param_methods,
+};
 
 use super::{
-	RawGraphicsPipeline, Vertex2d,
+	Vertex2d,
 	drawable::Drawable,
 	texture::{InternalTextureSettings, Texture, TextureSettings},
 };
@@ -123,7 +126,7 @@ impl Drawable for Canvas {
 	type Vertex = Vertex2d;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
+	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		let texture = match &self.kind {
 			CanvasKind::Normal { texture } => texture,
@@ -134,7 +137,7 @@ impl Drawable for Canvas {
 		texture
 			.transformed(self.transform)
 			.color(self.color)
-			.draw(ctx, graphics_pipeline);
+			.draw(ctx)
 	}
 }
 

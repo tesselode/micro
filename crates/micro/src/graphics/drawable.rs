@@ -1,10 +1,10 @@
-use crate::Context;
+use crate::{Context, context::graphics::QueueDrawCommandSettings};
 
-use super::{RawGraphicsPipeline, Vertex};
+use super::Vertex;
 
 pub trait Drawable {
 	type Vertex: Vertex;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline);
+	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings>;
 }

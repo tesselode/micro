@@ -1,42 +1,30 @@
 use std::error::Error;
 
-use glam::vec2;
+use bytemuck::{Pod, Zeroable};
+use glam::{Vec2, vec2};
 use micro::{
 	App, Context, ContextSettings,
-	color::ColorConstants,
 	graphics::{
-		Canvas, CanvasSettings, GraphicsPipeline, GraphicsPipelineBuilder, RenderToCanvasSettings,
-		StencilState,
+		GraphicsPipeline, GraphicsPipelineBuilder, HasVertexAttributes, Instanced, Shader,
+		Vertex2d,
 		mesh::{Mesh, ShapeStyle},
 	},
 	math::Circle,
 };
-use palette::LinSrgba;
-use wgpu::{CompareFunction, StencilOperation};
+use wgpu::{ShaderModuleDescriptor, VertexAttribute, include_wgsl, vertex_attr_array};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro::run(ContextSettings::default(), Test::new)
 }
 
 struct Test {
-	canvas: Canvas,
-	graphics_pipeline: GraphicsPipeline,
+	graphics_pipeline: GraphicsPipeline<InstancedShader>,
 }
 
 impl Test {
-	pub fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let canvas = Canvas::new(
-			ctx,
-			ctx.window_size(),
-			CanvasSettings {
-				sample_count: 8,
-				..Default::default()
-			},
-		);
-		let graphics_pipeline = GraphicsPipelineBuilder::for_canvas(&canvas).build(ctx);
+	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			canvas,
-			graphics_pipeline,
+			graphics_pipeline: GraphicsPipelineBuilder::new(ctx).build(ctx),
 		})
 	}
 }
@@ -45,24 +33,45 @@ impl App for Test {
 	type Error = Box<dyn Error>;
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		{
-			let ctx = &mut self
-				.canvas
-				.render_to(ctx, RenderToCanvasSettings::default());
-			let mesh = Mesh::circle(
-				ctx,
-				ShapeStyle::Fill,
-				Circle {
-					center: vec2(400.0, 300.0),
-					radius: 100.0,
+		self.graphics_pipeline.draw_instanced(
+			ctx,
+			Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
+			&[
+				Instance {
+					translation: vec2(50.0, 50.0),
 				},
-			)?
-			.color(LinSrgba::RED);
-			self.graphics_pipeline.draw(ctx, mesh);
-		}
-
-		ctx.draw(self.canvas.clone());
-
+				Instance {
+					translation: vec2(100.0, 100.0),
+				},
+				Instance {
+					translation: vec2(200.0, 200.0),
+				},
+			],
+		);
 		Ok(())
+	}
+}
+
+struct InstancedShader;
+
+impl Shader for InstancedShader {
+	const DESCRIPTOR: ShaderModuleDescriptor<'_> = include_wgsl!("shader.wgsl");
+
+	type Kind = Instanced<Instance>;
+
+	type Vertex = Vertex2d;
+
+	type Params = i32;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+#[repr(C)]
+struct Instance {
+	translation: Vec2,
+}
+
+impl HasVertexAttributes for Instance {
+	fn attributes() -> Vec<VertexAttribute> {
+		vertex_attr_array![3 => Float32x2].into()
 	}
 }

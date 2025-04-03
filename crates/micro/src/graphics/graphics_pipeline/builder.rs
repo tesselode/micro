@@ -1,8 +1,8 @@
-use wgpu::{BufferAddress, TextureFormat, VertexAttribute};
+use wgpu::TextureFormat;
 
 use crate::{
 	Context,
-	graphics::{BlendMode, Canvas, HasVertexAttributes, Shader, StencilState},
+	graphics::{BlendMode, Canvas, Shader, StencilState},
 };
 
 use super::GraphicsPipeline;
@@ -17,7 +17,6 @@ pub struct GraphicsPipelineBuilder<S: Shader> {
 	pub enable_color_writes: bool,
 	pub sample_count: u32,
 	pub format: TextureFormat,
-	pub instance_buffers: Vec<InstanceBufferSettings>,
 }
 
 impl<S: Shader> GraphicsPipelineBuilder<S> {
@@ -34,7 +33,6 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			enable_color_writes: true,
 			sample_count: 1,
 			format: ctx.surface_format(),
-			instance_buffers: vec![],
 		}
 	}
 
@@ -51,7 +49,6 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			enable_color_writes: true,
 			sample_count: canvas.sample_count(),
 			format: canvas.format(),
-			instance_buffers: vec![],
 		}
 	}
 
@@ -105,14 +102,6 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 		Self { format, ..self }
 	}
 
-	pub fn with_instance_buffer<T: HasVertexAttributes>(mut self) -> Self {
-		self.instance_buffers.push(InstanceBufferSettings {
-			array_stride: std::mem::size_of::<T>() as BufferAddress,
-			attributes: T::attributes(),
-		});
-		self
-	}
-
 	pub fn build(self, ctx: &Context) -> GraphicsPipeline<S> {
 		GraphicsPipeline::new_internal(
 			&ctx.graphics.device,
@@ -121,10 +110,4 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			self,
 		)
 	}
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InstanceBufferSettings {
-	pub array_stride: u64,
-	pub attributes: Vec<VertexAttribute>,
 }

@@ -21,7 +21,7 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::{IntoRange, RawGraphicsPipeline, Vertex, Vertex2d, drawable::Drawable};
+use super::{IntoRange, Vertex, Vertex2d, drawable::Drawable};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh<V: Vertex = Vertex2d> {
@@ -98,22 +98,17 @@ impl<V: Vertex> Drawable for Mesh<V> {
 	type Vertex = V;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
+	fn draw(&self, _ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
-		ctx.graphics.queue_draw_command(
-			graphics_pipeline,
-			QueueDrawCommandSettings {
-				vertex_buffer: self.vertex_buffer.clone(),
-				index_buffer: self.index_buffer.clone(),
-				range: self.range.unwrap_or((0, self.num_indices)),
-				local_transform: self.transform,
-				color: self.color,
-				scissor_rect: self.scissor_rect,
-				texture: self.texture.clone(),
-				num_instances: 1,
-				instance_buffers: vec![],
-			},
-		);
+		vec![QueueDrawCommandSettings {
+			vertex_buffer: self.vertex_buffer.clone(),
+			index_buffer: self.index_buffer.clone(),
+			range: self.range.unwrap_or((0, self.num_indices)),
+			local_transform: self.transform,
+			color: self.color,
+			scissor_rect: self.scissor_rect,
+			texture: self.texture.clone(),
+		}]
 	}
 }
 

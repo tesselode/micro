@@ -12,12 +12,13 @@ use palette::LinSrgba;
 use crate::{
 	Context,
 	color::ColorConstants,
+	context::graphics::QueueDrawCommandSettings,
 	math::{Rect, URect},
 	standard_draw_param_methods,
 };
 
 use super::{
-	IntoRange, RawGraphicsPipeline, Vertex2d,
+	IntoRange, Vertex2d,
 	drawable::Drawable,
 	sprite_batch::{SpriteBatch, SpriteParams},
 };
@@ -173,20 +174,24 @@ impl Drawable for Text {
 	type Vertex = Vertex2d;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
+	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
 			unimplemented!(
 				"drawing a text range is not implemented for text with more than one font"
 			);
 		}
+		let mut settings = vec![];
 		for sprite_batch in &self.inner.sprite_batches {
-			sprite_batch
-				.transformed(self.transform)
-				.color(self.color)
-				.range(self.range)
-				.draw(ctx, graphics_pipeline.clone());
+			settings.append(
+				&mut sprite_batch
+					.transformed(self.transform)
+					.color(self.color)
+					.range(self.range)
+					.draw(ctx),
+			);
 		}
+		settings
 	}
 }
 

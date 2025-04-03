@@ -15,11 +15,12 @@ use wgpu::{
 use crate::{
 	Context,
 	color::ColorConstants,
+	context::graphics::QueueDrawCommandSettings,
 	math::{Rect, URect},
 	standard_draw_param_methods,
 };
 
-use super::{RawGraphicsPipeline, Vertex2d, drawable::Drawable, mesh::Mesh};
+use super::{Vertex2d, drawable::Drawable, mesh::Mesh};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
@@ -197,7 +198,7 @@ impl Drawable for Texture {
 	type Vertex = Vertex2d;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context, graphics_pipeline: RawGraphicsPipeline) {
+	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		Mesh::rectangle_with_texture_region(
 			ctx,
@@ -207,7 +208,7 @@ impl Drawable for Texture {
 		.texture(self)
 		.transformed(self.transform)
 		.color(self.color)
-		.draw(ctx, graphics_pipeline);
+		.draw(ctx)
 	}
 }
 

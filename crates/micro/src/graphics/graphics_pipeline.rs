@@ -215,8 +215,8 @@ impl<S: Shader> GraphicsPipeline<S> {
 }
 
 impl<S: Shader<Kind = NonInstanced>> GraphicsPipeline<S> {
-	pub fn draw(&self, ctx: &mut Context, drawable: impl Drawable<Vertex = S::Vertex>) {
-		for settings in drawable.draw(ctx).into_iter() {
+	pub fn draw(&self, ctx: &mut Context, drawable: &impl Drawable<Vertex = S::Vertex>) {
+		for settings in drawable.draw_instructions(ctx).into_iter() {
 			ctx.graphics
 				.queue_draw_command(settings, self.raw(), 1, None);
 		}
@@ -243,7 +243,7 @@ where
 					usage: BufferUsages::VERTEX,
 				}),
 		);
-		for settings in drawable.draw(ctx).into_iter() {
+		for settings in drawable.draw_instructions(ctx).into_iter() {
 			ctx.graphics.queue_draw_command(
 				settings,
 				self.raw(),

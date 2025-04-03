@@ -126,7 +126,7 @@ impl Drawable for Canvas {
 	type Vertex = Vertex2d;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
+	fn draw_instructions(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		let texture = match &self.kind {
 			CanvasKind::Normal { texture } => texture,
@@ -137,7 +137,7 @@ impl Drawable for Canvas {
 		texture
 			.transformed(self.transform)
 			.color(self.color)
-			.draw(ctx)
+			.draw_instructions(ctx)
 	}
 }
 

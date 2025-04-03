@@ -105,9 +105,9 @@ impl Widget for Ellipse {
 	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			ctx.draw(
-				Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)?.color(fill),
-			);
+			Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)?
+				.color(fill)
+				.draw(ctx);
 		}
 		Ok(())
 	}
@@ -115,10 +115,9 @@ impl Widget for Ellipse {
 	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			ctx.draw(
-				Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)?
-					.color(color),
-			);
+			Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)?
+				.color(color)
+				.draw(ctx);
 		}
 		Ok(())
 	}

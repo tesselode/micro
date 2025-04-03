@@ -98,7 +98,7 @@ impl<V: Vertex> Drawable for Mesh<V> {
 	type Vertex = V;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, _ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
+	fn draw_instructions(&self, _ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		vec![QueueDrawCommandSettings {
 			vertex_buffer: self.vertex_buffer.clone(),
@@ -210,5 +210,9 @@ impl Mesh<Vertex2d> {
 		Ok(MeshBuilder::new()
 			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)?
 			.build(ctx))
+	}
+
+	pub fn draw(&self, ctx: &mut Context) {
+		ctx.default_graphics_pipeline().draw(ctx, self);
 	}
 }

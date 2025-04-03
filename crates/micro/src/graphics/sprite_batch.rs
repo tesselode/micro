@@ -152,20 +152,24 @@ impl SpriteBatch {
 		self.mesh.set_vertices(ctx, start_vertex_index, &vertices);
 		Ok(())
 	}
+
+	pub fn draw(&self, ctx: &mut Context) {
+		ctx.default_graphics_pipeline().draw(ctx, self);
+	}
 }
 
 impl Drawable for SpriteBatch {
 	type Vertex = Vertex2d;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
+	fn draw_instructions(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		self.mesh
 			.texture(&self.texture)
 			.transformed(self.transform)
 			.color(self.color)
 			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
-			.draw(ctx)
+			.draw_instructions(ctx)
 	}
 }
 

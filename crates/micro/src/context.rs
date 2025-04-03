@@ -294,17 +294,6 @@ impl Context {
 		}
 	}
 
-	pub fn draw(&mut self, drawable: impl Drawable<Vertex = Vertex2d>) {
-		for settings in drawable.draw(self).into_iter() {
-			self.graphics.queue_draw_command(
-				settings,
-				self.graphics.default_graphics_pipeline.raw(),
-				1,
-				None,
-			);
-		}
-	}
-
 	/// Returns `true` if the given keyboard key is currently held down.
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
 		self.event_pump

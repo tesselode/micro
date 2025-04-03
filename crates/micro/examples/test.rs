@@ -5,13 +5,12 @@ use glam::{Vec2, vec2};
 use micro::{
 	App, Context, ContextSettings,
 	graphics::{
-		GraphicsPipeline, GraphicsPipelineBuilder, HasVertexAttributes, Instanced, NonInstanced,
-		Shader, Vertex2d,
+		GraphicsPipeline, GraphicsPipelineBuilder, NonInstanced, Shader, Vertex2d,
 		mesh::{Mesh, ShapeStyle},
 	},
 	math::Circle,
 };
-use wgpu::{ShaderModuleDescriptor, VertexAttribute, include_wgsl, vertex_attr_array};
+use wgpu::{ShaderModuleDescriptor, include_wgsl};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro::run(ContextSettings::default(), Test::new)
@@ -42,7 +41,7 @@ impl App for Test {
 			)
 			.draw(
 				ctx,
-				Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
+				&Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
 			);
 		self.graphics_pipeline
 			.with_shader_params(
@@ -53,7 +52,7 @@ impl App for Test {
 			)
 			.draw(
 				ctx,
-				Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
+				&Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
 			);
 		Ok(())
 	}

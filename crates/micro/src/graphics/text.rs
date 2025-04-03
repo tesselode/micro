@@ -105,6 +105,10 @@ impl Text {
 		self.inner.lowest_baseline
 	}
 
+	pub fn draw(&self, ctx: &mut Context) {
+		ctx.default_graphics_pipeline().draw(ctx, self);
+	}
+
 	fn from_layout(ctx: &Context, layout: Layout, fonts: &[&Font]) -> Text {
 		let glyphs = layout.glyphs();
 		let lowest_baseline = layout.lines().map(|lines| {
@@ -174,7 +178,7 @@ impl Drawable for Text {
 	type Vertex = Vertex2d;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
+	fn draw_instructions(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
 			unimplemented!(
@@ -188,7 +192,7 @@ impl Drawable for Text {
 					.transformed(self.transform)
 					.color(self.color)
 					.range(self.range)
-					.draw(ctx),
+					.draw_instructions(ctx),
 			);
 		}
 		settings

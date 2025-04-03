@@ -192,13 +192,17 @@ impl Texture {
 			scissor_rect: None,
 		}
 	}
+
+	pub fn draw(&self, ctx: &mut Context) {
+		ctx.default_graphics_pipeline().draw(ctx, self);
+	}
 }
 
 impl Drawable for Texture {
 	type Vertex = Vertex2d;
 
 	#[allow(private_interfaces)]
-	fn draw(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
+	fn draw_instructions(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
 		Mesh::rectangle_with_texture_region(
 			ctx,
@@ -208,7 +212,7 @@ impl Drawable for Texture {
 		.texture(self)
 		.transformed(self.transform)
 		.color(self.color)
-		.draw(ctx)
+		.draw_instructions(ctx)
 	}
 }
 

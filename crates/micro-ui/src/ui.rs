@@ -196,15 +196,13 @@ impl BakedWidget {
 			.as_ref()
 			.is_some_and(|path| *path == self.path)
 		{
-			ctx.draw(
-				Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
-					.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25)),
-			);
+			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
+				.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25))
+				.draw(ctx);
 		}
-		ctx.draw(
-			Mesh::outlined_rectangle(ctx, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))?
-				.color(LinSrgb::new(1.0, 0.0, 1.0)),
-		);
+		Mesh::outlined_rectangle(ctx, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))?
+			.color(LinSrgb::new(1.0, 0.0, 1.0))
+			.draw(ctx);
 		for (baked_child, position) in self
 			.children
 			.iter()

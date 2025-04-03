@@ -103,7 +103,10 @@ impl Widget for Image {
 
 	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
-		ctx.draw(self.texture.color(self.color).scaled_2d(self.scale));
+		self.texture
+			.color(self.color)
+			.scaled_2d(self.scale)
+			.draw(ctx);
 		Ok(())
 	}
 }

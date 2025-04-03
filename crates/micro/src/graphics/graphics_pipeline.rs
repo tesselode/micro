@@ -22,6 +22,7 @@ use super::{
 };
 
 pub struct GraphicsPipeline<S: Shader = DefaultShader> {
+	pub label: String,
 	pub(crate) render_pipeline: RenderPipeline,
 	pub(crate) shader_params_buffer: Buffer,
 	pub(crate) shader_params_bind_group: BindGroup,
@@ -35,6 +36,28 @@ impl<S: Shader> GraphicsPipeline<S> {
 			0,
 			bytemuck::cast_slice(&[params]),
 		);
+	}
+
+	pub fn with_shader_params(&self, ctx: &Context, params: S::Params) -> Self {
+		let device = &ctx.graphics.device;
+		let shader_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
+			label: Some(&format!("{} - Shader Params Buffer", &self.label)),
+			contents: bytemuck::cast_slice(&[params]),
+			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+		});
+		let shader_params_bind_group = device.create_bind_group(&BindGroupDescriptor {
+			label: Some(&format!("{} - Shader Params Bind Group", &self.label)),
+			layout: &ctx.graphics.shader_params_bind_group_layout,
+			entries: &[BindGroupEntry {
+				binding: 0,
+				resource: shader_params_buffer.as_entire_binding(),
+			}],
+		});
+		Self {
+			shader_params_buffer,
+			shader_params_bind_group,
+			..self.clone()
+		}
 	}
 
 	pub(crate) fn new_internal(
@@ -175,6 +198,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 			})
 		};
 		Self {
+			label: builder.label.clone(),
 			render_pipeline,
 			shader_params_buffer,
 			shader_params_bind_group,
@@ -244,6 +268,7 @@ impl<S: Shader> Debug for GraphicsPipeline<S> {
 impl<S: Shader> Clone for GraphicsPipeline<S> {
 	fn clone(&self) -> Self {
 		Self {
+			label: self.label.clone(),
 			render_pipeline: self.render_pipeline.clone(),
 			shader_params_buffer: self.shader_params_buffer.clone(),
 			shader_params_bind_group: self.shader_params_bind_group.clone(),

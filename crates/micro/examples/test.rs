@@ -5,8 +5,8 @@ use glam::{Vec2, vec2};
 use micro::{
 	App, Context, ContextSettings,
 	graphics::{
-		GraphicsPipeline, GraphicsPipelineBuilder, HasVertexAttributes, Instanced, Shader,
-		Vertex2d,
+		GraphicsPipeline, GraphicsPipelineBuilder, HasVertexAttributes, Instanced, NonInstanced,
+		Shader, Vertex2d,
 		mesh::{Mesh, ShapeStyle},
 	},
 	math::Circle,
@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct Test {
-	graphics_pipeline: GraphicsPipeline<InstancedShader>,
+	graphics_pipeline: GraphicsPipeline<TestShader>,
 }
 
 impl Test {
@@ -33,45 +33,46 @@ impl App for Test {
 	type Error = Box<dyn Error>;
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		self.graphics_pipeline.draw_instanced(
-			ctx,
-			Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
-			&[
-				Instance {
+		self.graphics_pipeline
+			.with_shader_params(
+				ctx,
+				ShaderParams {
 					translation: vec2(50.0, 50.0),
 				},
-				Instance {
+			)
+			.draw(
+				ctx,
+				Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
+			);
+		self.graphics_pipeline
+			.with_shader_params(
+				ctx,
+				ShaderParams {
 					translation: vec2(100.0, 100.0),
 				},
-				Instance {
-					translation: vec2(200.0, 200.0),
-				},
-			],
-		);
+			)
+			.draw(
+				ctx,
+				Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
+			);
 		Ok(())
 	}
 }
 
-struct InstancedShader;
+struct TestShader;
 
-impl Shader for InstancedShader {
+impl Shader for TestShader {
 	const DESCRIPTOR: ShaderModuleDescriptor<'_> = include_wgsl!("shader.wgsl");
 
-	type Kind = Instanced<Instance>;
+	type Kind = NonInstanced;
 
 	type Vertex = Vertex2d;
 
-	type Params = i32;
+	type Params = ShaderParams;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable, Default)]
 #[repr(C)]
-struct Instance {
+struct ShaderParams {
 	translation: Vec2,
-}
-
-impl HasVertexAttributes for Instance {
-	fn attributes() -> Vec<VertexAttribute> {
-		vertex_attr_array![3 => Float32x2].into()
-	}
 }

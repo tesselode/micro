@@ -8,7 +8,7 @@ use itertools::izip;
 use micro::{
 	Context,
 	color::{LinSrgb, LinSrgba},
-	graphics::mesh::Mesh,
+	graphics::{GraphicsPipeline, mesh::Mesh},
 	math::{Mat4, Rect, Vec2},
 };
 use mouse_input::MouseInput;
@@ -66,7 +66,8 @@ impl Ui {
 		let mut baked_widget = BakedWidget::new(ctx, PathBuf::new(), &widget, size);
 		self.mouse_input.update(ctx, transform.inverse());
 		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);
-		baked_widget.draw(ctx, &widget)?;
+		let graphics_pipeline = ctx.default_graphics_pipeline();
+		baked_widget.draw(ctx, graphics_pipeline, &widget)?;
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
 			baked_widget.draw_debug(ctx, &draw_debug_state)?;
 		}
@@ -160,14 +161,19 @@ impl BakedWidget {
 		}
 	}
 
-	fn draw(&self, ctx: &mut Context, raw_widget: &dyn Widget) -> anyhow::Result<()> {
+	fn draw(
+		&self,
+		ctx: &mut Context,
+		graphics_pipeline: GraphicsPipeline,
+		raw_widget: &dyn Widget,
+	) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		let mut ctx = ctx.push_transform(raw_widget.transform(self.layout_result.size));
-		/* let mut ctx = if let Some(graphics_pipeline) = raw_widget.graphics_pipeline() {
-			ctx.push_graphics_pipeline(&graphics_pipeline)
+		let graphics_pipeline = if let Some(graphics_pipeline) = raw_widget.graphics_pipeline() {
+			graphics_pipeline
 		} else {
-			ctx
-		}; */
+			graphics_pipeline
+		};
 		let mut ctx = if let Some(stencil_reference) = raw_widget.stencil_reference() {
 			ctx.push_stencil_reference(stencil_reference)
 		} else {
@@ -180,7 +186,7 @@ impl BakedWidget {
 			self.layout_result.child_positions.iter().copied()
 		) {
 			let ctx = &mut ctx.push_translation_2d(position.round());
-			baked_child.draw(ctx, raw_child.as_ref())?;
+			baked_child.draw(ctx, graphics_pipeline.clone(), raw_child.as_ref())?;
 		}
 		raw_widget.draw_after_children(&mut ctx, self.layout_result.size)?;
 		Ok(())

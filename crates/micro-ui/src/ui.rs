@@ -18,6 +18,7 @@ use super::{LayoutResult, Widget, WidgetMouseEvent};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Ui {
+	graphics_pipeline: Option<GraphicsPipeline>,
 	previous_baked_widget: Option<BakedWidget>,
 	mouse_input: MouseInput,
 	widget_mouse_state: IndexMap<PathBuf, WidgetMouseState>,
@@ -27,6 +28,13 @@ pub struct Ui {
 impl Ui {
 	pub fn new() -> Self {
 		Self::default()
+	}
+
+	pub fn with_graphics_pipeline(self, graphics_pipeline: &GraphicsPipeline) -> Self {
+		Self {
+			graphics_pipeline: Some(graphics_pipeline.clone()),
+			..self
+		}
 	}
 
 	pub fn show_debug_window(&mut self, egui_ctx: &micro::debug_ui::Context, open: &mut bool) {
@@ -66,7 +74,10 @@ impl Ui {
 		let mut baked_widget = BakedWidget::new(ctx, PathBuf::new(), &widget, size);
 		self.mouse_input.update(ctx, transform.inverse());
 		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);
-		let graphics_pipeline = ctx.default_graphics_pipeline();
+		let graphics_pipeline = self
+			.graphics_pipeline
+			.clone()
+			.unwrap_or_else(|| ctx.default_graphics_pipeline());
 		baked_widget.draw(ctx, graphics_pipeline, &widget)?;
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
 			baked_widget.draw_debug(ctx, &draw_debug_state)?;

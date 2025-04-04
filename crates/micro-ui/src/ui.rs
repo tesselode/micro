@@ -190,7 +190,7 @@ impl BakedWidget {
 		} else {
 			ctx
 		};
-		raw_widget.draw_before_children(&mut ctx, self.layout_result.size)?;
+		raw_widget.draw_before_children(&mut ctx, &graphics_pipeline, self.layout_result.size)?;
 		for (raw_child, baked_child, position) in izip!(
 			raw_widget.children(),
 			&self.children,
@@ -199,7 +199,7 @@ impl BakedWidget {
 			let ctx = &mut ctx.push_translation_2d(position.round());
 			baked_child.draw(ctx, graphics_pipeline.clone(), raw_child.as_ref())?;
 		}
-		raw_widget.draw_after_children(&mut ctx, self.layout_result.size)?;
+		raw_widget.draw_after_children(&mut ctx, &graphics_pipeline, self.layout_result.size)?;
 		Ok(())
 	}
 

@@ -71,11 +71,21 @@ pub trait Widget: Debug {
 		child_sizes: &[Vec2],
 	) -> LayoutResult;
 
-	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+	fn draw_before_children(
+		&self,
+		ctx: &mut Context,
+		graphics_pipeline: &GraphicsPipeline,
+		size: Vec2,
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+	fn draw_after_children(
+		&self,
+		ctx: &mut Context,
+		graphics_pipeline: &GraphicsPipeline,
+		size: Vec2,
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 }

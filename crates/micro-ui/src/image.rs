@@ -1,7 +1,7 @@
 use micro::{
 	Context,
 	color::{ColorConstants, LinSrgba},
-	graphics::texture::Texture,
+	graphics::{GraphicsPipeline, texture::Texture},
 	math::{Vec2, vec2},
 };
 
@@ -101,12 +101,14 @@ impl Widget for Image {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) -> anyhow::Result<()> {
+	fn draw_before_children(
+		&self,
+		ctx: &mut Context,
+		graphics_pipeline: &GraphicsPipeline,
+		_size: Vec2,
+	) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
-		self.texture
-			.color(self.color)
-			.scaled_2d(self.scale)
-			.draw(ctx);
+		graphics_pipeline.draw(ctx, &self.texture.color(self.color).scaled_2d(self.scale));
 		Ok(())
 	}
 }

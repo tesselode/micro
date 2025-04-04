@@ -3,7 +3,10 @@ use std::fmt::Debug;
 use micro::{
 	Context,
 	color::LinSrgba,
-	graphics::mesh::{Mesh, ShapeStyle},
+	graphics::{
+		GraphicsPipeline,
+		mesh::{Mesh, ShapeStyle},
+	},
 	math::Vec2,
 };
 
@@ -102,22 +105,35 @@ impl Widget for Ellipse {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+	fn draw_before_children(
+		&self,
+		ctx: &mut Context,
+		graphics_pipeline: &GraphicsPipeline,
+		size: Vec2,
+	) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)?
-				.color(fill)
-				.draw(ctx);
+			graphics_pipeline.draw(
+				ctx,
+				&Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)?.color(fill),
+			);
 		}
 		Ok(())
 	}
 
-	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) -> anyhow::Result<()> {
+	fn draw_after_children(
+		&self,
+		ctx: &mut Context,
+		graphics_pipeline: &GraphicsPipeline,
+		size: Vec2,
+	) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)?
-				.color(color)
-				.draw(ctx);
+			graphics_pipeline.draw(
+				ctx,
+				&Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)?
+					.color(color),
+			);
 		}
 		Ok(())
 	}

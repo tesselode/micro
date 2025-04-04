@@ -120,6 +120,10 @@ impl Canvas {
 			.start_canvas_render_pass(self.clone(), settings);
 		OnDrop { ctx }
 	}
+
+	pub fn draw(&self, ctx: &mut Context) {
+		ctx.default_graphics_pipeline().draw(ctx, self);
+	}
 }
 
 impl Drawable for Canvas {

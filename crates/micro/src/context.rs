@@ -18,7 +18,7 @@ use wgpu::{Features, PresentMode, TextureFormat};
 use crate::{
 	App, Event, FrameTimeTracker, SdlError,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
-	graphics::{GraphicsPipeline, Vertex2d, drawable::Drawable},
+	graphics::GraphicsPipeline,
 	input::{Gamepad, MouseButton, Scancode},
 	window::{WindowMode, build_window},
 };

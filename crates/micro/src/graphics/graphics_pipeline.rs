@@ -231,7 +231,7 @@ where
 	pub fn draw_instanced(
 		&self,
 		ctx: &mut Context,
-		drawable: impl Drawable<Vertex = S::Vertex>,
+		drawable: &impl Drawable<Vertex = S::Vertex>,
 		instances: &[I],
 	) {
 		let instance_buffer = Some(

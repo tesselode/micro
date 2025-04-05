@@ -157,6 +157,7 @@ impl GraphicsContext {
 				label: "Default Graphics Pipeline".into(),
 				blend_mode: Default::default(),
 				shader_params: Default::default(),
+				storage_buffers: vec![],
 				enable_depth_testing: false,
 				stencil_state: Default::default(),
 				enable_color_writes: true,
@@ -495,6 +496,7 @@ fn run_draw_commands(
 		render_pass.set_pipeline(&graphics_pipeline.render_pipeline);
 		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
 		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
+		render_pass.set_bind_group(2, &graphics_pipeline.storage_buffers_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.set_scissor_rect(

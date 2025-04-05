@@ -23,7 +23,16 @@ struct Test {
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
 		Ok(Self {
-			graphics_pipeline: GraphicsPipelineBuilder::new(ctx).build(ctx),
+			graphics_pipeline: GraphicsPipelineBuilder::new(ctx)
+				.with_storage_buffer(&[
+					Instance {
+						translation: vec2(50.0, 50.0),
+					},
+					Instance {
+						translation: vec2(100.0, 100.0),
+					},
+				])
+				.build(ctx),
 		})
 	}
 }
@@ -32,29 +41,11 @@ impl App for Test {
 	type Error = Box<dyn Error>;
 
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		self.graphics_pipeline
-			.with_shader_params(
-				ctx,
-				ShaderParams {
-					translation: vec2(50.0, 50.0),
-				},
-			)
-			.draw(
-				ctx,
-				&Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
-			);
-		self.graphics_pipeline
-			.with_shader_params(
-				ctx,
-				ShaderParams {
-					translation: vec2(100.0, 100.0),
-				},
-			)
-			.draw_instanced(
-				ctx,
-				10,
-				&Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
-			);
+		self.graphics_pipeline.draw_instanced(
+			ctx,
+			2,
+			&Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
+		);
 		Ok(())
 	}
 }
@@ -63,13 +54,14 @@ struct TestShader;
 
 impl Shader for TestShader {
 	const DESCRIPTOR: ShaderModuleDescriptor<'_> = include_wgsl!("shader.wgsl");
+	const NUM_STORAGE_BUFFERS: u32 = 1;
 
 	type Vertex = Vertex2d;
-	type Params = ShaderParams;
+	type Params = i32;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable, Default)]
 #[repr(C)]
-struct ShaderParams {
+struct Instance {
 	translation: Vec2,
 }

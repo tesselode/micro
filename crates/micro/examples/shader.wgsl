@@ -8,11 +8,11 @@ struct DrawParams {
 @group(0) @binding(0)
 var<uniform> draw_params: DrawParams;
 
-struct ShaderParams {
+struct Instance {
     translation: vec2<f32>,
 }
-@group(1) @binding(0)
-var<uniform> shader_params: ShaderParams;
+@group(2) @binding(0)
+var<storage> instances: array<Instance>;
 
 struct VertexInput {
     @builtin(instance_index) instance_index: u32,
@@ -31,7 +31,7 @@ struct VertexOutput {
 fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
-    var position = model.position + shader_params.translation * f32(model.instance_index);
+    var position = model.position + instances[model.instance_index].translation;
     var out: VertexOutput;
     out.clip_position = draw_params.transform * vec4<f32>(position, 0.0, 1.0);
     out.texture_coords = model.texture_coords;

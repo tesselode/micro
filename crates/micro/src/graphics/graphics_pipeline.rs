@@ -1,16 +1,18 @@
 mod builder;
 
 pub use builder::*;
+use bytemuck::Pod;
 
 use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
 use wgpu::{
-	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, Buffer, BufferAddress,
-	BufferUsages, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
-	DepthStencilState, Device, FragmentState, MultisampleState, PipelineCompilationOptions,
-	PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology, RenderPipeline,
-	RenderPipelineDescriptor, ShaderModuleDescriptor, TextureFormat, VertexAttribute,
-	VertexBufferLayout, VertexState, VertexStepMode,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+	BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferUsages,
+	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
+	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor,
+	PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
+	ShaderModuleDescriptor, ShaderStages, TextureFormat, VertexAttribute, VertexBufferLayout,
+	VertexState, VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -39,6 +41,23 @@ impl<S: Shader> GraphicsPipeline<S> {
 			raw: self
 				.raw
 				.with_shader_params(ctx, bytemuck::cast_slice(&[params])),
+			..self.clone()
+		}
+	}
+
+	pub fn set_storage_buffer<T: Pod>(&self, ctx: &Context, index: u32, data: &[T]) {
+		ctx.graphics.queue.write_buffer(
+			&self.raw.storage_buffers[index as usize],
+			0,
+			bytemuck::cast_slice(data),
+		);
+	}
+
+	pub fn with_storage_buffer<T: Pod>(&self, ctx: &Context, index: u32, data: &[T]) -> Self {
+		Self {
+			raw: self
+				.raw
+				.with_storage_buffer(ctx, index, bytemuck::cast_slice(data)),
 			..self.clone()
 		}
 	}
@@ -75,6 +94,8 @@ impl<S: Shader> GraphicsPipeline<S> {
 					blend_mode: builder.blend_mode,
 					shader_module_descriptor: S::DESCRIPTOR,
 					shader_params: bytemuck::cast_slice(&[builder.shader_params]),
+					num_storage_buffers: S::NUM_STORAGE_BUFFERS,
+					storage_buffers: builder.storage_buffers,
 					vertex_size: std::mem::size_of::<S::Vertex>(),
 					vertex_attributes: S::Vertex::attributes(),
 					enable_depth_testing: builder.enable_depth_testing,
@@ -132,6 +153,9 @@ pub(crate) struct RawGraphicsPipeline {
 	pub render_pipeline: RenderPipeline,
 	pub shader_params_buffer: Buffer,
 	pub shader_params_bind_group: BindGroup,
+	pub storage_buffers_bind_group_layout: BindGroupLayout,
+	pub storage_buffers: Vec<Buffer>,
+	pub storage_buffers_bind_group: BindGroup,
 }
 
 impl RawGraphicsPipeline {
@@ -139,12 +163,35 @@ impl RawGraphicsPipeline {
 		device: &Device,
 		mesh_bind_group_layout: &BindGroupLayout,
 		shader_params_bind_group_layout: &BindGroupLayout,
-		settings: RawGraphicsPipelineSettings,
+		mut settings: RawGraphicsPipelineSettings,
 	) -> Self {
 		let shader = device.create_shader_module(settings.shader_module_descriptor);
+		let storage_buffers_bind_group_layout =
+			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+				label: Some(&format!(
+					"{} - Storage Buffers Bind Group Layout",
+					&settings.label
+				)),
+				entries: &(0..settings.num_storage_buffers)
+					.map(|i| BindGroupLayoutEntry {
+						binding: i,
+						visibility: ShaderStages::VERTEX_FRAGMENT,
+						ty: BindingType::Buffer {
+							ty: BufferBindingType::Storage { read_only: true },
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
+					})
+					.collect::<Vec<_>>(),
+			});
 		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 			label: Some(&format!("{} - Pipeline Layout", &settings.label)),
-			bind_group_layouts: &[mesh_bind_group_layout, shader_params_bind_group_layout],
+			bind_group_layouts: &[
+				mesh_bind_group_layout,
+				shader_params_bind_group_layout,
+				&storage_buffers_bind_group_layout,
+			],
 			push_constant_ranges: &[],
 		});
 		let shader_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -159,6 +206,32 @@ impl RawGraphicsPipeline {
 				binding: 0,
 				resource: shader_params_buffer.as_entire_binding(),
 			}],
+		});
+		settings
+			.storage_buffers
+			.resize(settings.num_storage_buffers as usize, vec![0]);
+		let storage_buffers = settings
+			.storage_buffers
+			.iter()
+			.map(|contents| {
+				device.create_buffer_init(&BufferInitDescriptor {
+					label: None,
+					contents,
+					usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+				})
+			})
+			.collect::<Vec<_>>();
+		let storage_buffers_bind_group = device.create_bind_group(&BindGroupDescriptor {
+			label: Some(&format!("{} - Storage Buffers Bind Group", &settings.label)),
+			layout: &storage_buffers_bind_group_layout,
+			entries: &storage_buffers
+				.iter()
+				.enumerate()
+				.map(|(i, buffer)| BindGroupEntry {
+					binding: i as u32,
+					resource: buffer.as_entire_binding(),
+				})
+				.collect::<Vec<_>>(),
 		});
 		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
 			label: Some(&settings.label),
@@ -214,6 +287,9 @@ impl RawGraphicsPipeline {
 			render_pipeline,
 			shader_params_buffer,
 			shader_params_bind_group,
+			storage_buffers_bind_group_layout,
+			storage_buffers,
+			storage_buffers_bind_group,
 		}
 	}
 
@@ -238,6 +314,34 @@ impl RawGraphicsPipeline {
 			..self.clone()
 		}
 	}
+
+	fn with_storage_buffer(&self, ctx: &Context, index: u32, contents: &[u8]) -> Self {
+		let device = &ctx.graphics.device;
+		let storage_buffer = device.create_buffer_init(&BufferInitDescriptor {
+			label: None,
+			contents,
+			usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+		});
+		let mut storage_buffers = self.storage_buffers.clone();
+		storage_buffers[index as usize] = storage_buffer;
+		let storage_buffers_bind_group = device.create_bind_group(&BindGroupDescriptor {
+			label: Some(&format!("{} - Storage Buffers Bind Group", &self.label)),
+			layout: &self.storage_buffers_bind_group_layout,
+			entries: &storage_buffers
+				.iter()
+				.enumerate()
+				.map(|(i, buffer)| BindGroupEntry {
+					binding: i as u32,
+					resource: buffer.as_entire_binding(),
+				})
+				.collect::<Vec<_>>(),
+		});
+		Self {
+			storage_buffers,
+			storage_buffers_bind_group,
+			..self.clone()
+		}
+	}
 }
 
 struct RawGraphicsPipelineSettings<'a> {
@@ -247,6 +351,8 @@ struct RawGraphicsPipelineSettings<'a> {
 	shader_params: &'a [u8],
 	vertex_size: usize,
 	vertex_attributes: Vec<VertexAttribute>,
+	num_storage_buffers: u32,
+	storage_buffers: Vec<Vec<u8>>,
 	enable_depth_testing: bool,
 	stencil_state: StencilState,
 	enable_color_writes: bool,

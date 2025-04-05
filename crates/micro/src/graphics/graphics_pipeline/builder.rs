@@ -1,3 +1,4 @@
+use bytemuck::Pod;
 use wgpu::TextureFormat;
 
 use crate::{
@@ -12,6 +13,7 @@ pub struct GraphicsPipelineBuilder<S: Shader> {
 	pub label: String,
 	pub blend_mode: BlendMode,
 	pub shader_params: S::Params,
+	pub storage_buffers: Vec<Vec<u8>>,
 	pub enable_depth_testing: bool,
 	pub stencil_state: StencilState,
 	pub enable_color_writes: bool,
@@ -28,6 +30,7 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			label: "Graphics Pipeline".into(),
 			blend_mode: Default::default(),
 			shader_params: Default::default(),
+			storage_buffers: vec![],
 			enable_depth_testing: false,
 			stencil_state: Default::default(),
 			enable_color_writes: true,
@@ -44,6 +47,7 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			label: "Graphics Pipeline".into(),
 			blend_mode: Default::default(),
 			shader_params: Default::default(),
+			storage_buffers: vec![],
 			enable_depth_testing: false,
 			stencil_state: Default::default(),
 			enable_color_writes: true,
@@ -68,6 +72,11 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			shader_params,
 			..self
 		}
+	}
+
+	pub fn with_storage_buffer<T: Pod>(mut self, data: &[T]) -> Self {
+		self.storage_buffers.push(bytemuck::cast_slice(data).into());
+		self
 	}
 
 	pub fn enable_depth_testing(self, enable_depth_testing: bool) -> Self {

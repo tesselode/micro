@@ -15,6 +15,7 @@ struct ShaderParams {
 var<uniform> shader_params: ShaderParams;
 
 struct VertexInput {
+    @builtin(instance_index) instance_index: u32,
     @location(0) position: vec2<f32>,
     @location(1) texture_coords: vec2<f32>,
     @location(2) color: vec4<f32>,
@@ -30,7 +31,7 @@ struct VertexOutput {
 fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
-    var position = model.position + shader_params.translation;
+    var position = model.position + shader_params.translation * f32(model.instance_index);
     var out: VertexOutput;
     out.clip_position = draw_params.transform * vec4<f32>(position, 0.0, 1.0);
     out.texture_coords = model.texture_coords;

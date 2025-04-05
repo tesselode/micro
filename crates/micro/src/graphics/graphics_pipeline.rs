@@ -1,7 +1,6 @@
 mod builder;
 
 pub use builder::*;
-use bytemuck::Pod;
 
 use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
@@ -18,8 +17,7 @@ use wgpu::{
 use crate::Context;
 
 use super::{
-	BlendMode, DefaultShader, HasVertexAttributes, InstanceSettings, Instanced, NonInstanced,
-	Shader, ShaderKind, StencilState, drawable::Drawable,
+	BlendMode, DefaultShader, HasVertexAttributes, Shader, StencilState, drawable::Drawable,
 };
 
 pub struct GraphicsPipeline<S: Shader = DefaultShader> {
@@ -45,6 +43,22 @@ impl<S: Shader> GraphicsPipeline<S> {
 		}
 	}
 
+	pub fn draw(&self, ctx: &mut Context, drawable: &impl Drawable<Vertex = S::Vertex>) {
+		self.draw_instanced(ctx, 1, drawable);
+	}
+
+	pub fn draw_instanced(
+		&self,
+		ctx: &mut Context,
+		num_instances: u32,
+		drawable: &impl Drawable<Vertex = S::Vertex>,
+	) {
+		for settings in drawable.draw_instructions(ctx).into_iter() {
+			ctx.graphics
+				.queue_draw_command(settings, self.raw(), num_instances);
+		}
+	}
+
 	pub(crate) fn new_internal(
 		device: &Device,
 		mesh_bind_group_layout: &BindGroupLayout,
@@ -63,7 +77,6 @@ impl<S: Shader> GraphicsPipeline<S> {
 					shader_params: bytemuck::cast_slice(&[builder.shader_params]),
 					vertex_size: std::mem::size_of::<S::Vertex>(),
 					vertex_attributes: S::Vertex::attributes(),
-					instance_settings: S::Kind::instance_settings(),
 					enable_depth_testing: builder.enable_depth_testing,
 					stencil_state: builder.stencil_state,
 					enable_color_writes: builder.enable_color_writes,
@@ -77,46 +90,6 @@ impl<S: Shader> GraphicsPipeline<S> {
 
 	pub(crate) fn raw(&self) -> RawGraphicsPipeline {
 		self.raw.clone()
-	}
-}
-
-impl<S: Shader<Kind = NonInstanced>> GraphicsPipeline<S> {
-	pub fn draw(&self, ctx: &mut Context, drawable: &impl Drawable<Vertex = S::Vertex>) {
-		for settings in drawable.draw_instructions(ctx).into_iter() {
-			ctx.graphics
-				.queue_draw_command(settings, self.raw(), 1, None);
-		}
-	}
-}
-
-impl<I, S> GraphicsPipeline<S>
-where
-	I: Pod + HasVertexAttributes,
-	S: Shader<Kind = Instanced<I>>,
-{
-	pub fn draw_instanced(
-		&self,
-		ctx: &mut Context,
-		drawable: &impl Drawable<Vertex = S::Vertex>,
-		instances: &[I],
-	) {
-		let instance_buffer = Some(
-			ctx.graphics
-				.device
-				.create_buffer_init(&BufferInitDescriptor {
-					label: None,
-					contents: bytemuck::cast_slice(instances),
-					usage: BufferUsages::VERTEX,
-				}),
-		);
-		for settings in drawable.draw_instructions(ctx).into_iter() {
-			ctx.graphics.queue_draw_command(
-				settings,
-				self.raw(),
-				instances.len() as u32,
-				instance_buffer.clone(),
-			);
-		}
 	}
 }
 
@@ -187,24 +160,6 @@ impl RawGraphicsPipeline {
 				resource: shader_params_buffer.as_entire_binding(),
 			}],
 		});
-		let vertex_attributes = settings.vertex_attributes;
-		let instance_attributes = settings
-			.instance_settings
-			.as_ref()
-			.map(|instance_settings| instance_settings.attributes.clone())
-			.unwrap_or_default();
-		let mut vertex_buffers = vec![VertexBufferLayout {
-			array_stride: settings.vertex_size as BufferAddress,
-			step_mode: VertexStepMode::Vertex,
-			attributes: &vertex_attributes,
-		}];
-		if let Some(InstanceSettings { array_stride, .. }) = settings.instance_settings {
-			vertex_buffers.push(VertexBufferLayout {
-				array_stride,
-				step_mode: VertexStepMode::Instance,
-				attributes: &instance_attributes,
-			});
-		}
 		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
 			label: Some(&settings.label),
 			layout: Some(&pipeline_layout),
@@ -212,7 +167,11 @@ impl RawGraphicsPipeline {
 				module: &shader,
 				entry_point: Some("vs_main"),
 				compilation_options: PipelineCompilationOptions::default(),
-				buffers: &vertex_buffers,
+				buffers: &[VertexBufferLayout {
+					array_stride: settings.vertex_size as BufferAddress,
+					step_mode: VertexStepMode::Vertex,
+					attributes: &settings.vertex_attributes,
+				}],
 			},
 			primitive: PrimitiveState {
 				topology: PrimitiveTopology::TriangleList,
@@ -288,7 +247,6 @@ struct RawGraphicsPipelineSettings<'a> {
 	shader_params: &'a [u8],
 	vertex_size: usize,
 	vertex_attributes: Vec<VertexAttribute>,
-	instance_settings: Option<InstanceSettings>,
 	enable_depth_testing: bool,
 	stencil_state: StencilState,
 	enable_color_writes: bool,

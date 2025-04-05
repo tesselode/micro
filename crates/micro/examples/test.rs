@@ -5,7 +5,7 @@ use glam::{Vec2, vec2};
 use micro::{
 	App, Context, ContextSettings,
 	graphics::{
-		GraphicsPipeline, GraphicsPipelineBuilder, NonInstanced, Shader, Vertex2d,
+		GraphicsPipeline, GraphicsPipelineBuilder, Shader, Vertex2d,
 		mesh::{Mesh, ShapeStyle},
 	},
 	math::Circle,
@@ -50,8 +50,9 @@ impl App for Test {
 					translation: vec2(100.0, 100.0),
 				},
 			)
-			.draw(
+			.draw_instanced(
 				ctx,
+				10,
 				&Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
 			);
 		Ok(())
@@ -63,10 +64,7 @@ struct TestShader;
 impl Shader for TestShader {
 	const DESCRIPTOR: ShaderModuleDescriptor<'_> = include_wgsl!("shader.wgsl");
 
-	type Kind = NonInstanced;
-
 	type Vertex = Vertex2d;
-
 	type Params = ShaderParams;
 }
 

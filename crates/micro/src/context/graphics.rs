@@ -228,7 +228,6 @@ impl GraphicsContext {
 		settings: QueueDrawCommandSettings,
 		graphics_pipeline: RawGraphicsPipeline,
 		num_instances: u32,
-		instance_buffer: Option<Buffer>,
 	) {
 		let command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
@@ -246,7 +245,6 @@ impl GraphicsContext {
 				.unwrap_or_else(|| self.default_scissor_rect()),
 			stencil_reference: *self.stencil_reference_stack.last().unwrap(),
 			num_instances,
-			instance_buffer,
 		};
 		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
 			draw_commands.push(command);
@@ -443,7 +441,6 @@ struct DrawCommand {
 	scissor_rect: URect,
 	stencil_reference: u8,
 	num_instances: u32,
-	instance_buffer: Option<Buffer>,
 }
 
 struct CanvasRenderPass {
@@ -469,7 +466,6 @@ fn run_draw_commands(
 		scissor_rect,
 		stencil_reference,
 		num_instances,
-		instance_buffer,
 	} in draw_commands.drain(..)
 	{
 		let draw_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -500,9 +496,6 @@ fn run_draw_commands(
 		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
 		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-		if let Some(buffer) = instance_buffer {
-			render_pass.set_vertex_buffer(1, buffer.slice(..));
-		}
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.set_scissor_rect(
 			scissor_rect.left(),

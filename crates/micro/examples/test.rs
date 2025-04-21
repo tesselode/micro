@@ -3,11 +3,13 @@ use std::error::Error;
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, vec2};
 use micro::{
-	App, Context, ContextSettings,
+	App, Context, ContextSettings, Event,
 	graphics::{
-		GraphicsPipeline, GraphicsPipelineBuilder, Shader, Vertex2d,
+		Canvas, CanvasSettings, GraphicsPipeline, GraphicsPipelineBuilder, RenderToCanvasSettings,
+		Shader, Vertex2d,
 		mesh::{Mesh, ShapeStyle},
 	},
+	input::Scancode,
 	math::Circle,
 };
 use wgpu::{ShaderModuleDescriptor, include_wgsl};
@@ -17,22 +19,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct Test {
+	canvas: Canvas,
 	graphics_pipeline: GraphicsPipeline<TestShader>,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
+		let canvas = Canvas::new(ctx, ctx.window_size(), CanvasSettings::default());
+		let graphics_pipeline = GraphicsPipelineBuilder::for_canvas(&canvas)
+			.with_storage_buffer(&[
+				Instance {
+					translation: vec2(50.0, 50.0),
+				},
+				Instance {
+					translation: vec2(100.0, 100.0),
+				},
+			])
+			.build(ctx);
 		Ok(Self {
-			graphics_pipeline: GraphicsPipelineBuilder::new(ctx)
-				.with_storage_buffer(&[
-					Instance {
-						translation: vec2(50.0, 50.0),
-					},
-					Instance {
-						translation: vec2(100.0, 100.0),
-					},
-				])
-				.build(ctx),
+			canvas,
+			graphics_pipeline,
 		})
 	}
 }
@@ -40,12 +46,34 @@ impl Test {
 impl App for Test {
 	type Error = Box<dyn Error>;
 
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
+		if let Event::KeyPressed {
+			key: Scancode::Return,
+			..
+		} = event
+		{
+			self.canvas = Canvas::new(
+				ctx,
+				ctx.window_size(),
+				CanvasSettings {
+					sample_count: 4,
+					..Default::default()
+				},
+			);
+			self.graphics_pipeline.set_sample_count(ctx, 4);
+		}
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		self.graphics_pipeline.draw_instanced(
-			ctx,
-			2,
-			&Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?,
-		);
+		{
+			let ctx = &mut self
+				.canvas
+				.render_to(ctx, RenderToCanvasSettings::default());
+			let mesh = Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?;
+			self.graphics_pipeline.draw_instanced(ctx, 2, &mesh);
+		}
+		self.canvas.draw(ctx);
 		Ok(())
 	}
 }

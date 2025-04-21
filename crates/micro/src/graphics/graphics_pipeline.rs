@@ -9,10 +9,10 @@ use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferUsages,
 	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
-	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor,
-	PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
-	ShaderModuleDescriptor, ShaderStages, TextureFormat, VertexAttribute, VertexBufferLayout,
-	VertexState, VertexStepMode,
+	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayout,
+	PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology, RenderPipeline,
+	RenderPipelineDescriptor, ShaderModule, ShaderModuleDescriptor, ShaderStages, TextureFormat,
+	VertexAttribute, VertexBufferLayout, VertexState, VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -60,6 +60,10 @@ impl<S: Shader> GraphicsPipeline<S> {
 				.with_storage_buffer(ctx, index, bytemuck::cast_slice(data)),
 			..self.clone()
 		}
+	}
+
+	pub fn set_sample_count(&mut self, ctx: &Context, sample_count: u32) {
+		self.raw.set_sample_count(ctx, sample_count)
 	}
 
 	pub fn draw(&self, ctx: &mut Context, drawable: &impl Drawable<Vertex = S::Vertex>) {
@@ -150,6 +154,16 @@ impl<S: Shader> Hash for GraphicsPipeline<S> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RawGraphicsPipeline {
 	pub label: String,
+	pub pipeline_layout: PipelineLayout,
+	pub shader: ShaderModule,
+	pub vertex_size: usize,
+	pub vertex_attributes: Vec<VertexAttribute>,
+	pub blend_mode: BlendMode,
+	pub enable_depth_testing: bool,
+	pub stencil_state: StencilState,
+	pub enable_color_writes: bool,
+	pub sample_count: u32,
+	pub format: TextureFormat,
 	pub render_pipeline: RenderPipeline,
 	pub shader_params_buffer: Buffer,
 	pub shader_params_bind_group: BindGroup,
@@ -283,7 +297,17 @@ impl RawGraphicsPipeline {
 			cache: None,
 		});
 		Self {
-			label: settings.label.clone(),
+			label: settings.label,
+			pipeline_layout,
+			shader,
+			vertex_size: settings.vertex_size,
+			vertex_attributes: settings.vertex_attributes,
+			blend_mode: settings.blend_mode,
+			enable_depth_testing: settings.enable_depth_testing,
+			stencil_state: settings.stencil_state,
+			enable_color_writes: settings.enable_color_writes,
+			sample_count: settings.sample_count,
+			format: settings.format,
 			render_pipeline,
 			shader_params_buffer,
 			shader_params_bind_group,
@@ -341,6 +365,60 @@ impl RawGraphicsPipeline {
 			storage_buffers_bind_group,
 			..self.clone()
 		}
+	}
+
+	fn set_sample_count(&mut self, ctx: &Context, sample_count: u32) {
+		let device = &ctx.graphics.device;
+		self.sample_count = sample_count;
+		self.render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+			label: Some(&self.label),
+			layout: Some(&self.pipeline_layout),
+			vertex: VertexState {
+				module: &self.shader,
+				entry_point: Some("vs_main"),
+				compilation_options: PipelineCompilationOptions::default(),
+				buffers: &[VertexBufferLayout {
+					array_stride: self.vertex_size as BufferAddress,
+					step_mode: VertexStepMode::Vertex,
+					attributes: &self.vertex_attributes,
+				}],
+			},
+			primitive: PrimitiveState {
+				topology: PrimitiveTopology::TriangleList,
+				..Default::default()
+			},
+			depth_stencil: Some(DepthStencilState {
+				format: TextureFormat::Depth24PlusStencil8,
+				depth_write_enabled: self.enable_depth_testing,
+				depth_compare: if self.enable_depth_testing {
+					CompareFunction::Less
+				} else {
+					CompareFunction::Always
+				},
+				stencil: self.stencil_state.as_wgpu_stencil_state(),
+				bias: DepthBiasState::default(),
+			}),
+			multisample: MultisampleState {
+				count: self.sample_count,
+				..Default::default()
+			},
+			fragment: Some(FragmentState {
+				module: &self.shader,
+				entry_point: Some("fs_main"),
+				compilation_options: PipelineCompilationOptions::default(),
+				targets: &[Some(ColorTargetState {
+					format: self.format,
+					blend: Some(self.blend_mode.to_blend_state()),
+					write_mask: if self.enable_color_writes {
+						ColorWrites::ALL
+					} else {
+						ColorWrites::empty()
+					},
+				})],
+			}),
+			multiview: None,
+			cache: None,
+		});
 	}
 }
 

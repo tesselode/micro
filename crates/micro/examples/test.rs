@@ -52,15 +52,8 @@ impl App for Test {
 			..
 		} = event
 		{
-			self.canvas = Canvas::new(
-				ctx,
-				ctx.window_size(),
-				CanvasSettings {
-					sample_count: 4,
-					..Default::default()
-				},
-			);
-			self.graphics_pipeline.set_sample_count(ctx, 4);
+			self.canvas.set_sample_count(ctx, 8);
+			self.graphics_pipeline.set_sample_count(ctx, 8);
 		}
 		Ok(())
 	}

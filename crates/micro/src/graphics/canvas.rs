@@ -19,7 +19,7 @@ use super::{
 pub struct Canvas {
 	pub(crate) kind: CanvasKind,
 	pub(crate) depth_stencil_texture: Texture,
-	format: TextureFormat,
+	settings: CanvasSettings,
 
 	// draw params
 	pub transform: Mat4,
@@ -81,7 +81,7 @@ impl Canvas {
 					sample_count: settings.sample_count,
 				},
 			),
-			format: settings.format,
+			settings,
 
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
@@ -107,7 +107,62 @@ impl Canvas {
 	}
 
 	pub fn format(&self) -> TextureFormat {
-		self.format
+		self.settings.format
+	}
+
+	pub fn set_sample_count(&mut self, ctx: &Context, sample_count: u32) {
+		self.kind = match sample_count {
+			1 => CanvasKind::Normal {
+				texture: Texture::new(
+					&ctx.graphics.device,
+					&ctx.graphics.queue,
+					self.size(),
+					None,
+					self.settings.texture_settings,
+					InternalTextureSettings {
+						sample_count: 1,
+						format: self.settings.format,
+					},
+				),
+			},
+			sample_count => CanvasKind::Multisampled {
+				texture: Texture::new(
+					&ctx.graphics.device,
+					&ctx.graphics.queue,
+					self.size(),
+					None,
+					self.settings.texture_settings,
+					InternalTextureSettings {
+						sample_count,
+						format: self.settings.format,
+					},
+				),
+				resolve_texture: Texture::new(
+					&ctx.graphics.device,
+					&ctx.graphics.queue,
+					self.size(),
+					None,
+					self.settings.texture_settings,
+					InternalTextureSettings {
+						sample_count: 1,
+						format: self.settings.format,
+					},
+				),
+				sample_count,
+			},
+		};
+		self.depth_stencil_texture = Texture::new(
+			&ctx.graphics.device,
+			&ctx.graphics.queue,
+			self.size(),
+			None,
+			self.settings.texture_settings,
+			InternalTextureSettings {
+				format: TextureFormat::Depth24PlusStencil8,
+				sample_count,
+			},
+		);
+		self.settings.sample_count = sample_count;
 	}
 
 	pub fn render_to<'a>(

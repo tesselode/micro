@@ -17,6 +17,7 @@ use super::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
+	pub(crate) label: String,
 	pub(crate) kind: CanvasKind,
 	pub(crate) depth_stencil_texture: Texture,
 	format: TextureFormat,
@@ -30,6 +31,7 @@ pub struct Canvas {
 impl Canvas {
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
 		Self {
+			label: settings.label,
 			kind: match settings.sample_count {
 				1 => CanvasKind::Normal {
 					texture: Texture::new(
@@ -145,8 +147,9 @@ impl Drawable for Canvas {
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CanvasSettings {
+	pub label: String,
 	pub texture_settings: TextureSettings,
 	pub sample_count: u32,
 	pub format: TextureFormat,
@@ -155,6 +158,7 @@ pub struct CanvasSettings {
 impl Default for CanvasSettings {
 	fn default() -> Self {
 		Self {
+			label: "Canvas".into(),
 			texture_settings: Default::default(),
 			sample_count: 1,
 			format: TextureFormat::Rgba8UnormSrgb,

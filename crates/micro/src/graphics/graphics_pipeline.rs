@@ -150,6 +150,8 @@ impl<S: Shader> Hash for GraphicsPipeline<S> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RawGraphicsPipeline {
 	pub label: String,
+	pub sample_count: u32,
+	pub format: TextureFormat,
 	pub render_pipeline: RenderPipeline,
 	pub shader_params_buffer: Buffer,
 	pub shader_params_bind_group: BindGroup,
@@ -284,6 +286,8 @@ impl RawGraphicsPipeline {
 		});
 		Self {
 			label: settings.label.clone(),
+			sample_count: settings.sample_count,
+			format: settings.format,
 			render_pipeline,
 			shader_params_buffer,
 			shader_params_bind_group,

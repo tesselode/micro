@@ -230,6 +230,7 @@ impl GraphicsContext {
 		graphics_pipeline: RawGraphicsPipeline,
 		num_instances: u32,
 	) {
+		self.validate_graphics_pipeline_usage(&graphics_pipeline);
 		let command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
@@ -410,6 +411,39 @@ impl GraphicsContext {
 			uvec2(self.config.width, self.config.height)
 		};
 		URect::new(UVec2::ZERO, size)
+	}
+
+	fn validate_graphics_pipeline_usage(&self, graphics_pipeline: &RawGraphicsPipeline) {
+		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			if canvas.format() != graphics_pipeline.format
+				|| canvas.sample_count() != graphics_pipeline.sample_count
+			{
+				panic!(
+					"Graphics pipeline with label '{}', sample count {}, and texture format {:?} cannot be used to draw on canvas with label '{}', sample count {}, and texture format {:?}",
+					graphics_pipeline.label,
+					graphics_pipeline.sample_count,
+					graphics_pipeline.format,
+					canvas.label,
+					canvas.sample_count(),
+					canvas.format(),
+				);
+			}
+		} else {
+			if graphics_pipeline.sample_count > 1 {
+				panic!(
+					"Graphics pipeline with label '{}' and sample count {} cannot be used to draw on the main surface, only a canvas with a sample count of {}",
+					graphics_pipeline.label,
+					graphics_pipeline.sample_count,
+					graphics_pipeline.sample_count,
+				);
+			}
+			if self.config.format != graphics_pipeline.format {
+				panic!(
+					"Graphics pipeline with label '{}' and texture format {:?} cannot be used to draw on the main surface, which has texture format {:?}",
+					graphics_pipeline.label, graphics_pipeline.format, self.config.format,
+				);
+			}
+		}
 	}
 }
 

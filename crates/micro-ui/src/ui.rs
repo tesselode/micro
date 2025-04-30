@@ -18,7 +18,6 @@ use super::{LayoutResult, Widget, WidgetMouseEvent};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Ui {
-	graphics_pipeline: Option<GraphicsPipeline>,
 	previous_baked_widget: Option<BakedWidget>,
 	mouse_input: MouseInput,
 	widget_mouse_state: IndexMap<PathBuf, WidgetMouseState>,
@@ -28,13 +27,6 @@ pub struct Ui {
 impl Ui {
 	pub fn new() -> Self {
 		Self::default()
-	}
-
-	pub fn with_graphics_pipeline(self, graphics_pipeline: &GraphicsPipeline) -> Self {
-		Self {
-			graphics_pipeline: Some(graphics_pipeline.clone()),
-			..self
-		}
 	}
 
 	pub fn show_debug_window(&mut self, egui_ctx: &micro::debug_ui::Context, open: &mut bool) {
@@ -56,27 +48,18 @@ impl Ui {
 	pub fn render(
 		&mut self,
 		ctx: &mut Context,
-		size: Vec2,
-		widget: impl Widget + 'static,
-	) -> anyhow::Result<()> {
-		self.render_transformed(ctx, size, Mat4::IDENTITY, widget)
-	}
-
-	pub fn render_transformed(
-		&mut self,
-		ctx: &mut Context,
-		size: Vec2,
-		transform: Mat4,
+		settings: RenderUiSettings,
 		widget: impl Widget + 'static,
 	) -> anyhow::Result<()> {
 		let _span = tracy_client::span!();
-		let ctx = &mut ctx.push_transform(transform);
-		let mut baked_widget = BakedWidget::new(ctx, PathBuf::new(), &widget, size);
-		self.mouse_input.update(ctx, transform.inverse());
+		let ctx = &mut ctx.push_transform(settings.transform);
+		let size = ctx.window_size().as_vec2();
+		let mut baked_widget =
+			BakedWidget::new(ctx, PathBuf::new(), &widget, settings.size.unwrap_or(size));
+		self.mouse_input.update(ctx, settings.transform.inverse());
 		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);
-		let graphics_pipeline = self
+		let graphics_pipeline = settings
 			.graphics_pipeline
-			.clone()
 			.unwrap_or_else(|| ctx.default_graphics_pipeline());
 		baked_widget.draw(ctx, graphics_pipeline, &widget)?;
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
@@ -85,6 +68,13 @@ impl Ui {
 		self.previous_baked_widget = Some(baked_widget);
 		Ok(())
 	}
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct RenderUiSettings {
+	pub size: Option<Vec2>,
+	pub graphics_pipeline: Option<GraphicsPipeline>,
+	pub transform: Mat4,
 }
 
 #[derive(Debug, Clone, PartialEq)]

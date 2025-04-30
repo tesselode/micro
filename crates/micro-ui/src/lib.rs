@@ -28,7 +28,7 @@ pub use stack::*;
 pub use stencil_reference_widget::*;
 pub use text::*;
 pub use transform::*;
-pub use ui::Ui;
+pub use ui::*;
 
 use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 

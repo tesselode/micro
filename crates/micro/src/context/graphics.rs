@@ -286,11 +286,6 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn present(&mut self) {
-		let frame = self
-			.surface
-			.get_current_texture()
-			.expect("error getting surface texture");
-		let output = frame.texture.create_view(&TextureViewDescriptor::default());
 		let mut encoder = self.device.create_command_encoder(&Default::default());
 
 		for CanvasRenderPass {
@@ -350,6 +345,12 @@ impl GraphicsContext {
 				&self.mesh_bind_group_layout,
 			);
 		}
+
+		let frame = self
+			.surface
+			.get_current_texture()
+			.expect("error getting surface texture");
+		let output = frame.texture.create_view(&TextureViewDescriptor::default());
 
 		{
 			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {

@@ -31,7 +31,13 @@ tracy-client = { version = "0.18.0", default-features = false, features = [
 	"sampling",
 	"system-tracing",
 ] }
-wgpu = "24.0.1"
+wgpu = { version = "25.0.2", default-features = false, features = [
+	"dx12",
+	"metal",
+	"vulkan",
+	"gles",
+	"glsl",
+] }
 
 [features]
 mint = ["glam/mint"]

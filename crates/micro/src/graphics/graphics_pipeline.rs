@@ -3,7 +3,7 @@ mod builder;
 pub use builder::*;
 use bytemuck::Pod;
 
-use std::{fmt::Debug, hash::Hash, marker::PhantomData};
+use std::{borrow::Cow, fmt::Debug, hash::Hash, marker::PhantomData};
 
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
@@ -11,8 +11,9 @@ use wgpu::{
 	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
 	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor,
 	PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
-	ShaderModuleDescriptor, ShaderStages, TextureFormat, VertexAttribute, VertexBufferLayout,
-	VertexState, VertexStepMode,
+	ShaderModuleDescriptor, ShaderSource, ShaderStages, TextureFormat, VertexAttribute,
+	VertexBufferLayout, VertexState, VertexStepMode,
+	naga::ShaderStage,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -92,7 +93,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 				RawGraphicsPipelineSettings {
 					label: builder.label,
 					blend_mode: builder.blend_mode,
-					shader_module_descriptor: S::DESCRIPTOR,
+					shader_source: S::SOURCE,
 					shader_params: bytemuck::cast_slice(&[builder.shader_params]),
 					num_storage_buffers: S::NUM_STORAGE_BUFFERS,
 					storage_buffers: builder.storage_buffers,
@@ -167,7 +168,24 @@ impl RawGraphicsPipeline {
 		shader_params_bind_group_layout: &BindGroupLayout,
 		mut settings: RawGraphicsPipelineSettings,
 	) -> Self {
-		let shader = device.create_shader_module(settings.shader_module_descriptor);
+		let SplitShaderSource { vertex, fragment } =
+			SplitShaderSource::from_combined(settings.shader_source);
+		let vertex_shader = device.create_shader_module(ShaderModuleDescriptor {
+			label: None,
+			source: ShaderSource::Glsl {
+				shader: Cow::Borrowed(vertex),
+				stage: ShaderStage::Vertex,
+				defines: &[],
+			},
+		});
+		let fragment_shader = device.create_shader_module(ShaderModuleDescriptor {
+			label: None,
+			source: ShaderSource::Glsl {
+				shader: Cow::Borrowed(fragment),
+				stage: ShaderStage::Fragment,
+				defines: &[],
+			},
+		});
 		let storage_buffers_bind_group_layout =
 			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 				label: Some(&format!(
@@ -239,8 +257,8 @@ impl RawGraphicsPipeline {
 			label: Some(&settings.label),
 			layout: Some(&pipeline_layout),
 			vertex: VertexState {
-				module: &shader,
-				entry_point: Some("vs_main"),
+				module: &vertex_shader,
+				entry_point: Some("main"),
 				compilation_options: PipelineCompilationOptions::default(),
 				buffers: &[VertexBufferLayout {
 					array_stride: settings.vertex_size as BufferAddress,
@@ -268,8 +286,8 @@ impl RawGraphicsPipeline {
 				..Default::default()
 			},
 			fragment: Some(FragmentState {
-				module: &shader,
-				entry_point: Some("fs_main"),
+				module: &fragment_shader,
+				entry_point: Some("main"),
 				compilation_options: PipelineCompilationOptions::default(),
 				targets: &[Some(ColorTargetState {
 					format: settings.format,
@@ -351,7 +369,7 @@ impl RawGraphicsPipeline {
 struct RawGraphicsPipelineSettings<'a> {
 	label: String,
 	blend_mode: BlendMode,
-	shader_module_descriptor: ShaderModuleDescriptor<'a>,
+	shader_source: &'static str,
 	shader_params: &'a [u8],
 	vertex_size: usize,
 	vertex_attributes: Vec<VertexAttribute>,
@@ -362,4 +380,29 @@ struct RawGraphicsPipelineSettings<'a> {
 	enable_color_writes: bool,
 	sample_count: u32,
 	format: TextureFormat,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct SplitShaderSource {
+	vertex: &'static str,
+	fragment: &'static str,
+}
+
+impl SplitShaderSource {
+	fn from_combined(combined: &'static str) -> Self {
+		const VERTEX_DELIMITER: &str = "/// @VERTEX";
+		const FRAGMENT_DELIMITER: &str = "/// @FRAGMENT";
+		let vertex_delimiter_start = combined
+			.find(VERTEX_DELIMITER)
+			.expect("shader source does not have '/// @VERTEX' section");
+		let vertex_delimiter_end = vertex_delimiter_start + VERTEX_DELIMITER.len();
+		let fragment_delimiter_start = combined
+			.find(FRAGMENT_DELIMITER)
+			.expect("shader source does not have '/// @FRAGMENT' section");
+		let fragment_delimiter_end = fragment_delimiter_start + FRAGMENT_DELIMITER.len();
+		Self {
+			vertex: &combined[vertex_delimiter_end..fragment_delimiter_start],
+			fragment: &combined[fragment_delimiter_end..],
+		}
+	}
 }

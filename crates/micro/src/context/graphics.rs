@@ -66,13 +66,10 @@ impl GraphicsContext {
 			.get_texture_format_features(TextureFormat::Rgba8UnormSrgb)
 			.flags
 			.supported_sample_counts();
-		let (device, queue) = pollster::block_on(adapter.request_device(
-			&DeviceDescriptor {
-				required_features,
-				..Default::default()
-			},
-			None,
-		))
+		let (device, queue) = pollster::block_on(adapter.request_device(&DeviceDescriptor {
+			required_features,
+			..Default::default()
+		}))
 		.expect("error getting graphics device");
 		let mesh_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 			label: Some("Mesh Bind Group Layout"),

@@ -32,7 +32,7 @@ pub(crate) struct GraphicsContext {
 	main_surface_depth_stencil_texture: Texture,
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
-	default_texture: Texture,
+	pub(crate) default_texture: Texture,
 	pub(crate) default_graphics_pipeline: GraphicsPipeline,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
@@ -146,22 +146,6 @@ impl GraphicsContext {
 				sample_count: 1,
 			},
 		);
-		let default_graphics_pipeline = GraphicsPipeline::<DefaultShader>::new_internal(
-			&device,
-			&mesh_bind_group_layout,
-			&shader_params_bind_group_layout,
-			GraphicsPipelineBuilder {
-				label: "Default Graphics Pipeline".into(),
-				blend_mode: Default::default(),
-				shader_params: Default::default(),
-				storage_buffers: vec![],
-				enable_depth_testing: false,
-				stencil_state: Default::default(),
-				enable_color_writes: true,
-				sample_count: 1,
-				format: config.format,
-			},
-		);
 		let default_texture = Texture::new(
 			&device,
 			&queue,
@@ -169,6 +153,24 @@ impl GraphicsContext {
 			Some(&[255, 255, 255, 255]),
 			TextureSettings::default(),
 			InternalTextureSettings::default(),
+		);
+		let default_graphics_pipeline = GraphicsPipeline::<DefaultShader>::new_internal(
+			&device,
+			&mesh_bind_group_layout,
+			&shader_params_bind_group_layout,
+			&default_texture,
+			GraphicsPipelineBuilder {
+				label: "Default Graphics Pipeline".into(),
+				blend_mode: Default::default(),
+				shader_params: Default::default(),
+				storage_buffers: vec![],
+				textures: vec![],
+				enable_depth_testing: false,
+				stencil_state: Default::default(),
+				enable_color_writes: true,
+				sample_count: 1,
+				format: config.format,
+			},
 		);
 		Self {
 			device,
@@ -529,6 +531,7 @@ fn run_draw_commands(
 		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
 		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
 		render_pass.set_bind_group(2, &graphics_pipeline.storage_buffers_bind_group, &[]);
+		render_pass.set_bind_group(3, &graphics_pipeline.textures_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.set_scissor_rect(

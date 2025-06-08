@@ -1,51 +1,39 @@
 use std::error::Error;
 
-use bytemuck::{Pod, Zeroable};
-use glam::{Vec2, vec2};
+use glam::vec2;
 use micro::{
-	App, Context, ContextSettings,
+	App, Context, ContextSettings, Event,
 	graphics::{
-		Canvas, CanvasSettings, GraphicsPipeline, GraphicsPipelineBuilder, RenderToCanvasSettings,
-		Shader, Vertex2d,
+		GraphicsPipeline, GraphicsPipelineBuilder, Shader, Vertex2d,
 		mesh::{Mesh, ShapeStyle},
+		texture::{Texture, TextureSettings},
 	},
-	math::Circle,
+	input::Scancode,
+	math::{Circle, Rect},
 };
-use wgpu::{ShaderModuleDescriptor, TextureFormat, include_wgsl};
+use wgpu::{ShaderModuleDescriptor, include_wgsl};
 
 fn main() -> Result<(), Box<dyn Error>> {
 	micro::run(ContextSettings::default(), Test::new)
 }
 
 struct Test {
-	canvas: Canvas,
 	graphics_pipeline: GraphicsPipeline<TestShader>,
+	texture1: Texture,
+	texture2: Texture,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Result<Self, Box<dyn Error>> {
-		let canvas = Canvas::new(
+		let texture1 = Texture::from_file(
 			ctx,
-			ctx.window_size(),
-			CanvasSettings {
-				sample_count: 4,
-				..Default::default()
-			},
-		);
-		let graphics_pipeline = GraphicsPipelineBuilder::for_canvas(&canvas)
-			.with_storage_buffer(&[
-				Instance {
-					translation: vec2(50.0, 50.0),
-				},
-				Instance {
-					translation: vec2(100.0, 100.0),
-				},
-			])
-			.sample_count(4)
-			.build(ctx);
+			"resources/spritesheet_default.png",
+			TextureSettings::default(),
+		)?;
 		Ok(Self {
-			canvas,
-			graphics_pipeline,
+			graphics_pipeline: GraphicsPipelineBuilder::new(ctx).build(ctx),
+			texture1,
+			texture2: Texture::from_file(ctx, "resources/water.png", TextureSettings::default())?,
 		})
 	}
 }
@@ -53,12 +41,28 @@ impl Test {
 impl App for Test {
 	type Error = Box<dyn Error>;
 
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
+		if let Event::KeyPressed {
+			key: Scancode::Space,
+			..
+		} = event
+		{
+			self.graphics_pipeline.set_texture(ctx, 0, &self.texture2);
+		}
+		Ok(())
+	}
+
 	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		/* let ctx = &mut self
-		.canvas
-		.render_to(ctx, RenderToCanvasSettings::default()); */
-		let mesh = Mesh::circle(ctx, ShapeStyle::Fill, Circle::around_zero(10.0))?;
-		self.graphics_pipeline.draw_instanced(ctx, 2, &mesh);
+		self.graphics_pipeline.draw(
+			ctx,
+			&Mesh::rectangle(
+				ctx,
+				Rect {
+					top_left: vec2(50.0, 50.0),
+					size: vec2(100.0, 150.0),
+				},
+			),
+		);
 		Ok(())
 	}
 }
@@ -67,14 +71,9 @@ struct TestShader;
 
 impl Shader for TestShader {
 	const DESCRIPTOR: ShaderModuleDescriptor<'_> = include_wgsl!("shader.wgsl");
-	const NUM_STORAGE_BUFFERS: u32 = 1;
+	const NUM_TEXTURES: u32 = 1;
 
 	type Vertex = Vertex2d;
-	type Params = i32;
-}
 
-#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable, Default)]
-#[repr(C)]
-struct Instance {
-	translation: Vec2,
+	type Params = i32;
 }

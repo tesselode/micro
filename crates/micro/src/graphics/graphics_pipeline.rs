@@ -2,21 +2,26 @@ mod builder;
 
 pub use builder::*;
 use bytemuck::Pod;
+use derive_more::From;
 
-use std::{fmt::Debug, hash::Hash, marker::PhantomData};
+use std::{fmt::Debug, marker::PhantomData};
 
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-	BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferUsages,
-	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
-	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor,
-	PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
-	ShaderModuleDescriptor, ShaderStages, TextureFormat, VertexAttribute, VertexBufferLayout,
+	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferAddress, BufferBindingType,
+	BufferUsages, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState,
+	DepthStencilState, Device, FragmentState, MultisampleState, PipelineCompilationOptions,
+	PipelineLayoutDescriptor, PrimitiveState, PrimitiveTopology, RenderPipeline,
+	RenderPipelineDescriptor, SamplerBindingType, ShaderModuleDescriptor, ShaderStages,
+	TextureFormat, TextureSampleType, TextureViewDimension, VertexAttribute, VertexBufferLayout,
 	VertexState, VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
-use crate::Context;
+use crate::{
+	Context,
+	graphics::{Canvas, texture::Texture},
+};
 
 use super::{
 	BlendMode, DefaultShader, HasVertexAttributes, Shader, StencilState, drawable::Drawable,
@@ -62,6 +67,27 @@ impl<S: Shader> GraphicsPipeline<S> {
 		}
 	}
 
+	pub fn set_texture(
+		&mut self,
+		ctx: &Context,
+		index: u32,
+		texture: impl Into<GraphicsPipelineTexture>,
+	) {
+		self.raw.set_texture(ctx, index, texture);
+	}
+
+	pub fn with_texture(
+		&self,
+		ctx: &Context,
+		index: u32,
+		texture: impl Into<GraphicsPipelineTexture>,
+	) -> Self {
+		Self {
+			raw: self.raw.with_texture(ctx, index, texture),
+			..self.clone()
+		}
+	}
+
 	pub fn draw(&self, ctx: &mut Context, drawable: &impl Drawable<Vertex = S::Vertex>) {
 		self.draw_instanced(ctx, 1, drawable);
 	}
@@ -82,6 +108,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 		device: &Device,
 		mesh_bind_group_layout: &BindGroupLayout,
 		shader_params_bind_group_layout: &BindGroupLayout,
+		default_texture: &Texture,
 		builder: GraphicsPipelineBuilder<S>,
 	) -> Self {
 		Self {
@@ -89,6 +116,7 @@ impl<S: Shader> GraphicsPipeline<S> {
 				device,
 				mesh_bind_group_layout,
 				shader_params_bind_group_layout,
+				default_texture,
 				RawGraphicsPipelineSettings {
 					label: builder.label,
 					blend_mode: builder.blend_mode,
@@ -96,6 +124,8 @@ impl<S: Shader> GraphicsPipeline<S> {
 					shader_params: bytemuck::cast_slice(&[builder.shader_params]),
 					num_storage_buffers: S::NUM_STORAGE_BUFFERS,
 					storage_buffers: builder.storage_buffers,
+					num_textures: S::NUM_TEXTURES,
+					textures: builder.textures,
 					vertex_size: std::mem::size_of::<S::Vertex>(),
 					vertex_attributes: S::Vertex::attributes(),
 					enable_depth_testing: builder.enable_depth_testing,
@@ -138,16 +168,34 @@ impl<S: Shader> PartialEq for GraphicsPipeline<S> {
 	}
 }
 
-impl<S: Shader> Eq for GraphicsPipeline<S> {}
+#[derive(Debug, Clone, PartialEq, From)]
+pub enum GraphicsPipelineTexture {
+	Texture(Texture),
+	Canvas(Canvas),
+}
 
-impl<S: Shader> Hash for GraphicsPipeline<S> {
-	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-		self.raw.hash(state);
-		self._shader.hash(state);
+impl GraphicsPipelineTexture {
+	fn drawable_texture(&self) -> Texture {
+		match self {
+			Self::Texture(texture) => texture.clone(),
+			Self::Canvas(canvas) => canvas.drawable_texture(),
+		}
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+impl From<&Texture> for GraphicsPipelineTexture {
+	fn from(value: &Texture) -> Self {
+		Self::Texture(value.clone())
+	}
+}
+
+impl From<&Canvas> for GraphicsPipelineTexture {
+	fn from(value: &Canvas) -> Self {
+		Self::Canvas(value.clone())
+	}
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RawGraphicsPipeline {
 	pub label: String,
 	pub sample_count: u32,
@@ -158,6 +206,9 @@ pub(crate) struct RawGraphicsPipeline {
 	pub storage_buffers_bind_group_layout: BindGroupLayout,
 	pub storage_buffers: Vec<Buffer>,
 	pub storage_buffers_bind_group: BindGroup,
+	pub textures_bind_group_layout: BindGroupLayout,
+	pub textures: Vec<GraphicsPipelineTexture>,
+	pub textures_bind_group: BindGroup,
 }
 
 impl RawGraphicsPipeline {
@@ -165,6 +216,7 @@ impl RawGraphicsPipeline {
 		device: &Device,
 		mesh_bind_group_layout: &BindGroupLayout,
 		shader_params_bind_group_layout: &BindGroupLayout,
+		default_texture: &Texture,
 		mut settings: RawGraphicsPipelineSettings,
 	) -> Self {
 		let shader = device.create_shader_module(settings.shader_module_descriptor);
@@ -187,12 +239,39 @@ impl RawGraphicsPipeline {
 					})
 					.collect::<Vec<_>>(),
 			});
+		let textures_bind_group_layout =
+			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+				label: Some(&format!("{} - Textures Bind Group Layout", &settings.label)),
+				entries: &{
+					let mut entries = vec![];
+					for i in 0..settings.num_textures {
+						entries.push(BindGroupLayoutEntry {
+							binding: i * 2,
+							visibility: ShaderStages::FRAGMENT,
+							ty: BindingType::Texture {
+								sample_type: TextureSampleType::Float { filterable: true },
+								view_dimension: TextureViewDimension::D2,
+								multisampled: false,
+							},
+							count: None,
+						});
+						entries.push(BindGroupLayoutEntry {
+							binding: i * 2 + 1,
+							visibility: ShaderStages::FRAGMENT,
+							ty: BindingType::Sampler(SamplerBindingType::Filtering),
+							count: None,
+						});
+					}
+					entries
+				},
+			});
 		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 			label: Some(&format!("{} - Pipeline Layout", &settings.label)),
 			bind_group_layouts: &[
 				mesh_bind_group_layout,
 				shader_params_bind_group_layout,
 				&storage_buffers_bind_group_layout,
+				&textures_bind_group_layout,
 			],
 			push_constant_ranges: &[],
 		});
@@ -235,6 +314,15 @@ impl RawGraphicsPipeline {
 				})
 				.collect::<Vec<_>>(),
 		});
+		settings
+			.textures
+			.resize(settings.num_textures as usize, default_texture.into());
+		let textures_bind_group = create_textures_bind_group(
+			device,
+			&settings.textures,
+			&settings.label,
+			&textures_bind_group_layout,
+		);
 		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
 			label: Some(&settings.label),
 			layout: Some(&pipeline_layout),
@@ -294,6 +382,9 @@ impl RawGraphicsPipeline {
 			storage_buffers_bind_group_layout,
 			storage_buffers,
 			storage_buffers_bind_group,
+			textures_bind_group_layout,
+			textures: settings.textures,
+			textures_bind_group,
 		}
 	}
 
@@ -346,6 +437,33 @@ impl RawGraphicsPipeline {
 			..self.clone()
 		}
 	}
+
+	fn set_texture(
+		&mut self,
+		ctx: &Context,
+		index: u32,
+		texture: impl Into<GraphicsPipelineTexture>,
+	) {
+		let device = &ctx.graphics.device;
+		self.textures[index as usize] = texture.into();
+		self.textures_bind_group = create_textures_bind_group(
+			device,
+			&self.textures,
+			&self.label,
+			&self.textures_bind_group_layout,
+		);
+	}
+
+	fn with_texture(
+		&self,
+		ctx: &Context,
+		index: u32,
+		texture: impl Into<GraphicsPipelineTexture>,
+	) -> RawGraphicsPipeline {
+		let mut new = self.clone();
+		new.set_texture(ctx, index, texture);
+		new
+	}
 }
 
 struct RawGraphicsPipelineSettings<'a> {
@@ -357,9 +475,42 @@ struct RawGraphicsPipelineSettings<'a> {
 	vertex_attributes: Vec<VertexAttribute>,
 	num_storage_buffers: u32,
 	storage_buffers: Vec<Vec<u8>>,
+	num_textures: u32,
+	textures: Vec<GraphicsPipelineTexture>,
 	enable_depth_testing: bool,
 	stencil_state: StencilState,
 	enable_color_writes: bool,
 	sample_count: u32,
 	format: TextureFormat,
+}
+
+fn create_textures_bind_group(
+	device: &Device,
+	graphics_pipeline_textures: &[GraphicsPipelineTexture],
+	graphics_pipeline_label: &str,
+	textures_bind_group_layout: &BindGroupLayout,
+) -> BindGroup {
+	let mut texture_bind_group_entries = vec![];
+	let textures = graphics_pipeline_textures
+		.iter()
+		.map(|graphics_pipeline_texture| graphics_pipeline_texture.drawable_texture())
+		.collect::<Vec<_>>();
+	for (i, texture) in textures.iter().enumerate() {
+		texture_bind_group_entries.push(BindGroupEntry {
+			binding: (i * 2) as u32,
+			resource: BindingResource::TextureView(&texture.view),
+		});
+		texture_bind_group_entries.push(BindGroupEntry {
+			binding: (i * 2 + 1) as u32,
+			resource: BindingResource::Sampler(&texture.sampler),
+		});
+	}
+	device.create_bind_group(&BindGroupDescriptor {
+		label: Some(&format!(
+			"{} - Textures Bind Group",
+			graphics_pipeline_label
+		)),
+		layout: textures_bind_group_layout,
+		entries: &texture_bind_group_entries,
+	})
 }

@@ -3,17 +3,18 @@ use wgpu::TextureFormat;
 
 use crate::{
 	Context,
-	graphics::{BlendMode, Canvas, Shader, StencilState},
+	graphics::{BlendMode, Canvas, GraphicsPipelineTexture, Shader, StencilState},
 };
 
 use super::GraphicsPipeline;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GraphicsPipelineBuilder<S: Shader> {
 	pub label: String,
 	pub blend_mode: BlendMode,
 	pub shader_params: S::Params,
 	pub storage_buffers: Vec<Vec<u8>>,
+	pub textures: Vec<GraphicsPipelineTexture>,
 	pub enable_depth_testing: bool,
 	pub stencil_state: StencilState,
 	pub enable_color_writes: bool,
@@ -31,6 +32,7 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			blend_mode: Default::default(),
 			shader_params: Default::default(),
 			storage_buffers: vec![],
+			textures: vec![],
 			enable_depth_testing: false,
 			stencil_state: Default::default(),
 			enable_color_writes: true,
@@ -48,6 +50,7 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			blend_mode: Default::default(),
 			shader_params: Default::default(),
 			storage_buffers: vec![],
+			textures: vec![],
 			enable_depth_testing: false,
 			stencil_state: Default::default(),
 			enable_color_writes: true,
@@ -76,6 +79,11 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 
 	pub fn with_storage_buffer<T: Pod>(mut self, data: &[T]) -> Self {
 		self.storage_buffers.push(bytemuck::cast_slice(data).into());
+		self
+	}
+
+	pub fn with_texture(mut self, texture: impl Into<GraphicsPipelineTexture>) -> Self {
+		self.textures.push(texture.into());
 		self
 	}
 
@@ -116,6 +124,7 @@ impl<S: Shader> GraphicsPipelineBuilder<S> {
 			&ctx.graphics.device,
 			&ctx.graphics.mesh_bind_group_layout,
 			&ctx.graphics.shader_params_bind_group_layout,
+			&ctx.graphics.default_texture,
 			self,
 		)
 	}

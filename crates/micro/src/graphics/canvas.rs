@@ -126,6 +126,15 @@ impl Canvas {
 	pub fn draw(&self, ctx: &mut Context) {
 		ctx.default_graphics_pipeline().draw(ctx, self);
 	}
+
+	pub(crate) fn drawable_texture(&self) -> Texture {
+		match &self.kind {
+			CanvasKind::Normal { texture } => texture.clone(),
+			CanvasKind::Multisampled {
+				resolve_texture, ..
+			} => resolve_texture.clone(),
+		}
+	}
 }
 
 impl Drawable for Canvas {
@@ -134,13 +143,7 @@ impl Drawable for Canvas {
 	#[allow(private_interfaces)]
 	fn draw_instructions(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
 		let _span = tracy_client::span!();
-		let texture = match &self.kind {
-			CanvasKind::Normal { texture } => texture,
-			CanvasKind::Multisampled {
-				resolve_texture, ..
-			} => resolve_texture,
-		};
-		texture
+		self.drawable_texture()
 			.transformed(self.transform)
 			.color(self.color)
 			.draw_instructions(ctx)

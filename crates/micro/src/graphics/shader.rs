@@ -7,6 +7,7 @@ use super::{Vertex, Vertex2d};
 pub trait Shader {
 	const DESCRIPTOR: ShaderModuleDescriptor<'_>;
 	const NUM_STORAGE_BUFFERS: u32 = 0;
+	const NUM_TEXTURES: u32 = 0;
 
 	type Vertex: Vertex;
 	type Params: Pod;

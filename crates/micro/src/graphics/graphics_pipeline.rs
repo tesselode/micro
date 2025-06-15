@@ -50,12 +50,8 @@ impl<S: Shader> GraphicsPipeline<S> {
 		}
 	}
 
-	pub fn set_storage_buffer<T: Pod>(&self, ctx: &Context, index: u32, data: &[T]) {
-		ctx.graphics.queue.write_buffer(
-			&self.raw.storage_buffers[index as usize],
-			0,
-			bytemuck::cast_slice(data),
-		);
+	pub fn set_storage_buffer<T: Pod>(&mut self, ctx: &Context, index: u32, data: &[T]) {
+		*self = self.with_storage_buffer(ctx, index, data);
 	}
 
 	pub fn with_storage_buffer<T: Pod>(&self, ctx: &Context, index: u32, data: &[T]) -> Self {

@@ -5,8 +5,8 @@ use sdl2::video::Window;
 use wgpu::{
 	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
-	CompositeAlphaMode, Device, DeviceDescriptor, Features, IndexFormat, Instance, LoadOp,
-	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
+	CompositeAlphaMode, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp, Operations,
+	PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
 	RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
 	SamplerBindingType, ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe,
 	TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension,
@@ -14,6 +14,7 @@ use wgpu::{
 };
 
 use crate::{
+	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
 		Canvas, CanvasKind, DefaultShader, GraphicsPipeline, GraphicsPipelineBuilder,
@@ -43,11 +44,7 @@ pub(crate) struct GraphicsContext {
 }
 
 impl GraphicsContext {
-	pub(crate) fn new(
-		window: &Window,
-		present_mode: PresentMode,
-		required_features: Features,
-	) -> Self {
+	pub(crate) fn new(window: &Window, settings: &ContextSettings) -> Self {
 		let instance = Instance::new(&Default::default());
 		let surface = unsafe {
 			instance.create_surface_unsafe(
@@ -67,7 +64,7 @@ impl GraphicsContext {
 			.flags
 			.supported_sample_counts();
 		let (device, queue) = pollster::block_on(adapter.request_device(&DeviceDescriptor {
-			required_features,
+			required_features: settings.required_graphics_features,
 			..Default::default()
 		}))
 		.expect("error getting graphics device");
@@ -129,8 +126,8 @@ impl GraphicsContext {
 			format: surface_format,
 			width,
 			height,
-			present_mode,
-			desired_maximum_frame_latency: 1,
+			present_mode: settings.present_mode,
+			desired_maximum_frame_latency: settings.max_queued_frames,
 			alpha_mode: CompositeAlphaMode::Auto,
 			view_formats: vec![],
 		};
@@ -275,12 +272,21 @@ impl GraphicsContext {
 		self.config.present_mode
 	}
 
+	pub(crate) fn max_queued_frames(&self) -> u32 {
+		self.config.desired_maximum_frame_latency
+	}
+
 	pub(crate) fn surface_format(&self) -> TextureFormat {
 		self.config.format
 	}
 
 	pub(crate) fn set_present_mode(&mut self, present_mode: PresentMode) {
 		self.config.present_mode = present_mode;
+		self.surface.configure(&self.device, &self.config);
+	}
+
+	pub(crate) fn set_max_queued_frames(&mut self, frames: u32) {
+		self.config.desired_maximum_frame_latency = frames;
 		self.surface.configure(&self.device, &self.config);
 	}
 

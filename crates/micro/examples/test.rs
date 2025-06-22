@@ -14,7 +14,13 @@ use micro::{
 use wgpu::{ShaderModuleDescriptor, include_wgsl};
 
 fn main() -> Result<(), Box<dyn Error>> {
-	micro::run(ContextSettings::default(), Test::new)
+	micro::run(
+		ContextSettings {
+			max_queued_frames: 1,
+			..Default::default()
+		},
+		Test::new,
+	)
 }
 
 struct Test {
@@ -58,7 +64,7 @@ impl App for Test {
 			&Mesh::rectangle(
 				ctx,
 				Rect {
-					top_left: vec2(50.0, 50.0),
+					top_left: ctx.mouse_position().as_vec2(),
 					size: vec2(100.0, 150.0),
 				},
 			),

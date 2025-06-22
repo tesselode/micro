@@ -35,11 +35,7 @@ where
 		.expect("error initializing controller subsystem");
 	let window = build_window(&video, &settings);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
-	let graphics = GraphicsContext::new(
-		&window,
-		settings.present_mode,
-		settings.required_graphics_features,
-	);
+	let graphics = GraphicsContext::new(&window, &settings);
 
 	let mut ctx = Context {
 		_sdl: sdl,
@@ -195,12 +191,20 @@ impl Context {
 		self.graphics.present_mode()
 	}
 
+	pub fn max_queued_frames(&self) -> u32 {
+		self.graphics.max_queued_frames()
+	}
+
 	pub fn surface_format(&self) -> TextureFormat {
 		self.graphics.surface_format()
 	}
 
 	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
 		self.graphics.set_present_mode(present_mode);
+	}
+
+	pub fn set_max_queued_frames(&mut self, frames: u32) {
+		self.graphics.set_max_queued_frames(frames);
 	}
 
 	pub fn supported_sample_counts(&self) -> &[u32] {
@@ -357,6 +361,7 @@ pub struct ContextSettings {
 	pub window_mode: WindowMode,
 	pub resizable: bool,
 	pub present_mode: PresentMode,
+	pub max_queued_frames: u32,
 	pub required_graphics_features: Features,
 }
 
@@ -367,6 +372,7 @@ impl Default for ContextSettings {
 			window_mode: WindowMode::default(),
 			resizable: false,
 			present_mode: PresentMode::AutoVsync,
+			max_queued_frames: 1,
 			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
 		}
 	}

@@ -61,9 +61,9 @@ impl Ui {
 		let graphics_pipeline = settings
 			.graphics_pipeline
 			.unwrap_or_else(|| ctx.default_graphics_pipeline());
-		baked_widget.draw(ctx, graphics_pipeline, &widget)?;
+		baked_widget.draw(ctx, graphics_pipeline.clone(), &widget)?;
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
-			baked_widget.draw_debug(ctx, &draw_debug_state)?;
+			baked_widget.draw_debug(ctx, &graphics_pipeline, &draw_debug_state)?;
 		}
 		self.previous_baked_widget = Some(baked_widget);
 		Ok(())
@@ -196,6 +196,7 @@ impl BakedWidget {
 	fn draw_debug(
 		&self,
 		ctx: &mut Context,
+		graphics_pipeline: &GraphicsPipeline,
 		draw_debug_state: &DrawDebugState,
 	) -> anyhow::Result<()> {
 		if draw_debug_state
@@ -203,20 +204,21 @@ impl BakedWidget {
 			.as_ref()
 			.is_some_and(|path| *path == self.path)
 		{
-			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
-				.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25))
-				.draw(ctx);
+			let mesh = Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
+				.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25));
+			graphics_pipeline.draw(ctx, &mesh);
 		}
-		Mesh::outlined_rectangle(ctx, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))?
-			.color(LinSrgb::new(1.0, 0.0, 1.0))
-			.draw(ctx);
+		let mesh =
+			Mesh::outlined_rectangle(ctx, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))?
+				.color(LinSrgb::new(1.0, 0.0, 1.0));
+		graphics_pipeline.draw(ctx, &mesh);
 		for (baked_child, position) in self
 			.children
 			.iter()
 			.zip(self.layout_result.child_positions.iter().copied())
 		{
 			let ctx = &mut ctx.push_translation_2d(position.round());
-			baked_child.draw_debug(ctx, draw_debug_state)?;
+			baked_child.draw_debug(ctx, graphics_pipeline, draw_debug_state)?;
 		}
 		Ok(())
 	}

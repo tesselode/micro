@@ -321,6 +321,7 @@ impl GraphicsContext {
 						},
 						store: StoreOp::Store,
 					},
+					depth_slice: None,
 				})],
 				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
 					view: &canvas.depth_stencil_texture.view,
@@ -367,6 +368,7 @@ impl GraphicsContext {
 						load: LoadOp::Clear(lin_srgb_to_wgpu_color(self.clear_color)),
 						store: StoreOp::Store,
 					},
+					depth_slice: None,
 				})],
 				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
 					view: &self.main_surface_depth_stencil_texture.view,

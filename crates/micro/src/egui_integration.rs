@@ -335,16 +335,6 @@ fn egui_image_data_to_image_buffer(
 				)
 			},
 		),
-		egui::ImageData::Font(font_image) => {
-			let pixels = font_image.srgba_pixels(None).collect::<Vec<_>>();
-			ImageBuffer::from_fn(
-				image_data.width() as u32,
-				image_data.height() as u32,
-				|x, y| {
-					image::Rgba(pixels[coords_to_index(x, y, image_data.width() as u32)].to_array())
-				},
-			)
-		}
 	}
 }
 

@@ -215,7 +215,10 @@ impl RawGraphicsPipeline {
 		default_texture: &Texture,
 		mut settings: RawGraphicsPipelineSettings,
 	) -> Self {
+		let span = tracy_client::span!("create shader module");
 		let shader = device.create_shader_module(settings.shader_module_descriptor);
+		drop(span);
+		let span = tracy_client::span!("create storage buffers bind group layout");
 		let storage_buffers_bind_group_layout =
 			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 				label: Some(&format!(
@@ -235,6 +238,8 @@ impl RawGraphicsPipeline {
 					})
 					.collect::<Vec<_>>(),
 			});
+		drop(span);
+		let span = tracy_client::span!("create textures bind group layout");
 		let textures_bind_group_layout =
 			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 				label: Some(&format!("{} - Textures Bind Group Layout", &settings.label)),
@@ -261,6 +266,8 @@ impl RawGraphicsPipeline {
 					entries
 				},
 			});
+		drop(span);
+		let span = tracy_client::span!("create pipeline layout");
 		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 			label: Some(&format!("{} - Pipeline Layout", &settings.label)),
 			bind_group_layouts: &[
@@ -271,11 +278,15 @@ impl RawGraphicsPipeline {
 			],
 			push_constant_ranges: &[],
 		});
+		drop(span);
+		let span = tracy_client::span!("create buffer init");
 		let shader_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
 			label: Some(&format!("{} - Shader Params Buffer", &settings.label)),
 			contents: settings.shader_params,
 			usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
 		});
+		drop(span);
+		let span = tracy_client::span!("create bind group");
 		let shader_params_bind_group = device.create_bind_group(&BindGroupDescriptor {
 			label: Some(&format!("{} - Shader Params Bind Group", &settings.label)),
 			layout: shader_params_bind_group_layout,
@@ -284,9 +295,11 @@ impl RawGraphicsPipeline {
 				resource: shader_params_buffer.as_entire_binding(),
 			}],
 		});
+		drop(span);
 		settings
 			.storage_buffers
 			.resize(settings.num_storage_buffers as usize, vec![0]);
+		let span = tracy_client::span!("create storage buffers");
 		let storage_buffers = settings
 			.storage_buffers
 			.iter()
@@ -298,6 +311,8 @@ impl RawGraphicsPipeline {
 				})
 			})
 			.collect::<Vec<_>>();
+		drop(span);
+		let span = tracy_client::span!("create storage buffers bind group");
 		let storage_buffers_bind_group = device.create_bind_group(&BindGroupDescriptor {
 			label: Some(&format!("{} - Storage Buffers Bind Group", &settings.label)),
 			layout: &storage_buffers_bind_group_layout,
@@ -310,15 +325,19 @@ impl RawGraphicsPipeline {
 				})
 				.collect::<Vec<_>>(),
 		});
+		drop(span);
 		settings
 			.textures
 			.resize(settings.num_textures as usize, default_texture.into());
+		let span = tracy_client::span!("create textures bind group");
 		let textures_bind_group = create_textures_bind_group(
 			device,
 			&settings.textures,
 			&settings.label,
 			&textures_bind_group_layout,
 		);
+		drop(span);
+		let span = tracy_client::span!("create render pipeline");
 		let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
 			label: Some(&settings.label),
 			layout: Some(&pipeline_layout),
@@ -368,6 +387,7 @@ impl RawGraphicsPipeline {
 			multiview: None,
 			cache: None,
 		});
+		drop(span);
 		Self {
 			label: settings.label.clone(),
 			sample_count: settings.sample_count,

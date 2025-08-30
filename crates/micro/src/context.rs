@@ -9,15 +9,15 @@ use std::{
 use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
 use graphics::GraphicsContext;
 use palette::LinSrgb;
-use sdl2::{
-	EventPump, GameControllerSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
+use sdl3::{
+	EventPump, GamepadSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
 	video::{FullscreenType, Window, WindowPos},
 };
 use wgpu::{Features, PresentMode, TextureFormat};
 
 use crate::{
-	App, Event, FrameTimeTracker, SdlError,
-	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl2_event},
+	App, Event, FrameTimeTracker,
+	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
 	graphics::GraphicsPipeline,
 	input::{Gamepad, MouseButton, Scancode},
 	window::{WindowMode, build_window},
@@ -28,10 +28,10 @@ where
 	S: App<Error = E>,
 	F: FnMut(&mut Context) -> Result<S, E>,
 {
-	let sdl = sdl2::init().expect("error initializing SDL");
+	let sdl = sdl3::init().expect("error initializing SDL");
 	let video = sdl.video().expect("error initializing video subsystem");
 	let controller = sdl
-		.game_controller()
+		.gamepad()
 		.expect("error initializing controller subsystem");
 	let window = build_window(&video, &settings);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
@@ -41,7 +41,7 @@ where
 		_sdl: sdl,
 		video,
 		window,
-		controller,
+		gamepad: controller,
 		event_pump,
 		egui_wants_keyboard_input: false,
 		egui_wants_mouse_input: false,
@@ -79,8 +79,8 @@ where
 		let span = tracy_client::span!("dispatch events");
 		for event in events
 			.drain(..)
-			.filter(|event| !egui_took_sdl2_event(&egui_ctx, event))
-			.filter_map(Event::from_sdl2_event)
+			.filter(|event| !egui_took_sdl3_event(&egui_ctx, event))
+			.filter_map(Event::from_sdl3_event)
 		{
 			match event {
 				Event::WindowSizeChanged(size) => ctx.graphics.resize(size),
@@ -123,7 +123,7 @@ where
 pub struct Context {
 	_sdl: Sdl,
 	pub(crate) video: VideoSubsystem,
-	pub(crate) controller: GameControllerSubsystem,
+	pub(crate) gamepad: GamepadSubsystem,
 	pub(crate) event_pump: EventPump,
 	pub(crate) egui_wants_keyboard_input: bool,
 	pub(crate) egui_wants_mouse_input: bool,
@@ -138,7 +138,7 @@ pub struct Context {
 impl Context {
 	/// Gets the drawable size of the window (in pixels).
 	pub fn window_size(&self) -> UVec2 {
-		let (width, height) = self.window.drawable_size();
+		let (width, height) = self.window.size();
 		UVec2::new(width, height)
 	}
 
@@ -160,25 +160,24 @@ impl Context {
 	}
 
 	/// Returns the resolution of the monitor the window is on.
-	pub fn monitor_resolution(&self) -> Result<UVec2, SdlError> {
-		let display_index = self.window.display_index()?;
-		let display_mode = self.video.desktop_display_mode(display_index)?;
+	pub fn monitor_resolution(&self) -> Result<UVec2, sdl3::Error> {
+		let display_mode = self.window.get_display()?.get_mode()?;
 		Ok(UVec2::new(display_mode.w as u32, display_mode.h as u32))
 	}
 
 	/// Sets the window mode (windowed or fullscreen).
-	pub fn set_window_mode(&mut self, window_mode: WindowMode) -> Result<(), SdlError> {
+	pub fn set_window_mode(&mut self, window_mode: WindowMode) -> Result<(), sdl3::Error> {
 		match window_mode {
 			WindowMode::Fullscreen => {
-				self.window.set_fullscreen(FullscreenType::Desktop)?;
+				self.window.set_fullscreen(true)?;
 			}
 			WindowMode::Windowed { size } => {
-				self.window.set_fullscreen(FullscreenType::Off)?;
+				self.window.set_fullscreen(false)?;
 				self.window
 					.set_size(size.x, size.y)
 					.map_err(|err| match err {
 						IntegerOrSdlError::IntegerOverflows(_, _) => panic!("integer overflow"),
-						IntegerOrSdlError::SdlError(err) => SdlError(err),
+						IntegerOrSdlError::SdlError(err) => err,
 					})?;
 				self.window
 					.set_position(WindowPos::Centered, WindowPos::Centered);
@@ -328,15 +327,7 @@ impl Context {
 
 	/// Gets the gamepad with the given index if it's connected.
 	pub fn gamepad(&self, index: u32) -> Option<Gamepad> {
-		match self.controller.open(index) {
-			Ok(controller) => Some(Gamepad(controller)),
-			Err(error) => match error {
-				IntegerOrSdlError::IntegerOverflows(_, _) => {
-					panic!("integer overflow when getting controller")
-				}
-				IntegerOrSdlError::SdlError(_) => None,
-			},
-		}
+		self.gamepad.open(index).map(Gamepad).ok()
 	}
 
 	/// Returns the average duration of a frame over the past 30 frames.

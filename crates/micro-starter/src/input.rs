@@ -54,7 +54,7 @@ pub fn default_input_config() -> VirtualControllerConfig<Controls> {
 				Button::DPadDown,
 				(Axis::LeftY, AxisDirection::Positive),
 			],
-			Controls::Primary => [Scancode::X, Button::A],
+			Controls::Primary => [Scancode::X, Button::South],
 		},
 		deadzone: 1.0 / 3.0,
 		deadzone_shape: DeadzoneShape::Circle,

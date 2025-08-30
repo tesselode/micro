@@ -1,4 +1,4 @@
-use sdl2::mouse::MouseButton as Sdl2MouseButton;
+use sdl3::mouse::MouseButton as sdl3MouseButton;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -11,28 +11,28 @@ pub enum MouseButton {
 	X2,
 }
 
-impl From<Sdl2MouseButton> for MouseButton {
-	fn from(value: Sdl2MouseButton) -> Self {
+impl From<sdl3MouseButton> for MouseButton {
+	fn from(value: sdl3MouseButton) -> Self {
 		match value {
-			Sdl2MouseButton::Unknown => MouseButton::Unknown,
-			Sdl2MouseButton::Left => MouseButton::Left,
-			Sdl2MouseButton::Middle => MouseButton::Middle,
-			Sdl2MouseButton::Right => MouseButton::Right,
-			Sdl2MouseButton::X1 => MouseButton::X1,
-			Sdl2MouseButton::X2 => MouseButton::X2,
+			sdl3MouseButton::Unknown => MouseButton::Unknown,
+			sdl3MouseButton::Left => MouseButton::Left,
+			sdl3MouseButton::Middle => MouseButton::Middle,
+			sdl3MouseButton::Right => MouseButton::Right,
+			sdl3MouseButton::X1 => MouseButton::X1,
+			sdl3MouseButton::X2 => MouseButton::X2,
 		}
 	}
 }
 
-impl From<MouseButton> for Sdl2MouseButton {
+impl From<MouseButton> for sdl3MouseButton {
 	fn from(value: MouseButton) -> Self {
 		match value {
-			MouseButton::Unknown => Sdl2MouseButton::Unknown,
-			MouseButton::Left => Sdl2MouseButton::Left,
-			MouseButton::Middle => Sdl2MouseButton::Middle,
-			MouseButton::Right => Sdl2MouseButton::Right,
-			MouseButton::X1 => Sdl2MouseButton::X1,
-			MouseButton::X2 => Sdl2MouseButton::X2,
+			MouseButton::Unknown => sdl3MouseButton::Unknown,
+			MouseButton::Left => sdl3MouseButton::Left,
+			MouseButton::Middle => sdl3MouseButton::Middle,
+			MouseButton::Right => sdl3MouseButton::Right,
+			MouseButton::X1 => sdl3MouseButton::X1,
+			MouseButton::X2 => sdl3MouseButton::X2,
 		}
 	}
 }

@@ -21,7 +21,10 @@ palette = { version = "0.7.6", default-features = false, features = [
 ] }
 pollster = "0.4.0"
 rand = { version = "0.9.0", optional = true }
-sdl2 = { version = "0.38.0", features = ["raw-window-handle"] }
+sdl3 = { version = "0.14.41", features = [
+	"build-from-source",
+	"raw-window-handle",
+] }
 serde = { version = "1.0", features = ["derive"], optional = true }
 tracy-client = { version = "0.18.0", default-features = false, features = [
 	"broadcast",
@@ -42,5 +45,4 @@ wgpu = { version = "26.0.1", default-features = false, features = [
 [features]
 mint = ["glam/mint"]
 rand = ["dep:rand", "glam/rand", "palette/random"]
-sdl2_bundled = ["sdl2/bundled"]
 serializing = ["serde", "palette/serializing", "glam/serde", "wgpu/serde"]

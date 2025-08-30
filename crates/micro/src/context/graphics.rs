@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
-use sdl2::video::Window;
+use sdl3::video::Window;
 use wgpu::{
 	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,

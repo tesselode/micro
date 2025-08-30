@@ -1,12 +1,12 @@
-use sdl2::controller::Button as Sdl2Button;
+use sdl3::gamepad::Button as sdl3Button;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum Button {
-	A,
-	B,
-	X,
-	Y,
+	South,
+	East,
+	West,
+	North,
 	Back,
 	Guide,
 	Start,
@@ -18,72 +18,84 @@ pub enum Button {
 	DPadDown,
 	DPadLeft,
 	DPadRight,
-	Misc1,
-	Paddle1,
-	Paddle2,
-	Paddle3,
-	Paddle4,
+	LeftPaddle1,
+	LeftPaddle2,
+	RightPaddle1,
+	RightPaddle2,
 	Touchpad,
+	Misc1,
+	Misc2,
+	Misc3,
+	Misc4,
+	Misc5,
 }
 
-impl From<Sdl2Button> for Button {
-	fn from(value: Sdl2Button) -> Self {
+impl From<sdl3Button> for Button {
+	fn from(value: sdl3Button) -> Self {
 		match value {
-			Sdl2Button::A => Button::A,
-			Sdl2Button::B => Button::B,
-			Sdl2Button::X => Button::X,
-			Sdl2Button::Y => Button::Y,
-			Sdl2Button::Back => Button::Back,
-			Sdl2Button::Guide => Button::Guide,
-			Sdl2Button::Start => Button::Start,
-			Sdl2Button::LeftStick => Button::LeftStick,
-			Sdl2Button::RightStick => Button::RightStick,
-			Sdl2Button::LeftShoulder => Button::LeftShoulder,
-			Sdl2Button::RightShoulder => Button::RightShoulder,
-			Sdl2Button::DPadUp => Button::DPadUp,
-			Sdl2Button::DPadDown => Button::DPadDown,
-			Sdl2Button::DPadLeft => Button::DPadLeft,
-			Sdl2Button::DPadRight => Button::DPadRight,
-			Sdl2Button::Misc1 => Button::Misc1,
-			Sdl2Button::Paddle1 => Button::Paddle1,
-			Sdl2Button::Paddle2 => Button::Paddle2,
-			Sdl2Button::Paddle3 => Button::Paddle3,
-			Sdl2Button::Paddle4 => Button::Paddle4,
-			Sdl2Button::Touchpad => Button::Touchpad,
+			sdl3Button::South => Button::South,
+			sdl3Button::East => Button::East,
+			sdl3Button::West => Button::West,
+			sdl3Button::North => Button::North,
+			sdl3Button::Back => Button::Back,
+			sdl3Button::Guide => Button::Guide,
+			sdl3Button::Start => Button::Start,
+			sdl3Button::LeftStick => Button::LeftStick,
+			sdl3Button::RightStick => Button::RightStick,
+			sdl3Button::LeftShoulder => Button::LeftShoulder,
+			sdl3Button::RightShoulder => Button::RightShoulder,
+			sdl3Button::DPadUp => Button::DPadUp,
+			sdl3Button::DPadDown => Button::DPadDown,
+			sdl3Button::DPadLeft => Button::DPadLeft,
+			sdl3Button::DPadRight => Button::DPadRight,
+			sdl3Button::LeftPaddle1 => Button::LeftPaddle1,
+			sdl3Button::LeftPaddle2 => Button::LeftPaddle2,
+			sdl3Button::RightPaddle1 => Button::RightPaddle1,
+			sdl3Button::RightPaddle2 => Button::RightPaddle2,
+			sdl3Button::Touchpad => Button::Touchpad,
+			sdl3Button::Misc1 => Button::Misc1,
+			sdl3Button::Misc2 => Button::Misc2,
+			sdl3Button::Misc3 => Button::Misc3,
+			sdl3Button::Misc4 => Button::Misc4,
+			sdl3Button::Misc5 => Button::Misc5,
 		}
 	}
 }
 
-impl From<Button> for Sdl2Button {
+impl From<Button> for sdl3Button {
 	fn from(value: Button) -> Self {
 		match value {
-			Button::A => Sdl2Button::A,
-			Button::B => Sdl2Button::B,
-			Button::X => Sdl2Button::X,
-			Button::Y => Sdl2Button::Y,
-			Button::Back => Sdl2Button::Back,
-			Button::Guide => Sdl2Button::Guide,
-			Button::Start => Sdl2Button::Start,
-			Button::LeftStick => Sdl2Button::LeftStick,
-			Button::RightStick => Sdl2Button::RightStick,
-			Button::LeftShoulder => Sdl2Button::LeftShoulder,
-			Button::RightShoulder => Sdl2Button::RightShoulder,
-			Button::DPadUp => Sdl2Button::DPadUp,
-			Button::DPadDown => Sdl2Button::DPadDown,
-			Button::DPadLeft => Sdl2Button::DPadLeft,
-			Button::DPadRight => Sdl2Button::DPadRight,
-			Button::Misc1 => Sdl2Button::Misc1,
-			Button::Paddle1 => Sdl2Button::Paddle1,
-			Button::Paddle2 => Sdl2Button::Paddle2,
-			Button::Paddle3 => Sdl2Button::Paddle3,
-			Button::Paddle4 => Sdl2Button::Paddle4,
-			Button::Touchpad => Sdl2Button::Touchpad,
+			Button::South => sdl3Button::South,
+			Button::East => sdl3Button::East,
+			Button::West => sdl3Button::West,
+			Button::North => sdl3Button::North,
+			Button::Back => sdl3Button::Back,
+			Button::Guide => sdl3Button::Guide,
+			Button::Start => sdl3Button::Start,
+			Button::LeftStick => sdl3Button::LeftStick,
+			Button::RightStick => sdl3Button::RightStick,
+			Button::LeftShoulder => sdl3Button::LeftShoulder,
+			Button::RightShoulder => sdl3Button::RightShoulder,
+			Button::DPadUp => sdl3Button::DPadUp,
+			Button::DPadDown => sdl3Button::DPadDown,
+			Button::DPadLeft => sdl3Button::DPadLeft,
+			Button::DPadRight => sdl3Button::DPadRight,
+			Button::LeftPaddle1 => sdl3Button::LeftPaddle1,
+			Button::LeftPaddle2 => sdl3Button::LeftPaddle2,
+			Button::RightPaddle1 => sdl3Button::RightPaddle1,
+			Button::RightPaddle2 => sdl3Button::RightPaddle2,
+			Button::Touchpad => sdl3Button::Touchpad,
+			Button::Misc1 => sdl3Button::Misc1,
+			Button::Misc2 => sdl3Button::Misc2,
+			Button::Misc3 => sdl3Button::Misc3,
+			Button::Misc4 => sdl3Button::Misc4,
+			Button::Misc5 => sdl3Button::Misc5,
 		}
 	}
 }
 
 impl Button {
 	pub fn string(self) -> String {
-		Sdl2Button::from(self).string()
+		sdl3Button::from(self).string()
 	}
 }

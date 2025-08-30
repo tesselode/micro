@@ -10,14 +10,14 @@ pub use axis::Axis;
 pub use button::Button;
 pub use mouse_button::MouseButton;
 pub use scancode::Scancode;
-pub use sdl2::keyboard::Keycode;
-pub use sdl2::mouse::MouseWheelDirection;
+pub use sdl3::keyboard::Keycode;
+pub use sdl3::mouse::MouseWheelDirection;
 
-pub struct Gamepad(pub(crate) sdl2::controller::GameController);
+pub struct Gamepad(pub(crate) sdl3::gamepad::Gamepad);
 
 impl Gamepad {
-	pub fn is_attached(&self) -> bool {
-		self.0.attached()
+	pub fn is_connected(&self) -> bool {
+		self.0.connected()
 	}
 
 	pub fn is_button_down(&self, button: Button) -> bool {

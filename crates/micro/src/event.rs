@@ -42,30 +42,6 @@ pub enum Event {
 }
 
 impl Event {
-	pub fn transform_mouse_events(self, dpi_scaling: f32) -> Self {
-		match self {
-			Self::MouseMoved { position, delta } => Self::MouseMoved {
-				position: position * dpi_scaling,
-				delta: delta * dpi_scaling,
-			},
-			Self::MouseButtonPressed {
-				button,
-				mouse_position,
-			} => Self::MouseButtonPressed {
-				button,
-				mouse_position: mouse_position * dpi_scaling,
-			},
-			Self::MouseButtonReleased {
-				button,
-				mouse_position,
-			} => Self::MouseButtonReleased {
-				button,
-				mouse_position: mouse_position * dpi_scaling,
-			},
-			_ => self,
-		}
-	}
-
 	pub(crate) fn from_sdl3_event(sdl3_event: sdl3::event::Event) -> Option<Self> {
 		match sdl3_event {
 			sdl3::event::Event::Quit { .. } => Some(Self::Exited),

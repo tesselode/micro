@@ -10,7 +10,7 @@ use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
 use graphics::GraphicsContext;
 use palette::LinSrgb;
 use sdl3::{
-	EventPump, GamepadSubsystem, IntegerOrSdlError, Sdl, VideoSubsystem,
+	EventPump, GamepadSubsystem, IntegerOrSdlError,
 	video::{FullscreenType, Window, WindowPos},
 };
 use wgpu::{Features, PresentMode, TextureFormat};
@@ -85,8 +85,7 @@ where
 				Event::Exited => ctx.should_quit = true,
 				_ => {}
 			}
-			let dpi_scaling = ctx.window_size().y as f32 / ctx.logical_window_size().y as f32;
-			app.event(&mut ctx, event.transform_mouse_events(dpi_scaling))?;
+			app.event(&mut ctx, event)?;
 		}
 		drop(span);
 		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
@@ -138,10 +137,8 @@ impl Context {
 		UVec2::new(width, height)
 	}
 
-	/// Gets the size of the window (in points).
-	pub fn logical_window_size(&self) -> UVec2 {
-		let (width, height) = self.window.size();
-		UVec2::new(width, height)
+	pub fn window_scale(&self) -> f32 {
+		self.window.display_scale()
 	}
 
 	/// Returns the current window mode (windowed or fullscreen).
@@ -313,8 +310,7 @@ impl Context {
 	/// corner of the window).
 	pub fn mouse_position(&self) -> IVec2 {
 		let mouse_state = self.event_pump.mouse_state();
-		let dpi_scaling = self.window_size().y as f32 / self.logical_window_size().y as f32;
-		vec2(mouse_state.x() * dpi_scaling, mouse_state.y() * dpi_scaling).as_ivec2()
+		vec2(mouse_state.x(), mouse_state.y()).as_ivec2()
 	}
 
 	/// Gets the gamepad with the given index if it's connected.

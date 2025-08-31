@@ -29,7 +29,7 @@ pub fn egui_raw_input(
 		mac_cmd: ctx.is_key_down(Scancode::LGui) || ctx.is_key_down(Scancode::RGui),
 		command: ctx.is_key_down(Scancode::LGui) || ctx.is_key_down(Scancode::RGui),
 	};
-	let scaling_factor = egui_scaling_factor(ctx);
+	let scaling_factor = ctx.window_scale();
 	RawInput {
 		viewports: std::iter::once((
 			ViewportId::ROOT,
@@ -61,7 +61,7 @@ pub fn draw_egui_output(
 	textures: &mut HashMap<egui::TextureId, Texture>,
 ) {
 	patch_textures(ctx, &output, textures);
-	let scaling_factor = egui_scaling_factor(ctx);
+	let scaling_factor = ctx.window_scale();
 	for clipped_primitive in egui_ctx.tessellate(output.shapes, scaling_factor) {
 		match clipped_primitive.primitive {
 			egui::epaint::Primitive::Mesh(mesh) => {
@@ -120,7 +120,7 @@ fn sdl3_event_to_egui_event(
 	event: sdl3::event::Event,
 	modifiers: egui::Modifiers,
 ) -> Option<egui::Event> {
-	let scaling_factor = egui_scaling_factor(ctx);
+	let scaling_factor = ctx.window_scale();
 	match event {
 		sdl3::event::Event::KeyDown {
 			scancode, repeat, ..
@@ -335,20 +335,6 @@ fn egui_image_data_to_image_buffer(
 				)
 			},
 		),
-	}
-}
-
-fn egui_scaling_factor(ctx: &Context) -> f32 {
-	#[cfg(target_os = "macos")]
-	{
-		ctx.window_size().y as f32 / ctx.logical_window_size().y as f32
-	}
-	#[cfg(not(target_os = "macos"))]
-	{
-		let Ok(monitor_resolution) = ctx.monitor_resolution() else {
-			return 1.0;
-		};
-		(monitor_resolution.y as f32 / 1080.0).max(1.0)
 	}
 }
 

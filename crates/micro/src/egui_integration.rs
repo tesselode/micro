@@ -142,12 +142,12 @@ fn sdl3_event_to_egui_event(
 		}),
 		sdl3::event::Event::TextInput { text, .. } => Some(egui::Event::Text(text)),
 		sdl3::event::Event::MouseMotion { x, y, .. } => Some(egui::Event::PointerMoved(
-			egui::pos2(x as f32 / scaling_factor, y as f32 / scaling_factor),
+			egui::pos2(x / scaling_factor, y / scaling_factor),
 		)),
 		sdl3::event::Event::MouseButtonDown {
 			mouse_btn, x, y, ..
 		} => Some(egui::Event::PointerButton {
-			pos: egui::pos2(x as f32 / scaling_factor, y as f32 / scaling_factor),
+			pos: egui::pos2(x / scaling_factor, y / scaling_factor),
 			button: sdl3_mouse_button_to_egui_pointer_button(mouse_btn)?,
 			pressed: true,
 			modifiers,
@@ -155,14 +155,14 @@ fn sdl3_event_to_egui_event(
 		sdl3::event::Event::MouseButtonUp {
 			mouse_btn, x, y, ..
 		} => Some(egui::Event::PointerButton {
-			pos: egui::pos2(x as f32 / scaling_factor, y as f32 / scaling_factor),
+			pos: egui::pos2(x / scaling_factor, y / scaling_factor),
 			button: sdl3_mouse_button_to_egui_pointer_button(mouse_btn)?,
 			pressed: false,
 			modifiers,
 		}),
 		sdl3::event::Event::MouseWheel { x, y, .. } => Some(egui::Event::MouseWheel {
 			unit: egui::MouseWheelUnit::Point,
-			delta: egui::vec2(x as f32 * SCROLL_SPEED, y as f32 * SCROLL_SPEED),
+			delta: egui::vec2(x * SCROLL_SPEED, y * SCROLL_SPEED),
 			modifiers,
 		}),
 		_ => None,

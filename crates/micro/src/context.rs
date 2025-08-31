@@ -38,8 +38,6 @@ where
 	let graphics = GraphicsContext::new(&window, &settings);
 
 	let mut ctx = Context {
-		_sdl: sdl,
-		video,
 		window,
 		gamepad: controller,
 		event_pump,
@@ -121,8 +119,6 @@ where
 }
 
 pub struct Context {
-	_sdl: Sdl,
-	pub(crate) video: VideoSubsystem,
 	pub(crate) gamepad: GamepadSubsystem,
 	pub(crate) event_pump: EventPump,
 	pub(crate) egui_wants_keyboard_input: bool,
@@ -318,11 +314,7 @@ impl Context {
 	pub fn mouse_position(&self) -> IVec2 {
 		let mouse_state = self.event_pump.mouse_state();
 		let dpi_scaling = self.window_size().y as f32 / self.logical_window_size().y as f32;
-		vec2(
-			mouse_state.x() as f32 * dpi_scaling,
-			mouse_state.y() as f32 * dpi_scaling,
-		)
-		.as_ivec2()
+		vec2(mouse_state.x() * dpi_scaling, mouse_state.y() * dpi_scaling).as_ivec2()
 	}
 
 	/// Gets the gamepad with the given index if it's connected.

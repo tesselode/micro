@@ -128,8 +128,7 @@ impl Widget for Padding {
 				.sizing
 				.final_parent_size(allotted_size_from_parent, child_sizes.iter().copied())
 				+ self.total_padding(),
-			child_positions: std::iter::repeat(vec2(self.left, self.top))
-				.take(child_sizes.len())
+			child_positions: std::iter::repeat_n(vec2(self.left, self.top), child_sizes.len())
 				.collect(),
 		}
 	}

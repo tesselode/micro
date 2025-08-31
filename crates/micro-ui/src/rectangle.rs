@@ -96,9 +96,7 @@ impl Widget for Rectangle {
 			size: self
 				.sizing
 				.final_parent_size(allotted_size_from_parent, child_sizes.iter().copied()),
-			child_positions: std::iter::repeat(Vec2::ZERO)
-				.take(child_sizes.len())
-				.collect(),
+			child_positions: std::iter::repeat_n(Vec2::ZERO, child_sizes.len()).collect(),
 		}
 	}
 

@@ -101,7 +101,7 @@ impl<V: Vertex> Mesh<V> {
 			index_buffer: self.index_buffer.clone(),
 			num_indices: self.num_indices,
 			draw_params: DrawParams {
-				global_transform: self.transform,
+				global_transform: ctx.graphics.global_transform() * self.transform,
 				local_transform: self.transform,
 				color: self.color,
 			},

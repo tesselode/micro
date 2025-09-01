@@ -56,7 +56,7 @@ impl Test {
 				.with_params(
 					ctx,
 					ShaderParams {
-						translation: vec2(0.5, 0.5),
+						translation: vec2(0.0, 0.0),
 					},
 				),
 		}
@@ -76,6 +76,7 @@ impl App for Test {
 
 	fn draw(&mut self, ctx: &mut Context) {
 		self.mesh
+			.scaled_2d((50.0, 50.0))
 			.color(LinSrgba::RED)
 			.shader(&self.shader)
 			.draw(ctx);

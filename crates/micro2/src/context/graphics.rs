@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bytemuck::{Pod, Zeroable};
-use glam::{Mat4, UVec2};
+use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
@@ -30,11 +30,12 @@ pub(crate) struct GraphicsContext {
 	pub(crate) queue: Queue,
 	config: SurfaceConfiguration,
 	surface: Surface<'static>,
-	pub(crate) default_shader: Shader,
-	pub(crate) clear_color: LinSrgb,
 	mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
 	pipeline_layout: PipelineLayout,
+	pub(crate) default_shader: Shader,
+	pub(crate) clear_color: LinSrgb,
+	pub(crate) transform_stack: Vec<Mat4>,
 	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
 	main_surface_draw_commands: Vec<DrawCommand>,
 }
@@ -134,11 +135,12 @@ impl GraphicsContext {
 			queue,
 			config,
 			surface,
-			default_shader,
-			clear_color: LinSrgb::BLACK,
 			mesh_bind_group_layout,
 			shader_params_bind_group_layout,
 			pipeline_layout,
+			default_shader,
+			clear_color: LinSrgb::BLACK,
+			transform_stack: vec![],
 			render_pipelines: HashMap::new(),
 			main_surface_draw_commands: vec![],
 		}
@@ -150,7 +152,22 @@ impl GraphicsContext {
 		self.surface.configure(&self.device, &self.config);
 	}
 
-	pub fn queue_draw_command(&mut self, draw_command: DrawCommand) {
+	pub(crate) fn global_transform(&self) -> Mat4 {
+		let current_render_target_size = self.current_render_target_size();
+		let coordinate_system_transform = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+			* Mat4::from_scale(Vec3::new(
+				2.0 / current_render_target_size.x as f32,
+				-2.0 / current_render_target_size.y as f32,
+				1.0,
+			));
+		self.transform_stack
+			.iter()
+			.fold(coordinate_system_transform, |previous, transform| {
+				previous * *transform
+			})
+	}
+
+	pub(crate) fn queue_draw_command(&mut self, draw_command: DrawCommand) {
 		self.main_surface_draw_commands.push(draw_command);
 	}
 
@@ -220,6 +237,14 @@ impl GraphicsContext {
 		}
 		self.queue.submit([encoder.finish()]);
 		frame.present();
+	}
+
+	fn current_render_target_size(&self) -> UVec2 {
+		/* if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			canvas.size()
+		} else { */
+		uvec2(self.config.width, self.config.height)
+		// }
 	}
 
 	fn create_render_pipelines(&mut self) {

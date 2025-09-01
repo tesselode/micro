@@ -1,8 +1,11 @@
 pub(crate) mod graphics;
 
-use std::time::{Duration, Instant};
+use std::{
+	ops::{Deref, DerefMut},
+	time::{Duration, Instant},
+};
 
-use glam::{IVec2, UVec2, vec2};
+use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
 use palette::LinSrgb;
 use sdl3::{
 	EventPump, GamepadSubsystem, IntegerOrSdlError,
@@ -171,6 +174,71 @@ impl Context {
 		self.graphics.clear_color = color.into();
 	}
 
+	/// Creates a scope where all drawing operations have the given transform
+	/// applied.
+	///
+	/// Calls to `push_transform` can be nested.
+	pub fn push_transform(&mut self, transform: impl Into<Mat4>) -> OnDrop<'_> {
+		let transform = transform.into();
+		self.graphics.transform_stack.push(transform);
+		OnDrop {
+			ctx: self,
+			pop: Pop::Transform,
+		}
+	}
+
+	pub fn push_translation_2d(&mut self, translation: impl Into<Vec2>) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_translation(translation.into().extend(0.0)))
+	}
+
+	pub fn push_translation_3d(&mut self, translation: impl Into<Vec3>) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_translation(translation.into()))
+	}
+
+	pub fn push_translation_x(&mut self, translation: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
+	}
+
+	pub fn push_translation_y(&mut self, translation: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
+	}
+
+	pub fn push_translation_z(&mut self, translation: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
+	}
+
+	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_scale(scale.into().extend(0.0)))
+	}
+
+	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_scale(scale.into()))
+	}
+
+	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
+	}
+
+	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
+	}
+
+	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
+	}
+
+	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_rotation_x(rotation))
+	}
+
+	pub fn push_rotation_y(&mut self, rotation: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_rotation_y(rotation))
+	}
+
+	pub fn push_rotation_z(&mut self, rotation: f32) -> OnDrop<'_> {
+		self.push_transform(Mat4::from_rotation_z(rotation))
+	}
+
 	/// Returns `true` if the given keyboard key is currently held down.
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
 		self.event_pump
@@ -236,4 +304,41 @@ impl Default for ContextSettings {
 			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
 		}
 	}
+}
+
+#[must_use]
+pub struct OnDrop<'a> {
+	ctx: &'a mut Context,
+	pop: Pop,
+}
+
+impl Drop for OnDrop<'_> {
+	fn drop(&mut self) {
+		match self.pop {
+			Pop::Transform => {
+				self.ctx.graphics.transform_stack.pop();
+			} /* Pop::StencilReference => {
+				  self.ctx.graphics.stencil_reference_stack.pop();
+			  } */
+		}
+	}
+}
+
+impl Deref for OnDrop<'_> {
+	type Target = Context;
+
+	fn deref(&self) -> &Self::Target {
+		self.ctx
+	}
+}
+
+impl DerefMut for OnDrop<'_> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		self.ctx
+	}
+}
+
+enum Pop {
+	Transform,
+	// StencilReference,
 }

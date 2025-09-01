@@ -44,12 +44,21 @@ fn main() {
 
 struct Test {
 	mesh: Mesh,
+	shader: Shader,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Self {
 		Self {
 			mesh: Mesh::new(ctx, VERTICES, INDICES),
+			shader: Shader::from_file(ctx, "test shader", "crates/micro2/examples/shader.glsl")
+				.unwrap()
+				.with_params(
+					ctx,
+					ShaderParams {
+						translation: vec2(0.5, 0.5),
+					},
+				),
 		}
 	}
 }
@@ -68,7 +77,7 @@ impl App for Test {
 	fn draw(&mut self, ctx: &mut Context) {
 		self.mesh
 			.color(LinSrgba::RED)
-			.translated_2d((1.0, 1.0))
+			.shader(&self.shader)
 			.draw(ctx);
 	}
 }

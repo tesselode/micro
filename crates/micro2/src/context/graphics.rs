@@ -5,13 +5,13 @@ use glam::{Mat4, UVec2};
 use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
-	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingType, BlendState, Buffer, BufferBindingType, BufferUsages,
 	ColorTargetState, ColorWrites, CompositeAlphaMode, Device, DeviceDescriptor, FragmentState,
 	IndexFormat, Instance, LoadOp, MultisampleState, Operations, PipelineCompilationOptions,
 	PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PrimitiveState, Queue,
 	RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-	RequestAdapterOptions, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
+	RequestAdapterOptions, ShaderModule, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
 	SurfaceTargetUnsafe, TextureUsages, TextureViewDescriptor, VertexBufferLayout, VertexState,
 	VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
@@ -33,6 +33,7 @@ pub(crate) struct GraphicsContext {
 	pub(crate) default_shader: Shader,
 	pub(crate) clear_color: LinSrgb,
 	mesh_bind_group_layout: BindGroupLayout,
+	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
 	pipeline_layout: PipelineLayout,
 	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
 	main_surface_draw_commands: Vec<DrawCommand>,
@@ -110,8 +111,22 @@ impl GraphicsContext {
 				}, */
 			],
 		});
+		let shader_params_bind_group_layout =
+			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+				label: Some("Shader Params Bind Group Layout"),
+				entries: &[BindGroupLayoutEntry {
+					binding: 0,
+					visibility: ShaderStages::VERTEX_FRAGMENT,
+					ty: BindingType::Buffer {
+						ty: BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+			});
 		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-			bind_group_layouts: &[&mesh_bind_group_layout],
+			bind_group_layouts: &[&mesh_bind_group_layout, &shader_params_bind_group_layout],
 			..Default::default()
 		});
 		Self {
@@ -122,6 +137,7 @@ impl GraphicsContext {
 			default_shader,
 			clear_color: LinSrgb::BLACK,
 			mesh_bind_group_layout,
+			shader_params_bind_group_layout,
 			pipeline_layout,
 			render_pipelines: HashMap::new(),
 			main_surface_draw_commands: vec![],
@@ -167,6 +183,7 @@ impl GraphicsContext {
 				index_buffer,
 				num_indices,
 				draw_params,
+				shader_params_bind_group,
 				render_pipeline_settings,
 			} in self.main_surface_draw_commands.drain(..)
 			{
@@ -195,6 +212,7 @@ impl GraphicsContext {
 				});
 				render_pass.set_pipeline(&self.render_pipelines[&render_pipeline_settings]);
 				render_pass.set_bind_group(0, &mesh_bind_group, &[]);
+				render_pass.set_bind_group(1, shader_params_bind_group.as_ref(), &[]);
 				render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 				render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 				render_pass.draw_indexed(0..num_indices, 0, 0..1);
@@ -230,6 +248,7 @@ pub(crate) struct DrawCommand {
 	pub(crate) index_buffer: Buffer,
 	pub(crate) num_indices: u32,
 	pub(crate) draw_params: DrawParams,
+	pub(crate) shader_params_bind_group: Option<BindGroup>,
 	pub(crate) render_pipeline_settings: RenderPipelineSettings,
 }
 
@@ -243,7 +262,8 @@ pub(crate) struct DrawParams {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct RenderPipelineSettings {
-	pub(crate) shader: Shader,
+	pub(crate) vertex_shader: ShaderModule,
+	pub(crate) fragment_shader: ShaderModule,
 }
 
 fn create_render_pipeline(
@@ -256,7 +276,7 @@ fn create_render_pipeline(
 		label: None,
 		layout: Some(pipeline_layout),
 		vertex: VertexState {
-			module: &settings.shader.vertex,
+			module: &settings.vertex_shader,
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			buffers: &[VertexBufferLayout {
@@ -269,7 +289,7 @@ fn create_render_pipeline(
 		depth_stencil: None,
 		multisample: MultisampleState::default(),
 		fragment: Some(FragmentState {
-			module: &settings.shader.fragment,
+			module: &settings.fragment_shader,
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			targets: &[Some(ColorTargetState {

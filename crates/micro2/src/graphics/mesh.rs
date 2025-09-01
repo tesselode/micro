@@ -95,6 +95,7 @@ impl<V: Vertex> Mesh<V> {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
+		let shader = self.shader.as_ref().unwrap_or(&ctx.graphics.default_shader);
 		ctx.graphics.queue_draw_command(DrawCommand {
 			vertex_buffer: self.vertex_buffer.clone(),
 			index_buffer: self.index_buffer.clone(),
@@ -104,11 +105,10 @@ impl<V: Vertex> Mesh<V> {
 				local_transform: self.transform,
 				color: self.color,
 			},
+			shader_params_bind_group: shader.params_bind_group.clone(),
 			render_pipeline_settings: RenderPipelineSettings {
-				shader: self
-					.shader
-					.clone()
-					.unwrap_or(ctx.graphics.default_shader.clone()),
+				vertex_shader: shader.vertex.clone(),
+				fragment_shader: shader.fragment.clone(),
 			},
 		});
 	}

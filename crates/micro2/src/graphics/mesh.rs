@@ -4,7 +4,7 @@ pub use builder::*;
 
 use std::marker::PhantomData;
 
-use glam::Vec2;
+use glam::{Mat4, Vec2};
 use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 use wgpu::{
@@ -15,9 +15,10 @@ use wgpu::{
 use crate::{
 	Context,
 	color::ColorConstants,
-	context::graphics::{DrawCommand, RenderPipelineSettings},
+	context::graphics::{DrawCommand, DrawParams, RenderPipelineSettings},
 	graphics::Shader,
 	math::{Circle, Rect},
+	standard_draw_param_methods,
 };
 
 use super::{Vertex, Vertex2d};
@@ -30,9 +31,9 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	_phantom_data: PhantomData<V>,
 	// draw params
 	pub shader: Option<Shader>,
-	/* pub texture: Option<Texture>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	/* pub texture: Option<Texture>,
 	pub scissor_rect: Option<URect>,
 	pub range: Option<(u32, u32)>, */
 }
@@ -62,20 +63,15 @@ impl<V: Vertex> Mesh<V> {
 			num_indices,
 			_phantom_data: PhantomData,
 			shader: None,
-			/* texture: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			/* texture: None,
 			scissor_rect: None,
 			range: None, */
 		}
 	}
 
-	pub fn shader<'a>(&self, shader: impl Into<Option<&'a Shader>>) -> Self {
-		Self {
-			shader: shader.into().cloned(),
-			..self.clone()
-		}
-	}
+	standard_draw_param_methods!();
 
 	/* pub fn texture<'a>(&self, texture: impl Into<Option<&'a Texture>>) -> Self {
 		Self {
@@ -83,8 +79,6 @@ impl<V: Vertex> Mesh<V> {
 			..self.clone()
 		}
 	}
-
-	standard_draw_param_methods!();
 
 	pub fn range(&self, range: impl IntoRange) -> Self {
 		let mut new = self.clone();
@@ -105,6 +99,11 @@ impl<V: Vertex> Mesh<V> {
 			vertex_buffer: self.vertex_buffer.clone(),
 			index_buffer: self.index_buffer.clone(),
 			num_indices: self.num_indices,
+			draw_params: DrawParams {
+				global_transform: self.transform,
+				local_transform: self.transform,
+				color: self.color,
+			},
 			render_pipeline_settings: RenderPipelineSettings {
 				shader: self
 					.shader

@@ -2,6 +2,7 @@ use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, vec2};
 use micro2::{
 	App, Context, ContextSettings, Event,
+	color::ColorConstants,
 	graphics::{Shader, Vertex2d, mesh::Mesh},
 	input::Scancode,
 };
@@ -43,14 +44,12 @@ fn main() {
 
 struct Test {
 	mesh: Mesh,
-	shader: Shader,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Self {
 		Self {
 			mesh: Mesh::new(ctx, VERTICES, INDICES),
-			shader: Shader::from_file(ctx, "test", "crates/micro2/examples/shader.glsl").unwrap(),
 		}
 	}
 }
@@ -67,8 +66,10 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) {
-		self.mesh.draw(ctx);
-		self.mesh.shader(&self.shader).draw(ctx);
+		self.mesh
+			.color(LinSrgba::RED)
+			.translated_2d((1.0, 1.0))
+			.draw(ctx);
 	}
 }
 

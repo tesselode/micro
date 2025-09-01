@@ -1,4 +1,5 @@
-use micro2::{App, Context, ContextSettings, Event, input::Scancode};
+use micro2::{App, Context, ContextSettings, Event, color::ColorConstants, input::Scancode};
+use palette::LinSrgb;
 
 fn main() {
 	micro2::run(ContextSettings::default(), |_| Test);
@@ -14,6 +15,14 @@ impl App for Test {
 		} = event
 		{
 			ctx.quit();
+		}
+
+		if let Event::KeyPressed {
+			key: Scancode::Return,
+			..
+		} = event
+		{
+			ctx.set_clear_color(LinSrgb::BLUE);
 		}
 	}
 }

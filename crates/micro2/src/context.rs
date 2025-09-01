@@ -1,13 +1,18 @@
+pub(crate) mod graphics;
+
 use std::time::{Duration, Instant};
 
 use glam::{IVec2, UVec2, vec2};
+use palette::LinSrgb;
 use sdl3::{
 	EventPump, GamepadSubsystem, IntegerOrSdlError,
 	video::{FullscreenType, Window, WindowPos},
 };
+use wgpu::{Features, PresentMode};
 
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
+	context::graphics::GraphicsContext,
 	input::{Gamepad, MouseButton, Scancode},
 };
 
@@ -23,7 +28,7 @@ where
 		.expect("error initializing controller subsystem");
 	let window = build_window(&video, &settings);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
-	// let graphics = GraphicsContext::new(&window, &settings);
+	let graphics = GraphicsContext::new(&window, &settings);
 
 	let mut ctx = Context {
 		window,
@@ -32,7 +37,7 @@ where
 		// egui_wants_keyboard_input: false,
 		// egui_wants_mouse_input: false,
 		frame_time_tracker: FrameTimeTracker::new(),
-		// graphics,
+		graphics,
 		should_quit: false,
 	};
 	// let egui_ctx = egui::Context::default();
@@ -69,7 +74,7 @@ where
 			.filter_map(Event::from_sdl3_event)
 		{
 			match event {
-				// Event::WindowSizeChanged(size) => ctx.graphics.resize(size),
+				Event::WindowSizeChanged(size) => ctx.graphics.resize(size),
 				Event::Exited => ctx.should_quit = true,
 				_ => {}
 			}
@@ -92,10 +97,9 @@ where
 		/* let span = tracy_client::span!("draw egui UI");
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		drop(span); */
-		// ctx.graphics.present();
+		ctx.graphics.present();
 
 		tracy_client::frame_mark();
-		// ctx.graphics.record_queries();
 
 		if ctx.should_quit {
 			break;
@@ -106,6 +110,9 @@ where
 pub struct Context {
 	pub(crate) gamepad: GamepadSubsystem,
 	pub(crate) event_pump: EventPump,
+	// `graphics` needs to be before `window`, since it holds
+	// a `Surface` that must be dropped before the `Window`
+	pub(crate) graphics: GraphicsContext,
 	pub(crate) window: Window,
 	pub(crate) frame_time_tracker: FrameTimeTracker,
 	pub(crate) should_quit: bool,
@@ -160,6 +167,10 @@ impl Context {
 		Ok(())
 	}
 
+	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
+		self.graphics.clear_color = color.into();
+	}
+
 	/// Returns `true` if the given keyboard key is currently held down.
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
 		self.event_pump
@@ -209,9 +220,9 @@ pub struct ContextSettings {
 	pub window_title: String,
 	pub window_mode: WindowMode,
 	pub resizable: bool,
-	// pub present_mode: PresentMode,
+	pub present_mode: PresentMode,
 	pub max_queued_frames: u32,
-	// pub required_graphics_features: Features,
+	pub required_graphics_features: Features,
 }
 
 impl Default for ContextSettings {
@@ -220,9 +231,9 @@ impl Default for ContextSettings {
 			window_title: "Game".into(),
 			window_mode: WindowMode::default(),
 			resizable: false,
-			// present_mode: PresentMode::AutoVsync,
+			present_mode: PresentMode::AutoVsync,
 			max_queued_frames: 1,
-			// required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
 		}
 	}
 }

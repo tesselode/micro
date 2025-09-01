@@ -5,6 +5,7 @@ use micro2::{
 	color::ColorConstants,
 	graphics::{Shader, Vertex2d, mesh::Mesh},
 	input::Scancode,
+	math::URect,
 };
 use palette::LinSrgba;
 
@@ -76,7 +77,9 @@ impl App for Test {
 
 	fn draw(&mut self, ctx: &mut Context) {
 		self.mesh
+			.translated_2d((0.5, 0.5))
 			.scaled_2d((50.0, 50.0))
+			.range(0..5)
 			.color(LinSrgba::RED)
 			.shader(&self.shader)
 			.draw(ctx);

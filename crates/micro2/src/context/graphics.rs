@@ -21,6 +21,7 @@ use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color},
 	graphics::{HasVertexAttributes, Shader, Vertex2d},
+	math::URect,
 };
 
 const DEFAULT_SHADER_SOURCE: &str = include_str!("shader.glsl");
@@ -173,6 +174,7 @@ impl GraphicsContext {
 
 	pub(crate) fn present(&mut self) {
 		self.create_render_pipelines();
+		let default_scissor_rect = self.default_scissor_rect();
 		let mut encoder = self.device.create_command_encoder(&Default::default());
 		let frame = self
 			.surface
@@ -198,8 +200,9 @@ impl GraphicsContext {
 			for DrawCommand {
 				vertex_buffer,
 				index_buffer,
-				num_indices,
+				range,
 				draw_params,
+				scissor_rect,
 				shader_params_bind_group,
 				render_pipeline_settings,
 			} in self.main_surface_draw_commands.drain(..)
@@ -232,7 +235,14 @@ impl GraphicsContext {
 				render_pass.set_bind_group(1, shader_params_bind_group.as_ref(), &[]);
 				render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 				render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
-				render_pass.draw_indexed(0..num_indices, 0, 0..1);
+				let scissor_rect = scissor_rect.unwrap_or(default_scissor_rect);
+				render_pass.set_scissor_rect(
+					scissor_rect.left(),
+					scissor_rect.top(),
+					scissor_rect.size.x,
+					scissor_rect.size.y,
+				);
+				render_pass.draw_indexed(range.0..range.1, 0, 0..1);
 			}
 		}
 		self.queue.submit([encoder.finish()]);
@@ -245,6 +255,16 @@ impl GraphicsContext {
 		} else { */
 		uvec2(self.config.width, self.config.height)
 		// }
+	}
+
+	fn default_scissor_rect(&self) -> URect {
+		let size = /* if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			canvas.size()
+		} else { */
+			uvec2(self.config.width, self.config.height)
+		// }
+		;
+		URect::new(UVec2::ZERO, size)
 	}
 
 	fn create_render_pipelines(&mut self) {
@@ -271,8 +291,9 @@ impl GraphicsContext {
 pub(crate) struct DrawCommand {
 	pub(crate) vertex_buffer: Buffer,
 	pub(crate) index_buffer: Buffer,
-	pub(crate) num_indices: u32,
+	pub(crate) range: (u32, u32),
 	pub(crate) draw_params: DrawParams,
+	pub(crate) scissor_rect: Option<URect>,
 	pub(crate) shader_params_bind_group: Option<BindGroup>,
 	pub(crate) render_pipeline_settings: RenderPipelineSettings,
 }

@@ -1,7 +1,9 @@
+mod into_range;
 pub mod mesh;
 mod shader;
 mod vertex;
 
+pub use into_range::*;
 pub use shader::*;
 pub use vertex::*;
 pub use wgpu::{Features, PresentMode, TextureFormat};
@@ -84,10 +86,10 @@ macro_rules! standard_draw_param_methods {
 			}
 		}
 
-		/* pub fn scissor_rect(&self, scissor_rect: impl Into<Option<$crate::math::URect>>) -> Self {
+		pub fn scissor_rect(&self, scissor_rect: impl Into<Option<$crate::math::URect>>) -> Self {
 			let mut new = self.clone();
 			new.scissor_rect = scissor_rect.into();
 			new
-		} */
+		}
 	};
 }

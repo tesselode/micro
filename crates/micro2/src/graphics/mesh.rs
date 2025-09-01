@@ -16,8 +16,8 @@ use crate::{
 	Context,
 	color::ColorConstants,
 	context::graphics::{DrawCommand, DrawParams, RenderPipelineSettings},
-	graphics::Shader,
-	math::{Circle, Rect},
+	graphics::{IntoRange, Shader},
+	math::{Circle, Rect, URect},
 	standard_draw_param_methods,
 };
 
@@ -30,12 +30,12 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub(crate) num_indices: u32,
 	_phantom_data: PhantomData<V>,
 	// draw params
-	pub shader: Option<Shader>,
+	// pub texture: Option<Texture>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	/* pub texture: Option<Texture>,
+	pub shader: Option<Shader>,
 	pub scissor_rect: Option<URect>,
-	pub range: Option<(u32, u32)>, */
+	pub range: Option<(u32, u32)>,
 }
 
 impl<V: Vertex> Mesh<V> {
@@ -62,12 +62,12 @@ impl<V: Vertex> Mesh<V> {
 			index_buffer,
 			num_indices,
 			_phantom_data: PhantomData,
-			shader: None,
+			// texture: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			/* texture: None,
+			shader: None,
 			scissor_rect: None,
-			range: None, */
+			range: None,
 		}
 	}
 
@@ -78,13 +78,13 @@ impl<V: Vertex> Mesh<V> {
 			texture: texture.into().cloned(),
 			..self.clone()
 		}
-	}
+	} */
 
 	pub fn range(&self, range: impl IntoRange) -> Self {
 		let mut new = self.clone();
 		new.range = range.into_range(self.num_indices);
 		new
-	} */
+	}
 
 	pub fn set_vertices(&self, ctx: &Context, index: usize, vertices: &[V]) {
 		ctx.graphics.queue.write_buffer(
@@ -99,12 +99,13 @@ impl<V: Vertex> Mesh<V> {
 		ctx.graphics.queue_draw_command(DrawCommand {
 			vertex_buffer: self.vertex_buffer.clone(),
 			index_buffer: self.index_buffer.clone(),
-			num_indices: self.num_indices,
+			range: self.range.unwrap_or((0, self.num_indices)),
 			draw_params: DrawParams {
 				global_transform: ctx.graphics.global_transform() * self.transform,
 				local_transform: self.transform,
 				color: self.color,
 			},
+			scissor_rect: self.scissor_rect,
 			shader_params_bind_group: shader.params_bind_group.clone(),
 			render_pipeline_settings: RenderPipelineSettings {
 				vertex_shader: shader.vertex.clone(),

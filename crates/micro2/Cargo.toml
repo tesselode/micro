@@ -36,10 +36,9 @@ tracy-client = { version = "0.18.0", default-features = false, features = [
 ] }
 wgpu = { version = "26.0.1", default-features = false, features = [
     "dx12",
-    "gles",
     "metal",
     "vulkan",
-    "wgsl",
+    "glsl",
 ] }
 
 [features]

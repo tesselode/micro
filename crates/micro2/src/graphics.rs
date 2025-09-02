@@ -2,6 +2,8 @@ mod blend_mode;
 mod into_range;
 pub mod mesh;
 mod shader;
+pub mod sprite_batch;
+pub mod text;
 pub mod texture;
 mod vertex;
 

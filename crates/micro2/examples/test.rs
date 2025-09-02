@@ -1,24 +1,39 @@
+use glam::{uvec2, vec2};
 use micro2::{
 	App, Context, ContextSettings, Event,
+	color::ColorConstants,
 	graphics::{
-		StencilState,
+		Canvas, CanvasSettings, RenderToCanvasSettings, StencilState,
 		mesh::{Mesh, ShapeStyle},
 		text::{Font, FontSettings, LayoutSettings, Text},
 	},
 	input::Scancode,
 	math::{Circle, Rect},
 };
-use wgpu::{CompareFunction, StencilOperation};
+use palette::LinSrgba;
+use wgpu::{CompareFunction, StencilOperation, TextureFormat};
 
 fn main() {
 	micro2::run(ContextSettings::default(), Test::new);
 }
 
-struct Test {}
+struct Test {
+	canvas: Canvas,
+}
 
 impl Test {
-	fn new(_ctx: &mut Context) -> Self {
-		Self {}
+	fn new(ctx: &mut Context) -> Self {
+		Self {
+			canvas: Canvas::new(
+				ctx,
+				uvec2(100, 100),
+				CanvasSettings {
+					sample_count: 8,
+					format: TextureFormat::Rgba16Float,
+					..Default::default()
+				},
+			),
+		}
 	}
 }
 
@@ -35,22 +50,25 @@ impl App for Test {
 
 	fn draw(&mut self, ctx: &mut Context) {
 		{
-			let ctx =
-				&mut ctx.push_stencil_state(StencilState::write(StencilOperation::Replace, 1));
+			let ctx = &mut self.canvas.render_to(
+				ctx,
+				RenderToCanvasSettings {
+					clear_color: Some(LinSrgba::BLUE),
+					..Default::default()
+				},
+			);
 			Mesh::circle(
 				ctx,
 				ShapeStyle::Fill,
 				Circle {
-					center: ctx.window_size().as_vec2() / 2.0,
-					radius: 100.0,
+					center: vec2(50.0, 50.0),
+					radius: 50.0,
 				},
 			)
 			.unwrap()
 			.draw(ctx);
 		}
-		{
-			let ctx = &mut ctx.push_stencil_state(StencilState::read(CompareFunction::Equal, 1));
-			Mesh::rectangle(ctx, Rect::new((0.0, 0.0), ctx.window_size().as_vec2())).draw(ctx);
-		}
+		self.canvas.draw(ctx);
+		self.canvas.translated_2d((75.0, 75.0)).draw(ctx);
 	}
 }

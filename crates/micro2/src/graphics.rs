@@ -1,4 +1,5 @@
 mod blend_mode;
+mod canvas;
 mod into_range;
 pub mod mesh;
 mod shader;
@@ -9,6 +10,7 @@ pub mod texture;
 mod vertex;
 
 pub use blend_mode::*;
+pub use canvas::*;
 pub use into_range::*;
 pub use shader::*;
 pub use stencil::*;

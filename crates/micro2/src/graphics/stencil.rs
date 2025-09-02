@@ -65,10 +65,10 @@ impl Default for StencilState {
 		Self {
 			enable_color_writes: true,
 			reference: 0,
-			compare: CompareFunction::Never,
-			on_fail: StencilOperation::Keep,
-			on_depth_fail: StencilOperation::Keep,
-			on_pass: StencilOperation::Keep,
+			compare: CompareFunction::Always,
+			on_fail: StencilOperation::Replace,
+			on_depth_fail: StencilOperation::Replace,
+			on_pass: StencilOperation::Replace,
 			read_mask: 255,
 			write_mask: 255,
 		}

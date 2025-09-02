@@ -21,9 +21,10 @@ use wgpu::{
 
 use crate::{
 	ContextSettings,
-	color::{ColorConstants, lin_srgb_to_wgpu_color},
+	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
-		BlendMode, HasVertexAttributes, Shader, StencilState, Vertex2d,
+		BlendMode, Canvas, CanvasKind, HasVertexAttributes, RenderToCanvasSettings, Shader,
+		StencilState, Vertex2d,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -47,6 +48,8 @@ pub(crate) struct GraphicsContext {
 	pub(crate) stencil_state_stack: Vec<StencilState>,
 	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
 	main_surface_draw_commands: Vec<DrawCommand>,
+	current_canvas_render_pass: Option<CanvasRenderPass>,
+	finished_canvas_render_passes: Vec<CanvasRenderPass>,
 }
 
 impl GraphicsContext {
@@ -179,6 +182,8 @@ impl GraphicsContext {
 			stencil_state_stack: vec![],
 			render_pipelines: HashMap::new(),
 			main_surface_draw_commands: vec![],
+			current_canvas_render_pass: None,
+			finished_canvas_render_passes: vec![],
 		}
 	}
 
@@ -214,10 +219,45 @@ impl GraphicsContext {
 			})
 	}
 
+	pub(crate) fn start_canvas_render_pass(
+		&mut self,
+		canvas: Canvas,
+		settings: RenderToCanvasSettings,
+	) {
+		if self.current_canvas_render_pass.is_some() {
+			panic!("cannot nest render_to calls");
+		}
+		self.current_canvas_render_pass = Some(CanvasRenderPass {
+			canvas,
+			settings,
+			draw_commands: vec![],
+		});
+	}
+
+	pub(crate) fn finish_canvas_render_pass(&mut self) {
+		let canvas_render_pass = self
+			.current_canvas_render_pass
+			.take()
+			.expect("no current canvas render pass");
+		self.finished_canvas_render_passes.push(canvas_render_pass);
+	}
+
 	pub(crate) fn queue_draw_command(&mut self, settings: QueueDrawCommandSettings) {
 		let shader = settings.shader.unwrap_or(self.default_shader.clone());
 		let stencil_state = self.stencil_state_stack.last().copied().unwrap_or_default();
-		self.main_surface_draw_commands.push(DrawCommand {
+		let sample_count =
+			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+				canvas.sample_count()
+			} else {
+				1
+			};
+		let format = if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass
+		{
+			canvas.format()
+		} else {
+			self.config.format
+		};
+		let draw_command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
 			range: settings.range,
@@ -227,7 +267,9 @@ impl GraphicsContext {
 				local_transform: settings.transform,
 				color: settings.color,
 			},
-			scissor_rect: settings.scissor_rect,
+			scissor_rect: settings
+				.scissor_rect
+				.unwrap_or_else(|| self.default_scissor_rect()),
 			shader_params_bind_group: shader.params_bind_group,
 			stencil_reference: stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
@@ -236,21 +278,90 @@ impl GraphicsContext {
 				blend_mode: settings.blend_mode,
 				enable_color_writes: stencil_state.enable_color_writes,
 				wgpu_stencil_state: stencil_state.as_wgpu_stencil_state(),
+				sample_count,
+				format,
 			},
-		});
+		};
+		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
+			draw_commands.push(draw_command);
+		} else {
+			self.main_surface_draw_commands.push(draw_command);
+		}
 	}
 
 	pub(crate) fn present(&mut self) {
 		self.create_render_pipelines();
-		let default_scissor_rect = self.default_scissor_rect();
+
 		let mut encoder = self.device.create_command_encoder(&Default::default());
+
+		// run canvas render passes
+		for CanvasRenderPass {
+			canvas,
+			settings,
+			mut draw_commands,
+		} in self.finished_canvas_render_passes.drain(..)
+		{
+			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+				label: Some(&settings.render_pass_label),
+				color_attachments: &[Some(RenderPassColorAttachment {
+					view: match &canvas.kind {
+						CanvasKind::Normal { texture }
+						| CanvasKind::Multisampled { texture, .. } => &texture.view,
+					},
+					resolve_target: match &canvas.kind {
+						CanvasKind::Normal { .. } => None,
+						CanvasKind::Multisampled {
+							resolve_texture, ..
+						} => Some(&resolve_texture.view),
+					},
+					ops: Operations {
+						load: match settings.clear_color {
+							Some(clear_color) => {
+								LoadOp::Clear(lin_srgba_to_wgpu_color(clear_color))
+							}
+							None => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					},
+					depth_slice: None,
+				})],
+				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+					view: &canvas.depth_stencil_texture.view,
+					depth_ops: Some(Operations {
+						load: match settings.clear_depth_buffer {
+							true => LoadOp::Clear(1.0),
+							false => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					}),
+					stencil_ops: Some(Operations {
+						load: match settings.clear_stencil_value {
+							true => LoadOp::Clear(0),
+							false => LoadOp::Load,
+						},
+						store: StoreOp::Store,
+					}),
+				}),
+				timestamp_writes: None,
+				occlusion_query_set: None,
+			});
+			run_draw_commands(
+				&self.device,
+				&self.mesh_bind_group_layout,
+				&self.render_pipelines,
+				&mut draw_commands,
+				render_pass,
+			);
+		}
+
+		// run main surface render pass
 		let frame = self
 			.surface
 			.get_current_texture()
 			.expect("error getting surface texture");
 		let output = frame.texture.create_view(&TextureViewDescriptor::default());
 		{
-			let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
 				label: Some("Main Surface Render Pass"),
 				color_attachments: &[Some(RenderPassColorAttachment {
 					view: &output,
@@ -275,76 +386,33 @@ impl GraphicsContext {
 				timestamp_writes: None,
 				occlusion_query_set: None,
 			});
-			for DrawCommand {
-				vertex_buffer,
-				index_buffer,
-				range,
-				texture,
-				draw_params,
-				scissor_rect,
-				shader_params_bind_group,
-				stencil_reference,
-				render_pipeline_settings,
-			} in self.main_surface_draw_commands.drain(..)
-			{
-				let draw_params_buffer = self.device.create_buffer_init(&BufferInitDescriptor {
-					label: Some("Draw Params Buffer"),
-					contents: bytemuck::cast_slice(&[draw_params]),
-					usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-				});
-				let mesh_bind_group = self.device.create_bind_group(&BindGroupDescriptor {
-					label: Some("Draw Params Bind Group"),
-					layout: &self.mesh_bind_group_layout,
-					entries: &[
-						BindGroupEntry {
-							binding: 0,
-							resource: draw_params_buffer.as_entire_binding(),
-						},
-						BindGroupEntry {
-							binding: 1,
-							resource: BindingResource::TextureView(&texture.view),
-						},
-						BindGroupEntry {
-							binding: 2,
-							resource: BindingResource::Sampler(&texture.sampler),
-						},
-					],
-				});
-				render_pass.set_pipeline(&self.render_pipelines[&render_pipeline_settings]);
-				render_pass.set_bind_group(0, &mesh_bind_group, &[]);
-				render_pass.set_bind_group(1, &shader_params_bind_group, &[]);
-				render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-				render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
-				let scissor_rect = scissor_rect.unwrap_or(default_scissor_rect);
-				render_pass.set_scissor_rect(
-					scissor_rect.left(),
-					scissor_rect.top(),
-					scissor_rect.size.x,
-					scissor_rect.size.y,
-				);
-				render_pass.set_stencil_reference(stencil_reference as u32);
-				render_pass.draw_indexed(range.0..range.1, 0, 0..1);
-			}
+			run_draw_commands(
+				&self.device,
+				&self.mesh_bind_group_layout,
+				&self.render_pipelines,
+				&mut self.main_surface_draw_commands,
+				render_pass,
+			);
 		}
+
 		self.queue.submit([encoder.finish()]);
 		frame.present();
 	}
 
 	fn current_render_target_size(&self) -> UVec2 {
-		/* if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
 			canvas.size()
-		} else { */
-		uvec2(self.config.width, self.config.height)
-		// }
+		} else {
+			uvec2(self.config.width, self.config.height)
+		}
 	}
 
 	fn default_scissor_rect(&self) -> URect {
-		let size = /* if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+		let size = if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
 			canvas.size()
-		} else { */
+		} else {
 			uvec2(self.config.width, self.config.height)
-		// }
-		;
+		};
 		URect::new(UVec2::ZERO, size)
 	}
 
@@ -359,11 +427,27 @@ impl GraphicsContext {
 				.or_insert_with(|| {
 					create_render_pipeline(
 						&self.device,
-						&self.config,
 						render_pipeline_settings,
 						&self.pipeline_layout,
 					)
 				});
+		}
+		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
+			for DrawCommand {
+				render_pipeline_settings,
+				..
+			} in draw_commands
+			{
+				self.render_pipelines
+					.entry(render_pipeline_settings.clone())
+					.or_insert_with(|| {
+						create_render_pipeline(
+							&self.device,
+							render_pipeline_settings,
+							&self.pipeline_layout,
+						)
+					});
+			}
 		}
 	}
 }
@@ -387,7 +471,7 @@ struct DrawCommand {
 	range: (u32, u32),
 	texture: Texture,
 	draw_params: DrawParams,
-	scissor_rect: Option<URect>,
+	scissor_rect: URect,
 	shader_params_bind_group: BindGroup,
 	stencil_reference: u8,
 	render_pipeline_settings: RenderPipelineSettings,
@@ -408,11 +492,18 @@ struct RenderPipelineSettings {
 	blend_mode: BlendMode,
 	enable_color_writes: bool,
 	wgpu_stencil_state: wgpu::StencilState,
+	format: TextureFormat,
+	sample_count: u32,
+}
+
+struct CanvasRenderPass {
+	canvas: Canvas,
+	settings: RenderToCanvasSettings,
+	draw_commands: Vec<DrawCommand>,
 }
 
 fn create_render_pipeline(
 	device: &Device,
-	config: &SurfaceConfiguration,
 	settings: &RenderPipelineSettings,
 	pipeline_layout: &PipelineLayout,
 ) -> RenderPipeline {
@@ -443,13 +534,16 @@ fn create_render_pipeline(
 			stencil: settings.wgpu_stencil_state.clone(),
 			bias: DepthBiasState::default(),
 		}),
-		multisample: MultisampleState::default(),
+		multisample: MultisampleState {
+			count: settings.sample_count,
+			..Default::default()
+		},
 		fragment: Some(FragmentState {
 			module: &settings.fragment_shader,
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			targets: &[Some(ColorTargetState {
-				format: config.format,
+				format: settings.format,
 				blend: Some(settings.blend_mode.to_blend_state()),
 				write_mask: if settings.enable_color_writes {
 					ColorWrites::ALL
@@ -461,4 +555,62 @@ fn create_render_pipeline(
 		multiview: None,
 		cache: None,
 	})
+}
+
+fn run_draw_commands(
+	device: &Device,
+	mesh_bind_group_layout: &BindGroupLayout,
+	render_pipelines: &HashMap<RenderPipelineSettings, RenderPipeline>,
+	draw_commands: &mut Vec<DrawCommand>,
+	mut render_pass: wgpu::RenderPass<'_>,
+) {
+	for DrawCommand {
+		vertex_buffer,
+		index_buffer,
+		range,
+		texture,
+		draw_params,
+		scissor_rect,
+		shader_params_bind_group,
+		stencil_reference,
+		render_pipeline_settings,
+	} in draw_commands.drain(..)
+	{
+		let draw_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
+			label: Some("Draw Params Buffer"),
+			contents: bytemuck::cast_slice(&[draw_params]),
+			usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+		let mesh_bind_group = device.create_bind_group(&BindGroupDescriptor {
+			label: Some("Draw Params Bind Group"),
+			layout: mesh_bind_group_layout,
+			entries: &[
+				BindGroupEntry {
+					binding: 0,
+					resource: draw_params_buffer.as_entire_binding(),
+				},
+				BindGroupEntry {
+					binding: 1,
+					resource: BindingResource::TextureView(&texture.view),
+				},
+				BindGroupEntry {
+					binding: 2,
+					resource: BindingResource::Sampler(&texture.sampler),
+				},
+			],
+		});
+		render_pass.set_pipeline(&render_pipelines[&render_pipeline_settings]);
+		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
+		render_pass.set_bind_group(1, &shader_params_bind_group, &[]);
+		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
+		render_pass.set_scissor_rect(
+			scissor_rect.left(),
+			scissor_rect.top(),
+			scissor_rect.size.x,
+			scissor_rect.size.y,
+		);
+		render_pass.set_stencil_reference(stencil_reference as u32);
+		render_pass.draw_indexed(range.0..range.1, 0, 0..1);
+	}
 }

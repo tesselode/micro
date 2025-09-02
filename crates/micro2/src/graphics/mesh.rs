@@ -97,21 +97,22 @@ impl<V: Vertex> Mesh<V> {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
-		ctx.graphics.queue_draw_command(QueueDrawCommandSettings {
-			vertex_buffer: self.vertex_buffer.clone(),
-			index_buffer: self.index_buffer.clone(),
-			range: self.range.unwrap_or((0, self.num_indices)),
-			texture: self
-				.texture
-				.as_ref()
-				.unwrap_or(&ctx.graphics.default_texture)
-				.clone(),
-			transform: self.transform,
-			color: self.color,
-			scissor_rect: self.scissor_rect,
-			shader: self.shader.clone(),
-			blend_mode: self.blend_mode,
-		});
+		ctx.graphics
+			.queue_draw_command::<V>(QueueDrawCommandSettings {
+				vertex_buffer: self.vertex_buffer.clone(),
+				index_buffer: self.index_buffer.clone(),
+				range: self.range.unwrap_or((0, self.num_indices)),
+				texture: self
+					.texture
+					.as_ref()
+					.unwrap_or(&ctx.graphics.default_texture)
+					.clone(),
+				transform: self.transform,
+				color: self.color,
+				scissor_rect: self.scissor_rect,
+				shader: self.shader.clone(),
+				blend_mode: self.blend_mode,
+			});
 	}
 }
 

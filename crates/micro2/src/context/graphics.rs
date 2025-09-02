@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{any::TypeId, borrow::Cow, collections::HashMap};
 
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, UVec2, Vec3, uvec2};
@@ -15,7 +15,8 @@ use wgpu::{
 	RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType,
 	ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface,
 	SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureSampleType, TextureUsages,
-	TextureViewDescriptor, TextureViewDimension, VertexBufferLayout, VertexState, VertexStepMode,
+	TextureViewDescriptor, TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexState,
+	VertexStepMode,
 	naga::ShaderStage,
 	util::{BufferInitDescriptor, DeviceExt},
 };
@@ -24,8 +25,7 @@ use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
-		BlendMode, Canvas, CanvasKind, HasVertexAttributes, RenderToCanvasSettings, Shader,
-		StencilState, Vertex2d,
+		BlendMode, Canvas, CanvasKind, RenderToCanvasSettings, Shader, StencilState, Vertex,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -49,6 +49,7 @@ pub(crate) struct GraphicsContext {
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
 	pub(crate) stencil_state_stack: Vec<StencilState>,
+	vertex_info: HashMap<TypeId, VertexInfo>,
 	shaders: HashMap<String, ShaderModulePair>,
 	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
 	main_surface_draw_commands: Vec<DrawCommand>,
@@ -200,6 +201,7 @@ impl GraphicsContext {
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
 			stencil_state_stack: vec![],
+			vertex_info: HashMap::new(),
 			shaders: HashMap::new(),
 			render_pipelines: HashMap::new(),
 			main_surface_draw_commands: vec![],
@@ -263,7 +265,11 @@ impl GraphicsContext {
 		self.finished_canvas_render_passes.push(canvas_render_pass);
 	}
 
-	pub(crate) fn queue_draw_command(&mut self, settings: QueueDrawCommandSettings) {
+	pub(crate) fn queue_draw_command<V: Vertex>(&mut self, settings: QueueDrawCommandSettings) {
+		let vertex_type = TypeId::of::<V>();
+		self.vertex_info
+			.entry(vertex_type)
+			.or_insert_with(|| VertexInfo::for_type::<V>());
 		let shader = settings.shader.unwrap_or(self.default_shader.clone());
 		let stencil_state = self.stencil_state_stack.last().copied().unwrap_or_default();
 		let sample_count =
@@ -298,6 +304,7 @@ impl GraphicsContext {
 				.clone(),
 			stencil_reference: stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
+				vertex_type,
 				shader_name: shader.name,
 				shader_source: shader.source,
 				blend_mode: settings.blend_mode,
@@ -510,6 +517,7 @@ impl GraphicsContext {
 				.or_insert_with(|| {
 					create_render_pipeline(
 						&self.device,
+						&self.vertex_info,
 						&self.shaders,
 						render_pipeline_settings,
 						&self.pipeline_layout,
@@ -527,6 +535,7 @@ impl GraphicsContext {
 					.or_insert_with(|| {
 						create_render_pipeline(
 							&self.device,
+							&self.vertex_info,
 							&self.shaders,
 							render_pipeline_settings,
 							&self.pipeline_layout,
@@ -572,6 +581,7 @@ struct DrawParams {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct RenderPipelineSettings {
+	vertex_type: TypeId,
 	shader_name: String,
 	shader_source: String,
 	blend_mode: BlendMode,
@@ -614,12 +624,28 @@ impl ShaderModulePair {
 	}
 }
 
+struct VertexInfo {
+	size: usize,
+	attributes: Vec<VertexAttribute>,
+}
+
+impl VertexInfo {
+	fn for_type<V: Vertex>() -> Self {
+		Self {
+			size: std::mem::size_of::<V>(),
+			attributes: V::attributes(),
+		}
+	}
+}
+
 fn create_render_pipeline(
 	device: &Device,
+	vertex_info: &HashMap<TypeId, VertexInfo>,
 	shaders: &HashMap<String, ShaderModulePair>,
 	settings: &RenderPipelineSettings,
 	pipeline_layout: &PipelineLayout,
 ) -> RenderPipeline {
+	let vertex_info = &vertex_info[&settings.vertex_type];
 	device.create_render_pipeline(&RenderPipelineDescriptor {
 		label: None,
 		layout: Some(pipeline_layout),
@@ -628,9 +654,9 @@ fn create_render_pipeline(
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			buffers: &[VertexBufferLayout {
-				array_stride: std::mem::size_of::<Vertex2d>() as u64,
+				array_stride: vertex_info.size as u64,
 				step_mode: VertexStepMode::Vertex,
-				attributes: &Vertex2d::attributes(),
+				attributes: &vertex_info.attributes,
 			}],
 		},
 		primitive: PrimitiveState::default(),

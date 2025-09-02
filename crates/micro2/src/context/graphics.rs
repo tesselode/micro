@@ -10,12 +10,12 @@ use wgpu::{
 	ColorTargetState, ColorWrites, CompareFunction, CompositeAlphaMode, DepthBiasState,
 	DepthStencilState, Device, DeviceDescriptor, FragmentState, IndexFormat, Instance, LoadOp,
 	MultisampleState, Operations, PipelineCompilationOptions, PipelineLayout,
-	PipelineLayoutDescriptor, PowerPreference, PrimitiveState, Queue, RenderPassColorAttachment,
-	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
-	RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType, ShaderModule,
-	ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
-	SurfaceTargetUnsafe, TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor,
-	TextureViewDimension, VertexBufferLayout, VertexState, VertexStepMode,
+	PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveState, Queue,
+	RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
+	RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType,
+	ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface,
+	SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureSampleType, TextureUsages,
+	TextureViewDescriptor, TextureViewDimension, VertexBufferLayout, VertexState, VertexStepMode,
 	naga::ShaderStage,
 	util::{BufferInitDescriptor, DeviceExt},
 };
@@ -36,6 +36,7 @@ const DEFAULT_SHADER_SOURCE: &str = include_str!("shader.glsl");
 pub(crate) struct GraphicsContext {
 	pub(crate) device: Device,
 	pub(crate) queue: Queue,
+	pub(crate) supported_sample_counts: Vec<u32>,
 	config: SurfaceConfiguration,
 	surface: Surface<'static>,
 	main_surface_depth_stencil_texture: Texture,
@@ -71,6 +72,10 @@ impl GraphicsContext {
 			..Default::default()
 		}))
 		.expect("error getting graphics adapter");
+		let supported_sample_counts = adapter
+			.get_texture_format_features(TextureFormat::Rgba8UnormSrgb)
+			.flags
+			.supported_sample_counts();
 		let (device, queue) = pollster::block_on(adapter.request_device(&DeviceDescriptor {
 			required_features: settings.required_graphics_features,
 			..Default::default()
@@ -182,6 +187,7 @@ impl GraphicsContext {
 		Self {
 			device,
 			queue,
+			supported_sample_counts,
 			config,
 			surface,
 			main_surface_depth_stencil_texture,
@@ -306,6 +312,28 @@ impl GraphicsContext {
 		} else {
 			self.main_surface_draw_commands.push(draw_command);
 		}
+	}
+
+	pub(crate) fn present_mode(&self) -> PresentMode {
+		self.config.present_mode
+	}
+
+	pub(crate) fn max_queued_frames(&self) -> u32 {
+		self.config.desired_maximum_frame_latency
+	}
+
+	pub(crate) fn surface_format(&self) -> TextureFormat {
+		self.config.format
+	}
+
+	pub(crate) fn set_present_mode(&mut self, present_mode: PresentMode) {
+		self.config.present_mode = present_mode;
+		self.surface.configure(&self.device, &self.config);
+	}
+
+	pub(crate) fn set_max_queued_frames(&mut self, frames: u32) {
+		self.config.desired_maximum_frame_latency = frames;
+		self.surface.configure(&self.device, &self.config);
 	}
 
 	pub(crate) fn present(&mut self) {

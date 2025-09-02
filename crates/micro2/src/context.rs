@@ -11,7 +11,7 @@ use sdl3::{
 	EventPump, GamepadSubsystem, IntegerOrSdlError,
 	video::{FullscreenType, Window, WindowPos},
 };
-use wgpu::{Features, PresentMode};
+use wgpu::{Features, PresentMode, TextureFormat};
 
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
@@ -169,6 +169,30 @@ impl Context {
 			}
 		}
 		Ok(())
+	}
+
+	pub fn present_mode(&self) -> PresentMode {
+		self.graphics.present_mode()
+	}
+
+	pub fn max_queued_frames(&self) -> u32 {
+		self.graphics.max_queued_frames()
+	}
+
+	pub fn surface_format(&self) -> TextureFormat {
+		self.graphics.surface_format()
+	}
+
+	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
+		self.graphics.set_present_mode(present_mode);
+	}
+
+	pub fn set_max_queued_frames(&mut self, frames: u32) {
+		self.graphics.set_max_queued_frames(frames);
+	}
+
+	pub fn supported_sample_counts(&self) -> &[u32] {
+		&self.graphics.supported_sample_counts
 	}
 
 	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {

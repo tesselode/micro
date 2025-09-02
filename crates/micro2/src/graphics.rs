@@ -1,9 +1,11 @@
+mod blend_mode;
 mod into_range;
 pub mod mesh;
 mod shader;
 pub mod texture;
 mod vertex;
 
+pub use blend_mode::*;
 pub use into_range::*;
 pub use shader::*;
 pub use vertex::*;
@@ -77,6 +79,12 @@ macro_rules! standard_draw_param_methods {
 		pub fn color(&self, color: impl Into<$crate::color::LinSrgba>) -> Self {
 			let mut new = self.clone();
 			new.color = color.into();
+			new
+		}
+
+		pub fn blend_mode(&self, blend_mode: $crate::graphics::BlendMode) -> Self {
+			let mut new = self.clone();
+			new.blend_mode = blend_mode.into();
 			new
 		}
 

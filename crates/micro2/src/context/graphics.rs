@@ -6,15 +6,14 @@ use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-	BindGroupLayoutEntry, BindingResource, BindingType, BlendState, Buffer, BufferBindingType,
-	BufferUsages, ColorTargetState, ColorWrites, CompositeAlphaMode, Device, DeviceDescriptor,
-	FragmentState, IndexFormat, Instance, LoadOp, MultisampleState, Operations,
-	PipelineCompilationOptions, PipelineLayout, PipelineLayoutDescriptor, PowerPreference,
-	PrimitiveState, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
-	RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType, ShaderModule,
-	ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureSampleType,
-	TextureUsages, TextureViewDescriptor, TextureViewDimension, VertexBufferLayout, VertexState,
-	VertexStepMode,
+	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
+	ColorTargetState, ColorWrites, CompositeAlphaMode, Device, DeviceDescriptor, FragmentState,
+	IndexFormat, Instance, LoadOp, MultisampleState, Operations, PipelineCompilationOptions,
+	PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PrimitiveState, Queue,
+	RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
+	RequestAdapterOptions, SamplerBindingType, ShaderModule, ShaderStages, StoreOp, Surface,
+	SurfaceConfiguration, SurfaceTargetUnsafe, TextureSampleType, TextureUsages,
+	TextureViewDescriptor, TextureViewDimension, VertexBufferLayout, VertexState, VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -22,7 +21,7 @@ use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color},
 	graphics::{
-		HasVertexAttributes, Shader, Vertex2d,
+		BlendMode, HasVertexAttributes, Shader, Vertex2d,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -331,6 +330,7 @@ pub(crate) struct DrawParams {
 pub(crate) struct RenderPipelineSettings {
 	pub(crate) vertex_shader: ShaderModule,
 	pub(crate) fragment_shader: ShaderModule,
+	pub(crate) blend_mode: BlendMode,
 }
 
 fn create_render_pipeline(
@@ -361,7 +361,7 @@ fn create_render_pipeline(
 			compilation_options: PipelineCompilationOptions::default(),
 			targets: &[Some(ColorTargetState {
 				format: config.format,
-				blend: Some(BlendState::REPLACE),
+				blend: Some(settings.blend_mode.to_blend_state()),
 				write_mask: ColorWrites::ALL,
 			})],
 		}),

@@ -4,7 +4,7 @@ use micro2::{
 	App, Context, ContextSettings, Event,
 	color::ColorConstants,
 	graphics::{
-		Shader, Vertex2d,
+		BlendAlphaMode, BlendMode, Shader, Vertex2d,
 		mesh::Mesh,
 		texture::{Texture, TextureSettings},
 	},
@@ -74,5 +74,10 @@ impl App for Test {
 
 	fn draw(&mut self, ctx: &mut Context) {
 		self.texture.draw(ctx);
+		self.texture
+			.translated_2d((50.0, 50.0))
+			.blend_mode(BlendMode::Subtract(BlendAlphaMode::AlphaMultiply))
+			.color(LinSrgba::new(1.0, 1.0, 1.0, 0.5))
+			.draw(ctx);
 	}
 }

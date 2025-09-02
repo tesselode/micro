@@ -16,7 +16,7 @@ use crate::{
 	Context,
 	color::ColorConstants,
 	context::graphics::{DrawCommand, DrawParams, RenderPipelineSettings},
-	graphics::{IntoRange, Shader, texture::Texture},
+	graphics::{BlendMode, IntoRange, Shader, texture::Texture},
 	math::{Circle, Rect, URect},
 	standard_draw_param_methods,
 };
@@ -33,6 +33,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub texture: Option<Texture>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
 	pub shader: Option<Shader>,
 	pub scissor_rect: Option<URect>,
 	pub range: Option<(u32, u32)>,
@@ -65,6 +66,7 @@ impl<V: Vertex> Mesh<V> {
 			texture: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
 			shader: None,
 			scissor_rect: None,
 			range: None,
@@ -115,6 +117,7 @@ impl<V: Vertex> Mesh<V> {
 			render_pipeline_settings: RenderPipelineSettings {
 				vertex_shader: shader.vertex.clone(),
 				fragment_shader: shader.fragment.clone(),
+				blend_mode: self.blend_mode,
 			},
 		});
 	}

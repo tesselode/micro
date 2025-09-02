@@ -6,13 +6,14 @@ use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-	BindGroupLayoutEntry, BindingType, BlendState, Buffer, BufferBindingType, BufferUsages,
-	ColorTargetState, ColorWrites, CompositeAlphaMode, Device, DeviceDescriptor, FragmentState,
-	IndexFormat, Instance, LoadOp, MultisampleState, Operations, PipelineCompilationOptions,
-	PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PrimitiveState, Queue,
-	RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-	RequestAdapterOptions, ShaderModule, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
-	SurfaceTargetUnsafe, TextureUsages, TextureViewDescriptor, VertexBufferLayout, VertexState,
+	BindGroupLayoutEntry, BindingResource, BindingType, BlendState, Buffer, BufferBindingType,
+	BufferUsages, ColorTargetState, ColorWrites, CompositeAlphaMode, Device, DeviceDescriptor,
+	FragmentState, IndexFormat, Instance, LoadOp, MultisampleState, Operations,
+	PipelineCompilationOptions, PipelineLayout, PipelineLayoutDescriptor, PowerPreference,
+	PrimitiveState, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
+	RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType, ShaderModule,
+	ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureSampleType,
+	TextureUsages, TextureViewDescriptor, TextureViewDimension, VertexBufferLayout, VertexState,
 	VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
@@ -20,7 +21,10 @@ use wgpu::{
 use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color},
-	graphics::{HasVertexAttributes, Shader, Vertex2d},
+	graphics::{
+		HasVertexAttributes, Shader, Vertex2d,
+		texture::{InternalTextureSettings, Texture, TextureSettings},
+	},
 	math::URect,
 };
 
@@ -34,6 +38,7 @@ pub(crate) struct GraphicsContext {
 	mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
 	pipeline_layout: PipelineLayout,
+	pub(crate) default_texture: Texture,
 	pub(crate) default_shader: Shader,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
@@ -81,7 +86,6 @@ impl GraphicsContext {
 			view_formats: vec![],
 		};
 		surface.configure(&device, &config);
-		let default_shader = Shader::new_internal(&device, "Default Shader", DEFAULT_SHADER_SOURCE);
 		let mesh_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 			label: Some("Mesh Bind Group Layout"),
 			entries: &[
@@ -95,7 +99,7 @@ impl GraphicsContext {
 					},
 					count: None,
 				},
-				/* BindGroupLayoutEntry {
+				BindGroupLayoutEntry {
 					binding: 1,
 					visibility: ShaderStages::FRAGMENT,
 					ty: BindingType::Texture {
@@ -110,7 +114,7 @@ impl GraphicsContext {
 					visibility: ShaderStages::FRAGMENT,
 					ty: BindingType::Sampler(SamplerBindingType::Filtering),
 					count: None,
-				}, */
+				},
 			],
 		});
 		let shader_params_bind_group_layout =
@@ -131,6 +135,20 @@ impl GraphicsContext {
 			bind_group_layouts: &[&mesh_bind_group_layout, &shader_params_bind_group_layout],
 			..Default::default()
 		});
+		let default_texture = Texture::new(
+			&device,
+			&queue,
+			UVec2::new(1, 1),
+			Some(&[255, 255, 255, 255]),
+			TextureSettings::default(),
+			InternalTextureSettings::default(),
+		);
+		let default_shader = Shader::new_internal(
+			&device,
+			&shader_params_bind_group_layout,
+			"Default Shader",
+			DEFAULT_SHADER_SOURCE,
+		);
 		Self {
 			device,
 			queue,
@@ -139,6 +157,7 @@ impl GraphicsContext {
 			mesh_bind_group_layout,
 			shader_params_bind_group_layout,
 			pipeline_layout,
+			default_texture,
 			default_shader,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
@@ -201,6 +220,7 @@ impl GraphicsContext {
 				vertex_buffer,
 				index_buffer,
 				range,
+				texture,
 				draw_params,
 				scissor_rect,
 				shader_params_bind_group,
@@ -220,19 +240,19 @@ impl GraphicsContext {
 							binding: 0,
 							resource: draw_params_buffer.as_entire_binding(),
 						},
-						/* BindGroupEntry {
+						BindGroupEntry {
 							binding: 1,
 							resource: BindingResource::TextureView(&texture.view),
 						},
 						BindGroupEntry {
 							binding: 2,
 							resource: BindingResource::Sampler(&texture.sampler),
-						}, */
+						},
 					],
 				});
 				render_pass.set_pipeline(&self.render_pipelines[&render_pipeline_settings]);
 				render_pass.set_bind_group(0, &mesh_bind_group, &[]);
-				render_pass.set_bind_group(1, shader_params_bind_group.as_ref(), &[]);
+				render_pass.set_bind_group(1, &shader_params_bind_group, &[]);
 				render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 				render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 				let scissor_rect = scissor_rect.unwrap_or(default_scissor_rect);
@@ -292,9 +312,10 @@ pub(crate) struct DrawCommand {
 	pub(crate) vertex_buffer: Buffer,
 	pub(crate) index_buffer: Buffer,
 	pub(crate) range: (u32, u32),
+	pub(crate) texture: Texture,
 	pub(crate) draw_params: DrawParams,
 	pub(crate) scissor_rect: Option<URect>,
-	pub(crate) shader_params_bind_group: Option<BindGroup>,
+	pub(crate) shader_params_bind_group: BindGroup,
 	pub(crate) render_pipeline_settings: RenderPipelineSettings,
 }
 

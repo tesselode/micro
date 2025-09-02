@@ -2,8 +2,8 @@ use std::{borrow::Cow, path::Path};
 
 use bytemuck::Pod;
 use wgpu::{
-	BindGroup, BindGroupDescriptor, BindGroupEntry, BufferUsages, Device, ShaderModule,
-	ShaderModuleDescriptor, ShaderSource,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BufferUsages, Device,
+	ShaderModule, ShaderModuleDescriptor, ShaderSource,
 	naga::ShaderStage,
 	util::{BufferInitDescriptor, DeviceExt},
 };
@@ -15,7 +15,7 @@ pub struct Shader {
 	name: String,
 	pub(crate) vertex: ShaderModule,
 	pub(crate) fragment: ShaderModule,
-	pub(crate) params_bind_group: Option<BindGroup>,
+	pub(crate) params_bind_group: BindGroup,
 }
 
 impl Shader {
@@ -29,28 +29,22 @@ impl Shader {
 	}
 
 	pub fn from_string(ctx: &Context, name: impl Into<String>, source: &str) -> Self {
-		Self::new_internal(&ctx.graphics.device, name, source)
+		Self::new_internal(
+			&ctx.graphics.device,
+			&ctx.graphics.shader_params_bind_group_layout,
+			name,
+			source,
+		)
 	}
 
 	pub fn with_params(&self, ctx: &Context, params: impl Pod) -> Self {
-		let buffer = ctx
-			.graphics
-			.device
-			.create_buffer_init(&BufferInitDescriptor {
-				label: Some(&format!("{} - Shader Params Buffer", self.name)),
-				contents: bytemuck::cast_slice(&[params]),
-				usage: BufferUsages::UNIFORM,
-			});
-		let params_bind_group = ctx.graphics.device.create_bind_group(&BindGroupDescriptor {
-			label: Some(&format!("{} - Shader Params Bind Group", self.name)),
-			layout: &ctx.graphics.shader_params_bind_group_layout,
-			entries: &[BindGroupEntry {
-				binding: 0,
-				resource: buffer.as_entire_binding(),
-			}],
-		});
 		Self {
-			params_bind_group: Some(params_bind_group),
+			params_bind_group: create_params_bind_group(
+				&ctx.graphics.device,
+				&ctx.graphics.shader_params_bind_group_layout,
+				&self.name,
+				params,
+			),
 			..self.clone()
 		}
 	}
@@ -59,7 +53,12 @@ impl Shader {
 		*self = self.with_params(ctx, params);
 	}
 
-	pub(crate) fn new_internal(device: &Device, name: impl Into<String>, source: &str) -> Self {
+	pub(crate) fn new_internal(
+		device: &Device,
+		shader_params_bind_group_layout: &BindGroupLayout,
+		name: impl Into<String>,
+		source: &str,
+	) -> Self {
 		let name = name.into();
 		let vertex = device.create_shader_module(ShaderModuleDescriptor {
 			label: Some(&format!("{} - Vertex Shader", &name)),
@@ -77,11 +76,34 @@ impl Shader {
 				defines: &[("FRAGMENT", "1")],
 			},
 		});
+		let params_bind_group =
+			create_params_bind_group(device, shader_params_bind_group_layout, &name, 0);
 		Self {
 			name,
 			vertex,
 			fragment,
-			params_bind_group: None,
+			params_bind_group,
 		}
 	}
+}
+
+fn create_params_bind_group(
+	device: &Device,
+	shader_params_bind_group_layout: &BindGroupLayout,
+	name: &str,
+	params: impl Pod,
+) -> BindGroup {
+	let buffer = device.create_buffer_init(&BufferInitDescriptor {
+		label: Some(&format!("{} - Shader Params Buffer", name)),
+		contents: bytemuck::cast_slice(&[params]),
+		usage: BufferUsages::UNIFORM,
+	});
+	device.create_bind_group(&BindGroupDescriptor {
+		label: Some(&format!("{} - Shader Params Bind Group", name)),
+		layout: shader_params_bind_group_layout,
+		entries: &[BindGroupEntry {
+			binding: 0,
+			resource: buffer.as_entire_binding(),
+		}],
+	})
 }

@@ -1,6 +1,7 @@
 mod into_range;
 pub mod mesh;
 mod shader;
+pub mod texture;
 mod vertex;
 
 pub use into_range::*;

@@ -3,9 +3,12 @@ use glam::{Vec2, vec2};
 use micro2::{
 	App, Context, ContextSettings, Event,
 	color::ColorConstants,
-	graphics::{Shader, Vertex2d, mesh::Mesh},
+	graphics::{
+		Shader, Vertex2d,
+		mesh::Mesh,
+		texture::{Texture, TextureSettings},
+	},
 	input::Scancode,
-	math::URect,
 };
 use palette::LinSrgba;
 
@@ -45,21 +48,15 @@ fn main() {
 
 struct Test {
 	mesh: Mesh,
-	shader: Shader,
+	texture: Texture,
 }
 
 impl Test {
 	fn new(ctx: &mut Context) -> Self {
 		Self {
 			mesh: Mesh::new(ctx, VERTICES, INDICES),
-			shader: Shader::from_file(ctx, "test shader", "crates/micro2/examples/shader.glsl")
-				.unwrap()
-				.with_params(
-					ctx,
-					ShaderParams {
-						translation: vec2(0.0, 0.0),
-					},
-				),
+			texture: Texture::from_file(ctx, "resources/water.png", TextureSettings::default())
+				.unwrap(),
 		}
 	}
 }
@@ -76,18 +73,6 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) {
-		self.mesh
-			.translated_2d((0.5, 0.5))
-			.scaled_2d((50.0, 50.0))
-			.range(0..5)
-			.color(LinSrgba::RED)
-			.shader(&self.shader)
-			.draw(ctx);
+		self.texture.draw(ctx);
 	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
-#[repr(C)]
-struct ShaderParams {
-	translation: Vec2,
 }

@@ -30,11 +30,14 @@ void main()
 layout (location = 0) in vec2 texCoord;
 layout (location = 1) in vec4 vertexColor;
 
+layout (binding = 1) uniform texture2D inTexture;
+layout (binding = 2) uniform sampler inSampler;
+
 out vec4 fragColor;
 
 void main()
 {
-    fragColor = vertexColor;
+    fragColor = texture(sampler2D(inTexture, inSampler), texCoord) * vertexColor;
 }
 
 #endif

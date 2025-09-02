@@ -16,7 +16,7 @@ use crate::{
 	Context,
 	color::ColorConstants,
 	context::graphics::{DrawCommand, DrawParams, RenderPipelineSettings},
-	graphics::{IntoRange, Shader},
+	graphics::{IntoRange, Shader, texture::Texture},
 	math::{Circle, Rect, URect},
 	standard_draw_param_methods,
 };
@@ -30,7 +30,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub(crate) num_indices: u32,
 	_phantom_data: PhantomData<V>,
 	// draw params
-	// pub texture: Option<Texture>,
+	pub texture: Option<Texture>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub shader: Option<Shader>,
@@ -62,7 +62,7 @@ impl<V: Vertex> Mesh<V> {
 			index_buffer,
 			num_indices,
 			_phantom_data: PhantomData,
-			// texture: None,
+			texture: None,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			shader: None,
@@ -73,12 +73,12 @@ impl<V: Vertex> Mesh<V> {
 
 	standard_draw_param_methods!();
 
-	/* pub fn texture<'a>(&self, texture: impl Into<Option<&'a Texture>>) -> Self {
+	pub fn texture<'a>(&self, texture: impl Into<Option<&'a Texture>>) -> Self {
 		Self {
 			texture: texture.into().cloned(),
 			..self.clone()
 		}
-	} */
+	}
 
 	pub fn range(&self, range: impl IntoRange) -> Self {
 		let mut new = self.clone();
@@ -100,6 +100,11 @@ impl<V: Vertex> Mesh<V> {
 			vertex_buffer: self.vertex_buffer.clone(),
 			index_buffer: self.index_buffer.clone(),
 			range: self.range.unwrap_or((0, self.num_indices)),
+			texture: self
+				.texture
+				.as_ref()
+				.unwrap_or(&ctx.graphics.default_texture)
+				.clone(),
 			draw_params: DrawParams {
 				global_transform: ctx.graphics.global_transform() * self.transform,
 				local_transform: self.transform,

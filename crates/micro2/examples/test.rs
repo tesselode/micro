@@ -1,27 +1,24 @@
 use micro2::{
 	App, Context, ContextSettings, Event,
-	graphics::text::{Font, FontSettings, LayoutSettings, Text},
+	graphics::{
+		StencilState,
+		mesh::{Mesh, ShapeStyle},
+		text::{Font, FontSettings, LayoutSettings, Text},
+	},
 	input::Scancode,
+	math::{Circle, Rect},
 };
+use wgpu::{CompareFunction, StencilOperation};
 
 fn main() {
 	micro2::run(ContextSettings::default(), Test::new);
 }
 
-struct Test {
-	text: Text,
-}
+struct Test {}
 
 impl Test {
-	fn new(ctx: &mut Context) -> Self {
-		let font = Font::from_file(
-			ctx,
-			"resources/NotoSans-Regular.ttf",
-			FontSettings::default(),
-		)
-		.unwrap();
-		let text = Text::new(ctx, &font, "Hello, world!", LayoutSettings::default());
-		Self { text }
+	fn new(_ctx: &mut Context) -> Self {
+		Self {}
 	}
 }
 
@@ -37,6 +34,23 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) {
-		self.text.draw(ctx);
+		{
+			let ctx =
+				&mut ctx.push_stencil_state(StencilState::write(StencilOperation::Replace, 1));
+			Mesh::circle(
+				ctx,
+				ShapeStyle::Fill,
+				Circle {
+					center: ctx.window_size().as_vec2() / 2.0,
+					radius: 100.0,
+				},
+			)
+			.unwrap()
+			.draw(ctx);
+		}
+		{
+			let ctx = &mut ctx.push_stencil_state(StencilState::read(CompareFunction::Equal, 1));
+			Mesh::rectangle(ctx, Rect::new((0.0, 0.0), ctx.window_size().as_vec2())).draw(ctx);
+		}
 	}
 }

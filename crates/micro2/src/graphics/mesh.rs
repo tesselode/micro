@@ -15,7 +15,7 @@ use wgpu::{
 use crate::{
 	Context,
 	color::ColorConstants,
-	context::graphics::{DrawCommand, DrawParams, RenderPipelineSettings},
+	context::graphics::QueueDrawCommandSettings,
 	graphics::{BlendMode, IntoRange, Shader, texture::Texture},
 	math::{Circle, Rect, URect},
 	standard_draw_param_methods,
@@ -97,8 +97,7 @@ impl<V: Vertex> Mesh<V> {
 	}
 
 	pub fn draw(&self, ctx: &mut Context) {
-		let shader = self.shader.as_ref().unwrap_or(&ctx.graphics.default_shader);
-		ctx.graphics.queue_draw_command(DrawCommand {
+		ctx.graphics.queue_draw_command(QueueDrawCommandSettings {
 			vertex_buffer: self.vertex_buffer.clone(),
 			index_buffer: self.index_buffer.clone(),
 			range: self.range.unwrap_or((0, self.num_indices)),
@@ -107,18 +106,11 @@ impl<V: Vertex> Mesh<V> {
 				.as_ref()
 				.unwrap_or(&ctx.graphics.default_texture)
 				.clone(),
-			draw_params: DrawParams {
-				global_transform: ctx.graphics.global_transform() * self.transform,
-				local_transform: self.transform,
-				color: self.color,
-			},
+			transform: self.transform,
+			color: self.color,
 			scissor_rect: self.scissor_rect,
-			shader_params_bind_group: shader.params_bind_group.clone(),
-			render_pipeline_settings: RenderPipelineSettings {
-				vertex_shader: shader.vertex.clone(),
-				fragment_shader: shader.fragment.clone(),
-				blend_mode: self.blend_mode,
-			},
+			shader: self.shader.clone(),
+			blend_mode: self.blend_mode,
 		});
 	}
 }

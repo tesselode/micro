@@ -16,6 +16,7 @@ use wgpu::{Features, PresentMode};
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	context::graphics::GraphicsContext,
+	graphics::StencilState,
 	input::{Gamepad, MouseButton, Scancode},
 };
 
@@ -239,6 +240,14 @@ impl Context {
 		self.push_transform(Mat4::from_rotation_z(rotation))
 	}
 
+	pub fn push_stencil_state(&mut self, stencil_state: StencilState) -> OnDrop<'_> {
+		self.graphics.stencil_state_stack.push(stencil_state);
+		OnDrop {
+			ctx: self,
+			pop: Pop::StencilState,
+		}
+	}
+
 	/// Returns `true` if the given keyboard key is currently held down.
 	pub fn is_key_down(&self, scancode: Scancode) -> bool {
 		self.event_pump
@@ -317,9 +326,10 @@ impl Drop for OnDrop<'_> {
 		match self.pop {
 			Pop::Transform => {
 				self.ctx.graphics.transform_stack.pop();
-			} /* Pop::StencilReference => {
-				  self.ctx.graphics.stencil_reference_stack.pop();
-			  } */
+			}
+			Pop::StencilState => {
+				self.ctx.graphics.stencil_state_stack.pop();
+			}
 		}
 	}
 }
@@ -340,5 +350,5 @@ impl DerefMut for OnDrop<'_> {
 
 enum Pop {
 	Transform,
-	// StencilReference,
+	StencilState,
 }

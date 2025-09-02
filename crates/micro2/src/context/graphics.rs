@@ -7,13 +7,15 @@ use sdl3::video::Window;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
-	ColorTargetState, ColorWrites, CompositeAlphaMode, Device, DeviceDescriptor, FragmentState,
-	IndexFormat, Instance, LoadOp, MultisampleState, Operations, PipelineCompilationOptions,
-	PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PrimitiveState, Queue,
-	RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-	RequestAdapterOptions, SamplerBindingType, ShaderModule, ShaderStages, StoreOp, Surface,
-	SurfaceConfiguration, SurfaceTargetUnsafe, TextureSampleType, TextureUsages,
-	TextureViewDescriptor, TextureViewDimension, VertexBufferLayout, VertexState, VertexStepMode,
+	ColorTargetState, ColorWrites, CompareFunction, CompositeAlphaMode, DepthBiasState,
+	DepthStencilState, Device, DeviceDescriptor, FragmentState, IndexFormat, Instance, LoadOp,
+	MultisampleState, Operations, PipelineCompilationOptions, PipelineLayout,
+	PipelineLayoutDescriptor, PowerPreference, PrimitiveState, Queue, RenderPassColorAttachment,
+	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
+	RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType, ShaderModule,
+	ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat,
+	TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension,
+	VertexBufferLayout, VertexState, VertexStepMode,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -21,7 +23,7 @@ use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color},
 	graphics::{
-		BlendMode, HasVertexAttributes, Shader, Vertex2d,
+		BlendMode, HasVertexAttributes, Shader, StencilState, Vertex2d,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -34,13 +36,15 @@ pub(crate) struct GraphicsContext {
 	pub(crate) queue: Queue,
 	config: SurfaceConfiguration,
 	surface: Surface<'static>,
+	main_surface_depth_stencil_texture: Texture,
 	mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
 	pipeline_layout: PipelineLayout,
 	pub(crate) default_texture: Texture,
-	pub(crate) default_shader: Shader,
+	default_shader: Shader,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
+	pub(crate) stencil_state_stack: Vec<StencilState>,
 	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
 	main_surface_draw_commands: Vec<DrawCommand>,
 }
@@ -134,6 +138,17 @@ impl GraphicsContext {
 			bind_group_layouts: &[&mesh_bind_group_layout, &shader_params_bind_group_layout],
 			..Default::default()
 		});
+		let main_surface_depth_stencil_texture = Texture::new(
+			&device,
+			&queue,
+			uvec2(width, height),
+			None,
+			TextureSettings::default(),
+			InternalTextureSettings {
+				format: TextureFormat::Depth24PlusStencil8,
+				sample_count: 1,
+			},
+		);
 		let default_texture = Texture::new(
 			&device,
 			&queue,
@@ -153,6 +168,7 @@ impl GraphicsContext {
 			queue,
 			config,
 			surface,
+			main_surface_depth_stencil_texture,
 			mesh_bind_group_layout,
 			shader_params_bind_group_layout,
 			pipeline_layout,
@@ -160,6 +176,7 @@ impl GraphicsContext {
 			default_shader,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
+			stencil_state_stack: vec![],
 			render_pipelines: HashMap::new(),
 			main_surface_draw_commands: vec![],
 		}
@@ -169,6 +186,17 @@ impl GraphicsContext {
 		self.config.width = size.x;
 		self.config.height = size.y;
 		self.surface.configure(&self.device, &self.config);
+		self.main_surface_depth_stencil_texture = Texture::new(
+			&self.device,
+			&self.queue,
+			size,
+			None,
+			TextureSettings::default(),
+			InternalTextureSettings {
+				format: TextureFormat::Depth24PlusStencil8,
+				sample_count: 1,
+			},
+		);
 	}
 
 	pub(crate) fn global_transform(&self) -> Mat4 {
@@ -186,8 +214,30 @@ impl GraphicsContext {
 			})
 	}
 
-	pub(crate) fn queue_draw_command(&mut self, draw_command: DrawCommand) {
-		self.main_surface_draw_commands.push(draw_command);
+	pub(crate) fn queue_draw_command(&mut self, settings: QueueDrawCommandSettings) {
+		let shader = settings.shader.unwrap_or(self.default_shader.clone());
+		let stencil_state = self.stencil_state_stack.last().copied().unwrap_or_default();
+		self.main_surface_draw_commands.push(DrawCommand {
+			vertex_buffer: settings.vertex_buffer,
+			index_buffer: settings.index_buffer,
+			range: settings.range,
+			texture: settings.texture,
+			draw_params: DrawParams {
+				global_transform: self.global_transform() * settings.transform,
+				local_transform: settings.transform,
+				color: settings.color,
+			},
+			scissor_rect: settings.scissor_rect,
+			shader_params_bind_group: shader.params_bind_group,
+			stencil_reference: stencil_state.reference,
+			render_pipeline_settings: RenderPipelineSettings {
+				vertex_shader: shader.vertex,
+				fragment_shader: shader.fragment,
+				blend_mode: settings.blend_mode,
+				enable_color_writes: stencil_state.enable_color_writes,
+				wgpu_stencil_state: stencil_state.as_wgpu_stencil_state(),
+			},
+		});
 	}
 
 	pub(crate) fn present(&mut self) {
@@ -211,7 +261,17 @@ impl GraphicsContext {
 					},
 					depth_slice: None,
 				})],
-				depth_stencil_attachment: None,
+				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+					view: &self.main_surface_depth_stencil_texture.view,
+					depth_ops: Some(Operations {
+						load: LoadOp::Clear(1.0),
+						store: StoreOp::Store,
+					}),
+					stencil_ops: Some(Operations {
+						load: LoadOp::Clear(0),
+						store: StoreOp::Store,
+					}),
+				}),
 				timestamp_writes: None,
 				occlusion_query_set: None,
 			});
@@ -223,6 +283,7 @@ impl GraphicsContext {
 				draw_params,
 				scissor_rect,
 				shader_params_bind_group,
+				stencil_reference,
 				render_pipeline_settings,
 			} in self.main_surface_draw_commands.drain(..)
 			{
@@ -261,6 +322,7 @@ impl GraphicsContext {
 					scissor_rect.size.x,
 					scissor_rect.size.y,
 				);
+				render_pass.set_stencil_reference(stencil_reference as u32);
 				render_pass.draw_indexed(range.0..range.1, 0, 0..1);
 			}
 		}
@@ -306,31 +368,46 @@ impl GraphicsContext {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct DrawCommand {
+pub(crate) struct QueueDrawCommandSettings {
 	pub(crate) vertex_buffer: Buffer,
 	pub(crate) index_buffer: Buffer,
 	pub(crate) range: (u32, u32),
 	pub(crate) texture: Texture,
-	pub(crate) draw_params: DrawParams,
+	pub(crate) transform: Mat4,
+	pub(crate) color: LinSrgba,
 	pub(crate) scissor_rect: Option<URect>,
-	pub(crate) shader_params_bind_group: BindGroup,
-	pub(crate) render_pipeline_settings: RenderPipelineSettings,
+	pub(crate) shader: Option<Shader>,
+	pub(crate) blend_mode: BlendMode,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct DrawCommand {
+	vertex_buffer: Buffer,
+	index_buffer: Buffer,
+	range: (u32, u32),
+	texture: Texture,
+	draw_params: DrawParams,
+	scissor_rect: Option<URect>,
+	shader_params_bind_group: BindGroup,
+	stencil_reference: u8,
+	render_pipeline_settings: RenderPipelineSettings,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
-pub(crate) struct DrawParams {
-	pub(crate) global_transform: Mat4,
-	pub(crate) local_transform: Mat4,
-	pub(crate) color: LinSrgba,
+struct DrawParams {
+	global_transform: Mat4,
+	local_transform: Mat4,
+	color: LinSrgba,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct RenderPipelineSettings {
-	pub(crate) vertex_shader: ShaderModule,
-	pub(crate) fragment_shader: ShaderModule,
-	pub(crate) blend_mode: BlendMode,
+struct RenderPipelineSettings {
+	vertex_shader: ShaderModule,
+	fragment_shader: ShaderModule,
+	blend_mode: BlendMode,
+	enable_color_writes: bool,
+	wgpu_stencil_state: wgpu::StencilState,
 }
 
 fn create_render_pipeline(
@@ -353,7 +430,19 @@ fn create_render_pipeline(
 			}],
 		},
 		primitive: PrimitiveState::default(),
-		depth_stencil: None,
+		depth_stencil: Some(DepthStencilState {
+			format: TextureFormat::Depth24PlusStencil8,
+			/* depth_write_enabled: settings.enable_depth_testing,
+			depth_compare: if settings.enable_depth_testing {
+				CompareFunction::Less
+			} else {
+				CompareFunction::Always
+			}, */
+			depth_write_enabled: false,
+			depth_compare: CompareFunction::Always,
+			stencil: settings.wgpu_stencil_state.clone(),
+			bias: DepthBiasState::default(),
+		}),
 		multisample: MultisampleState::default(),
 		fragment: Some(FragmentState {
 			module: &settings.fragment_shader,
@@ -362,7 +451,11 @@ fn create_render_pipeline(
 			targets: &[Some(ColorTargetState {
 				format: config.format,
 				blend: Some(settings.blend_mode.to_blend_state()),
-				write_mask: ColorWrites::ALL,
+				write_mask: if settings.enable_color_writes {
+					ColorWrites::ALL
+				} else {
+					ColorWrites::empty()
+				},
 			})],
 		}),
 		multiview: None,

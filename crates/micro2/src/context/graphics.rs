@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, UVec2, Vec3, uvec2};
@@ -13,9 +13,10 @@ use wgpu::{
 	PipelineLayoutDescriptor, PowerPreference, PrimitiveState, Queue, RenderPassColorAttachment,
 	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
 	RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType, ShaderModule,
-	ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat,
-	TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension,
-	VertexBufferLayout, VertexState, VertexStepMode,
+	ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
+	SurfaceTargetUnsafe, TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor,
+	TextureViewDimension, VertexBufferLayout, VertexState, VertexStepMode,
+	naga::ShaderStage,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -43,9 +44,11 @@ pub(crate) struct GraphicsContext {
 	pipeline_layout: PipelineLayout,
 	pub(crate) default_texture: Texture,
 	default_shader: Shader,
+	default_shader_params_bind_group: BindGroup,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
 	pub(crate) stencil_state_stack: Vec<StencilState>,
+	shaders: HashMap<String, ShaderModulePair>,
 	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
 	main_surface_draw_commands: Vec<DrawCommand>,
 	current_canvas_render_pass: Option<CanvasRenderPass>,
@@ -160,12 +163,22 @@ impl GraphicsContext {
 			TextureSettings::default(),
 			InternalTextureSettings::default(),
 		);
-		let default_shader = Shader::new_internal(
-			&device,
-			&shader_params_bind_group_layout,
-			"Default Shader",
-			DEFAULT_SHADER_SOURCE,
-		);
+		let default_shader = Shader::from_string("Default Shader", DEFAULT_SHADER_SOURCE);
+		let default_shader_params_bind_group = {
+			let buffer = device.create_buffer_init(&BufferInitDescriptor {
+				label: Some("Default Shader - Shader Params Buffer"),
+				contents: bytemuck::cast_slice(&[0]),
+				usage: BufferUsages::UNIFORM,
+			});
+			device.create_bind_group(&BindGroupDescriptor {
+				label: Some("Default Shader - Shader Params Bind Group"),
+				layout: &shader_params_bind_group_layout,
+				entries: &[BindGroupEntry {
+					binding: 0,
+					resource: buffer.as_entire_binding(),
+				}],
+			})
+		};
 		Self {
 			device,
 			queue,
@@ -177,9 +190,11 @@ impl GraphicsContext {
 			pipeline_layout,
 			default_texture,
 			default_shader,
+			default_shader_params_bind_group,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
 			stencil_state_stack: vec![],
+			shaders: HashMap::new(),
 			render_pipelines: HashMap::new(),
 			main_surface_draw_commands: vec![],
 			current_canvas_render_pass: None,
@@ -270,11 +285,15 @@ impl GraphicsContext {
 			scissor_rect: settings
 				.scissor_rect
 				.unwrap_or_else(|| self.default_scissor_rect()),
-			shader_params_bind_group: shader.params_bind_group,
+			shader_params_bind_group: shader
+				.params_bind_group
+				.as_ref()
+				.unwrap_or(&self.default_shader_params_bind_group)
+				.clone(),
 			stencil_reference: stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
-				vertex_shader: shader.vertex,
-				fragment_shader: shader.fragment,
+				shader_name: shader.name,
+				shader_source: shader.source,
 				blend_mode: settings.blend_mode,
 				enable_color_writes: stencil_state.enable_color_writes,
 				wgpu_stencil_state: stencil_state.as_wgpu_stencil_state(),
@@ -290,6 +309,7 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn present(&mut self) {
+		self.create_shaders();
 		self.create_render_pipelines();
 
 		let mut encoder = self.device.create_command_encoder(&Default::default());
@@ -416,6 +436,41 @@ impl GraphicsContext {
 		URect::new(UVec2::ZERO, size)
 	}
 
+	fn create_shaders(&mut self) {
+		for DrawCommand {
+			render_pipeline_settings,
+			..
+		} in &self.main_surface_draw_commands
+		{
+			self.shaders
+				.entry(render_pipeline_settings.shader_source.clone())
+				.or_insert_with(|| {
+					ShaderModulePair::new(
+						&self.device,
+						&render_pipeline_settings.shader_name,
+						&render_pipeline_settings.shader_source,
+					)
+				});
+		}
+		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
+			for DrawCommand {
+				render_pipeline_settings,
+				..
+			} in draw_commands
+			{
+				self.shaders
+					.entry(render_pipeline_settings.shader_source.clone())
+					.or_insert_with(|| {
+						ShaderModulePair::new(
+							&self.device,
+							&render_pipeline_settings.shader_name,
+							&render_pipeline_settings.shader_source,
+						)
+					});
+			}
+		}
+	}
+
 	fn create_render_pipelines(&mut self) {
 		for DrawCommand {
 			render_pipeline_settings,
@@ -427,6 +482,7 @@ impl GraphicsContext {
 				.or_insert_with(|| {
 					create_render_pipeline(
 						&self.device,
+						&self.shaders,
 						render_pipeline_settings,
 						&self.pipeline_layout,
 					)
@@ -443,6 +499,7 @@ impl GraphicsContext {
 					.or_insert_with(|| {
 						create_render_pipeline(
 							&self.device,
+							&self.shaders,
 							render_pipeline_settings,
 							&self.pipeline_layout,
 						)
@@ -487,8 +544,8 @@ struct DrawParams {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct RenderPipelineSettings {
-	vertex_shader: ShaderModule,
-	fragment_shader: ShaderModule,
+	shader_name: String,
+	shader_source: String,
 	blend_mode: BlendMode,
 	enable_color_writes: bool,
 	wgpu_stencil_state: wgpu::StencilState,
@@ -502,8 +559,36 @@ struct CanvasRenderPass {
 	draw_commands: Vec<DrawCommand>,
 }
 
+struct ShaderModulePair {
+	vertex: ShaderModule,
+	fragment: ShaderModule,
+}
+
+impl ShaderModulePair {
+	fn new(device: &Device, name: &str, source: &str) -> Self {
+		let vertex = device.create_shader_module(ShaderModuleDescriptor {
+			label: Some(&format!("{} - Vertex Shader", &name)),
+			source: ShaderSource::Glsl {
+				shader: Cow::Borrowed(source),
+				stage: ShaderStage::Vertex,
+				defines: &[("VERTEX", "1")],
+			},
+		});
+		let fragment = device.create_shader_module(ShaderModuleDescriptor {
+			label: Some(&format!("{} - Fragment Shader", &name)),
+			source: ShaderSource::Glsl {
+				shader: Cow::Borrowed(source),
+				stage: ShaderStage::Fragment,
+				defines: &[("FRAGMENT", "1")],
+			},
+		});
+		Self { vertex, fragment }
+	}
+}
+
 fn create_render_pipeline(
 	device: &Device,
+	shaders: &HashMap<String, ShaderModulePair>,
 	settings: &RenderPipelineSettings,
 	pipeline_layout: &PipelineLayout,
 ) -> RenderPipeline {
@@ -511,7 +596,7 @@ fn create_render_pipeline(
 		label: None,
 		layout: Some(pipeline_layout),
 		vertex: VertexState {
-			module: &settings.vertex_shader,
+			module: &shaders[&settings.shader_source].vertex,
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			buffers: &[VertexBufferLayout {
@@ -539,7 +624,7 @@ fn create_render_pipeline(
 			..Default::default()
 		},
 		fragment: Some(FragmentState {
-			module: &settings.fragment_shader,
+			module: &shaders[&settings.shader_source].fragment,
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			targets: &[Some(ColorTargetState {

@@ -1,19 +1,21 @@
 mod blend_mode;
+mod camera_3d;
 mod canvas;
+mod depth_stencil;
 mod into_range;
 pub mod mesh;
 mod shader;
 pub mod sprite_batch;
-mod stencil;
 pub mod text;
 pub mod texture;
 mod vertex;
 
 pub use blend_mode::*;
+pub use camera_3d::*;
 pub use canvas::*;
+pub use depth_stencil::*;
 pub use into_range::*;
 pub use shader::*;
-pub use stencil::*;
 pub use vertex::*;
 pub use wgpu::{Features, PresentMode, TextureFormat};
 

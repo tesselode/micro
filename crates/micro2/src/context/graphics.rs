@@ -8,9 +8,9 @@ use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
 	ColorTargetState, ColorWrites, CompareFunction, CompositeAlphaMode, DepthBiasState,
-	DepthStencilState, Device, DeviceDescriptor, FragmentState, IndexFormat, Instance, LoadOp,
-	MultisampleState, Operations, PipelineCompilationOptions, PipelineLayout,
-	PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveState, Queue,
+	DepthStencilState as WgpuDepthStencilState, Device, DeviceDescriptor, FragmentState,
+	IndexFormat, Instance, LoadOp, MultisampleState, Operations, PipelineCompilationOptions,
+	PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveState, Queue,
 	RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
 	RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType,
 	ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface,
@@ -25,7 +25,7 @@ use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	graphics::{
-		BlendMode, Canvas, CanvasKind, RenderToCanvasSettings, Shader, StencilState, Vertex,
+		BlendMode, Canvas, CanvasKind, DepthStencilState, RenderToCanvasSettings, Shader, Vertex,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -48,7 +48,7 @@ pub(crate) struct GraphicsContext {
 	default_shader_params_bind_group: BindGroup,
 	pub(crate) clear_color: LinSrgb,
 	pub(crate) transform_stack: Vec<Mat4>,
-	pub(crate) stencil_state_stack: Vec<StencilState>,
+	pub(crate) depth_stencil_state_stack: Vec<DepthStencilState>,
 	vertex_info: HashMap<TypeId, VertexInfo>,
 	shaders: HashMap<String, ShaderModulePair>,
 	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
@@ -200,7 +200,7 @@ impl GraphicsContext {
 			default_shader_params_bind_group,
 			clear_color: LinSrgb::BLACK,
 			transform_stack: vec![],
-			stencil_state_stack: vec![],
+			depth_stencil_state_stack: vec![],
 			vertex_info: HashMap::new(),
 			shaders: HashMap::new(),
 			render_pipelines: HashMap::new(),
@@ -271,7 +271,11 @@ impl GraphicsContext {
 			.entry(vertex_type)
 			.or_insert_with(|| VertexInfo::for_type::<V>());
 		let shader = settings.shader.unwrap_or(self.default_shader.clone());
-		let stencil_state = self.stencil_state_stack.last().copied().unwrap_or_default();
+		let depth_stencil_state = self
+			.depth_stencil_state_stack
+			.last()
+			.copied()
+			.unwrap_or_default();
 		let sample_count =
 			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
 				canvas.sample_count()
@@ -302,14 +306,15 @@ impl GraphicsContext {
 				.as_ref()
 				.unwrap_or(&self.default_shader_params_bind_group)
 				.clone(),
-			stencil_reference: stencil_state.reference,
+			stencil_reference: depth_stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
 				vertex_type,
 				shader_name: shader.name,
 				shader_source: shader.source,
 				blend_mode: settings.blend_mode,
-				enable_color_writes: stencil_state.enable_color_writes,
-				wgpu_stencil_state: stencil_state.as_wgpu_stencil_state(),
+				enable_color_writes: depth_stencil_state.enable_color_writes,
+				enable_depth_testing: depth_stencil_state.enable_depth_testing,
+				wgpu_stencil_state: depth_stencil_state.as_wgpu_stencil_state(),
 				sample_count,
 				format,
 			},
@@ -341,6 +346,14 @@ impl GraphicsContext {
 	pub(crate) fn set_max_queued_frames(&mut self, frames: u32) {
 		self.config.desired_maximum_frame_latency = frames;
 		self.surface.configure(&self.device, &self.config);
+	}
+
+	pub(crate) fn current_render_target_size(&self) -> UVec2 {
+		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			canvas.size()
+		} else {
+			uvec2(self.config.width, self.config.height)
+		}
 	}
 
 	pub(crate) fn present(&mut self) {
@@ -452,14 +465,6 @@ impl GraphicsContext {
 
 		self.queue.submit([encoder.finish()]);
 		frame.present();
-	}
-
-	fn current_render_target_size(&self) -> UVec2 {
-		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
-			canvas.size()
-		} else {
-			uvec2(self.config.width, self.config.height)
-		}
 	}
 
 	fn default_scissor_rect(&self) -> URect {
@@ -586,6 +591,7 @@ struct RenderPipelineSettings {
 	shader_source: String,
 	blend_mode: BlendMode,
 	enable_color_writes: bool,
+	enable_depth_testing: bool,
 	wgpu_stencil_state: wgpu::StencilState,
 	format: TextureFormat,
 	sample_count: u32,
@@ -660,16 +666,14 @@ fn create_render_pipeline(
 			}],
 		},
 		primitive: PrimitiveState::default(),
-		depth_stencil: Some(DepthStencilState {
+		depth_stencil: Some(WgpuDepthStencilState {
 			format: TextureFormat::Depth24PlusStencil8,
-			/* depth_write_enabled: settings.enable_depth_testing,
+			depth_write_enabled: settings.enable_depth_testing,
 			depth_compare: if settings.enable_depth_testing {
 				CompareFunction::Less
 			} else {
 				CompareFunction::Always
-			}, */
-			depth_write_enabled: false,
-			depth_compare: CompareFunction::Always,
+			},
 			stencil: settings.wgpu_stencil_state.clone(),
 			bias: DepthBiasState::default(),
 		}),

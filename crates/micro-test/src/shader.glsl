@@ -2,7 +2,7 @@
 
 #ifdef VERTEX
 
-layout (location = 0) in vec2 aPos;
+layout (location = 0) in vec3 aPos;
 
 layout (binding = 0)
 uniform DrawParams {
@@ -16,7 +16,7 @@ layout (location = 1) out vec4 vertexColor;
 
 void main()
 {
-    gl_Position = globalTransform * vec4(aPos, 0.0, 1.0);
+    gl_Position = globalTransform * vec4(aPos, 1.0);
     texCoord = vec2(0.0, 0.0);
     vertexColor = blendColor;
 }

@@ -16,7 +16,7 @@ use wgpu::{Features, PresentMode, TextureFormat};
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	context::graphics::GraphicsContext,
-	graphics::StencilState,
+	graphics::DepthStencilState,
 	input::{Gamepad, MouseButton, Scancode},
 };
 
@@ -183,6 +183,10 @@ impl Context {
 		self.graphics.surface_format()
 	}
 
+	pub fn current_render_target_size(&self) -> UVec2 {
+		self.graphics.current_render_target_size()
+	}
+
 	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
 		self.graphics.set_present_mode(present_mode);
 	}
@@ -264,11 +268,16 @@ impl Context {
 		self.push_transform(Mat4::from_rotation_z(rotation))
 	}
 
-	pub fn push_stencil_state(&mut self, stencil_state: StencilState) -> OnDrop<'_> {
-		self.graphics.stencil_state_stack.push(stencil_state);
+	pub fn push_depth_stencil_state(
+		&mut self,
+		depth_stencil_state: DepthStencilState,
+	) -> OnDrop<'_> {
+		self.graphics
+			.depth_stencil_state_stack
+			.push(depth_stencil_state);
 		OnDrop {
 			ctx: self,
-			pop: Pop::StencilState,
+			pop: Pop::DepthStencilState,
 		}
 	}
 
@@ -351,8 +360,8 @@ impl Drop for OnDrop<'_> {
 			Pop::Transform => {
 				self.ctx.graphics.transform_stack.pop();
 			}
-			Pop::StencilState => {
-				self.ctx.graphics.stencil_state_stack.pop();
+			Pop::DepthStencilState => {
+				self.ctx.graphics.depth_stencil_state_stack.pop();
 			}
 		}
 	}
@@ -374,5 +383,5 @@ impl DerefMut for OnDrop<'_> {
 
 enum Pop {
 	Transform,
-	StencilState,
+	DepthStencilState,
 }

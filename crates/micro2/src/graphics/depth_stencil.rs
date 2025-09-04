@@ -2,8 +2,9 @@ use wgpu::StencilFaceState;
 pub use wgpu::{CompareFunction, StencilOperation};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct StencilState {
+pub struct DepthStencilState {
 	pub enable_color_writes: bool,
+	pub enable_depth_testing: bool,
 	pub reference: u8,
 	pub compare: CompareFunction,
 	pub on_fail: StencilOperation,
@@ -13,10 +14,11 @@ pub struct StencilState {
 	pub write_mask: u8,
 }
 
-impl StencilState {
+impl DepthStencilState {
 	pub fn write(operation: StencilOperation, reference: u8) -> Self {
 		Self {
 			enable_color_writes: false,
+			enable_depth_testing: false,
 			reference,
 			compare: CompareFunction::Always,
 			on_fail: operation,
@@ -30,6 +32,7 @@ impl StencilState {
 	pub fn read(compare: CompareFunction, reference: u8) -> Self {
 		Self {
 			enable_color_writes: true,
+			enable_depth_testing: false,
 			reference,
 			compare,
 			on_fail: StencilOperation::Keep,
@@ -37,6 +40,13 @@ impl StencilState {
 			on_pass: StencilOperation::Keep,
 			read_mask: 255,
 			write_mask: 255,
+		}
+	}
+
+	pub fn depth() -> Self {
+		Self {
+			enable_depth_testing: true,
+			..Default::default()
 		}
 	}
 
@@ -60,10 +70,11 @@ impl StencilState {
 	}
 }
 
-impl Default for StencilState {
+impl Default for DepthStencilState {
 	fn default() -> Self {
 		Self {
 			enable_color_writes: true,
+			enable_depth_testing: false,
 			reference: 0,
 			compare: CompareFunction::Always,
 			on_fail: StencilOperation::Replace,

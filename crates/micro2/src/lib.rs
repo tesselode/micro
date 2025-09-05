@@ -25,6 +25,7 @@ use std::time::Duration;
 
 use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
 use palette::LinSrgb;
+use paste::paste;
 use sdl3::video::{FullscreenType, WindowPos};
 use wgpu::{PresentMode, TextureFormat};
 
@@ -217,3 +218,47 @@ pub fn fps() -> f32 {
 pub fn quit() {
 	Context::with_mut(|ctx| ctx.should_quit = true);
 }
+
+#[macro_export]
+macro_rules! push {
+	($value:expr) => {
+		let _on_drop = $crate::push($value);
+	};
+	($($field:ident: $value:expr),*$(,)?) => {
+		let _on_drop = $crate::push($crate::Push {
+			$($field: Some($value)),*,
+			..Default::default()
+		});
+	};
+}
+
+macro_rules! push_macros {
+	($($name:ident),*$(,)?) => {
+		$(
+			paste! {
+				#[macro_export]
+				macro_rules! [<push_ $name>] {
+					($value:expr) => {
+						let _on_drop = $crate::[<push_ $name>]($value);
+					};
+				}
+			}
+		)*
+	};
+}
+
+push_macros![
+	translation_2d,
+	translation_3d,
+	translation_x,
+	translation_y,
+	translation_z,
+	scale_2d,
+	scale_3d,
+	scale_x,
+	scale_y,
+	scale_z,
+	rotation_x,
+	rotation_y,
+	rotation_z,
+];

@@ -2,7 +2,7 @@ use std::{f32::consts::FRAC_PI_2, path::Path};
 
 use bytemuck::{Pod, Zeroable};
 use micro2::{
-	App, ContextSettings, Event, Push,
+	App, ContextSettings, Event,
 	color::{ColorConstants, LinSrgba},
 	graphics::{
 		Camera3d, HasVertexAttributes, Shader, Vertex, VertexAttribute, mesh::Mesh,
@@ -54,12 +54,11 @@ impl App for Test {
 	}
 
 	fn draw(&mut self) {
-		let _on_drop = push(Push {
-			transform: Some(self.camera.transform()),
-			shader: Some(self.shader.clone()),
-			enable_depth_testing: Some(true),
-			..Default::default()
-		});
+		push! {
+			transform: self.camera.transform(),
+			shader: self.shader.clone(),
+			enable_depth_testing: true,
+		};
 		self.mesh.rotated_y(0.5).translated_z(3.0).draw();
 		self.mesh
 			.rotated_y(0.5)

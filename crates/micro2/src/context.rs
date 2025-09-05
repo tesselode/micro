@@ -105,11 +105,11 @@ pub(crate) struct Context {
 
 impl Context {
 	pub(crate) fn with<T>(mut f: impl FnMut(&Context) -> T) -> T {
-		CONTEXT.with(|ctx| f(&ctx.get().unwrap().borrow()))
+		CONTEXT.with(|ctx| f(&ctx.get().expect("context not initialized").borrow()))
 	}
 
 	pub(crate) fn with_mut<T>(mut f: impl FnMut(&mut Context) -> T) -> T {
-		CONTEXT.with(|ctx| f(&mut ctx.get().unwrap().borrow_mut()))
+		CONTEXT.with(|ctx| f(&mut ctx.get().expect("context not initialized").borrow_mut()))
 	}
 
 	fn init(settings: ContextSettings) {

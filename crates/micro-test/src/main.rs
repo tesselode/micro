@@ -2,11 +2,11 @@ use std::{f32::consts::FRAC_PI_2, path::Path};
 
 use bytemuck::{Pod, Zeroable};
 use micro2::{
-	App, Context, ContextSettings, Event,
+	App, Context, ContextSettings, Event, Push,
 	color::{ColorConstants, LinSrgba},
 	graphics::{
-		Camera3d, DepthStencilState, HasVertexAttributes, Shader, Vertex, VertexAttribute,
-		mesh::Mesh, vertex_attr_array,
+		Camera3d, HasVertexAttributes, Shader, Vertex, VertexAttribute, mesh::Mesh,
+		vertex_attr_array,
 	},
 	input::Scancode,
 	math::{Vec3, vec3},
@@ -53,15 +53,14 @@ impl App for Test {
 	}
 
 	fn draw(&mut self, ctx: &mut Context) {
-		let ctx = &mut ctx.push_transform(self.camera.transform(ctx));
-		let ctx = &mut ctx.push_depth_stencil_state(DepthStencilState::depth());
+		let ctx = &mut ctx.push(Push {
+			transform: Some(self.camera.transform(ctx)),
+			shader: Some(self.shader.clone()),
+			enable_depth_testing: Some(true),
+			..Default::default()
+		});
+		self.mesh.rotated_y(0.5).translated_z(3.0).draw(ctx);
 		self.mesh
-			.shader(&self.shader)
-			.rotated_y(0.5)
-			.translated_z(3.0)
-			.draw(ctx);
-		self.mesh
-			.shader(&self.shader)
 			.rotated_y(0.5)
 			.translated_z(5.0)
 			.color(LinSrgba::BLACK)

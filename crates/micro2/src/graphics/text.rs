@@ -9,13 +9,7 @@ use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
-use crate::{
-	Context,
-	color::ColorConstants,
-	graphics::{BlendMode, Shader},
-	math::{Rect, URect},
-	standard_draw_param_methods,
-};
+use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
 
 use super::{
 	IntoRange,
@@ -29,9 +23,7 @@ pub struct Text {
 	// params
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
-	pub shader: Option<Shader>,
-	pub scissor_rect: Option<URect>,
+
 	pub range: Option<(u32, u32)>,
 }
 
@@ -116,8 +108,6 @@ impl Text {
 			sprite_batch
 				.transformed(self.transform)
 				.color(self.color)
-				.blend_mode(self.blend_mode)
-				.shader(&self.shader)
 				.range(self.range)
 				.draw(ctx);
 		}
@@ -181,9 +171,6 @@ impl Text {
 			}),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
-			shader: None,
-			scissor_rect: None,
 			range: None,
 		}
 	}

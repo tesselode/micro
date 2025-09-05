@@ -24,8 +24,9 @@ use wgpu::{
 use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
+	context::Push,
 	graphics::{
-		BlendMode, Canvas, CanvasKind, DepthStencilState, RenderToCanvasSettings, Shader, Vertex,
+		BlendMode, Canvas, CanvasKind, RenderToCanvasSettings, Shader, StencilState, Vertex,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -47,8 +48,7 @@ pub(crate) struct GraphicsContext {
 	default_shader: Shader,
 	default_shader_params_bind_group: BindGroup,
 	pub(crate) clear_color: LinSrgb,
-	pub(crate) transform_stack: Vec<Mat4>,
-	pub(crate) depth_stencil_state_stack: Vec<DepthStencilState>,
+	graphics_state_stack: Vec<GraphicsState>,
 	vertex_info: HashMap<TypeId, VertexInfo>,
 	shaders: HashMap<String, ShaderModulePair>,
 	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
@@ -185,7 +185,7 @@ impl GraphicsContext {
 				}],
 			})
 		};
-		Self {
+		let mut ctx = Self {
 			device,
 			queue,
 			supported_sample_counts,
@@ -199,15 +199,16 @@ impl GraphicsContext {
 			default_shader,
 			default_shader_params_bind_group,
 			clear_color: LinSrgb::BLACK,
-			transform_stack: vec![],
-			depth_stencil_state_stack: vec![],
+			graphics_state_stack: vec![],
 			vertex_info: HashMap::new(),
 			shaders: HashMap::new(),
 			render_pipelines: HashMap::new(),
 			main_surface_draw_commands: vec![],
 			current_canvas_render_pass: None,
 			finished_canvas_render_passes: vec![],
-		}
+		};
+		ctx.graphics_state_stack.push(ctx.default_graphics_state());
+		ctx
 	}
 
 	pub(crate) fn resize(&mut self, size: UVec2) {
@@ -225,21 +226,6 @@ impl GraphicsContext {
 				sample_count: 1,
 			},
 		);
-	}
-
-	pub(crate) fn global_transform(&self) -> Mat4 {
-		let current_render_target_size = self.current_render_target_size();
-		let coordinate_system_transform = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
-			* Mat4::from_scale(Vec3::new(
-				2.0 / current_render_target_size.x as f32,
-				-2.0 / current_render_target_size.y as f32,
-				1.0,
-			));
-		self.transform_stack
-			.iter()
-			.fold(coordinate_system_transform, |previous, transform| {
-				previous * *transform
-			})
 	}
 
 	pub(crate) fn start_canvas_render_pass(
@@ -270,12 +256,7 @@ impl GraphicsContext {
 		self.vertex_info
 			.entry(vertex_type)
 			.or_insert_with(|| VertexInfo::for_type::<V>());
-		let shader = settings.shader.unwrap_or(self.default_shader.clone());
-		let depth_stencil_state = self
-			.depth_stencil_state_stack
-			.last()
-			.copied()
-			.unwrap_or_default();
+		let graphics_state = self.graphics_state_stack.last().unwrap();
 		let sample_count =
 			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
 				canvas.sample_count()
@@ -294,27 +275,26 @@ impl GraphicsContext {
 			range: settings.range,
 			texture: settings.texture,
 			draw_params: DrawParams {
-				global_transform: self.global_transform() * settings.transform,
+				global_transform: graphics_state.transform * settings.transform,
 				local_transform: settings.transform,
 				color: settings.color,
 			},
-			scissor_rect: settings
-				.scissor_rect
-				.unwrap_or_else(|| self.default_scissor_rect()),
-			shader_params_bind_group: shader
+			scissor_rect: graphics_state.scissor_rect,
+			shader_params_bind_group: graphics_state
+				.shader
 				.params_bind_group
 				.as_ref()
 				.unwrap_or(&self.default_shader_params_bind_group)
 				.clone(),
-			stencil_reference: depth_stencil_state.reference,
+			stencil_reference: graphics_state.stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
 				vertex_type,
-				shader_name: shader.name,
-				shader_source: shader.source,
-				blend_mode: settings.blend_mode,
-				enable_color_writes: depth_stencil_state.enable_color_writes,
-				enable_depth_testing: depth_stencil_state.enable_depth_testing,
-				wgpu_stencil_state: depth_stencil_state.as_wgpu_stencil_state(),
+				shader_name: graphics_state.shader.name.clone(),
+				shader_source: graphics_state.shader.source.clone(),
+				blend_mode: graphics_state.blend_mode,
+				enable_color_writes: graphics_state.stencil_state.enable_color_writes,
+				enable_depth_testing: graphics_state.enable_depth_testing,
+				wgpu_stencil_state: graphics_state.stencil_state.as_wgpu_stencil_state(),
 				sample_count,
 				format,
 			},
@@ -324,6 +304,20 @@ impl GraphicsContext {
 		} else {
 			self.main_surface_draw_commands.push(draw_command);
 		}
+	}
+
+	pub(crate) fn push_graphics_state(&mut self, new: Push) {
+		self.graphics_state_stack.push(
+			self.graphics_state_stack
+				.last()
+				.cloned()
+				.unwrap_or_else(|| self.default_graphics_state())
+				.push(&new),
+		);
+	}
+
+	pub(crate) fn pop_graphics_state(&mut self) {
+		self.graphics_state_stack.pop();
 	}
 
 	pub(crate) fn present_mode(&self) -> PresentMode {
@@ -338,6 +332,14 @@ impl GraphicsContext {
 		self.config.format
 	}
 
+	pub(crate) fn current_render_target_size(&self) -> UVec2 {
+		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			canvas.size()
+		} else {
+			uvec2(self.config.width, self.config.height)
+		}
+	}
+
 	pub(crate) fn set_present_mode(&mut self, present_mode: PresentMode) {
 		self.config.present_mode = present_mode;
 		self.surface.configure(&self.device, &self.config);
@@ -346,14 +348,6 @@ impl GraphicsContext {
 	pub(crate) fn set_max_queued_frames(&mut self, frames: u32) {
 		self.config.desired_maximum_frame_latency = frames;
 		self.surface.configure(&self.device, &self.config);
-	}
-
-	pub(crate) fn current_render_target_size(&self) -> UVec2 {
-		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
-			canvas.size()
-		} else {
-			uvec2(self.config.width, self.config.height)
-		}
 	}
 
 	pub(crate) fn present(&mut self) {
@@ -465,6 +459,31 @@ impl GraphicsContext {
 
 		self.queue.submit([encoder.finish()]);
 		frame.present();
+
+		self.graphics_state_stack.clear();
+		self.graphics_state_stack
+			.push(self.default_graphics_state());
+	}
+
+	fn default_graphics_state(&self) -> GraphicsState {
+		GraphicsState {
+			transform: self.default_transform(),
+			shader: self.default_shader.clone(),
+			blend_mode: BlendMode::default(),
+			stencil_state: StencilState::default(),
+			enable_depth_testing: false,
+			scissor_rect: self.default_scissor_rect(),
+		}
+	}
+
+	fn default_transform(&self) -> Mat4 {
+		let current_render_target_size = self.current_render_target_size();
+		Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+			* Mat4::from_scale(Vec3::new(
+				2.0 / current_render_target_size.x as f32,
+				-2.0 / current_render_target_size.y as f32,
+				1.0,
+			))
 	}
 
 	fn default_scissor_rect(&self) -> URect {
@@ -558,9 +577,6 @@ pub(crate) struct QueueDrawCommandSettings {
 	pub(crate) texture: Texture,
 	pub(crate) transform: Mat4,
 	pub(crate) color: LinSrgba,
-	pub(crate) scissor_rect: Option<URect>,
-	pub(crate) shader: Option<Shader>,
-	pub(crate) blend_mode: BlendMode,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -640,6 +656,35 @@ impl VertexInfo {
 		Self {
 			size: std::mem::size_of::<V>(),
 			attributes: V::attributes(),
+		}
+	}
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct GraphicsState {
+	transform: Mat4,
+	shader: Shader,
+	blend_mode: BlendMode,
+	stencil_state: StencilState,
+	enable_depth_testing: bool,
+	scissor_rect: URect,
+}
+
+impl GraphicsState {
+	fn push(&self, push: &Push) -> Self {
+		Self {
+			transform: if let Some(transform) = push.transform {
+				self.transform * transform
+			} else {
+				self.transform
+			},
+			shader: push.shader.as_ref().unwrap_or(&self.shader).clone(),
+			blend_mode: push.blend_mode.unwrap_or(self.blend_mode),
+			stencil_state: push.stencil_state.unwrap_or(self.stencil_state),
+			enable_depth_testing: push
+				.enable_depth_testing
+				.unwrap_or(self.enable_depth_testing),
+			scissor_rect: push.scissor_rect.unwrap_or(self.scissor_rect),
 		}
 	}
 }

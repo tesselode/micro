@@ -1,11 +1,11 @@
 mod blend_mode;
 mod camera_3d;
 mod canvas;
-mod depth_stencil;
 mod into_range;
 pub mod mesh;
 mod shader;
 pub mod sprite_batch;
+mod stencil;
 pub mod text;
 pub mod texture;
 mod vertex;
@@ -13,9 +13,9 @@ mod vertex;
 pub use blend_mode::*;
 pub use camera_3d::*;
 pub use canvas::*;
-pub use depth_stencil::*;
 pub use into_range::*;
 pub use shader::*;
+pub use stencil::*;
 pub use vertex::*;
 pub use wgpu::{Features, PresentMode, TextureFormat};
 
@@ -87,25 +87,6 @@ macro_rules! standard_draw_param_methods {
 		pub fn color(&self, color: impl Into<$crate::color::LinSrgba>) -> Self {
 			let mut new = self.clone();
 			new.color = color.into();
-			new
-		}
-
-		pub fn blend_mode(&self, blend_mode: $crate::graphics::BlendMode) -> Self {
-			let mut new = self.clone();
-			new.blend_mode = blend_mode.into();
-			new
-		}
-
-		pub fn shader<'a>(&self, shader: impl Into<Option<&'a Shader>>) -> Self {
-			Self {
-				shader: shader.into().cloned(),
-				..self.clone()
-			}
-		}
-
-		pub fn scissor_rect(&self, scissor_rect: impl Into<Option<$crate::math::URect>>) -> Self {
-			let mut new = self.clone();
-			new.scissor_rect = scissor_rect.into();
 			new
 		}
 	};

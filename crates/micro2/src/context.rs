@@ -16,8 +16,9 @@ use wgpu::{Features, PresentMode, TextureFormat};
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	context::graphics::GraphicsContext,
-	graphics::DepthStencilState,
+	graphics::{BlendMode, Shader, StencilState},
 	input::{Gamepad, MouseButton, Scancode},
+	math::URect,
 };
 
 pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F)
@@ -203,82 +204,61 @@ impl Context {
 		self.graphics.clear_color = color.into();
 	}
 
-	/// Creates a scope where all drawing operations have the given transform
-	/// applied.
-	///
-	/// Calls to `push_transform` can be nested.
-	pub fn push_transform(&mut self, transform: impl Into<Mat4>) -> OnDrop<'_> {
-		let transform = transform.into();
-		self.graphics.transform_stack.push(transform);
-		OnDrop {
-			ctx: self,
-			pop: Pop::Transform,
-		}
+	pub fn push(&mut self, push: impl Into<Push>) -> OnDrop<'_> {
+		self.graphics.push_graphics_state(push.into());
+		OnDrop { ctx: self }
 	}
 
 	pub fn push_translation_2d(&mut self, translation: impl Into<Vec2>) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_translation(translation.into().extend(0.0)))
+		self.push(Mat4::from_translation(translation.into().extend(0.0)))
 	}
 
 	pub fn push_translation_3d(&mut self, translation: impl Into<Vec3>) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_translation(translation.into()))
+		self.push(Mat4::from_translation(translation.into()))
 	}
 
 	pub fn push_translation_x(&mut self, translation: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
+		self.push(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
 	}
 
 	pub fn push_translation_y(&mut self, translation: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
+		self.push(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
 	}
 
 	pub fn push_translation_z(&mut self, translation: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
+		self.push(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
 	}
 
 	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_scale(scale.into().extend(0.0)))
+		self.push(Mat4::from_scale(scale.into().extend(0.0)))
 	}
 
 	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_scale(scale.into()))
+		self.push(Mat4::from_scale(scale.into()))
 	}
 
 	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
+		self.push(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
 	}
 
 	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
+		self.push(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
 	}
 
 	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
+		self.push(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
 	}
 
 	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_rotation_x(rotation))
+		self.push(Mat4::from_rotation_x(rotation))
 	}
 
 	pub fn push_rotation_y(&mut self, rotation: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_rotation_y(rotation))
+		self.push(Mat4::from_rotation_y(rotation))
 	}
 
 	pub fn push_rotation_z(&mut self, rotation: f32) -> OnDrop<'_> {
-		self.push_transform(Mat4::from_rotation_z(rotation))
-	}
-
-	pub fn push_depth_stencil_state(
-		&mut self,
-		depth_stencil_state: DepthStencilState,
-	) -> OnDrop<'_> {
-		self.graphics
-			.depth_stencil_state_stack
-			.push(depth_stencil_state);
-		OnDrop {
-			ctx: self,
-			pop: Pop::DepthStencilState,
-		}
+		self.push(Mat4::from_rotation_z(rotation))
 	}
 
 	/// Returns `true` if the given keyboard key is currently held down.
@@ -348,22 +328,60 @@ impl Default for ContextSettings {
 	}
 }
 
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Push {
+	pub transform: Option<Mat4>,
+	pub shader: Option<Shader>,
+	pub blend_mode: Option<BlendMode>,
+	pub stencil_state: Option<StencilState>,
+	pub enable_depth_testing: Option<bool>,
+	pub scissor_rect: Option<URect>,
+}
+
+impl From<Mat4> for Push {
+	fn from(transform: Mat4) -> Self {
+		Self {
+			transform: Some(transform),
+			..Default::default()
+		}
+	}
+}
+
+impl From<&Shader> for Push {
+	fn from(shader: &Shader) -> Self {
+		Self {
+			shader: Some(shader.clone()),
+			..Default::default()
+		}
+	}
+}
+
+impl From<BlendMode> for Push {
+	fn from(blend_mode: BlendMode) -> Self {
+		Self {
+			blend_mode: Some(blend_mode),
+			..Default::default()
+		}
+	}
+}
+
+impl From<StencilState> for Push {
+	fn from(stencil_state: StencilState) -> Self {
+		Self {
+			stencil_state: Some(stencil_state),
+			..Default::default()
+		}
+	}
+}
+
 #[must_use]
 pub struct OnDrop<'a> {
 	ctx: &'a mut Context,
-	pop: Pop,
 }
 
 impl Drop for OnDrop<'_> {
 	fn drop(&mut self) {
-		match self.pop {
-			Pop::Transform => {
-				self.ctx.graphics.transform_stack.pop();
-			}
-			Pop::DepthStencilState => {
-				self.ctx.graphics.depth_stencil_state_stack.pop();
-			}
-		}
+		self.ctx.graphics.pop_graphics_state();
 	}
 }
 
@@ -379,9 +397,4 @@ impl DerefMut for OnDrop<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}
-}
-
-enum Pop {
-	Transform,
-	DepthStencilState,
 }

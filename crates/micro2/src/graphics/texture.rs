@@ -12,13 +12,7 @@ use wgpu::{
 	TextureUsages, TextureView, TextureViewDescriptor,
 };
 
-use crate::{
-	Context,
-	color::ColorConstants,
-	graphics::{BlendMode, Shader},
-	math::{Rect, URect},
-	standard_draw_param_methods,
-};
+use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
 
 use super::mesh::Mesh;
 
@@ -33,9 +27,6 @@ pub struct Texture {
 	pub region: Rect,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub blend_mode: BlendMode,
-	pub shader: Option<Shader>,
-	pub scissor_rect: Option<URect>,
 }
 
 impl Texture {
@@ -191,9 +182,6 @@ impl Texture {
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
-			shader: None,
-			scissor_rect: None,
 		}
 	}
 
@@ -207,8 +195,6 @@ impl Texture {
 		.texture(self)
 		.transformed(self.transform)
 		.color(self.color)
-		.blend_mode(self.blend_mode)
-		.shader(&self.shader)
 		.draw(ctx)
 	}
 }

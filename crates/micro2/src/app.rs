@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use crate::{Context, event::Event};
+use crate::event::Event;
 
 #[allow(unused_variables)]
 pub trait App {
-	fn event(&mut self, ctx: &mut Context, event: Event) {}
+	fn event(&mut self, event: Event) {}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {}
+	fn update(&mut self, delta_time: Duration) {}
 
-	fn draw(&mut self, ctx: &mut Context) {}
+	fn draw(&mut self) {}
 }

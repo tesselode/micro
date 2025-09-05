@@ -1,5 +1,3 @@
-use std::ops::{Deref, DerefMut};
-
 use glam::{Mat4, UVec2, Vec2};
 use palette::LinSrgba;
 use wgpu::TextureFormat;
@@ -22,9 +20,9 @@ pub struct Canvas {
 }
 
 impl Canvas {
-	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
-		Self {
-			label: settings.label,
+	pub fn new(size: UVec2, settings: CanvasSettings) -> Self {
+		Context::with(|ctx| Self {
+			label: settings.label.clone(),
 			kind: match settings.sample_count {
 				1 => CanvasKind::Normal {
 					texture: Texture::new(
@@ -80,7 +78,7 @@ impl Canvas {
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-		}
+		})
 	}
 
 	standard_draw_param_methods!();
@@ -104,23 +102,21 @@ impl Canvas {
 		self.format
 	}
 
-	pub fn render_to<'a>(
-		&self,
-		ctx: &'a mut Context,
-		settings: RenderToCanvasSettings,
-	) -> OnDrop<'a> {
+	pub fn render_to(&self, settings: RenderToCanvasSettings) -> OnDrop {
 		let _span = tracy_client::span!();
-		ctx.graphics
-			.start_canvas_render_pass(self.clone(), settings);
-		OnDrop { ctx }
+		Context::with_mut(|ctx| {
+			ctx.graphics
+				.start_canvas_render_pass(self.clone(), settings.clone())
+		});
+		OnDrop {}
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self) {
 		self.drawable_texture()
 			.region(self.region)
 			.transformed(self.transform)
 			.color(self.color)
-			.draw(ctx)
+			.draw()
 	}
 
 	pub(crate) fn drawable_texture(&self) -> Texture {
@@ -183,27 +179,11 @@ impl Default for RenderToCanvasSettings {
 }
 
 #[must_use]
-pub struct OnDrop<'a> {
-	pub(crate) ctx: &'a mut Context,
-}
+pub struct OnDrop;
 
-impl Drop for OnDrop<'_> {
+impl Drop for OnDrop {
 	fn drop(&mut self) {
-		self.ctx.graphics.finish_canvas_render_pass();
-	}
-}
-
-impl Deref for OnDrop<'_> {
-	type Target = Context;
-
-	fn deref(&self) -> &Self::Target {
-		self.ctx
-	}
-}
-
-impl DerefMut for OnDrop<'_> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		self.ctx
+		Context::with_mut(|ctx| ctx.graphics.finish_canvas_render_pass());
 	}
 }
 

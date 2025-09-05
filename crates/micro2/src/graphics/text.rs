@@ -9,7 +9,7 @@ use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
-use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
+use crate::{color::ColorConstants, math::Rect, standard_draw_param_methods};
 
 use super::{
 	IntoRange,
@@ -28,15 +28,9 @@ pub struct Text {
 }
 
 impl Text {
-	pub fn new(
-		ctx: &Context,
-		font: &Font,
-		text: impl Into<String>,
-		layout_settings: LayoutSettings,
-	) -> Self {
+	pub fn new(font: &Font, text: impl Into<String>, layout_settings: LayoutSettings) -> Self {
 		let _span = tracy_client::span!();
 		Self::with_multiple_fonts(
-			ctx,
 			&[font],
 			&[TextFragment {
 				font_index: 0,
@@ -47,7 +41,6 @@ impl Text {
 	}
 
 	pub fn with_multiple_fonts<'a>(
-		ctx: &Context,
 		fonts: &[&Font],
 		text_fragments: impl IntoIterator<Item = &'a TextFragment>,
 		layout_settings: LayoutSettings,
@@ -70,7 +63,7 @@ impl Text {
 				},
 			);
 		}
-		Self::from_layout(ctx, layout, fonts)
+		Self::from_layout(layout, fonts)
 	}
 
 	standard_draw_param_methods!();
@@ -97,7 +90,7 @@ impl Text {
 		self.inner.lowest_baseline
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self) {
 		let _span = tracy_client::span!();
 		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
 			unimplemented!(
@@ -109,11 +102,11 @@ impl Text {
 				.transformed(self.transform)
 				.color(self.color)
 				.range(self.range)
-				.draw(ctx);
+				.draw();
 		}
 	}
 
-	fn from_layout(ctx: &Context, layout: Layout, fonts: &[&Font]) -> Text {
+	fn from_layout(layout: Layout, fonts: &[&Font]) -> Text {
 		let glyphs = layout.glyphs();
 		let lowest_baseline = layout.lines().map(|lines| {
 			lines
@@ -127,7 +120,6 @@ impl Text {
 			.enumerate()
 			.map(|(i, font)| {
 				SpriteBatch::new(
-					ctx,
 					&font.inner.texture,
 					glyphs.iter().filter(|glyph| glyph.font_index == i).count(),
 				)
@@ -155,7 +147,6 @@ impl Text {
 				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
 			sprite_batches[glyph.font_index]
 				.add_region(
-					ctx,
 					texture_region,
 					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
 				)

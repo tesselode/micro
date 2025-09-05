@@ -29,30 +29,32 @@ impl Shader {
 		}
 	}
 
-	pub fn with_params(&self, ctx: &Context, params: impl Pod) -> Self {
-		let buffer = ctx
-			.graphics
-			.device
-			.create_buffer_init(&BufferInitDescriptor {
-				label: Some(&format!("{} - Shader Params Buffer", &self.name)),
-				contents: bytemuck::cast_slice(&[params]),
-				usage: BufferUsages::UNIFORM,
+	pub fn with_params(&self, params: impl Pod) -> Self {
+		Context::with(|ctx| {
+			let buffer = ctx
+				.graphics
+				.device
+				.create_buffer_init(&BufferInitDescriptor {
+					label: Some(&format!("{} - Shader Params Buffer", &self.name)),
+					contents: bytemuck::cast_slice(&[params]),
+					usage: BufferUsages::UNIFORM,
+				});
+			let params_bind_group = ctx.graphics.device.create_bind_group(&BindGroupDescriptor {
+				label: Some(&format!("{} - Shader Params Bind Group", &self.name)),
+				layout: &ctx.graphics.shader_params_bind_group_layout,
+				entries: &[BindGroupEntry {
+					binding: 0,
+					resource: buffer.as_entire_binding(),
+				}],
 			});
-		let params_bind_group = ctx.graphics.device.create_bind_group(&BindGroupDescriptor {
-			label: Some(&format!("{} - Shader Params Bind Group", &self.name)),
-			layout: &ctx.graphics.shader_params_bind_group_layout,
-			entries: &[BindGroupEntry {
-				binding: 0,
-				resource: buffer.as_entire_binding(),
-			}],
-		});
-		Self {
-			params_bind_group: Some(params_bind_group),
-			..self.clone()
-		}
+			Self {
+				params_bind_group: Some(params_bind_group),
+				..self.clone()
+			}
+		})
 	}
 
-	pub fn set_params(&mut self, ctx: &Context, params: impl Pod) {
-		*self = self.with_params(ctx, params);
+	pub fn set_params(&mut self, params: impl Pod) {
+		*self = self.with_params(params);
 	}
 }

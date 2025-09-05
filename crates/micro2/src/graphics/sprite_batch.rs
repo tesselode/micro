@@ -10,7 +10,6 @@ use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
 use crate::{
-	Context,
 	color::ColorConstants,
 	graphics::{mesh::Mesh, texture::Texture},
 	math::Rect,
@@ -30,7 +29,7 @@ pub struct SpriteBatch {
 }
 
 impl SpriteBatch {
-	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
+	pub fn new(texture: &Texture, capacity: usize) -> Self {
 		let _span = tracy_client::span!();
 		let vertices = vec![
 			Vertex2d {
@@ -57,7 +56,7 @@ impl SpriteBatch {
 				sprites: Arena::with_capacity(capacity),
 			})),
 			texture: texture.clone(),
-			mesh: Mesh::new(ctx, &vertices, &indices),
+			mesh: Mesh::new(&vertices, &indices),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			range: None,
@@ -81,19 +80,14 @@ impl SpriteBatch {
 		self.len() == 0
 	}
 
-	pub fn add(
-		&mut self,
-		ctx: &Context,
-		params: impl Into<SpriteParams>,
-	) -> Result<SpriteId, SpriteLimitReached> {
+	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
 		let _span = tracy_client::span!();
 		let size = self.texture.size().as_vec2();
-		self.add_region(ctx, Rect::new(Vec2::ZERO, size), params)
+		self.add_region(Rect::new(Vec2::ZERO, size), params)
 	}
 
 	pub fn add_region(
 		&mut self,
-		ctx: &Context,
 		texture_region: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<SpriteId, SpriteLimitReached> {
@@ -123,11 +117,11 @@ impl SpriteBatch {
 				color: params.color,
 			})
 			.collect::<Vec<_>>();
-		self.mesh.set_vertices(ctx, start_vertex_index, &vertices);
+		self.mesh.set_vertices(start_vertex_index, &vertices);
 		Ok(id)
 	}
 
-	pub fn remove(&mut self, ctx: &Context, id: SpriteId) -> Result<(), InvalidSpriteId> {
+	pub fn remove(&mut self, id: SpriteId) -> Result<(), InvalidSpriteId> {
 		let _span = tracy_client::span!();
 		if self
 			.inner
@@ -146,17 +140,17 @@ impl SpriteBatch {
 			texture_coords: Vec2::ZERO,
 			color: LinSrgba::WHITE,
 		}; 4];
-		self.mesh.set_vertices(ctx, start_vertex_index, &vertices);
+		self.mesh.set_vertices(start_vertex_index, &vertices);
 		Ok(())
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self) {
 		self.mesh
 			.texture(&self.texture)
 			.transformed(self.transform)
 			.color(self.color)
 			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
-			.draw(ctx)
+			.draw()
 	}
 }
 

@@ -2,7 +2,7 @@ use std::{f32::consts::FRAC_PI_2, path::Path};
 
 use bytemuck::{Pod, Zeroable};
 use micro2::{
-	App, Context, ContextSettings, Event, Push,
+	App, ContextSettings, Event, Push,
 	color::{ColorConstants, LinSrgba},
 	graphics::{
 		Camera3d, HasVertexAttributes, Shader, Vertex, VertexAttribute, mesh::Mesh,
@@ -10,6 +10,7 @@ use micro2::{
 	},
 	input::Scancode,
 	math::{Vec3, vec3},
+	push, quit, window_size,
 };
 use tobj::GPU_LOAD_OPTIONS;
 
@@ -26,13 +27,13 @@ struct Test {
 }
 
 impl Test {
-	fn new(ctx: &mut Context) -> Self {
+	fn new() -> Self {
 		Self {
-			mesh: load_3d_mesh(ctx, "resources/cube.obj"),
+			mesh: load_3d_mesh("resources/cube.obj"),
 			shader: Shader::from_string("3d shader", CUSTOM_SHADER_SOURCE),
 			camera: Camera3d::perspective(
 				FRAC_PI_2,
-				ctx.window_size().x as f32 / ctx.window_size().y as f32,
+				window_size().x as f32 / window_size().y as f32,
 				0.1..=1000.0,
 				Vec3::ZERO,
 				vec3(0.0, 0.0, 10.0),
@@ -42,37 +43,36 @@ impl Test {
 }
 
 impl App for Test {
-	fn event(&mut self, ctx: &mut Context, event: Event) {
+	fn event(&mut self, event: Event) {
 		if let Event::KeyPressed {
 			key: Scancode::Escape,
 			..
 		} = event
 		{
-			ctx.quit();
+			quit();
 		}
 	}
 
-	fn draw(&mut self, ctx: &mut Context) {
-		let ctx = &mut ctx.push(Push {
-			transform: Some(self.camera.transform(ctx)),
+	fn draw(&mut self) {
+		let _on_drop = push(Push {
+			transform: Some(self.camera.transform()),
 			shader: Some(self.shader.clone()),
 			enable_depth_testing: Some(true),
 			..Default::default()
 		});
-		self.mesh.rotated_y(0.5).translated_z(3.0).draw(ctx);
+		self.mesh.rotated_y(0.5).translated_z(3.0).draw();
 		self.mesh
 			.rotated_y(0.5)
 			.translated_z(5.0)
 			.color(LinSrgba::BLACK)
-			.draw(ctx);
+			.draw();
 	}
 }
 
-fn load_3d_mesh(ctx: &Context, path: impl AsRef<Path>) -> Mesh<Vertex3d> {
+fn load_3d_mesh(path: impl AsRef<Path>) -> Mesh<Vertex3d> {
 	let (tobj_models, _) = tobj::load_obj(path.as_ref(), &GPU_LOAD_OPTIONS).unwrap();
 	let tobj_model = &tobj_models[0];
 	Mesh::new(
-		ctx,
 		&tobj_model
 			.mesh
 			.positions

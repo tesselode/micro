@@ -30,42 +30,44 @@ pub struct Texture {
 }
 
 impl Texture {
-	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
+	pub fn empty(size: UVec2, settings: TextureSettings) -> Self {
 		let _span = tracy_client::span!();
-		Self::new(
-			&ctx.graphics.device,
-			&ctx.graphics.queue,
-			size,
-			None,
-			settings,
-			InternalTextureSettings::default(),
-		)
+		Context::with(|ctx| {
+			Self::new(
+				&ctx.graphics.device,
+				&ctx.graphics.queue,
+				size,
+				None,
+				settings,
+				InternalTextureSettings::default(),
+			)
+		})
 	}
 
 	pub fn from_image(
-		ctx: &Context,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 		settings: TextureSettings,
 	) -> Self {
 		let _span = tracy_client::span!();
-		Self::new(
-			&ctx.graphics.device,
-			&ctx.graphics.queue,
-			UVec2::new(image.width(), image.height()),
-			Some(image.as_raw()),
-			settings,
-			InternalTextureSettings::default(),
-		)
+		Context::with(|ctx| {
+			Self::new(
+				&ctx.graphics.device,
+				&ctx.graphics.queue,
+				UVec2::new(image.width(), image.height()),
+				Some(image.as_raw()),
+				settings,
+				InternalTextureSettings::default(),
+			)
+		})
 	}
 
 	pub fn from_file(
-		ctx: &Context,
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
 		let _span = tracy_client::span!();
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
-		Ok(Self::from_image(ctx, &image, settings))
+		Ok(Self::from_image(&image, settings))
 	}
 
 	pub fn region(&self, region: Rect) -> Self {
@@ -88,37 +90,34 @@ impl Texture {
 		)
 	}
 
-	pub fn replace(
-		&self,
-		ctx: &Context,
-		top_left: UVec2,
-		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
-	) {
+	pub fn replace(&self, top_left: UVec2, image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>) {
 		let _span = tracy_client::span!();
 		let texture_extent = Extent3d {
 			width: image.width(),
 			height: image.height(),
 			depth_or_array_layers: 1,
 		};
-		ctx.graphics.queue.write_texture(
-			TexelCopyTextureInfo {
-				texture: &self.texture,
-				mip_level: 0,
-				origin: Origin3d {
-					x: top_left.x,
-					y: top_left.y,
-					z: 0,
+		Context::with_mut(|ctx| {
+			ctx.graphics.queue.write_texture(
+				TexelCopyTextureInfo {
+					texture: &self.texture,
+					mip_level: 0,
+					origin: Origin3d {
+						x: top_left.x,
+						y: top_left.y,
+						z: 0,
+					},
+					aspect: TextureAspect::All,
 				},
-				aspect: TextureAspect::All,
-			},
-			image.as_raw(),
-			TexelCopyBufferLayout {
-				offset: 0,
-				bytes_per_row: Some(4 * image.width()),
-				rows_per_image: Some(image.height()),
-			},
-			texture_extent,
-		);
+				image.as_raw(),
+				TexelCopyBufferLayout {
+					offset: 0,
+					bytes_per_row: Some(4 * image.width()),
+					rows_per_image: Some(image.height()),
+				},
+				texture_extent,
+			)
+		});
 	}
 
 	pub(crate) fn new(
@@ -185,17 +184,16 @@ impl Texture {
 		}
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self) {
 		let _span = tracy_client::span!();
 		Mesh::rectangle_with_texture_region(
-			ctx,
 			Rect::new(Vec2::ZERO, self.region.size),
 			self.relative_rect(self.region),
 		)
 		.texture(self)
 		.transformed(self.transform)
 		.color(self.color)
-		.draw(ctx)
+		.draw()
 	}
 }
 

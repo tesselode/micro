@@ -15,7 +15,6 @@ use lyon_tessellation::{
 use palette::LinSrgba;
 
 use crate::{
-	Context,
 	graphics::Vertex2d,
 	math::{Circle, Rect},
 };
@@ -440,9 +439,9 @@ impl MeshBuilder {
 		self
 	}
 
-	pub fn build(self, ctx: &Context) -> Mesh {
+	pub fn build(self) -> Mesh {
 		let _span = tracy_client::span!();
-		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
+		Mesh::new(&self.buffers.vertices, &self.buffers.indices)
 	}
 }
 

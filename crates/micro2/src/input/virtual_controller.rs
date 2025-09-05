@@ -10,7 +10,7 @@ pub use traits::*;
 
 use std::{collections::HashMap, hash::Hash};
 
-use crate::{context::Context, math::CardinalDirection};
+use crate::math::CardinalDirection;
 
 use super::Gamepad;
 
@@ -46,10 +46,10 @@ where
 		}
 	}
 
-	pub fn update(&mut self, ctx: &Context) {
-		self.update_active_input_kind(ctx);
+	pub fn update(&mut self) {
+		self.update_active_input_kind();
 		if let Some(active_input_kind) = self.active_input_kind {
-			self.update_control_state(ctx, active_input_kind);
+			self.update_control_state(active_input_kind);
 		}
 		self.update_stick_state();
 	}
@@ -66,15 +66,15 @@ where
 		self.active_input_kind
 	}
 
-	fn update_active_input_kind(&mut self, ctx: &Context) {
-		if self.any_input_of_kind_used(ctx, InputKind::KeyboardMouse) {
+	fn update_active_input_kind(&mut self) {
+		if self.any_input_of_kind_used(InputKind::KeyboardMouse) {
 			self.active_input_kind = Some(InputKind::KeyboardMouse);
-		} else if self.any_input_of_kind_used(ctx, InputKind::Gamepad) {
+		} else if self.any_input_of_kind_used(InputKind::Gamepad) {
 			self.active_input_kind = Some(InputKind::Gamepad);
 		}
 	}
 
-	fn any_input_of_kind_used(&self, ctx: &Context, kind: InputKind) -> bool {
+	fn any_input_of_kind_used(&self, kind: InputKind) -> bool {
 		self.config
 			.control_mapping
 			.iter()
@@ -83,16 +83,15 @@ where
 					.iter()
 					.filter(|real_control| real_control.kind() == kind)
 					.any(|real_control| {
-						real_control.value(ctx, self.gamepad.as_ref()) > self.config.deadzone
+						real_control.value(self.gamepad.as_ref()) > self.config.deadzone
 					})
 			})
 	}
 
-	fn update_control_state(&mut self, ctx: &Context, active_input_kind: InputKind) {
+	fn update_control_state(&mut self, active_input_kind: InputKind) {
 		for (control, state) in &mut self.control_state {
 			let down_previous = state.down;
 			let raw_value = Self::control_raw_value(
-				ctx,
 				&self.config,
 				self.gamepad.as_ref(),
 				*control,
@@ -138,7 +137,6 @@ where
 	}
 
 	fn control_raw_value(
-		ctx: &Context,
 		config: &VirtualControllerConfig<C>,
 		gamepad: Option<&Gamepad>,
 		control: C,
@@ -152,7 +150,7 @@ where
 					.iter()
 					.filter(|control| control.kind() == active_input_kind)
 					.fold(0.0, |previous, control: &RealControl| {
-						previous + control.value(ctx, gamepad)
+						previous + control.value(gamepad)
 					})
 					.min(1.0)
 			})

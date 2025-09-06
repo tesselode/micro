@@ -26,6 +26,7 @@ sdl3 = { version = "0.14.41", features = [
     "raw-window-handle",
 ] }
 serde = { version = "1.0", features = ["derive"], optional = true }
+tracing = "0.1.41"
 tracy-client = { version = "0.18.0", default-features = false, features = [
     "broadcast",
     "callstack-inlines",

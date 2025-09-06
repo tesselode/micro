@@ -171,7 +171,7 @@ impl Mesh<Vertex2d> {
 	pub fn filled_polygon(
 		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
-	) -> Result<Self, TessellationError> {
+	) -> Result<Self, AddPolyError> {
 		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new().with_filled_polygon(points)?.build(ctx))
 	}
@@ -180,7 +180,7 @@ impl Mesh<Vertex2d> {
 		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
-	) -> Result<Self, TessellationError> {
+	) -> Result<Self, AddPolyError> {
 		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
 	}
@@ -189,7 +189,7 @@ impl Mesh<Vertex2d> {
 		ctx: &Context,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-	) -> Result<Self, TessellationError> {
+	) -> Result<Self, AddPolyError> {
 		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new()
 			.with_simple_polygon(style, points, LinSrgba::WHITE)?
@@ -200,7 +200,7 @@ impl Mesh<Vertex2d> {
 		ctx: &Context,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-	) -> Result<Self, TessellationError> {
+	) -> Result<Self, AddPolyError> {
 		let _span = tracy_client::span!();
 		Ok(MeshBuilder::new()
 			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)?

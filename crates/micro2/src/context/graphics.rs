@@ -256,7 +256,10 @@ impl GraphicsContext {
 		self.vertex_info
 			.entry(vertex_type)
 			.or_insert_with(|| VertexInfo::for_type::<V>());
-		let graphics_state = self.graphics_state_stack.last().unwrap();
+		let graphics_state = self
+			.graphics_state_stack
+			.last()
+			.expect("no graphics state on stack");
 		let sample_count =
 			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
 				canvas.sample_count()

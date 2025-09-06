@@ -108,7 +108,8 @@ fn rasterize_chars(
 			}
 			(
 				char,
-				ImageBuffer::from_vec(metrics.width as u32, metrics.height as u32, pixels).unwrap(),
+				ImageBuffer::from_vec(metrics.width as u32, metrics.height as u32, pixels)
+					.expect("buffer too small"),
 			)
 		})
 		.collect()

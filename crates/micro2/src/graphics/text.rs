@@ -8,6 +8,7 @@ pub use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
+use tracing::warn;
 
 use crate::{color::ColorConstants, math::Rect, standard_draw_param_methods};
 
@@ -140,11 +141,12 @@ impl Text {
 			} else {
 				bounds = Some(display_rect);
 			}
-			let texture_region = *fonts[glyph.font_index]
-				.inner
-				.glyph_rects
-				.get(&glyph.parent)
-				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
+			let Some(&texture_region) =
+				fonts[glyph.font_index].inner.glyph_rects.get(&glyph.parent)
+			else {
+				warn!("No glyph rect for the character {}", glyph.parent);
+				continue;
+			};
 			sprite_batches[glyph.font_index]
 				.add_region(
 					texture_region,

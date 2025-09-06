@@ -72,7 +72,11 @@ impl SpriteBatch {
 	}
 
 	pub fn len(&self) -> usize {
-		self.inner.try_lock().unwrap().sprites.len()
+		self.inner
+			.try_lock()
+			.expect("sprite batch mutex locked")
+			.sprites
+			.len()
 	}
 
 	#[must_use]
@@ -95,7 +99,7 @@ impl SpriteBatch {
 		let id = self
 			.inner
 			.try_lock()
-			.unwrap()
+			.expect("sprite batch mutex locked")
 			.sprites
 			.try_insert(())
 			.map(SpriteId)
@@ -126,7 +130,7 @@ impl SpriteBatch {
 		if self
 			.inner
 			.try_lock()
-			.unwrap()
+			.expect("sprite batch mutex locked")
 			.sprites
 			.remove(id.0)
 			.is_none()

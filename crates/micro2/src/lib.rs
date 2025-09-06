@@ -59,22 +59,27 @@ pub fn window_mode() -> WindowMode {
 }
 
 /// Returns the resolution of the monitor the window is on.
-pub fn monitor_resolution() -> UVec2 {
-	let display_mode = Context::with(|ctx| ctx.window.get_display().unwrap().get_mode().unwrap());
-	UVec2::new(display_mode.w as u32, display_mode.h as u32)
+pub fn monitor_resolution() -> Result<UVec2, sdl3::Error> {
+	let display_mode =
+		Context::with(|ctx| -> Result<_, sdl3::Error> { ctx.window.get_display()?.get_mode() })?;
+	Ok(UVec2::new(display_mode.w as u32, display_mode.h as u32))
 }
 
 /// Sets the window mode (windowed or fullscreen).
-pub fn set_window_mode(window_mode: WindowMode) {
+pub fn set_window_mode(window_mode: WindowMode) -> Result<(), sdl3::IntegerOrSdlError> {
 	Context::with_mut(|ctx| match window_mode {
-		WindowMode::Fullscreen => {
-			ctx.window.set_fullscreen(true).unwrap();
-		}
+		WindowMode::Fullscreen => ctx
+			.window
+			.set_fullscreen(true)
+			.map_err(sdl3::IntegerOrSdlError::SdlError),
 		WindowMode::Windowed { size } => {
-			ctx.window.set_fullscreen(false).unwrap();
-			ctx.window.set_size(size.x, size.y).unwrap();
+			ctx.window
+				.set_fullscreen(false)
+				.map_err(sdl3::IntegerOrSdlError::SdlError)?;
+			ctx.window.set_size(size.x, size.y)?;
 			ctx.window
 				.set_position(WindowPos::Centered, WindowPos::Centered);
+			Ok(())
 		}
 	})
 }

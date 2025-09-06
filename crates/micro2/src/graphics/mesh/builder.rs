@@ -37,7 +37,7 @@ impl MeshBuilder {
 	pub fn rectangle(
 		style: ShapeStyle,
 		rect: Rect,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, TessellationError> {
 		let _span = tracy_client::span!();
 		Self::new().with_rectangle(style, rect, color)
@@ -46,7 +46,7 @@ impl MeshBuilder {
 	pub fn circle(
 		style: ShapeStyle,
 		circle: Circle,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, TessellationError> {
 		let _span = tracy_client::span!();
 		Self::new().with_circle(style, circle, color)
@@ -57,7 +57,7 @@ impl MeshBuilder {
 		center: impl Into<Vec2>,
 		radii: impl Into<Vec2>,
 		rotation: f32,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, TessellationError> {
 		let _span = tracy_client::span!();
 		Self::new().with_ellipse(style, center, radii, rotation, color)
@@ -81,7 +81,7 @@ impl MeshBuilder {
 	pub fn simple_polygon(
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, AddPolyError> {
 		let _span = tracy_client::span!();
 		Self::new().with_simple_polygon(style, points, color)
@@ -90,7 +90,7 @@ impl MeshBuilder {
 	pub fn simple_polyline(
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, AddPolyError> {
 		let _span = tracy_client::span!();
 		Self::new().with_simple_polyline(stroke_width, points, color)
@@ -100,47 +100,16 @@ impl MeshBuilder {
 		&mut self,
 		style: ShapeStyle,
 		rect: Rect,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<(), TessellationError> {
-		let _span = tracy_client::span!();
-		match style {
-			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
-				&lyon_tessellation::math::Box2D {
-					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-					max: lyon_tessellation::math::point(
-						rect.top_left.x + rect.size.x,
-						rect.top_left.y + rect.size.y,
-					),
-				},
-				&FillOptions::default(),
-				&mut BuffersBuilder::new(
-					&mut self.buffers,
-					vertex_constructors::PointWithoutColorToVertex { color },
-				),
-			)?,
-			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_rectangle(
-				&lyon_tessellation::math::Box2D {
-					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-					max: lyon_tessellation::math::point(
-						rect.top_left.x + rect.size.x,
-						rect.top_left.y + rect.size.y,
-					),
-				},
-				&StrokeOptions::default().with_line_width(width),
-				&mut BuffersBuilder::new(
-					&mut self.buffers,
-					vertex_constructors::PointWithoutColorToVertex { color },
-				),
-			)?,
-		};
-		Ok(())
+		self.add_rectangle_inner(style, rect, color.into())
 	}
 
 	pub fn with_rectangle(
 		mut self,
 		style: ShapeStyle,
 		rect: Rect,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, TessellationError> {
 		let _span = tracy_client::span!();
 		self.add_rectangle(style, rect, color)?;
@@ -151,37 +120,16 @@ impl MeshBuilder {
 		&mut self,
 		style: ShapeStyle,
 		circle: Circle,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<(), TessellationError> {
-		let _span = tracy_client::span!();
-		match style {
-			ShapeStyle::Fill => FillTessellator::new().tessellate_circle(
-				lyon_tessellation::math::point(circle.center.x, circle.center.y),
-				circle.radius,
-				&FillOptions::default(),
-				&mut BuffersBuilder::new(
-					&mut self.buffers,
-					vertex_constructors::PointWithoutColorToVertex { color },
-				),
-			)?,
-			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_circle(
-				lyon_tessellation::math::point(circle.center.x, circle.center.y),
-				circle.radius,
-				&StrokeOptions::default().with_line_width(width),
-				&mut BuffersBuilder::new(
-					&mut self.buffers,
-					vertex_constructors::PointWithoutColorToVertex { color },
-				),
-			)?,
-		};
-		Ok(())
+		self.add_circle_inner(style, circle, color.into())
 	}
 
 	pub fn with_circle(
 		mut self,
 		style: ShapeStyle,
 		circle: Circle,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, TessellationError> {
 		let _span = tracy_client::span!();
 		self.add_circle(style, circle, color)?;
@@ -194,36 +142,9 @@ impl MeshBuilder {
 		center: impl Into<Vec2>,
 		radii: impl Into<Vec2>,
 		rotation: f32,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<(), TessellationError> {
-		let _span = tracy_client::span!();
-		let center = center.into();
-		let radii = radii.into();
-		match style {
-			ShapeStyle::Fill => FillTessellator::new().tessellate_ellipse(
-				lyon_tessellation::math::point(center.x, center.y),
-				lyon_tessellation::math::vector(radii.x, radii.y),
-				lyon_tessellation::math::Angle::radians(rotation),
-				Winding::Positive,
-				&FillOptions::default(),
-				&mut BuffersBuilder::new(
-					&mut self.buffers,
-					vertex_constructors::PointWithoutColorToVertex { color },
-				),
-			)?,
-			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_ellipse(
-				lyon_tessellation::math::point(center.x, center.y),
-				lyon_tessellation::math::vector(radii.x, radii.y),
-				lyon_tessellation::math::Angle::radians(rotation),
-				Winding::Positive,
-				&StrokeOptions::default().with_line_width(width),
-				&mut BuffersBuilder::new(
-					&mut self.buffers,
-					vertex_constructors::PointWithoutColorToVertex { color },
-				),
-			)?,
-		};
-		Ok(())
+		self.add_ellipse_inner(style, center, radii, rotation, color.into())
 	}
 
 	pub fn with_ellipse(
@@ -232,7 +153,7 @@ impl MeshBuilder {
 		center: impl Into<Vec2>,
 		radii: impl Into<Vec2>,
 		rotation: f32,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, TessellationError> {
 		let _span = tracy_client::span!();
 		self.add_ellipse(style, center, radii, rotation, color)?;
@@ -347,32 +268,16 @@ impl MeshBuilder {
 		&mut self,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<(), AddPolyError> {
-		let _span = tracy_client::span!();
-		match style {
-			ShapeStyle::Fill => {
-				self.add_filled_polygon(points.into_iter().map(|position| FilledPolygonPoint {
-					position: position.into(),
-					color,
-				}))
-			}
-			ShapeStyle::Stroke(stroke_width) => self.add_polyline(
-				points.into_iter().map(|position| StrokePoint {
-					position: position.into(),
-					color,
-					stroke_width,
-				}),
-				true,
-			),
-		}
+		self.add_simple_polygon_inner(style, points, color.into())
 	}
 
 	pub fn with_simple_polygon(
 		mut self,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, AddPolyError> {
 		let _span = tracy_client::span!();
 		self.add_simple_polygon(style, points, color)?;
@@ -383,24 +288,16 @@ impl MeshBuilder {
 		&mut self,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<(), AddPolyError> {
-		let _span = tracy_client::span!();
-		self.add_polyline(
-			points.into_iter().map(|position| StrokePoint {
-				position: position.into(),
-				color,
-				stroke_width,
-			}),
-			false,
-		)
+		self.add_simple_polyline_inner(stroke_width, points, color.into())
 	}
 
 	pub fn with_simple_polyline(
 		mut self,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-		color: LinSrgba,
+		color: impl Into<LinSrgba>,
 	) -> Result<Self, AddPolyError> {
 		let _span = tracy_client::span!();
 		self.add_simple_polyline(stroke_width, points, color)?;
@@ -429,6 +326,156 @@ impl MeshBuilder {
 	pub fn build(self) -> Mesh {
 		let _span = tracy_client::span!();
 		Mesh::new(&self.buffers.vertices, &self.buffers.indices)
+	}
+
+	fn add_rectangle_inner(
+		&mut self,
+		style: ShapeStyle,
+		rect: Rect,
+		color: LinSrgba,
+	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
+		match style {
+			ShapeStyle::Fill => FillTessellator::new().tessellate_rectangle(
+				&lyon_tessellation::math::Box2D {
+					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+					max: lyon_tessellation::math::point(
+						rect.top_left.x + rect.size.x,
+						rect.top_left.y + rect.size.y,
+					),
+				},
+				&FillOptions::default(),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					vertex_constructors::PointWithoutColorToVertex { color },
+				),
+			)?,
+			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_rectangle(
+				&lyon_tessellation::math::Box2D {
+					min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
+					max: lyon_tessellation::math::point(
+						rect.top_left.x + rect.size.x,
+						rect.top_left.y + rect.size.y,
+					),
+				},
+				&StrokeOptions::default().with_line_width(width),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					vertex_constructors::PointWithoutColorToVertex { color },
+				),
+			)?,
+		};
+		Ok(())
+	}
+
+	fn add_circle_inner(
+		&mut self,
+		style: ShapeStyle,
+		circle: Circle,
+		color: LinSrgba,
+	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
+		match style {
+			ShapeStyle::Fill => FillTessellator::new().tessellate_circle(
+				lyon_tessellation::math::point(circle.center.x, circle.center.y),
+				circle.radius,
+				&FillOptions::default(),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					vertex_constructors::PointWithoutColorToVertex { color },
+				),
+			)?,
+			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_circle(
+				lyon_tessellation::math::point(circle.center.x, circle.center.y),
+				circle.radius,
+				&StrokeOptions::default().with_line_width(width),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					vertex_constructors::PointWithoutColorToVertex { color },
+				),
+			)?,
+		};
+		Ok(())
+	}
+
+	fn add_ellipse_inner(
+		&mut self,
+		style: ShapeStyle,
+		center: impl Into<Vec2>,
+		radii: impl Into<Vec2>,
+		rotation: f32,
+		color: LinSrgba,
+	) -> Result<(), TessellationError> {
+		let _span = tracy_client::span!();
+		let center = center.into();
+		let radii = radii.into();
+		match style {
+			ShapeStyle::Fill => FillTessellator::new().tessellate_ellipse(
+				lyon_tessellation::math::point(center.x, center.y),
+				lyon_tessellation::math::vector(radii.x, radii.y),
+				lyon_tessellation::math::Angle::radians(rotation),
+				Winding::Positive,
+				&FillOptions::default(),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					vertex_constructors::PointWithoutColorToVertex { color },
+				),
+			)?,
+			ShapeStyle::Stroke(width) => StrokeTessellator::new().tessellate_ellipse(
+				lyon_tessellation::math::point(center.x, center.y),
+				lyon_tessellation::math::vector(radii.x, radii.y),
+				lyon_tessellation::math::Angle::radians(rotation),
+				Winding::Positive,
+				&StrokeOptions::default().with_line_width(width),
+				&mut BuffersBuilder::new(
+					&mut self.buffers,
+					vertex_constructors::PointWithoutColorToVertex { color },
+				),
+			)?,
+		};
+		Ok(())
+	}
+
+	fn add_simple_polygon_inner(
+		&mut self,
+		style: ShapeStyle,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
+		color: LinSrgba,
+	) -> Result<(), AddPolyError> {
+		let _span = tracy_client::span!();
+		match style {
+			ShapeStyle::Fill => {
+				self.add_filled_polygon(points.into_iter().map(|position| FilledPolygonPoint {
+					position: position.into(),
+					color,
+				}))
+			}
+			ShapeStyle::Stroke(stroke_width) => self.add_polyline(
+				points.into_iter().map(|position| StrokePoint {
+					position: position.into(),
+					color,
+					stroke_width,
+				}),
+				true,
+			),
+		}
+	}
+
+	fn add_simple_polyline_inner(
+		&mut self,
+		stroke_width: f32,
+		points: impl IntoIterator<Item = impl Into<Vec2>>,
+		color: LinSrgba,
+	) -> Result<(), AddPolyError> {
+		let _span = tracy_client::span!();
+		self.add_polyline(
+			points.into_iter().map(|position| StrokePoint {
+				position: position.into(),
+				color,
+				stroke_width,
+			}),
+			false,
+		)
 	}
 }
 

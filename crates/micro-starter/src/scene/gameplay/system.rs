@@ -17,30 +17,27 @@ pub trait System {
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
-	) -> anyhow::Result<()> {
-		Ok(())
+	) {
 	}
 
 	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
-		egui_ctx: &micro::debug_ui::Context,
+		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
-	) -> anyhow::Result<()> {
-		Ok(())
+	) {
 	}
 
 	fn debug_menu(
 		&mut self,
 		ctx: &mut Context,
-		ui: &mut micro::debug_ui::Ui,
+		ui: &mut micro::egui::Ui,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
-	) -> anyhow::Result<()> {
-		Ok(())
+	) {
 	}
 
 	fn debug_stats(
@@ -60,8 +57,7 @@ pub trait System {
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
 		event: &Event,
-	) -> anyhow::Result<()> {
-		Ok(())
+	) {
 	}
 
 	fn gameplay_event(
@@ -71,8 +67,7 @@ pub trait System {
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
 		event: &GameplayEvent,
-	) -> anyhow::Result<()> {
-		Ok(())
+	) {
 	}
 
 	fn update(
@@ -82,8 +77,7 @@ pub trait System {
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
 		delta_time: Duration,
-	) -> anyhow::Result<()> {
-		Ok(())
+	) {
 	}
 
 	fn draw(
@@ -92,7 +86,6 @@ pub trait System {
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
-	) -> anyhow::Result<()> {
-		Ok(())
+	) {
 	}
 }

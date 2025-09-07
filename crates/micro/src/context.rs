@@ -69,7 +69,7 @@ where
 		let span = tracy_client::span!("create egui UI");
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_pass(egui_input);
-		app.egui(&mut ctx, &egui_ctx);
+		app.debug_ui(&mut ctx, &egui_ctx);
 		let egui_output = egui_ctx.end_pass();
 		drop(span);
 

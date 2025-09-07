@@ -12,8 +12,7 @@ use std::time::Duration;
 use backtrace::Backtrace;
 use globals::Globals;
 use log::setup_logging;
-use micro::debug_ui::TopBottomPanel;
-use micro::log_if_err;
+use micro::egui::TopBottomPanel;
 use micro::math::UVec2;
 use micro::{App, Context, ContextSettings, Event, WindowMode, input::Scancode};
 use scene::gameplay::Gameplay;
@@ -27,7 +26,7 @@ fn main() {
 	std::panic::set_hook(Box::new(|info| {
 		tracing::error!("{}\n{:?}", info, Backtrace::new())
 	}));
-	log_if_err!(micro::run(
+	micro::run(
 		ContextSettings {
 			window_title: "Game".to_string(),
 			window_mode: WindowMode::Windowed {
@@ -37,7 +36,7 @@ fn main() {
 			..Default::default()
 		},
 		Game::new,
-	));
+	);
 }
 
 struct Game {
@@ -47,31 +46,25 @@ struct Game {
 }
 
 impl Game {
-	fn new(ctx: &mut Context) -> anyhow::Result<Self> {
-		let mut globals = Globals::new(ctx)?;
-		let gameplay = Gameplay::new(ctx, &mut globals)?;
-		Ok(Self {
+	fn new(ctx: &mut Context) -> Self {
+		let mut globals = Globals::new(ctx);
+		let gameplay = Gameplay::new(ctx, &mut globals);
+		Self {
 			globals,
 			scene_manager: SceneManager::new(gameplay),
 			dev_tools_enabled: false,
-		})
+		}
 	}
 }
 
 impl App for Game {
-	type Error = anyhow::Error;
-
-	fn debug_ui(
-		&mut self,
-		ctx: &mut Context,
-		egui_ctx: &micro::debug_ui::Context,
-	) -> anyhow::Result<()> {
+	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
 		if !self.dev_tools_enabled {
-			return Ok(());
+			return;
 		}
-		TopBottomPanel::top("menu").show(egui_ctx, |ui| -> anyhow::Result<()> {
-			micro::debug_ui::menu::bar(ui, |ui| -> anyhow::Result<()> {
-				self.scene_manager.debug_menu(ctx, ui, &mut self.globals)?;
+		TopBottomPanel::top("menu").show(egui_ctx, |ui| {
+			micro::egui::menu::bar(ui, |ui| {
+				self.scene_manager.debug_menu(ctx, ui, &mut self.globals);
 				ui.separator();
 				ui.label(format!(
 					"Average frame time: {:.1}ms ({:.0} FPS)",
@@ -84,16 +77,13 @@ impl App for Game {
 						ui.label(stat);
 					}
 				}
-				Ok(())
 			})
-			.inner
 		});
 		self.scene_manager
-			.debug_ui(ctx, egui_ctx, &mut self.globals)?;
-		Ok(())
+			.debug_ui(ctx, egui_ctx, &mut self.globals);
 	}
 
-	fn event(&mut self, ctx: &mut Context, event: Event) -> anyhow::Result<()> {
+	fn event(&mut self, ctx: &mut Context, event: Event) {
 		if let Event::KeyPressed {
 			key: Scancode::Escape,
 			..
@@ -107,19 +97,16 @@ impl App for Game {
 		{
 			self.dev_tools_enabled = !self.dev_tools_enabled;
 		}
-		self.scene_manager.event(ctx, &mut self.globals, event)?;
-		Ok(())
+		self.scene_manager.event(ctx, &mut self.globals, event);
 	}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> anyhow::Result<()> {
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {
 		self.globals.input.update(ctx);
 		self.scene_manager
-			.update(ctx, &mut self.globals, delta_time)?;
-		Ok(())
+			.update(ctx, &mut self.globals, delta_time);
 	}
 
-	fn draw(&mut self, ctx: &mut Context) -> anyhow::Result<()> {
-		self.scene_manager.draw(ctx, &mut self.globals)?;
-		Ok(())
+	fn draw(&mut self, ctx: &mut Context) {
+		self.scene_manager.draw(ctx, &mut self.globals);
 	}
 }

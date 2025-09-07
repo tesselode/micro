@@ -12,11 +12,11 @@ pub struct Globals {
 }
 
 impl Globals {
-	pub fn new(ctx: &mut Context) -> anyhow::Result<Self> {
-		Ok(Self {
+	pub fn new(ctx: &mut Context) -> Self {
+		Self {
 			input: Input::new(default_input_config(), ctx.gamepad(0)),
 			textures: Resources::autoloaded(ctx, "texture", TextureLoader::default()),
 			fonts: Resources::autoloaded(ctx, "font", FontLoader::default()),
-		})
+		}
 	}
 }

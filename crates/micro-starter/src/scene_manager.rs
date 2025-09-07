@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use anyhow::anyhow;
 use micro::{Context, Event};
 
 use crate::{globals::Globals, scene::Scene};
@@ -19,18 +18,18 @@ impl SceneManager {
 	pub fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
-		egui_ctx: &micro::debug_ui::Context,
+		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-	) -> anyhow::Result<()> {
+	) {
 		self.current_scene().debug_ui(ctx, egui_ctx, globals)
 	}
 
 	pub fn debug_menu(
 		&mut self,
 		ctx: &mut Context,
-		ui: &mut micro::debug_ui::Ui,
+		ui: &mut micro::egui::Ui,
 		globals: &mut Globals,
-	) -> anyhow::Result<()> {
+	) {
 		self.current_scene().debug_menu(ctx, ui, globals)
 	}
 
@@ -38,37 +37,26 @@ impl SceneManager {
 		self.current_scene().debug_stats(ctx, globals)
 	}
 
-	pub fn event(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		event: Event,
-	) -> anyhow::Result<()> {
+	pub fn event(&mut self, ctx: &mut Context, globals: &mut Globals, event: Event) {
 		self.current_scene().event(ctx, globals, &event)
 	}
 
-	pub fn update(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		delta_time: Duration,
-	) -> anyhow::Result<()> {
+	pub fn update(&mut self, ctx: &mut Context, globals: &mut Globals, delta_time: Duration) {
 		self.current_scene().update(ctx, globals, delta_time)
 	}
 
-	pub fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+	pub fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) {
 		let mut first_scene_to_draw_index = self.scenes.len() - 1;
 		while first_scene_to_draw_index > 0 && self.scenes[first_scene_to_draw_index].transparent()
 		{
 			first_scene_to_draw_index -= 1;
 		}
 		for i in first_scene_to_draw_index..self.scenes.len() {
-			self.scenes[i].draw(ctx, globals)?;
+			self.scenes[i].draw(ctx, globals);
 		}
 		if let Some(scene_change) = self.current_scene().scene_change() {
-			self.apply_scene_change(ctx, scene_change, globals)?;
+			self.apply_scene_change(ctx, scene_change, globals);
 		}
-		Ok(())
 	}
 
 	fn current_scene(&mut self) -> &mut Box<dyn Scene> {
@@ -80,35 +68,34 @@ impl SceneManager {
 		ctx: &mut Context,
 		scene_change: SceneChange,
 		globals: &mut Globals,
-	) -> anyhow::Result<()> {
+	) {
 		match scene_change {
 			SceneChange::Switch(scene) => {
-				self.current_scene().leave(ctx, globals)?;
+				self.current_scene().leave(ctx, globals);
 				*self.current_scene() = scene;
 			}
 			SceneChange::Push(scene) => {
-				self.current_scene().pause(ctx, globals)?;
+				self.current_scene().pause(ctx, globals);
 				self.scenes.push(scene);
 			}
 			SceneChange::Pop => {
-				self.current_scene().leave(ctx, globals)?;
+				self.current_scene().leave(ctx, globals);
 				self.scenes.pop();
 				if self.scenes.is_empty() {
-					return Err(anyhow!("cannot pop the last scene"));
+					panic!("cannot pop the last scene");
 				}
-				self.current_scene().resume(ctx, globals)?;
+				self.current_scene().resume(ctx, globals);
 			}
 			SceneChange::PopAndSwitch(scene) => {
-				self.current_scene().leave(ctx, globals)?;
+				self.current_scene().leave(ctx, globals);
 				self.scenes.pop();
 				if self.scenes.is_empty() {
-					return Err(anyhow!("cannot pop the last scene"));
+					panic!("cannot pop the last scene");
 				}
-				self.current_scene().leave(ctx, globals)?;
+				self.current_scene().leave(ctx, globals);
 				*self.current_scene() = scene;
 			}
 		}
-		Ok(())
 	}
 }
 

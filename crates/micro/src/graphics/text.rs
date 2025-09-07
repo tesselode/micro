@@ -8,18 +8,12 @@ pub use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
 use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
+use tracing::warn;
 
-use crate::{
-	Context,
-	color::ColorConstants,
-	context::graphics::QueueDrawCommandSettings,
-	math::{Rect, URect},
-	standard_draw_param_methods,
-};
+use crate::{color::ColorConstants, math::Rect, standard_draw_param_methods};
 
 use super::{
-	IntoRange, Vertex2d,
-	drawable::Drawable,
+	IntoRange,
 	sprite_batch::{SpriteBatch, SpriteParams},
 };
 
@@ -30,21 +24,14 @@ pub struct Text {
 	// params
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub scissor_rect: Option<URect>,
 
 	pub range: Option<(u32, u32)>,
 }
 
 impl Text {
-	pub fn new(
-		ctx: &Context,
-		font: &Font,
-		text: impl Into<String>,
-		layout_settings: LayoutSettings,
-	) -> Self {
+	pub fn new(font: &Font, text: impl Into<String>, layout_settings: LayoutSettings) -> Self {
 		let _span = tracy_client::span!();
 		Self::with_multiple_fonts(
-			ctx,
 			&[font],
 			&[TextFragment {
 				font_index: 0,
@@ -55,7 +42,6 @@ impl Text {
 	}
 
 	pub fn with_multiple_fonts<'a>(
-		ctx: &Context,
 		fonts: &[&Font],
 		text_fragments: impl IntoIterator<Item = &'a TextFragment>,
 		layout_settings: LayoutSettings,
@@ -78,7 +64,7 @@ impl Text {
 				},
 			);
 		}
-		Self::from_layout(ctx, layout, fonts)
+		Self::from_layout(layout, fonts)
 	}
 
 	standard_draw_param_methods!();
@@ -105,11 +91,23 @@ impl Text {
 		self.inner.lowest_baseline
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
-		ctx.default_graphics_pipeline().draw(ctx, self);
+	pub fn draw(&self) {
+		let _span = tracy_client::span!();
+		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
+			unimplemented!(
+				"drawing a text range is not implemented for text with more than one font"
+			);
+		}
+		for sprite_batch in &self.inner.sprite_batches {
+			sprite_batch
+				.transformed(self.transform)
+				.color(self.color)
+				.range(self.range)
+				.draw();
+		}
 	}
 
-	fn from_layout(ctx: &Context, layout: Layout, fonts: &[&Font]) -> Text {
+	fn from_layout(layout: Layout, fonts: &[&Font]) -> Text {
 		let glyphs = layout.glyphs();
 		let lowest_baseline = layout.lines().map(|lines| {
 			lines
@@ -123,7 +121,6 @@ impl Text {
 			.enumerate()
 			.map(|(i, font)| {
 				SpriteBatch::new(
-					ctx,
 					&font.inner.texture,
 					glyphs.iter().filter(|glyph| glyph.font_index == i).count(),
 				)
@@ -144,14 +141,14 @@ impl Text {
 			} else {
 				bounds = Some(display_rect);
 			}
-			let texture_region = *fonts[glyph.font_index]
-				.inner
-				.glyph_rects
-				.get(&glyph.parent)
-				.unwrap_or_else(|| panic!("No glyph rect for the character {}", glyph.parent));
+			let Some(&texture_region) =
+				fonts[glyph.font_index].inner.glyph_rects.get(&glyph.parent)
+			else {
+				warn!("No glyph rect for the character {}", glyph.parent);
+				continue;
+			};
 			sprite_batches[glyph.font_index]
 				.add_region(
-					ctx,
 					texture_region,
 					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
 				)
@@ -165,37 +162,10 @@ impl Text {
 				num_glyphs,
 				lowest_baseline,
 			}),
-
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			scissor_rect: None,
 			range: None,
 		}
-	}
-}
-
-impl Drawable for Text {
-	type Vertex = Vertex2d;
-
-	#[allow(private_interfaces)]
-	fn draw_instructions(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
-		let _span = tracy_client::span!();
-		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
-			unimplemented!(
-				"drawing a text range is not implemented for text with more than one font"
-			);
-		}
-		let mut settings = vec![];
-		for sprite_batch in &self.inner.sprite_batches {
-			settings.append(
-				&mut sprite_batch
-					.transformed(self.transform)
-					.color(self.color)
-					.range(self.range)
-					.draw_instructions(ctx),
-			);
-		}
-		settings
 	}
 }
 

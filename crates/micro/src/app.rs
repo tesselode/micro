@@ -1,28 +1,14 @@
 use std::time::Duration;
 
-use crate::{Context, event::Event};
+use crate::event::Event;
 
 #[allow(unused_variables)]
 pub trait App {
-	type Error;
+	fn debug_ui(&mut self, egui_ctx: &crate::egui::Context) {}
 
-	fn debug_ui(
-		&mut self,
-		ctx: &mut Context,
-		egui_ctx: &crate::debug_ui::Context,
-	) -> Result<(), Self::Error> {
-		Ok(())
-	}
+	fn event(&mut self, event: Event) {}
 
-	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
-		Ok(())
-	}
+	fn update(&mut self, delta_time: Duration) {}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Self::Error> {
-		Ok(())
-	}
-
-	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
-		Ok(())
-	}
+	fn draw(&mut self) {}
 }

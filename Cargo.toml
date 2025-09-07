@@ -8,7 +8,6 @@ members = [
 	"crates/micro-starter",
 	"crates/micro-tiled-loader",
 	"crates/micro-ui",
-	"crates/micro2",
 	"crates/micro-test",
 ]
 resolver = "3"

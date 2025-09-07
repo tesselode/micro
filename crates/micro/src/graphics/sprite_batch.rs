@@ -10,15 +10,13 @@ use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 
 use crate::{
-	Context,
 	color::ColorConstants,
-	context::graphics::QueueDrawCommandSettings,
 	graphics::{mesh::Mesh, texture::Texture},
-	math::{Rect, URect},
+	math::Rect,
 	standard_draw_param_methods,
 };
 
-use super::{IntoRange, Vertex2d, drawable::Drawable};
+use super::{IntoRange, Vertex2d};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
@@ -28,11 +26,10 @@ pub struct SpriteBatch {
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub range: Option<(u32, u32)>,
-	pub scissor_rect: Option<URect>,
 }
 
 impl SpriteBatch {
-	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
+	pub fn new(texture: &Texture, capacity: usize) -> Self {
 		let _span = tracy_client::span!();
 		let vertices = vec![
 			Vertex2d {
@@ -59,10 +56,9 @@ impl SpriteBatch {
 				sprites: Arena::with_capacity(capacity),
 			})),
 			texture: texture.clone(),
-			mesh: Mesh::new(ctx, &vertices, &indices),
+			mesh: Mesh::new(&vertices, &indices),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			scissor_rect: None,
 			range: None,
 		}
 	}
@@ -76,7 +72,11 @@ impl SpriteBatch {
 	}
 
 	pub fn len(&self) -> usize {
-		self.inner.try_lock().unwrap().sprites.len()
+		self.inner
+			.try_lock()
+			.expect("sprite batch mutex locked")
+			.sprites
+			.len()
 	}
 
 	#[must_use]
@@ -84,19 +84,14 @@ impl SpriteBatch {
 		self.len() == 0
 	}
 
-	pub fn add(
-		&mut self,
-		ctx: &Context,
-		params: impl Into<SpriteParams>,
-	) -> Result<SpriteId, SpriteLimitReached> {
+	pub fn add(&mut self, params: impl Into<SpriteParams>) -> Result<SpriteId, SpriteLimitReached> {
 		let _span = tracy_client::span!();
 		let size = self.texture.size().as_vec2();
-		self.add_region(ctx, Rect::new(Vec2::ZERO, size), params)
+		self.add_region(Rect::new(Vec2::ZERO, size), params)
 	}
 
 	pub fn add_region(
 		&mut self,
-		ctx: &Context,
 		texture_region: Rect,
 		params: impl Into<SpriteParams>,
 	) -> Result<SpriteId, SpriteLimitReached> {
@@ -104,7 +99,7 @@ impl SpriteBatch {
 		let id = self
 			.inner
 			.try_lock()
-			.unwrap()
+			.expect("sprite batch mutex locked")
 			.sprites
 			.try_insert(())
 			.map(SpriteId)
@@ -126,16 +121,16 @@ impl SpriteBatch {
 				color: params.color,
 			})
 			.collect::<Vec<_>>();
-		self.mesh.set_vertices(ctx, start_vertex_index, &vertices);
+		self.mesh.set_vertices(start_vertex_index, &vertices);
 		Ok(id)
 	}
 
-	pub fn remove(&mut self, ctx: &Context, id: SpriteId) -> Result<(), InvalidSpriteId> {
+	pub fn remove(&mut self, id: SpriteId) -> Result<(), InvalidSpriteId> {
 		let _span = tracy_client::span!();
 		if self
 			.inner
 			.try_lock()
-			.unwrap()
+			.expect("sprite batch mutex locked")
 			.sprites
 			.remove(id.0)
 			.is_none()
@@ -149,27 +144,17 @@ impl SpriteBatch {
 			texture_coords: Vec2::ZERO,
 			color: LinSrgba::WHITE,
 		}; 4];
-		self.mesh.set_vertices(ctx, start_vertex_index, &vertices);
+		self.mesh.set_vertices(start_vertex_index, &vertices);
 		Ok(())
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
-		ctx.default_graphics_pipeline().draw(ctx, self);
-	}
-}
-
-impl Drawable for SpriteBatch {
-	type Vertex = Vertex2d;
-
-	#[allow(private_interfaces)]
-	fn draw_instructions(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
-		let _span = tracy_client::span!();
+	pub fn draw(&self) {
 		self.mesh
 			.texture(&self.texture)
 			.transformed(self.transform)
 			.color(self.color)
 			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
-			.draw_instructions(ctx)
+			.draw()
 	}
 }
 

@@ -1,19 +1,10 @@
-use std::ops::{Deref, DerefMut};
-
-use glam::{Mat4, UVec2};
+use glam::{Mat4, UVec2, Vec2};
 use palette::LinSrgba;
 use wgpu::TextureFormat;
 
-use crate::{
-	Context, color::ColorConstants, context::graphics::QueueDrawCommandSettings, math::URect,
-	standard_draw_param_methods,
-};
+use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
 
-use super::{
-	Vertex2d,
-	drawable::Drawable,
-	texture::{InternalTextureSettings, Texture, TextureSettings},
-};
+use super::texture::{InternalTextureSettings, Texture, TextureSettings};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
@@ -23,15 +14,15 @@ pub struct Canvas {
 	format: TextureFormat,
 
 	// draw params
+	pub region: Rect,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub scissor_rect: Option<URect>,
 }
 
 impl Canvas {
-	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
-		Self {
-			label: settings.label,
+	pub fn new(size: UVec2, settings: CanvasSettings) -> Self {
+		Context::with(|ctx| Self {
+			label: settings.label.clone(),
 			kind: match settings.sample_count {
 				1 => CanvasKind::Normal {
 					texture: Texture::new(
@@ -84,11 +75,10 @@ impl Canvas {
 				},
 			),
 			format: settings.format,
-
+			region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			scissor_rect: None,
-		}
+		})
 	}
 
 	standard_draw_param_methods!();
@@ -112,19 +102,21 @@ impl Canvas {
 		self.format
 	}
 
-	pub fn render_to<'a>(
-		&self,
-		ctx: &'a mut Context,
-		settings: RenderToCanvasSettings,
-	) -> OnDrop<'a> {
+	pub fn render_to(&self, settings: RenderToCanvasSettings) -> OnDrop {
 		let _span = tracy_client::span!();
-		ctx.graphics
-			.start_canvas_render_pass(self.clone(), settings);
-		OnDrop { ctx }
+		Context::with_mut(|ctx| {
+			ctx.graphics
+				.start_canvas_render_pass(self.clone(), settings.clone())
+		});
+		OnDrop {}
 	}
 
-	pub fn draw(&self, ctx: &mut Context) {
-		ctx.default_graphics_pipeline().draw(ctx, self);
+	pub fn draw(&self) {
+		self.drawable_texture()
+			.region(self.region)
+			.transformed(self.transform)
+			.color(self.color)
+			.draw()
 	}
 
 	pub(crate) fn drawable_texture(&self) -> Texture {
@@ -134,19 +126,6 @@ impl Canvas {
 				resolve_texture, ..
 			} => resolve_texture.clone(),
 		}
-	}
-}
-
-impl Drawable for Canvas {
-	type Vertex = Vertex2d;
-
-	#[allow(private_interfaces)]
-	fn draw_instructions(&self, ctx: &mut Context) -> Vec<QueueDrawCommandSettings> {
-		let _span = tracy_client::span!();
-		self.drawable_texture()
-			.transformed(self.transform)
-			.color(self.color)
-			.draw_instructions(ctx)
 	}
 }
 
@@ -200,27 +179,11 @@ impl Default for RenderToCanvasSettings {
 }
 
 #[must_use]
-pub struct OnDrop<'a> {
-	pub(crate) ctx: &'a mut Context,
-}
+pub struct OnDrop;
 
-impl Drop for OnDrop<'_> {
+impl Drop for OnDrop {
 	fn drop(&mut self) {
-		self.ctx.graphics.finish_canvas_render_pass();
-	}
-}
-
-impl Deref for OnDrop<'_> {
-	type Target = Context;
-
-	fn deref(&self) -> &Self::Target {
-		self.ctx
-	}
-}
-
-impl DerefMut for OnDrop<'_> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		self.ctx
+		Context::with_mut(|ctx| ctx.graphics.finish_canvas_render_pass());
 	}
 }
 

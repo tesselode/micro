@@ -1,28 +1,38 @@
+use std::{any::TypeId, borrow::Cow, collections::HashMap};
+
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
-	BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
 	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
-	CompositeAlphaMode, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp, Operations,
-	PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
-	RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
-	SamplerBindingType, ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe,
-	TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension,
+	ColorTargetState, ColorWrites, CompareFunction, CompositeAlphaMode, DepthBiasState,
+	DepthStencilState as WgpuDepthStencilState, Device, DeviceDescriptor, FragmentState,
+	IndexFormat, Instance, LoadOp, MultisampleState, Operations, PipelineCompilationOptions,
+	PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveState, Queue,
+	RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
+	RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType,
+	ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface,
+	SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureSampleType, TextureUsages,
+	TextureViewDescriptor, TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexState,
+	VertexStepMode,
+	naga::ShaderStage,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
+	context::Push,
 	graphics::{
-		Canvas, CanvasKind, DefaultShader, GraphicsPipeline, GraphicsPipelineBuilder,
-		RawGraphicsPipeline, RenderToCanvasSettings,
+		BlendMode, Canvas, CanvasKind, RenderToCanvasSettings, Shader, StencilState, Vertex,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
 };
+
+const DEFAULT_SHADER_SOURCE: &str = include_str!("shader.glsl");
 
 pub(crate) struct GraphicsContext {
 	pub(crate) device: Device,
@@ -31,13 +41,17 @@ pub(crate) struct GraphicsContext {
 	config: SurfaceConfiguration,
 	surface: Surface<'static>,
 	main_surface_depth_stencil_texture: Texture,
-	pub(crate) mesh_bind_group_layout: BindGroupLayout,
+	mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
+	pipeline_layout: PipelineLayout,
 	pub(crate) default_texture: Texture,
-	pub(crate) default_graphics_pipeline: GraphicsPipeline,
+	default_shader: Shader,
+	default_shader_params_bind_group: BindGroup,
 	pub(crate) clear_color: LinSrgb,
-	pub(crate) transform_stack: Vec<Mat4>,
-	pub(crate) stencil_reference_stack: Vec<u8>,
+	graphics_state_stack: Vec<GraphicsState>,
+	vertex_info: HashMap<TypeId, VertexInfo>,
+	shaders: HashMap<String, ShaderModulePair>,
+	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
 	main_surface_draw_commands: Vec<DrawCommand>,
 	current_canvas_render_pass: Option<CanvasRenderPass>,
 	finished_canvas_render_passes: Vec<CanvasRenderPass>,
@@ -68,6 +82,25 @@ impl GraphicsContext {
 			..Default::default()
 		}))
 		.expect("error getting graphics device");
+		let surface_capabilities = surface.get_capabilities(&adapter);
+		let surface_format = surface_capabilities
+			.formats
+			.iter()
+			.copied()
+			.find(|f| f.is_srgb())
+			.unwrap_or(surface_capabilities.formats[0]);
+		let (width, height) = window.size();
+		let config = SurfaceConfiguration {
+			usage: TextureUsages::RENDER_ATTACHMENT,
+			format: surface_format,
+			width,
+			height,
+			present_mode: settings.present_mode,
+			desired_maximum_frame_latency: settings.max_queued_frames,
+			alpha_mode: CompositeAlphaMode::Auto,
+			view_formats: vec![],
+		};
+		surface.configure(&device, &config);
 		let mesh_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
 			label: Some("Mesh Bind Group Layout"),
 			entries: &[
@@ -113,25 +146,10 @@ impl GraphicsContext {
 					count: None,
 				}],
 			});
-		let surface_capabilities = surface.get_capabilities(&adapter);
-		let surface_format = surface_capabilities
-			.formats
-			.iter()
-			.copied()
-			.find(|f| f.is_srgb())
-			.unwrap_or(surface_capabilities.formats[0]);
-		let (width, height) = window.size();
-		let config = SurfaceConfiguration {
-			usage: TextureUsages::RENDER_ATTACHMENT,
-			format: surface_format,
-			width,
-			height,
-			present_mode: settings.present_mode,
-			desired_maximum_frame_latency: settings.max_queued_frames,
-			alpha_mode: CompositeAlphaMode::Auto,
-			view_formats: vec![],
-		};
-		surface.configure(&device, &config);
+		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+			bind_group_layouts: &[&mesh_bind_group_layout, &shader_params_bind_group_layout],
+			..Default::default()
+		});
 		let main_surface_depth_stencil_texture = Texture::new(
 			&device,
 			&queue,
@@ -151,25 +169,23 @@ impl GraphicsContext {
 			TextureSettings::default(),
 			InternalTextureSettings::default(),
 		);
-		let default_graphics_pipeline = GraphicsPipeline::<DefaultShader>::new_internal(
-			&device,
-			&mesh_bind_group_layout,
-			&shader_params_bind_group_layout,
-			&default_texture,
-			GraphicsPipelineBuilder {
-				label: "Default Graphics Pipeline".into(),
-				blend_mode: Default::default(),
-				shader_params: Default::default(),
-				storage_buffers: vec![],
-				textures: vec![],
-				enable_depth_testing: false,
-				stencil_state: Default::default(),
-				enable_color_writes: true,
-				sample_count: 1,
-				format: config.format,
-			},
-		);
-		Self {
+		let default_shader = Shader::from_string("Default Shader", DEFAULT_SHADER_SOURCE);
+		let default_shader_params_bind_group = {
+			let buffer = device.create_buffer_init(&BufferInitDescriptor {
+				label: Some("Default Shader - Shader Params Buffer"),
+				contents: bytemuck::cast_slice(&[0]),
+				usage: BufferUsages::UNIFORM,
+			});
+			device.create_bind_group(&BindGroupDescriptor {
+				label: Some("Default Shader - Shader Params Bind Group"),
+				layout: &shader_params_bind_group_layout,
+				entries: &[BindGroupEntry {
+					binding: 0,
+					resource: buffer.as_entire_binding(),
+				}],
+			})
+		};
+		let mut ctx = Self {
 			device,
 			queue,
 			supported_sample_counts,
@@ -178,23 +194,38 @@ impl GraphicsContext {
 			main_surface_depth_stencil_texture,
 			mesh_bind_group_layout,
 			shader_params_bind_group_layout,
+			pipeline_layout,
 			default_texture,
+			default_shader,
+			default_shader_params_bind_group,
 			clear_color: LinSrgb::BLACK,
-			default_graphics_pipeline,
-			transform_stack: vec![],
-			stencil_reference_stack: vec![0],
+			graphics_state_stack: vec![],
+			vertex_info: HashMap::new(),
+			shaders: HashMap::new(),
+			render_pipelines: HashMap::new(),
 			main_surface_draw_commands: vec![],
 			current_canvas_render_pass: None,
 			finished_canvas_render_passes: vec![],
-		}
+		};
+		ctx.graphics_state_stack.push(ctx.default_graphics_state());
+		ctx
 	}
 
-	pub(crate) fn current_render_target_size(&self) -> UVec2 {
-		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
-			canvas.size()
-		} else {
-			uvec2(self.config.width, self.config.height)
-		}
+	pub(crate) fn resize(&mut self, size: UVec2) {
+		self.config.width = size.x;
+		self.config.height = size.y;
+		self.surface.configure(&self.device, &self.config);
+		self.main_surface_depth_stencil_texture = Texture::new(
+			&self.device,
+			&self.queue,
+			size,
+			None,
+			TextureSettings::default(),
+			InternalTextureSettings {
+				format: TextureFormat::Depth24PlusStencil8,
+				sample_count: 1,
+			},
+		);
 	}
 
 	pub(crate) fn start_canvas_render_pass(
@@ -220,52 +251,76 @@ impl GraphicsContext {
 		self.finished_canvas_render_passes.push(canvas_render_pass);
 	}
 
-	pub(crate) fn queue_draw_command(
-		&mut self,
-		settings: QueueDrawCommandSettings,
-		graphics_pipeline: RawGraphicsPipeline,
-		num_instances: u32,
-	) {
-		self.validate_graphics_pipeline_usage(&graphics_pipeline);
-		let command = DrawCommand {
+	pub(crate) fn queue_draw_command<V: Vertex>(&mut self, settings: QueueDrawCommandSettings) {
+		let vertex_type = TypeId::of::<V>();
+		self.vertex_info
+			.entry(vertex_type)
+			.or_insert_with(|| VertexInfo::for_type::<V>());
+		let graphics_state = self
+			.graphics_state_stack
+			.last()
+			.expect("no graphics state on stack");
+		let sample_count =
+			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+				canvas.sample_count()
+			} else {
+				1
+			};
+		let format = if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass
+		{
+			canvas.format()
+		} else {
+			self.config.format
+		};
+		let draw_command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
 			range: settings.range,
-			graphics_pipeline,
 			texture: settings.texture,
 			draw_params: DrawParams {
-				transform: self.global_transform() * settings.local_transform,
-				local_transform: settings.local_transform,
+				global_transform: graphics_state.transform * settings.transform,
+				local_transform: settings.transform,
 				color: settings.color,
 			},
-			scissor_rect: settings
-				.scissor_rect
-				.unwrap_or_else(|| self.default_scissor_rect()),
-			stencil_reference: *self.stencil_reference_stack.last().unwrap(),
-			num_instances,
+			scissor_rect: graphics_state.scissor_rect,
+			shader_params_bind_group: graphics_state
+				.shader
+				.params_bind_group
+				.as_ref()
+				.unwrap_or(&self.default_shader_params_bind_group)
+				.clone(),
+			stencil_reference: graphics_state.stencil_state.reference,
+			render_pipeline_settings: RenderPipelineSettings {
+				vertex_type,
+				shader_name: graphics_state.shader.name.clone(),
+				shader_source: graphics_state.shader.source.clone(),
+				blend_mode: graphics_state.blend_mode,
+				enable_color_writes: graphics_state.stencil_state.enable_color_writes,
+				enable_depth_testing: graphics_state.enable_depth_testing,
+				wgpu_stencil_state: graphics_state.stencil_state.as_wgpu_stencil_state(),
+				sample_count,
+				format,
+			},
 		};
 		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
-			draw_commands.push(command);
+			draw_commands.push(draw_command);
 		} else {
-			self.main_surface_draw_commands.push(command);
+			self.main_surface_draw_commands.push(draw_command);
 		}
 	}
 
-	pub(crate) fn resize(&mut self, size: UVec2) {
-		self.config.width = size.x;
-		self.config.height = size.y;
-		self.surface.configure(&self.device, &self.config);
-		self.main_surface_depth_stencil_texture = Texture::new(
-			&self.device,
-			&self.queue,
-			size,
-			None,
-			TextureSettings::default(),
-			InternalTextureSettings {
-				format: TextureFormat::Depth24PlusStencil8,
-				sample_count: 1,
-			},
+	pub(crate) fn push_graphics_state(&mut self, new: Push) {
+		self.graphics_state_stack.push(
+			self.graphics_state_stack
+				.last()
+				.cloned()
+				.unwrap_or_else(|| self.default_graphics_state())
+				.push(&new),
 		);
+	}
+
+	pub(crate) fn pop_graphics_state(&mut self) {
+		self.graphics_state_stack.pop();
 	}
 
 	pub(crate) fn present_mode(&self) -> PresentMode {
@@ -280,6 +335,14 @@ impl GraphicsContext {
 		self.config.format
 	}
 
+	pub(crate) fn current_render_target_size(&self) -> UVec2 {
+		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			canvas.size()
+		} else {
+			uvec2(self.config.width, self.config.height)
+		}
+	}
+
 	pub(crate) fn set_present_mode(&mut self, present_mode: PresentMode) {
 		self.config.present_mode = present_mode;
 		self.surface.configure(&self.device, &self.config);
@@ -291,8 +354,12 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn present(&mut self) {
+		self.create_shaders();
+		self.create_render_pipelines();
+
 		let mut encoder = self.device.create_command_encoder(&Default::default());
 
+		// run canvas render passes
 		for CanvasRenderPass {
 			canvas,
 			settings,
@@ -344,20 +411,20 @@ impl GraphicsContext {
 				occlusion_query_set: None,
 			});
 			run_draw_commands(
-				render_pass,
-				&mut draw_commands,
 				&self.device,
-				&self.default_texture,
 				&self.mesh_bind_group_layout,
+				&self.render_pipelines,
+				&mut draw_commands,
+				render_pass,
 			);
 		}
 
+		// run main surface render pass
 		let frame = self
 			.surface
 			.get_current_texture()
 			.expect("error getting surface texture");
 		let output = frame.texture.create_view(&TextureViewDescriptor::default());
-
 		{
 			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
 				label: Some("Main Surface Render Pass"),
@@ -385,31 +452,41 @@ impl GraphicsContext {
 				occlusion_query_set: None,
 			});
 			run_draw_commands(
-				render_pass,
-				&mut self.main_surface_draw_commands,
 				&self.device,
-				&self.default_texture,
 				&self.mesh_bind_group_layout,
+				&self.render_pipelines,
+				&mut self.main_surface_draw_commands,
+				render_pass,
 			);
 		}
 
 		self.queue.submit([encoder.finish()]);
 		frame.present();
+
+		self.graphics_state_stack.clear();
+		self.graphics_state_stack
+			.push(self.default_graphics_state());
 	}
 
-	fn global_transform(&self) -> Mat4 {
+	fn default_graphics_state(&self) -> GraphicsState {
+		GraphicsState {
+			transform: self.default_transform(),
+			shader: self.default_shader.clone(),
+			blend_mode: BlendMode::default(),
+			stencil_state: StencilState::default(),
+			enable_depth_testing: false,
+			scissor_rect: self.default_scissor_rect(),
+		}
+	}
+
+	fn default_transform(&self) -> Mat4 {
 		let current_render_target_size = self.current_render_target_size();
-		let coordinate_system_transform = Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
+		Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
 			* Mat4::from_scale(Vec3::new(
 				2.0 / current_render_target_size.x as f32,
 				-2.0 / current_render_target_size.y as f32,
 				1.0,
-			));
-		self.transform_stack
-			.iter()
-			.fold(coordinate_system_transform, |previous, transform| {
-				previous * *transform
-			})
+			))
 	}
 
 	fn default_scissor_rect(&self) -> URect {
@@ -421,69 +498,122 @@ impl GraphicsContext {
 		URect::new(UVec2::ZERO, size)
 	}
 
-	fn validate_graphics_pipeline_usage(&self, graphics_pipeline: &RawGraphicsPipeline) {
-		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
-			if canvas.format() != graphics_pipeline.format
-				|| canvas.sample_count() != graphics_pipeline.sample_count
+	fn create_shaders(&mut self) {
+		for DrawCommand {
+			render_pipeline_settings,
+			..
+		} in &self.main_surface_draw_commands
+		{
+			self.shaders
+				.entry(render_pipeline_settings.shader_source.clone())
+				.or_insert_with(|| {
+					ShaderModulePair::new(
+						&self.device,
+						&render_pipeline_settings.shader_name,
+						&render_pipeline_settings.shader_source,
+					)
+				});
+		}
+		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
+			for DrawCommand {
+				render_pipeline_settings,
+				..
+			} in draw_commands
 			{
-				panic!(
-					"Graphics pipeline with label '{}', sample count {}, and texture format {:?} cannot be used to draw on canvas with label '{}', sample count {}, and texture format {:?}",
-					graphics_pipeline.label,
-					graphics_pipeline.sample_count,
-					graphics_pipeline.format,
-					canvas.label,
-					canvas.sample_count(),
-					canvas.format(),
-				);
+				self.shaders
+					.entry(render_pipeline_settings.shader_source.clone())
+					.or_insert_with(|| {
+						ShaderModulePair::new(
+							&self.device,
+							&render_pipeline_settings.shader_name,
+							&render_pipeline_settings.shader_source,
+						)
+					});
 			}
-		} else {
-			if graphics_pipeline.sample_count > 1 {
-				panic!(
-					"Graphics pipeline with label '{}' and sample count {} cannot be used to draw on the main surface, only a canvas with a sample count of {}",
-					graphics_pipeline.label,
-					graphics_pipeline.sample_count,
-					graphics_pipeline.sample_count,
-				);
-			}
-			if self.config.format != graphics_pipeline.format {
-				panic!(
-					"Graphics pipeline with label '{}' and texture format {:?} cannot be used to draw on the main surface, which has texture format {:?}",
-					graphics_pipeline.label, graphics_pipeline.format, self.config.format,
-				);
+		}
+	}
+
+	fn create_render_pipelines(&mut self) {
+		for DrawCommand {
+			render_pipeline_settings,
+			..
+		} in &self.main_surface_draw_commands
+		{
+			self.render_pipelines
+				.entry(render_pipeline_settings.clone())
+				.or_insert_with(|| {
+					create_render_pipeline(
+						&self.device,
+						&self.vertex_info,
+						&self.shaders,
+						render_pipeline_settings,
+						&self.pipeline_layout,
+					)
+				});
+		}
+		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
+			for DrawCommand {
+				render_pipeline_settings,
+				..
+			} in draw_commands
+			{
+				self.render_pipelines
+					.entry(render_pipeline_settings.clone())
+					.or_insert_with(|| {
+						create_render_pipeline(
+							&self.device,
+							&self.vertex_info,
+							&self.shaders,
+							render_pipeline_settings,
+							&self.pipeline_layout,
+						)
+					});
 			}
 		}
 	}
 }
 
-#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct QueueDrawCommandSettings {
-	pub vertex_buffer: Buffer,
-	pub index_buffer: Buffer,
-	pub range: (u32, u32),
-	pub texture: Option<Texture>,
-	pub local_transform: Mat4,
-	pub color: LinSrgba,
-	pub scissor_rect: Option<URect>,
+	pub(crate) vertex_buffer: Buffer,
+	pub(crate) index_buffer: Buffer,
+	pub(crate) range: (u32, u32),
+	pub(crate) texture: Texture,
+	pub(crate) transform: Mat4,
+	pub(crate) color: LinSrgba,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct DrawCommand {
+	vertex_buffer: Buffer,
+	index_buffer: Buffer,
+	range: (u32, u32),
+	texture: Texture,
+	draw_params: DrawParams,
+	scissor_rect: URect,
+	shader_params_bind_group: BindGroup,
+	stencil_reference: u8,
+	render_pipeline_settings: RenderPipelineSettings,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 struct DrawParams {
-	transform: Mat4,
+	global_transform: Mat4,
 	local_transform: Mat4,
 	color: LinSrgba,
 }
 
-struct DrawCommand {
-	vertex_buffer: Buffer,
-	index_buffer: Buffer,
-	range: (u32, u32),
-	graphics_pipeline: RawGraphicsPipeline,
-	texture: Option<Texture>,
-	draw_params: DrawParams,
-	scissor_rect: URect,
-	stencil_reference: u8,
-	num_instances: u32,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct RenderPipelineSettings {
+	vertex_type: TypeId,
+	shader_name: String,
+	shader_source: String,
+	blend_mode: BlendMode,
+	enable_color_writes: bool,
+	enable_depth_testing: bool,
+	wgpu_stencil_state: wgpu::StencilState,
+	format: TextureFormat,
+	sample_count: u32,
 }
 
 struct CanvasRenderPass {
@@ -492,23 +622,149 @@ struct CanvasRenderPass {
 	draw_commands: Vec<DrawCommand>,
 }
 
-fn run_draw_commands(
-	mut render_pass: wgpu::RenderPass<'_>,
-	draw_commands: &mut Vec<DrawCommand>,
+struct ShaderModulePair {
+	vertex: ShaderModule,
+	fragment: ShaderModule,
+}
+
+impl ShaderModulePair {
+	fn new(device: &Device, name: &str, source: &str) -> Self {
+		let vertex = device.create_shader_module(ShaderModuleDescriptor {
+			label: Some(&format!("{} - Vertex Shader", &name)),
+			source: ShaderSource::Glsl {
+				shader: Cow::Borrowed(source),
+				stage: ShaderStage::Vertex,
+				defines: &[("VERTEX", "1")],
+			},
+		});
+		let fragment = device.create_shader_module(ShaderModuleDescriptor {
+			label: Some(&format!("{} - Fragment Shader", &name)),
+			source: ShaderSource::Glsl {
+				shader: Cow::Borrowed(source),
+				stage: ShaderStage::Fragment,
+				defines: &[("FRAGMENT", "1")],
+			},
+		});
+		Self { vertex, fragment }
+	}
+}
+
+struct VertexInfo {
+	size: usize,
+	attributes: Vec<VertexAttribute>,
+}
+
+impl VertexInfo {
+	fn for_type<V: Vertex>() -> Self {
+		Self {
+			size: std::mem::size_of::<V>(),
+			attributes: V::attributes(),
+		}
+	}
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct GraphicsState {
+	transform: Mat4,
+	shader: Shader,
+	blend_mode: BlendMode,
+	stencil_state: StencilState,
+	enable_depth_testing: bool,
+	scissor_rect: URect,
+}
+
+impl GraphicsState {
+	fn push(&self, push: &Push) -> Self {
+		Self {
+			transform: if let Some(transform) = push.transform {
+				self.transform * transform
+			} else {
+				self.transform
+			},
+			shader: push.shader.as_ref().unwrap_or(&self.shader).clone(),
+			blend_mode: push.blend_mode.unwrap_or(self.blend_mode),
+			stencil_state: push.stencil_state.unwrap_or(self.stencil_state),
+			enable_depth_testing: push
+				.enable_depth_testing
+				.unwrap_or(self.enable_depth_testing),
+			scissor_rect: push.scissor_rect.unwrap_or(self.scissor_rect),
+		}
+	}
+}
+
+fn create_render_pipeline(
 	device: &Device,
-	default_texture: &Texture,
+	vertex_info: &HashMap<TypeId, VertexInfo>,
+	shaders: &HashMap<String, ShaderModulePair>,
+	settings: &RenderPipelineSettings,
+	pipeline_layout: &PipelineLayout,
+) -> RenderPipeline {
+	let vertex_info = &vertex_info[&settings.vertex_type];
+	device.create_render_pipeline(&RenderPipelineDescriptor {
+		label: None,
+		layout: Some(pipeline_layout),
+		vertex: VertexState {
+			module: &shaders[&settings.shader_source].vertex,
+			entry_point: Some("main"),
+			compilation_options: PipelineCompilationOptions::default(),
+			buffers: &[VertexBufferLayout {
+				array_stride: vertex_info.size as u64,
+				step_mode: VertexStepMode::Vertex,
+				attributes: &vertex_info.attributes,
+			}],
+		},
+		primitive: PrimitiveState::default(),
+		depth_stencil: Some(WgpuDepthStencilState {
+			format: TextureFormat::Depth24PlusStencil8,
+			depth_write_enabled: settings.enable_depth_testing,
+			depth_compare: if settings.enable_depth_testing {
+				CompareFunction::Less
+			} else {
+				CompareFunction::Always
+			},
+			stencil: settings.wgpu_stencil_state.clone(),
+			bias: DepthBiasState::default(),
+		}),
+		multisample: MultisampleState {
+			count: settings.sample_count,
+			..Default::default()
+		},
+		fragment: Some(FragmentState {
+			module: &shaders[&settings.shader_source].fragment,
+			entry_point: Some("main"),
+			compilation_options: PipelineCompilationOptions::default(),
+			targets: &[Some(ColorTargetState {
+				format: settings.format,
+				blend: Some(settings.blend_mode.to_blend_state()),
+				write_mask: if settings.enable_color_writes {
+					ColorWrites::ALL
+				} else {
+					ColorWrites::empty()
+				},
+			})],
+		}),
+		multiview: None,
+		cache: None,
+	})
+}
+
+fn run_draw_commands(
+	device: &Device,
 	mesh_bind_group_layout: &BindGroupLayout,
+	render_pipelines: &HashMap<RenderPipelineSettings, RenderPipeline>,
+	draw_commands: &mut Vec<DrawCommand>,
+	mut render_pass: wgpu::RenderPass<'_>,
 ) {
 	for DrawCommand {
 		vertex_buffer,
 		index_buffer,
 		range,
-		graphics_pipeline,
 		texture,
 		draw_params,
 		scissor_rect,
+		shader_params_bind_group,
 		stencil_reference,
-		num_instances,
+		render_pipeline_settings,
 	} in draw_commands.drain(..)
 	{
 		let draw_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -516,7 +772,6 @@ fn run_draw_commands(
 			contents: bytemuck::cast_slice(&[draw_params]),
 			usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
-		let texture = texture.unwrap_or(default_texture.clone());
 		let mesh_bind_group = device.create_bind_group(&BindGroupDescriptor {
 			label: Some("Draw Params Bind Group"),
 			layout: mesh_bind_group_layout,
@@ -535,11 +790,9 @@ fn run_draw_commands(
 				},
 			],
 		});
-		render_pass.set_pipeline(&graphics_pipeline.render_pipeline);
+		render_pass.set_pipeline(&render_pipelines[&render_pipeline_settings]);
 		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
-		render_pass.set_bind_group(1, &graphics_pipeline.shader_params_bind_group, &[]);
-		render_pass.set_bind_group(2, &graphics_pipeline.storage_buffers_bind_group, &[]);
-		render_pass.set_bind_group(3, &graphics_pipeline.textures_bind_group, &[]);
+		render_pass.set_bind_group(1, &shader_params_bind_group, &[]);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.set_scissor_rect(
@@ -549,6 +802,6 @@ fn run_draw_commands(
 			scissor_rect.size.y,
 		);
 		render_pass.set_stencil_reference(stencil_reference as u32);
-		render_pass.draw_indexed(range.0..range.1, 0, 0..num_instances);
+		render_pass.draw_indexed(range.0..range.1, 0, 0..1);
 	}
 }

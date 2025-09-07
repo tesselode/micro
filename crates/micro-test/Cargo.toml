@@ -5,5 +5,5 @@ edition = "2024"
 
 [dependencies]
 bytemuck = "1.23.2"
-micro2 = { path = "../micro2" }
+micro = { path = "../micro" }
 tobj = "4.0.3"

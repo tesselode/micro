@@ -1,7 +1,7 @@
 use std::{f32::consts::FRAC_PI_2, path::Path};
 
 use bytemuck::{Pod, Zeroable};
-use micro2::{
+use micro::{
 	App, ContextSettings, Event,
 	color::{ColorConstants, LinSrgba},
 	egui::Window,
@@ -18,7 +18,7 @@ use tobj::GPU_LOAD_OPTIONS;
 const CUSTOM_SHADER_SOURCE: &str = include_str!("shader.glsl");
 
 fn main() {
-	micro2::run(ContextSettings::default(), Test::new);
+	micro::run(ContextSettings::default(), Test::new);
 }
 
 struct Test {
@@ -44,7 +44,7 @@ impl Test {
 }
 
 impl App for Test {
-	fn debug_ui(&mut self, egui_ctx: &micro2::egui::Context) {
+	fn debug_ui(&mut self, egui_ctx: &micro::egui::Context) {
 		Window::new("test").show(egui_ctx, |ui| {
 			ui.label("Hello, world!");
 		});

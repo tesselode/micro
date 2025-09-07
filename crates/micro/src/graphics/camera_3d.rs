@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use glam::{Mat4, Vec3};
 
-use crate::{Context, math::Rect};
+use crate::{current_render_target_size, math::Rect};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Camera3d {
@@ -99,13 +99,13 @@ impl Camera3d {
 		Mat4::look_at_rh(self.position, self.look_at, Vec3::new(0.0, up_y, 0.0))
 	}
 
-	pub fn transform(self, ctx: &Context) -> Mat4 {
+	pub fn transform(self) -> Mat4 {
 		let _span = tracy_client::span!();
-		Self::undo_2d_coordinate_system_transform(ctx) * self.projection() * self.view()
+		Self::undo_2d_coordinate_system_transform() * self.projection() * self.view()
 	}
 
-	fn undo_2d_coordinate_system_transform(ctx: &Context) -> Mat4 {
-		let current_render_target_size = ctx.current_render_target_size();
+	fn undo_2d_coordinate_system_transform() -> Mat4 {
+		let current_render_target_size = current_render_target_size();
 		(Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
 			* Mat4::from_scale(Vec3::new(
 				2.0 / current_render_target_size.x as f32,

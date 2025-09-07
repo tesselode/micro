@@ -16,30 +16,31 @@ image = { version = "0.25.0", default-features = false, features = ["png"] }
 itertools = "0.14.0"
 lyon_tessellation = "1.0.15"
 palette = { version = "0.7.6", default-features = false, features = [
-	"std",
-	"bytemuck",
+    "std",
+    "bytemuck",
 ] }
+paste = "1.0.15"
 pollster = "0.4.0"
 rand = { version = "0.9.0", optional = true }
 sdl3 = { version = "0.14.41", features = [
-	"build-from-source",
-	"raw-window-handle",
+    "build-from-source",
+    "raw-window-handle",
 ] }
 serde = { version = "1.0", features = ["derive"], optional = true }
+tracing = "0.1.41"
 tracy-client = { version = "0.18.0", default-features = false, features = [
-	"broadcast",
-	"callstack-inlines",
-	"code-transfer",
-	"context-switch-tracing",
-	"sampling",
-	"system-tracing",
+    "broadcast",
+    "callstack-inlines",
+    "code-transfer",
+    "context-switch-tracing",
+    "sampling",
+    "system-tracing",
 ] }
 wgpu = { version = "26.0.1", default-features = false, features = [
-	"dx12",
-	"gles",
-	"metal",
-	"vulkan",
-	"wgsl",
+    "dx12",
+    "metal",
+    "vulkan",
+    "glsl",
 ] }
 
 [features]

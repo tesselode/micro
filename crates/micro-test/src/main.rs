@@ -4,6 +4,7 @@ use bytemuck::{Pod, Zeroable};
 use micro2::{
 	App, ContextSettings, Event,
 	color::{ColorConstants, LinSrgba},
+	egui::Window,
 	graphics::{
 		Camera3d, HasVertexAttributes, Shader, Vertex, VertexAttribute, mesh::Mesh,
 		vertex_attr_array,
@@ -43,6 +44,12 @@ impl Test {
 }
 
 impl App for Test {
+	fn debug_ui(&mut self, egui_ctx: &micro2::egui::Context) {
+		Window::new("test").show(egui_ctx, |ui| {
+			ui.label("Hello, world!");
+		});
+	}
+
 	fn event(&mut self, event: Event) {
 		if let Event::KeyPressed {
 			key: Scancode::Escape,

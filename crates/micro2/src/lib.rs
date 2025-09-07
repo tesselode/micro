@@ -3,6 +3,7 @@
 mod app;
 pub mod color;
 mod context;
+mod egui_integration;
 mod event;
 pub mod graphics;
 pub mod input;
@@ -18,7 +19,7 @@ pub use event::*;
 pub use time::*;
 pub use window::*;
 
-pub use egui as debug_ui;
+pub use egui;
 pub use image;
 
 use std::time::Duration;
@@ -181,8 +182,8 @@ pub fn is_key_down(scancode: Scancode) -> bool {
 		ctx.event_pump
 			.keyboard_state()
 			.is_scancode_pressed(scancode.into())
+			&& !ctx.egui_wants_keyboard_input
 	})
-	/* && !ctx.egui_wants_keyboard_input */
 }
 
 /// Returns `true` if the given mouse button is currently held down.
@@ -191,8 +192,8 @@ pub fn is_mouse_button_down(mouse_button: MouseButton) -> bool {
 		ctx.event_pump
 			.mouse_state()
 			.is_mouse_button_pressed(mouse_button.into())
+			&& !ctx.egui_wants_mouse_input
 	})
-	/* && !ctx.egui_wants_mouse_input */
 }
 
 /// Returns the current mouse position (in pixels, relative to the top-left

@@ -9,8 +9,8 @@ use serde::Deserialize;
 use std::{fmt::Debug, path::Path};
 
 #[allow(unused_variables)]
-pub trait ResourceLoader {
-	type Resource;
+pub trait AssetLoader {
+	type Asset;
 
 	type Error: Debug;
 
@@ -22,19 +22,19 @@ pub trait ResourceLoader {
 		&mut self,
 		path: &Path,
 		settings: Option<&Self::Settings>,
-	) -> Result<Self::Resource, Self::Error>;
+	) -> Result<Self::Asset, Self::Error>;
 
 	fn reload(
 		&mut self,
-		resource: &mut Self::Resource,
+		asset: &mut Self::Asset,
 		path: &Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		*resource = self.load(path, settings)?;
+		*asset = self.load(path, settings)?;
 		Ok(())
 	}
 
-	fn placeholder(&mut self) -> Option<Self::Resource> {
+	fn placeholder(&mut self) -> Option<Self::Asset> {
 		None
 	}
 

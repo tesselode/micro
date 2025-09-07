@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 derive_more = { version = "2.0.1", features = ["from", "display", "error"] }
 micro = { path = "../micro" }
-micro-resource = { path = "../micro-resource", optional = true }
+micro-asset = { path = "../micro-asset", optional = true }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 
 [features]
-loader = ["micro-resource"]
+loader = ["micro-asset"]

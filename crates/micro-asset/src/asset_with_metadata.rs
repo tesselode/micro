@@ -5,44 +5,44 @@ use std::{
 
 use derive_more::derive::{Display, Error, From};
 
-use super::loader::ResourceLoader;
+use super::loader::AssetLoader;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(super) struct ResourceWithMetadata<L: ResourceLoader> {
+pub(super) struct AssetWithMetadata<L: AssetLoader> {
 	pub file_path: PathBuf,
 	pub modified_time: Option<SystemTime>,
 	pub settings_modified_time: Option<SystemTime>,
-	pub resource: L::Resource,
+	pub asset: L::Asset,
 	pub settings: Option<L::Settings>,
 }
 
-impl<L: ResourceLoader> ResourceWithMetadata<L> {
-	pub fn load(full_resource_path: &Path, loader: &mut L) -> Result<Option<Self>, L::Error> {
+impl<L: AssetLoader> AssetWithMetadata<L> {
+	pub fn load(full_asset_path: &Path, loader: &mut L) -> Result<Option<Self>, L::Error> {
 		let Some(file_path) = L::SUPPORTED_FILE_EXTENSIONS
 			.iter()
-			.map(|extension| full_resource_path.with_extension(extension))
+			.map(|extension| full_asset_path.with_extension(extension))
 			.find(|path| path.exists())
 		else {
 			return Ok(None);
 		};
-		let settings_path = full_resource_path.with_extension("settings");
+		let settings_path = full_asset_path.with_extension("settings");
 		let settings = match Self::load_settings(&settings_path) {
 			Ok(settings) => settings,
 			Err(err) => {
 				tracing::error!(
 					"Error loading settings at path {}: {}",
-					full_resource_path.with_extension("settings").display(),
+					full_asset_path.with_extension("settings").display(),
 					err
 				);
 				None
 			}
 		};
-		let resource = loader.load(&file_path, settings.as_ref())?;
+		let asset = loader.load(&file_path, settings.as_ref())?;
 		let modified_time = match file_modified_time(&file_path) {
 			Ok(modified) => Some(modified),
 			Err(err) => {
 				tracing::error!(
-					"Error getting modified time of resource at path {}: {}",
+					"Error getting modified time of asset at path {}: {}",
 					file_path.display(),
 					err
 				);
@@ -68,7 +68,7 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 			file_path,
 			modified_time,
 			settings_modified_time,
-			resource,
+			asset,
 			settings,
 		}))
 	}
@@ -77,10 +77,7 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 		if !self.check_for_updates() {
 			return false;
 		}
-		tracing::info!(
-			"hot reloading resource at path '{}'",
-			self.file_path.display()
-		);
+		tracing::info!("hot reloading asset at path '{}'", self.file_path.display());
 		let settings_path = self.file_path.with_extension("settings");
 		match Self::load_settings(&settings_path) {
 			Ok(settings) => self.settings = settings,
@@ -92,10 +89,9 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 				)
 			}
 		}
-		if let Err(err) = loader.reload(&mut self.resource, &self.file_path, self.settings.as_ref())
-		{
+		if let Err(err) = loader.reload(&mut self.asset, &self.file_path, self.settings.as_ref()) {
 			tracing::error!(
-				"Error loading resource at path {}: {:?}",
+				"Error loading asset at path {}: {:?}",
 				self.file_path.display(),
 				err
 			);
@@ -109,7 +105,7 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 			Ok(current_modified_time) => Some(current_modified_time),
 			Err(err) => {
 				tracing::error!(
-					"Error getting modified time of resource at path '{}': {}",
+					"Error getting modified time of asset at path '{}': {}",
 					self.file_path.display(),
 					err
 				);

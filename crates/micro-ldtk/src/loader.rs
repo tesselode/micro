@@ -2,14 +2,14 @@ use std::path::Path;
 
 use crate::{
 	ldtk::{Error, Level},
-	resource::loader::ResourceLoader,
+	asset::loader::AssetLoader,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LdtkLevelLoader;
 
-impl ResourceLoader for LdtkLevelLoader {
-	type Resource = Level;
+impl AssetLoader for LdtkLevelLoader {
+	type Asset = Level;
 
 	type Error = Error;
 
@@ -24,7 +24,7 @@ impl ResourceLoader for LdtkLevelLoader {
 		_ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
-	) -> Result<Self::Resource, Self::Error> {
+	) -> Result<Self::Asset, Self::Error> {
 		Level::from_file(path)
 	}
 }

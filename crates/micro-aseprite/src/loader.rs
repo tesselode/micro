@@ -2,13 +2,13 @@ use std::{collections::HashMap, path::Path};
 
 use crate::animation::{AnimationData, LoadAnimationDataError};
 
-use super::ResourceLoader;
+use super::AssetLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct AnimationDataLoader;
 
-impl ResourceLoader for AnimationDataLoader {
-	type Resource = AnimationData;
+impl AssetLoader for AnimationDataLoader {
+	type Asset = AnimationData;
 
 	type Error = LoadAnimationDataError;
 
@@ -23,7 +23,7 @@ impl ResourceLoader for AnimationDataLoader {
 		_ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
-	) -> Result<Self::Resource, Self::Error> {
+	) -> Result<Self::Asset, Self::Error> {
 		AnimationData::from_file(path)
 	}
 }
@@ -31,8 +31,8 @@ impl ResourceLoader for AnimationDataLoader {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct MultipleAnimationDataLoader;
 
-impl ResourceLoader for MultipleAnimationDataLoader {
-	type Resource = HashMap<String, AnimationData>;
+impl AssetLoader for MultipleAnimationDataLoader {
+	type Asset = HashMap<String, AnimationData>;
 
 	type Error = LoadAnimationDataError;
 
@@ -47,7 +47,7 @@ impl ResourceLoader for MultipleAnimationDataLoader {
 		_ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
-	) -> Result<Self::Resource, Self::Error> {
+	) -> Result<Self::Asset, Self::Error> {
 		AnimationData::multiple_from_file(path)
 	}
 }

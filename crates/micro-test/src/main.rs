@@ -1,7 +1,7 @@
 use std::{f32::consts::FRAC_PI_2, path::Path};
 
 use bytemuck::{Pod, Zeroable};
-use micro2::{
+use micro::{
 	App, Context, ContextSettings, Event, Push,
 	color::{ColorConstants, LinSrgba},
 	graphics::{
@@ -16,7 +16,7 @@ use tobj::GPU_LOAD_OPTIONS;
 const CUSTOM_SHADER_SOURCE: &str = include_str!("shader.glsl");
 
 fn main() {
-	micro2::run(ContextSettings::default(), Test::new);
+	micro::run(ContextSettings::default(), Test::new);
 }
 
 struct Test {

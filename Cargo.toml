@@ -1,5 +1,6 @@
 [workspace]
 members = [
+	"crates/micro",
 	"crates/micro-aseprite",
 	"crates/micro-kira-loaders",
 	"crates/micro-ldtk",
@@ -7,7 +8,6 @@ members = [
 	"crates/micro-starter",
 	"crates/micro-tiled-loader",
 	"crates/micro-ui",
-	"crates/micro2",
 	"crates/micro-test",
 ]
 resolver = "3"

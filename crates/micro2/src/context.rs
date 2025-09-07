@@ -1,6 +1,7 @@
 pub(crate) mod graphics;
 
 use std::{
+	collections::HashMap,
 	ops::{Deref, DerefMut},
 	time::{Duration, Instant},
 };
@@ -16,6 +17,7 @@ use wgpu::{Features, PresentMode, TextureFormat};
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	context::graphics::GraphicsContext,
+	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
 	graphics::{BlendMode, Shader, StencilState},
 	input::{Gamepad, MouseButton, Scancode},
 	math::URect,
@@ -39,14 +41,14 @@ where
 		window,
 		gamepad: controller,
 		event_pump,
-		// egui_wants_keyboard_input: false,
-		// egui_wants_mouse_input: false,
+		egui_wants_keyboard_input: false,
+		egui_wants_mouse_input: false,
 		frame_time_tracker: FrameTimeTracker::new(),
 		graphics,
 		should_quit: false,
 	};
-	// let egui_ctx = egui::Context::default();
-	// let mut egui_textures = HashMap::new();
+	let egui_ctx = egui::Context::default();
+	let mut egui_textures = HashMap::new();
 	let mut app = app_constructor(&mut ctx);
 
 	let mut last_update_time = Instant::now();
@@ -64,18 +66,18 @@ where
 		drop(span);
 
 		// create egui UI
-		/* let span = tracy_client::span!("create egui UI");
+		let span = tracy_client::span!("create egui UI");
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_pass(egui_input);
-		app.debug_ui(&mut ctx, &egui_ctx)?;
+		app.egui(&mut ctx, &egui_ctx);
 		let egui_output = egui_ctx.end_pass();
-		drop(span); */
+		drop(span);
 
 		// dispatch events to state
 		let span = tracy_client::span!("dispatch events");
 		for event in events
 			.drain(..)
-			// .filter(|event| !egui_took_sdl3_event(&egui_ctx, event))
+			.filter(|event| !egui_took_sdl3_event(&egui_ctx, event))
 			.filter_map(Event::from_sdl3_event)
 		{
 			match event {
@@ -86,8 +88,8 @@ where
 			app.event(&mut ctx, event);
 		}
 		drop(span);
-		// ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
-		// ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
+		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
+		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
 
 		// update state
 		let span = tracy_client::span!("update");
@@ -99,9 +101,9 @@ where
 
 		drop(span);
 		app.draw(&mut ctx);
-		/* let span = tracy_client::span!("draw egui UI");
+		let span = tracy_client::span!("draw egui UI");
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
-		drop(span); */
+		drop(span);
 		ctx.graphics.present();
 
 		tracy_client::frame_mark();
@@ -115,6 +117,8 @@ where
 pub struct Context {
 	pub(crate) gamepad: GamepadSubsystem,
 	pub(crate) event_pump: EventPump,
+	pub(crate) egui_wants_keyboard_input: bool,
+	pub(crate) egui_wants_mouse_input: bool,
 	// `graphics` needs to be before `window`, since it holds
 	// a `Surface` that must be dropped before the `Window`
 	pub(crate) graphics: GraphicsContext,
@@ -266,7 +270,7 @@ impl Context {
 		self.event_pump
 			.keyboard_state()
 			.is_scancode_pressed(scancode.into())
-		/* && !self.egui_wants_keyboard_input */
+			&& !self.egui_wants_keyboard_input
 	}
 
 	/// Returns `true` if the given mouse button is currently held down.
@@ -274,7 +278,7 @@ impl Context {
 		self.event_pump
 			.mouse_state()
 			.is_mouse_button_pressed(mouse_button.into())
-		/* && !self.egui_wants_mouse_input */
+			&& !self.egui_wants_mouse_input
 	}
 
 	/// Returns the current mouse position (in pixels, relative to the top-left

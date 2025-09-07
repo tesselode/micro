@@ -1,9 +1,0 @@
-[package]
-name = "micro-test"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-bytemuck = "1.23.2"
-micro = { path = "../micro" }
-tobj = "4.0.3"

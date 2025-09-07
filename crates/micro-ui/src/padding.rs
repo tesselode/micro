@@ -1,9 +1,6 @@
-use micro::{
-	Context,
-	math::{Vec2, vec2},
-};
+use micro::math::{Vec2, vec2};
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{child_fns, sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -63,15 +60,15 @@ impl Padding {
 		Self::new(0.0, 0.0, 0.0, padding)
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
 		}
 	}
 
-	with_child_fns!();
-	with_sizing_fns!();
+	child_fns!();
+	sizing_fns!();
 
 	fn total_padding(&self) -> Vec2 {
 		vec2(self.left + self.right, self.top + self.bottom)
@@ -116,12 +113,7 @@ impl Widget for Padding {
 			- self.total_padding()
 	}
 
-	fn layout(
-		&self,
-		_ctx: &mut Context,
-		allotted_size_from_parent: Vec2,
-		child_sizes: &[Vec2],
-	) -> LayoutResult {
+	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self

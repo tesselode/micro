@@ -1,13 +1,12 @@
 use std::fmt::Debug;
 
 use micro::{
-	Context,
 	color::LinSrgba,
-	graphics::{GraphicsPipeline, mesh::Mesh},
+	graphics::mesh::Mesh,
 	math::{Rect, Vec2},
 };
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{child_fns, sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -25,29 +24,29 @@ impl Rectangle {
 		Self::default()
 	}
 
-	pub fn with_fill(self, color: impl Into<LinSrgba>) -> Self {
+	pub fn fill(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			fill: Some(color.into()),
 			..self
 		}
 	}
 
-	pub fn with_stroke(self, width: f32, color: impl Into<LinSrgba>) -> Self {
+	pub fn stroke(self, width: f32, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			stroke: Some((width, color.into())),
 			..self
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
 		}
 	}
 
-	with_child_fns!();
-	with_sizing_fns!();
+	child_fns!();
+	sizing_fns!();
 }
 
 impl Default for Rectangle {
@@ -85,12 +84,7 @@ impl Widget for Rectangle {
 			.allotted_size_for_children(allotted_size_from_parent)
 	}
 
-	fn layout(
-		&self,
-		_ctx: &mut Context,
-		allotted_size_from_parent: Vec2,
-		child_sizes: &[Vec2],
-	) -> LayoutResult {
+	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self
@@ -100,35 +94,21 @@ impl Widget for Rectangle {
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			graphics_pipeline.draw(
-				ctx,
-				&Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, size)).color(fill),
-			);
+			Mesh::rectangle(Rect::new(Vec2::ZERO, size))
+				.color(fill)
+				.draw();
 		}
-		Ok(())
 	}
 
-	fn draw_after_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_after_children(&self, size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			graphics_pipeline.draw(
-				ctx,
-				&Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, size))?.color(color),
-			);
+			Mesh::outlined_rectangle(width, Rect::new(Vec2::ZERO, size))
+				.color(color)
+				.draw();
 		}
-		Ok(())
 	}
 }

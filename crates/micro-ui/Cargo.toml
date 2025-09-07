@@ -4,15 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.89"
+micro = { path = "../micro" }
 indexmap = "2.6.0"
 itertools = "0.14.0"
-micro = { path = "../micro" }
 tracy-client = { version = "0.18.0", default-features = false, features = [
-	"broadcast",
-	"callstack-inlines",
-	"code-transfer",
-	"context-switch-tracing",
-	"sampling",
-	"system-tracing",
+    "broadcast",
+    "callstack-inlines",
+    "code-transfer",
+    "context-switch-tracing",
+    "sampling",
+    "system-tracing",
 ] }

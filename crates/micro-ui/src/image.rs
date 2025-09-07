@@ -1,7 +1,6 @@
 use micro::{
-	Context,
 	color::{ColorConstants, LinSrgba},
-	graphics::{GraphicsPipeline, texture::Texture},
+	graphics::texture::Texture,
 	math::{Vec2, vec2},
 };
 
@@ -25,42 +24,42 @@ impl Image {
 		}
 	}
 
-	pub fn with_color(self, color: impl Into<LinSrgba>) -> Self {
+	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			color: color.into(),
 			..self
 		}
 	}
 
-	pub fn with_scale(self, scale: impl Into<Vec2>) -> Self {
+	pub fn scale(self, scale: impl Into<Vec2>) -> Self {
 		Self {
 			scale: scale.into(),
 			..self
 		}
 	}
 
-	pub fn with_scale_x(self, scale_x: f32) -> Self {
+	pub fn scale_x(self, scale_x: f32) -> Self {
 		Self {
 			scale: vec2(scale_x, self.scale.y),
 			..self
 		}
 	}
 
-	pub fn with_scale_y(self, scale_y: f32) -> Self {
+	pub fn scale_y(self, scale_y: f32) -> Self {
 		Self {
 			scale: vec2(self.scale.x, scale_y),
 			..self
 		}
 	}
 
-	pub fn with_uniform_scale(self, scale: f32) -> Self {
+	pub fn uniform_scale(self, scale: f32) -> Self {
 		Self {
 			scale: Vec2::splat(scale),
 			..self
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
@@ -89,26 +88,15 @@ impl Widget for Image {
 		unreachable!()
 	}
 
-	fn layout(
-		&self,
-		_ctx: &mut Context,
-		_allotted_size_from_parent: Vec2,
-		_child_sizes: &[Vec2],
-	) -> LayoutResult {
+	fn layout(&self, _allotted_size_from_parent: Vec2, _child_sizes: &[Vec2]) -> LayoutResult {
 		LayoutResult {
 			size: self.texture.size().as_vec2() * self.scale,
 			child_positions: vec![],
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, _size: Vec2) {
 		let _span = tracy_client::span!();
-		graphics_pipeline.draw(ctx, &self.texture.color(self.color).scaled_2d(self.scale));
-		Ok(())
+		self.texture.color(self.color).scaled_2d(self.scale).draw();
 	}
 }

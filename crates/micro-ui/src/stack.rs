@@ -1,11 +1,8 @@
 use std::fmt::Debug;
 
-use micro::{
-	Context,
-	math::{Vec2, vec2},
-};
+use micro::math::{Vec2, vec2};
 
-use crate::with_child_fns;
+use crate::child_fns;
 
 use super::{AxisSizing, LayoutResult, Widget, WidgetMouseEventChannel};
 
@@ -36,14 +33,14 @@ impl Stack {
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
 		}
 	}
 
-	with_child_fns!();
+	child_fns!();
 }
 
 impl Widget for Stack {
@@ -83,12 +80,7 @@ impl Widget for Stack {
 		}
 	}
 
-	fn layout(
-		&self,
-		_ctx: &mut Context,
-		allotted_size_from_parent: Vec2,
-		child_sizes: &[Vec2],
-	) -> LayoutResult {
+	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult {
 		let _span = tracy_client::span!();
 		match self.direction {
 			Axis::Horizontal => {

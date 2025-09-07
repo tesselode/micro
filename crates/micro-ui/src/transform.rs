@@ -1,9 +1,6 @@
-use micro::{
-	Context,
-	math::{Mat4, Vec2, vec3},
-};
+use micro::math::{Mat4, Vec2, vec3};
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{child_fns, sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -55,22 +52,22 @@ impl Transform {
 		Self::new(Mat4::from_rotation_z(rotation))
 	}
 
-	pub fn with_origin(self, origin: impl Into<Vec2>) -> Self {
+	pub fn origin(self, origin: impl Into<Vec2>) -> Self {
 		Self {
 			origin: origin.into(),
 			..self
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
 		}
 	}
 
-	with_child_fns!();
-	with_sizing_fns!();
+	child_fns!();
+	sizing_fns!();
 }
 
 impl Widget for Transform {
@@ -101,12 +98,7 @@ impl Widget for Transform {
 			.allotted_size_for_children(allotted_size_from_parent)
 	}
 
-	fn layout(
-		&self,
-		_ctx: &mut Context,
-		allotted_size_from_parent: Vec2,
-		child_sizes: &[Vec2],
-	) -> LayoutResult {
+	fn layout(&self, allotted_size_from_parent: Vec2, child_sizes: &[Vec2]) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self

@@ -1,7 +1,8 @@
 use micro::{
-	Context,
 	input::MouseButton,
+	is_mouse_button_down,
 	math::{Mat4, Vec2},
+	mouse_position,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -12,14 +13,14 @@ pub struct MouseInput {
 }
 
 impl MouseInput {
-	pub fn update(&mut self, ctx: &Context, transform: Mat4) {
-		let raw_mouse_position = ctx.mouse_position().as_vec2();
+	pub fn update(&mut self, transform: Mat4) {
+		let raw_mouse_position = mouse_position().as_vec2();
 		let transformed_mouse_position = transform
 			.transform_point3(raw_mouse_position.extend(0.0))
 			.truncate();
 		self.mouse_position = Some(transformed_mouse_position);
 		self.left_held_previous = self.left_held;
-		self.left_held = ctx.is_mouse_button_down(MouseButton::Left);
+		self.left_held = is_mouse_button_down(MouseButton::Left);
 	}
 
 	pub fn transformed(self, transform: Mat4) -> Self {

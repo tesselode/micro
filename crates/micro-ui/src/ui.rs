@@ -6,10 +6,10 @@ use std::{collections::HashMap, path::PathBuf};
 use indexmap::IndexMap;
 use itertools::izip;
 use micro::{
-	Context,
 	color::{LinSrgb, LinSrgba},
-	graphics::{GraphicsPipeline, mesh::Mesh},
+	graphics::mesh::Mesh,
 	math::{Mat4, Rect, Vec2},
+	push, push_translation_2d, window_size,
 };
 use mouse_input::MouseInput;
 use widget_mouse_state::{UpdateMouseStateResult, WidgetMouseState};
@@ -29,12 +29,12 @@ impl Ui {
 		Self::default()
 	}
 
-	pub fn show_debug_window(&mut self, egui_ctx: &micro::debug_ui::Context, open: &mut bool) {
+	pub fn show_debug_window(&mut self, egui_ctx: &micro::egui::Context, open: &mut bool) {
 		let Some(widget) = &self.previous_baked_widget else {
 			return;
 		};
 		let mut highlighted_widget_path = None;
-		micro::debug_ui::Window::new("UI")
+		micro::egui::Window::new("UI")
 			.open(open)
 			.scroll(true)
 			.show(egui_ctx, |ui| {
@@ -45,35 +45,25 @@ impl Ui {
 		});
 	}
 
-	pub fn render(
-		&mut self,
-		ctx: &mut Context,
-		settings: RenderUiSettings,
-		widget: impl Widget + 'static,
-	) -> anyhow::Result<()> {
+	pub fn render(&mut self, settings: RenderUiSettings, widget: impl Widget + 'static) {
 		let _span = tracy_client::span!();
-		let ctx = &mut ctx.push_transform(settings.transform);
-		let size = ctx.window_size().as_vec2();
+		push!(settings.transform);
+		let size = window_size().as_vec2();
 		let mut baked_widget =
-			BakedWidget::new(ctx, PathBuf::new(), &widget, settings.size.unwrap_or(size));
-		self.mouse_input.update(ctx, settings.transform.inverse());
+			BakedWidget::new(PathBuf::new(), &widget, settings.size.unwrap_or(size));
+		self.mouse_input.update(settings.transform.inverse());
 		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);
-		let graphics_pipeline = settings
-			.graphics_pipeline
-			.unwrap_or_else(|| ctx.default_graphics_pipeline());
-		baked_widget.draw(ctx, graphics_pipeline.clone(), &widget)?;
+		baked_widget.draw(&widget);
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
-			baked_widget.draw_debug(ctx, &graphics_pipeline, &draw_debug_state)?;
+			baked_widget.draw_debug(&draw_debug_state);
 		}
 		self.previous_baked_widget = Some(baked_widget);
-		Ok(())
 	}
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct RenderUiSettings {
 	pub size: Option<Vec2>,
-	pub graphics_pipeline: Option<GraphicsPipeline>,
 	pub transform: Mat4,
 }
 
@@ -87,12 +77,7 @@ struct BakedWidget {
 }
 
 impl BakedWidget {
-	fn new(
-		ctx: &mut Context,
-		path: PathBuf,
-		raw_widget: &dyn Widget,
-		allotted_size_from_parent: Vec2,
-	) -> Self {
+	fn new(path: PathBuf, raw_widget: &dyn Widget, allotted_size_from_parent: Vec2) -> Self {
 		let _span = tracy_client::span!();
 		let mut children = vec![];
 		let mut child_sizes = vec![];
@@ -102,12 +87,11 @@ impl BakedWidget {
 				raw_widget.allotted_size_for_next_child(allotted_size_from_parent, &child_sizes);
 			let unique_name = unique_child_name_generator.generate(child.name());
 			let child_path = path.join(unique_name);
-			let baked_child =
-				BakedWidget::new(ctx, child_path, child.as_ref(), allotted_size_for_child);
+			let baked_child = BakedWidget::new(child_path, child.as_ref(), allotted_size_for_child);
 			child_sizes.push(baked_child.layout_result.size);
 			children.push(baked_child);
 		}
-		let layout_result = raw_widget.layout(ctx, allotted_size_from_parent, &child_sizes);
+		let layout_result = raw_widget.layout(allotted_size_from_parent, &child_sizes);
 		Self {
 			name: raw_widget.name(),
 			path,
@@ -162,65 +146,42 @@ impl BakedWidget {
 		}
 	}
 
-	fn draw(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: GraphicsPipeline,
-		raw_widget: &dyn Widget,
-	) -> anyhow::Result<()> {
+	fn draw(&self, raw_widget: &dyn Widget) {
 		let _span = tracy_client::span!();
-		let mut ctx = ctx.push_transform(raw_widget.transform(self.layout_result.size));
-		let graphics_pipeline = if let Some(graphics_pipeline) = raw_widget.graphics_pipeline() {
-			graphics_pipeline
-		} else {
-			graphics_pipeline
-		};
-		let mut ctx = if let Some(stencil_reference) = raw_widget.stencil_reference() {
-			ctx.push_stencil_reference(stencil_reference)
-		} else {
-			ctx
-		};
-		raw_widget.draw_before_children(&mut ctx, &graphics_pipeline, self.layout_result.size)?;
+		push!(raw_widget.transform(self.layout_result.size));
+		raw_widget.draw_before_children(self.layout_result.size);
 		for (raw_child, baked_child, position) in izip!(
 			raw_widget.children(),
 			&self.children,
 			self.layout_result.child_positions.iter().copied()
 		) {
-			let ctx = &mut ctx.push_translation_2d(position.round());
-			baked_child.draw(ctx, graphics_pipeline.clone(), raw_child.as_ref())?;
+			push_translation_2d!(position.round());
+			baked_child.draw(raw_child.as_ref());
 		}
-		raw_widget.draw_after_children(&mut ctx, &graphics_pipeline, self.layout_result.size)?;
-		Ok(())
+		raw_widget.draw_after_children(self.layout_result.size);
 	}
 
-	fn draw_debug(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		draw_debug_state: &DrawDebugState,
-	) -> anyhow::Result<()> {
+	fn draw_debug(&self, draw_debug_state: &DrawDebugState) {
 		if draw_debug_state
 			.highlighted_widget_path
 			.as_ref()
 			.is_some_and(|path| *path == self.path)
 		{
-			let mesh = Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
-				.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25));
-			graphics_pipeline.draw(ctx, &mesh);
+			Mesh::rectangle(Rect::new(Vec2::ZERO, self.layout_result.size))
+				.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25))
+				.draw();
 		}
-		let mesh =
-			Mesh::outlined_rectangle(ctx, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))?
-				.color(LinSrgb::new(1.0, 0.0, 1.0));
-		graphics_pipeline.draw(ctx, &mesh);
+		Mesh::outlined_rectangle(2.0, Rect::new(Vec2::ZERO, self.layout_result.size))
+			.color(LinSrgb::new(1.0, 0.0, 1.0))
+			.draw();
 		for (baked_child, position) in self
 			.children
 			.iter()
 			.zip(self.layout_result.child_positions.iter().copied())
 		{
-			let ctx = &mut ctx.push_translation_2d(position.round());
-			baked_child.draw_debug(ctx, graphics_pipeline, draw_debug_state)?;
+			push_translation_2d!(position.round());
+			baked_child.draw_debug(draw_debug_state);
 		}
-		Ok(())
 	}
 }
 
@@ -248,7 +209,7 @@ struct DrawDebugState {
 }
 
 fn show_debug_widget_info(
-	ui: &mut micro::debug_ui::Ui,
+	ui: &mut micro::egui::Ui,
 	highlighted_widget_path: &mut Option<PathBuf>,
 	widget: &BakedWidget,
 	position: Option<Vec2>,

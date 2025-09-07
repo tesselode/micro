@@ -4,12 +4,8 @@ use std::{
 };
 
 use micro::{
-	Context,
 	color::{ColorConstants, LinSrgba},
-	graphics::{
-		GraphicsPipeline,
-		text::{Font, HorizontalAlign, LayoutSettings, Text, VerticalAlign, WrapStyle},
-	},
+	graphics::text::{Font, HorizontalAlign, LayoutSettings, Text, VerticalAlign, WrapStyle},
 	math::Vec2,
 };
 
@@ -34,7 +30,7 @@ impl TextWidget {
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
@@ -63,12 +59,7 @@ impl Widget for TextWidget {
 		unreachable!()
 	}
 
-	fn layout(
-		&self,
-		ctx: &mut Context,
-		allotted_size_from_parent: Vec2,
-		_child_sizes: &[Vec2],
-	) -> LayoutResult {
+	fn layout(&self, allotted_size_from_parent: Vec2, _child_sizes: &[Vec2]) -> LayoutResult {
 		let _span = tracy_client::span!();
 		let layout_settings = match self.settings.sizing {
 			TextSizing::Min { .. } => LayoutSettings {
@@ -91,7 +82,7 @@ impl Widget for TextWidget {
 				..Default::default()
 			},
 		};
-		let rendered = Text::new(ctx, &self.font, &self.text, layout_settings);
+		let rendered = Text::new(&self.font, &self.text, layout_settings);
 		let size = match self.settings.sizing {
 			TextSizing::Min {
 				size_reporting: TextSizeReporting {
@@ -116,35 +107,23 @@ impl Widget for TextWidget {
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, _size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some(TextShadow { color, offset }) = self.settings.shadow {
-			graphics_pipeline.draw(
-				ctx,
-				&self
-					.rendered
-					.borrow()
-					.as_ref()
-					.unwrap()
-					.translated_2d(offset)
-					.color(color),
-			);
-		}
-		graphics_pipeline.draw(
-			ctx,
-			&self
-				.rendered
+			self.rendered
 				.borrow()
 				.as_ref()
 				.unwrap()
-				.color(self.settings.color),
-		);
-		Ok(())
+				.translated_2d(offset)
+				.color(color)
+				.draw();
+		}
+		self.rendered
+			.borrow()
+			.as_ref()
+			.unwrap()
+			.color(self.settings.color)
+			.draw();
 	}
 }
 

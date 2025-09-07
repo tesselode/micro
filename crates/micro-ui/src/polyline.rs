@@ -1,9 +1,4 @@
-use micro::{
-	Context,
-	color::LinSrgba,
-	graphics::{GraphicsPipeline, mesh::Mesh},
-	math::Vec2,
-};
+use micro::{color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
 use super::{LayoutResult, Widget, WidgetMouseEventChannel};
 
@@ -36,7 +31,7 @@ impl Polyline {
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
@@ -65,12 +60,7 @@ impl Widget for Polyline {
 		unreachable!()
 	}
 
-	fn layout(
-		&self,
-		_ctx: &mut Context,
-		_allotted_size_from_parent: Vec2,
-		_child_sizes: &[Vec2],
-	) -> LayoutResult {
+	fn layout(&self, _allotted_size_from_parent: Vec2, _child_sizes: &[Vec2]) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self.size,
@@ -78,18 +68,10 @@ impl Widget for Polyline {
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, _size: Vec2) {
 		let _span = tracy_client::span!();
-		graphics_pipeline.draw(
-			ctx,
-			&Mesh::simple_polyline(ctx, self.stroke_width, self.points.iter().copied())?
-				.color(self.color),
-		);
-		Ok(())
+		Mesh::simple_polyline(self.stroke_width, self.points.iter().copied())
+			.color(self.color)
+			.draw()
 	}
 }

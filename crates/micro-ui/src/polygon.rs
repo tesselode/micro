@@ -1,10 +1,6 @@
 use micro::{
-	Context,
 	color::LinSrgba,
-	graphics::{
-		GraphicsPipeline,
-		mesh::{Mesh, ShapeStyle},
-	},
+	graphics::mesh::{Mesh, ShapeStyle},
 	math::Vec2,
 };
 
@@ -35,21 +31,21 @@ impl Polygon {
 		}
 	}
 
-	pub fn with_fill(self, color: impl Into<LinSrgba>) -> Self {
+	pub fn fill(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			fill: Some(color.into()),
 			..self
 		}
 	}
 
-	pub fn with_stroke(self, width: f32, color: impl Into<LinSrgba>) -> Self {
+	pub fn stroke(self, width: f32, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			stroke: Some((width, color.into())),
 			..self
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
@@ -78,12 +74,7 @@ impl Widget for Polygon {
 		unreachable!()
 	}
 
-	fn layout(
-		&self,
-		_ctx: &mut Context,
-		_allotted_size_from_parent: Vec2,
-		_child_sizes: &[Vec2],
-	) -> LayoutResult {
+	fn layout(&self, _allotted_size_from_parent: Vec2, _child_sizes: &[Vec2]) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
 			size: self.size,
@@ -91,37 +82,21 @@ impl Widget for Polygon {
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, _size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			graphics_pipeline.draw(
-				ctx,
-				&Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())?
-					.color(fill),
-			);
+			Mesh::simple_polygon(ShapeStyle::Fill, self.points.iter().copied())
+				.color(fill)
+				.draw();
 		}
-		Ok(())
 	}
 
-	fn draw_after_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_after_children(&self, _size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			graphics_pipeline.draw(
-				ctx,
-				&Mesh::simple_polygon(ctx, ShapeStyle::Stroke(width), self.points.iter().copied())?
-					.color(color),
-			);
+			Mesh::simple_polygon(ShapeStyle::Stroke(width), self.points.iter().copied())
+				.color(color)
+				.draw();
 		}
-		Ok(())
 	}
 }

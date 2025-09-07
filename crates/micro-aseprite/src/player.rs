@@ -7,7 +7,7 @@ use micro::{
 	Context,
 	color::{ColorConstants, LinSrgba},
 	graphics::texture::Texture,
-	math::{Mat4, URect},
+	math::Mat4,
 	standard_draw_param_methods,
 };
 
@@ -18,7 +18,6 @@ pub struct AnimationPlayer {
 	inner: Arc<Mutex<AnimationPlayerInner>>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
-	pub scissor_rect: Option<URect>,
 }
 
 impl AnimationPlayer {
@@ -39,7 +38,6 @@ impl AnimationPlayer {
 			})),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			scissor_rect: None,
 		}
 	}
 
@@ -113,7 +111,6 @@ impl AnimationPlayer {
 			)
 			.transformed(self.transform)
 			.color(self.color)
-			.scissor_rect(self.scissor_rect)
 			.draw(ctx);
 	}
 }

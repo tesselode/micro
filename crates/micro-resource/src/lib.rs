@@ -28,8 +28,8 @@ pub struct Resources<L: ResourceLoader> {
 }
 
 impl<L: ResourceLoader> Resources<L> {
-	pub fn new(ctx: &mut L::Context, base_dir: impl AsRef<Path>, mut loader: L) -> Self {
-		let placeholder = loader.placeholder(ctx);
+	pub fn new(base_dir: impl AsRef<Path>, mut loader: L) -> Self {
+		let placeholder = loader.placeholder();
 		Self {
 			base_dir: base_resources_path().join(base_dir.as_ref()),
 			loader,
@@ -40,18 +40,18 @@ impl<L: ResourceLoader> Resources<L> {
 		}
 	}
 
-	pub fn autoloaded(ctx: &mut L::Context, base_dir: impl AsRef<Path>, loader: L) -> Self {
-		let mut resources = Self::new(ctx, base_dir, loader);
-		resources.load_all(ctx);
+	pub fn autoloaded(base_dir: impl AsRef<Path>, loader: L) -> Self {
+		let mut resources = Self::new(base_dir, loader);
+		resources.load_all();
 		resources
 	}
 
-	pub fn load(&mut self, ctx: &mut L::Context, path: impl AsRef<Path>) {
-		self.load_inner(ctx, path.as_ref())
+	pub fn load(&mut self, path: impl AsRef<Path>) {
+		self.load_inner(path.as_ref())
 	}
 
-	pub fn load_all(&mut self, ctx: &mut L::Context) {
-		self.load(ctx, "")
+	pub fn load_all(&mut self) {
+		self.load("")
 	}
 
 	pub fn unload(&mut self, dir: impl AsRef<Path>) {
@@ -102,18 +102,18 @@ impl<L: ResourceLoader> Resources<L> {
 	}
 
 	#[cfg(debug_assertions)]
-	pub fn update_hot_reload(&mut self, ctx: &mut L::Context, delta_time: Duration) {
+	pub fn update_hot_reload(&mut self, delta_time: Duration) {
 		self.hot_reload_timer += delta_time;
 		if self.hot_reload_timer >= HOT_RELOAD_INTERVAL {
-			self.hot_reload(ctx);
+			self.hot_reload();
 			self.hot_reload_timer = Duration::ZERO;
 		}
 	}
 
 	#[cfg(not(debug_assertions))]
-	pub fn update_hot_reload(&mut self, _ctx: &mut L::Context, _delta_time: Duration) {}
+	pub fn update_hot_reload(&mut self, _delta_time: Duration) {}
 
-	fn load_inner(&mut self, ctx: &mut L::Context, path: &Path) {
+	fn load_inner(&mut self, path: &Path) {
 		let full_resource_path = self.base_dir.join(path);
 		if full_resource_path.is_dir() {
 			let resource_paths = match self.resources_in_dir(&full_resource_path) {
@@ -128,22 +128,21 @@ impl<L: ResourceLoader> Resources<L> {
 				}
 			};
 			for resource_path in resource_paths {
-				self.load_inner(ctx, &resource_path);
+				self.load_inner(&resource_path);
 			}
 		} else {
-			let resource =
-				match ResourceWithMetadata::load(ctx, &full_resource_path, &mut self.loader) {
-					Ok(Some(resource)) => resource,
-					Ok(None) => return,
-					Err(err) => {
-						tracing::error!(
-							"Error loading resource at path {}: {:?}",
-							full_resource_path.display(),
-							err
-						);
-						return;
-					}
-				};
+			let resource = match ResourceWithMetadata::load(&full_resource_path, &mut self.loader) {
+				Ok(Some(resource)) => resource,
+				Ok(None) => return,
+				Err(err) => {
+					tracing::error!(
+						"Error loading resource at path {}: {:?}",
+						full_resource_path.display(),
+						err
+					);
+					return;
+				}
+			};
 			self.resources.insert(path.into(), resource);
 		}
 	}
@@ -166,9 +165,9 @@ impl<L: ResourceLoader> Resources<L> {
 		Ok(resource_paths)
 	}
 
-	fn hot_reload(&mut self, ctx: &mut L::Context) {
+	fn hot_reload(&mut self) {
 		for (path, resource) in &mut self.resources {
-			let reloaded = resource.reload(ctx, &mut self.loader);
+			let reloaded = resource.reload(&mut self.loader);
 			if reloaded {
 				self.missing_resource_logger.on_reloaded(path);
 			}

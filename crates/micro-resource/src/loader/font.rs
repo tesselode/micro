@@ -3,10 +3,7 @@ use std::path::{Path, PathBuf};
 use derive_more::derive::{Display, Error, From};
 use serde::{Deserialize, Serialize};
 
-use micro::{
-	Context,
-	graphics::text::{Font, FontSettings, LoadFontError},
-};
+use micro::graphics::text::{Font, FontSettings, LoadFontError};
 
 use super::ResourceLoader;
 
@@ -34,13 +31,10 @@ impl ResourceLoader for FontLoader {
 
 	type Settings = ();
 
-	type Context = Context;
-
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["font"];
 
 	fn load(
 		&mut self,
-		ctx: &mut Context,
 		font_definition_path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error> {
@@ -52,7 +46,7 @@ impl ResourceLoader for FontLoader {
 			.join(font_definition.relative_font_path);
 		let mut settings = font_definition.settings;
 		settings.scale *= self.base_scale;
-		let font = Font::from_file(ctx, font_path, settings)?;
+		let font = Font::from_file(font_path, settings)?;
 		Ok(font)
 	}
 }

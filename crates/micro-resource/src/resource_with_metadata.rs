@@ -17,11 +17,7 @@ pub(super) struct ResourceWithMetadata<L: ResourceLoader> {
 }
 
 impl<L: ResourceLoader> ResourceWithMetadata<L> {
-	pub fn load(
-		ctx: &mut L::Context,
-		full_resource_path: &Path,
-		loader: &mut L,
-	) -> Result<Option<Self>, L::Error> {
+	pub fn load(full_resource_path: &Path, loader: &mut L) -> Result<Option<Self>, L::Error> {
 		let Some(file_path) = L::SUPPORTED_FILE_EXTENSIONS
 			.iter()
 			.map(|extension| full_resource_path.with_extension(extension))
@@ -41,7 +37,7 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 				None
 			}
 		};
-		let resource = loader.load(ctx, &file_path, settings.as_ref())?;
+		let resource = loader.load(&file_path, settings.as_ref())?;
 		let modified_time = match file_modified_time(&file_path) {
 			Ok(modified) => Some(modified),
 			Err(err) => {
@@ -77,7 +73,7 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 		}))
 	}
 
-	pub fn reload(&mut self, ctx: &mut L::Context, loader: &mut L) -> Reloaded {
+	pub fn reload(&mut self, loader: &mut L) -> Reloaded {
 		if !self.check_for_updates() {
 			return false;
 		}
@@ -96,12 +92,8 @@ impl<L: ResourceLoader> ResourceWithMetadata<L> {
 				)
 			}
 		}
-		if let Err(err) = loader.reload(
-			ctx,
-			&mut self.resource,
-			&self.file_path,
-			self.settings.as_ref(),
-		) {
+		if let Err(err) = loader.reload(&mut self.resource, &self.file_path, self.settings.as_ref())
+		{
 			tracing::error!(
 				"Error loading resource at path {}: {:?}",
 				self.file_path.display(),

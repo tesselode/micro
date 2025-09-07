@@ -16,29 +16,25 @@ pub trait ResourceLoader {
 
 	type Settings: for<'a> Deserialize<'a>;
 
-	type Context;
-
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str];
 
 	fn load(
 		&mut self,
-		ctx: &mut Self::Context,
 		path: &Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<Self::Resource, Self::Error>;
 
 	fn reload(
 		&mut self,
-		ctx: &mut Self::Context,
 		resource: &mut Self::Resource,
 		path: &Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		*resource = self.load(ctx, path, settings)?;
+		*resource = self.load(path, settings)?;
 		Ok(())
 	}
 
-	fn placeholder(&mut self, ctx: &mut Self::Context) -> Option<Self::Resource> {
+	fn placeholder(&mut self) -> Option<Self::Resource> {
 		None
 	}
 

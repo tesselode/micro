@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use micro::{
 	Context,
 	color::LinSrgba,
-	graphics::{GraphicsPipeline, mesh::Mesh},
+	graphics::mesh::Mesh,
 	math::{Rect, Vec2},
 };
 
@@ -100,35 +100,21 @@ impl Widget for Rectangle {
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			graphics_pipeline.draw(
-				ctx,
-				&Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, size)).color(fill),
-			);
+			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, size))
+				.color(fill)
+				.draw(ctx);
 		}
-		Ok(())
 	}
 
-	fn draw_after_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			graphics_pipeline.draw(
-				ctx,
-				&Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, size))?.color(color),
-			);
+			Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, size))
+				.color(color)
+				.draw(ctx);
 		}
-		Ok(())
 	}
 }

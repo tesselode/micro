@@ -1,9 +1,4 @@
-use micro::{
-	Context,
-	color::LinSrgba,
-	graphics::{GraphicsPipeline, mesh::Mesh},
-	math::Vec2,
-};
+use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
 use super::{LayoutResult, Widget, WidgetMouseEventChannel};
 
@@ -78,18 +73,10 @@ impl Widget for Polyline {
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) {
 		let _span = tracy_client::span!();
-		graphics_pipeline.draw(
-			ctx,
-			&Mesh::simple_polyline(ctx, self.stroke_width, self.points.iter().copied())?
-				.color(self.color),
-		);
-		Ok(())
+		Mesh::simple_polyline(ctx, self.stroke_width, self.points.iter().copied())
+			.color(self.color)
+			.draw(ctx);
 	}
 }

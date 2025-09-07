@@ -1,6 +1,5 @@
 mod align;
 mod ellipse;
-mod graphics_pipeline_widget;
 mod image;
 mod macros;
 mod padding;
@@ -9,15 +8,12 @@ mod polyline;
 mod rectangle;
 mod sizing;
 mod stack;
-mod stencil_reference_widget;
 mod text;
 mod transform;
-#[allow(clippy::module_inception)]
 mod ui;
 
 pub use align::*;
 pub use ellipse::*;
-pub use graphics_pipeline_widget::*;
 pub use image::*;
 pub use padding::*;
 pub use polygon::*;
@@ -25,7 +21,6 @@ pub use polyline::*;
 pub use rectangle::*;
 pub use sizing::*;
 pub use stack::*;
-pub use stencil_reference_widget::*;
 pub use text::*;
 pub use transform::*;
 pub use ui::*;
@@ -34,7 +29,6 @@ use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 
 use micro::{
 	Context,
-	graphics::GraphicsPipeline,
 	math::{Mat4, Vec2},
 };
 
@@ -46,14 +40,6 @@ pub trait Widget: Debug {
 
 	fn transform(&self, size: Vec2) -> Mat4 {
 		Mat4::IDENTITY
-	}
-
-	fn graphics_pipeline(&self) -> Option<GraphicsPipeline> {
-		None
-	}
-
-	fn stencil_reference(&self) -> Option<u8> {
-		None
 	}
 
 	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel>;
@@ -71,23 +57,9 @@ pub trait Widget: Debug {
 		child_sizes: &[Vec2],
 	) -> LayoutResult;
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		size: Vec2,
-	) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) {}
 
-	fn draw_after_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		size: Vec2,
-	) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) {}
 }
 
 #[derive(Debug, Clone, PartialEq)]

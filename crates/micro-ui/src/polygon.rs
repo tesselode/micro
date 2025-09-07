@@ -1,10 +1,7 @@
 use micro::{
 	Context,
 	color::LinSrgba,
-	graphics::{
-		GraphicsPipeline,
-		mesh::{Mesh, ShapeStyle},
-	},
+	graphics::mesh::{Mesh, ShapeStyle},
 	math::Vec2,
 };
 
@@ -91,37 +88,21 @@ impl Widget for Polygon {
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			graphics_pipeline.draw(
-				ctx,
-				&Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())?
-					.color(fill),
-			);
+			Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())
+				.color(fill)
+				.draw(ctx);
 		}
-		Ok(())
 	}
 
-	fn draw_after_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_after_children(&self, ctx: &mut Context, _size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			graphics_pipeline.draw(
-				ctx,
-				&Mesh::simple_polygon(ctx, ShapeStyle::Stroke(width), self.points.iter().copied())?
-					.color(color),
-			);
+			Mesh::simple_polygon(ctx, ShapeStyle::Stroke(width), self.points.iter().copied())
+				.color(color)
+				.draw(ctx);
 		}
-		Ok(())
 	}
 }

@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.89"
 indexmap = "2.6.0"
 itertools = "0.14.0"
 micro = { path = "../micro" }

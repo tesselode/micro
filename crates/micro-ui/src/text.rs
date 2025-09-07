@@ -6,10 +6,7 @@ use std::{
 use micro::{
 	Context,
 	color::{ColorConstants, LinSrgba},
-	graphics::{
-		GraphicsPipeline,
-		text::{Font, HorizontalAlign, LayoutSettings, Text, VerticalAlign, WrapStyle},
-	},
+	graphics::text::{Font, HorizontalAlign, LayoutSettings, Text, VerticalAlign, WrapStyle},
 	math::Vec2,
 };
 
@@ -116,35 +113,23 @@ impl Widget for TextWidget {
 		}
 	}
 
-	fn draw_before_children(
-		&self,
-		ctx: &mut Context,
-		graphics_pipeline: &GraphicsPipeline,
-		_size: Vec2,
-	) -> anyhow::Result<()> {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) {
 		let _span = tracy_client::span!();
 		if let Some(TextShadow { color, offset }) = self.settings.shadow {
-			graphics_pipeline.draw(
-				ctx,
-				&self
-					.rendered
-					.borrow()
-					.as_ref()
-					.unwrap()
-					.translated_2d(offset)
-					.color(color),
-			);
-		}
-		graphics_pipeline.draw(
-			ctx,
-			&self
-				.rendered
+			self.rendered
 				.borrow()
 				.as_ref()
 				.unwrap()
-				.color(self.settings.color),
-		);
-		Ok(())
+				.translated_2d(offset)
+				.color(color)
+				.draw(ctx);
+		}
+		self.rendered
+			.borrow()
+			.as_ref()
+			.unwrap()
+			.color(self.settings.color)
+			.draw(ctx);
 	}
 }
 

@@ -1,0 +1,12 @@
+[package]
+name = "micro-virtual-controller"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+exhaust = "0.2.4"
+micro = { path = "../micro", features = ["exhaust"] }
+serde = { version = "1.0.219", features = ["derive"] }
+
+[features]
+serializing = ["micro/serializing"]

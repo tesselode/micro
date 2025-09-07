@@ -3,16 +3,16 @@ mod real_control;
 mod traits;
 
 pub use config::*;
-use exhaust::Exhaust;
-use glam::Vec2;
 pub use real_control::*;
 pub use traits::*;
 
+use exhaust::Exhaust;
+use micro::{
+	input::Gamepad,
+	math::{CardinalDirection, Vec2},
+};
+
 use std::{collections::HashMap, hash::Hash};
-
-use crate::math::CardinalDirection;
-
-use super::Gamepad;
 
 #[derive(Debug)]
 pub struct VirtualController<C, S = ()>

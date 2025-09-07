@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use exhaust::Exhaust;
 
-use crate::math::CardinalDirection;
+use micro::math::CardinalDirection;
 
 pub trait VirtualAnalogSticks<C>: Sized + Hash + Eq + Copy + Exhaust + 'static
 where

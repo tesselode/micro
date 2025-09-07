@@ -1,4 +1,4 @@
-use crate::{
+use micro::{
 	input::{Axis, Button, Gamepad, MouseButton, Scancode},
 	is_key_down, is_mouse_button_down,
 };

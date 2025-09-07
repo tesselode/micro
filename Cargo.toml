@@ -6,6 +6,6 @@ members = [
 	"crates/micro-ldtk",
 	"crates/micro-asset",
 	"crates/micro-tiled-loader",
-	"crates/micro-ui",
+	"crates/micro-ui", "crates/micro-virtual-controller",
 ]
 resolver = "3"

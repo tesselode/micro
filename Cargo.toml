@@ -1,6 +1,5 @@
 [workspace]
 members = [
-	"crates/micro",
 	"crates/micro-aseprite",
 	"crates/micro-kira-loaders",
 	"crates/micro-ldtk",

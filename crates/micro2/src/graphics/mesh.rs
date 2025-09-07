@@ -5,7 +5,6 @@ pub use builder::*;
 use std::marker::PhantomData;
 
 use glam::{Mat4, Vec2};
-use lyon_tessellation::TessellationError;
 use palette::LinSrgba;
 use wgpu::{
 	Buffer, BufferUsages,
@@ -133,26 +132,18 @@ impl Mesh<Vertex2d> {
 		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
-	pub fn outlined_rectangle(
-		ctx: &Context,
-		stroke_width: f32,
-		rect: Rect,
-	) -> Result<Self, TessellationError> {
+	pub fn outlined_rectangle(ctx: &Context, stroke_width: f32, rect: Rect) -> Self {
 		let _span = tracy_client::span!();
-		Ok(MeshBuilder::new()
-			.with_rectangle(ShapeStyle::Stroke(stroke_width), rect, LinSrgba::WHITE)?
-			.build(ctx))
+		MeshBuilder::new()
+			.with_rectangle(ShapeStyle::Stroke(stroke_width), rect, LinSrgba::WHITE)
+			.build(ctx)
 	}
 
-	pub fn circle(
-		ctx: &Context,
-		style: ShapeStyle,
-		circle: Circle,
-	) -> Result<Self, TessellationError> {
+	pub fn circle(ctx: &Context, style: ShapeStyle, circle: Circle) -> Self {
 		let _span = tracy_client::span!();
-		Ok(MeshBuilder::new()
-			.with_circle(style, circle, LinSrgba::WHITE)?
-			.build(ctx))
+		MeshBuilder::new()
+			.with_circle(style, circle, LinSrgba::WHITE)
+			.build(ctx)
 	}
 
 	pub fn ellipse(
@@ -161,49 +152,49 @@ impl Mesh<Vertex2d> {
 		center: impl Into<Vec2>,
 		radii: impl Into<Vec2>,
 		rotation: f32,
-	) -> Result<Self, TessellationError> {
+	) -> Self {
 		let _span = tracy_client::span!();
-		Ok(MeshBuilder::new()
-			.with_ellipse(style, center, radii, rotation, LinSrgba::WHITE)?
-			.build(ctx))
+		MeshBuilder::new()
+			.with_ellipse(style, center, radii, rotation, LinSrgba::WHITE)
+			.build(ctx)
 	}
 
 	pub fn filled_polygon(
 		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
-	) -> Result<Self, AddPolyError> {
+	) -> Self {
 		let _span = tracy_client::span!();
-		Ok(MeshBuilder::new().with_filled_polygon(points)?.build(ctx))
+		MeshBuilder::new().with_filled_polygon(points).build(ctx)
 	}
 
 	pub fn polyline(
 		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
-	) -> Result<Self, AddPolyError> {
+	) -> Self {
 		let _span = tracy_client::span!();
-		Ok(MeshBuilder::new().with_polyline(points, closed)?.build(ctx))
+		MeshBuilder::new().with_polyline(points, closed).build(ctx)
 	}
 
 	pub fn simple_polygon(
 		ctx: &Context,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-	) -> Result<Self, AddPolyError> {
+	) -> Self {
 		let _span = tracy_client::span!();
-		Ok(MeshBuilder::new()
-			.with_simple_polygon(style, points, LinSrgba::WHITE)?
-			.build(ctx))
+		MeshBuilder::new()
+			.with_simple_polygon(style, points, LinSrgba::WHITE)
+			.build(ctx)
 	}
 
 	pub fn simple_polyline(
 		ctx: &Context,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
-	) -> Result<Self, AddPolyError> {
+	) -> Self {
 		let _span = tracy_client::span!();
-		Ok(MeshBuilder::new()
-			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)?
-			.build(ctx))
+		MeshBuilder::new()
+			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)
+			.build(ctx)
 	}
 }

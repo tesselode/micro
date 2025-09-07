@@ -5,7 +5,6 @@ members = [
 	"crates/micro-kira-loaders",
 	"crates/micro-ldtk",
 	"crates/micro-resource",
-	"crates/micro-starter",
 	"crates/micro-tiled-loader",
 	"crates/micro-ui",
 ]

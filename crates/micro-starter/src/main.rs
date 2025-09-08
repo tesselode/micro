@@ -12,7 +12,6 @@ use std::time::Duration;
 use backtrace::Backtrace;
 use globals::Globals;
 use log::setup_logging;
-use micro::egui::TopBottomPanel;
 use micro::math::UVec2;
 use micro::{App, Context, ContextSettings, Event, WindowMode, input::Scancode};
 use scene::gameplay::Gameplay;
@@ -42,7 +41,6 @@ fn main() {
 struct Game {
 	globals: Globals,
 	scene_manager: SceneManager,
-	dev_tools_enabled: bool,
 }
 
 impl Game {
@@ -52,33 +50,12 @@ impl Game {
 		Self {
 			globals,
 			scene_manager: SceneManager::new(gameplay),
-			dev_tools_enabled: false,
 		}
 	}
 }
 
 impl App for Game {
 	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
-		if !self.dev_tools_enabled {
-			return;
-		}
-		TopBottomPanel::top("menu").show(egui_ctx, |ui| {
-			micro::egui::menu::bar(ui, |ui| {
-				self.scene_manager.debug_menu(ctx, ui, &mut self.globals);
-				ui.separator();
-				ui.label(format!(
-					"Average frame time: {:.1}ms ({:.0} FPS)",
-					ctx.average_frame_time().as_secs_f64() * 1000.0,
-					ctx.fps()
-				));
-				if let Some(stats) = self.scene_manager.debug_stats(ctx, &mut self.globals) {
-					for stat in &stats {
-						ui.separator();
-						ui.label(stat);
-					}
-				}
-			})
-		});
 		self.scene_manager
 			.debug_ui(ctx, egui_ctx, &mut self.globals);
 	}
@@ -90,12 +67,6 @@ impl App for Game {
 		} = event
 		{
 			ctx.quit();
-		}
-		if let Event::KeyPressed {
-			key: Scancode::F1, ..
-		} = event
-		{
-			self.dev_tools_enabled = !self.dev_tools_enabled;
 		}
 		self.scene_manager.event(ctx, &mut self.globals, event);
 	}

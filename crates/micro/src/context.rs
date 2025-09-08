@@ -6,6 +6,7 @@ use std::{
 	time::{Duration, Instant},
 };
 
+use egui::{Align, Layout, TopBottomPanel};
 use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
 use palette::LinSrgb;
 use sdl3::{
@@ -45,6 +46,7 @@ where
 		egui_wants_mouse_input: false,
 		frame_time_tracker: FrameTimeTracker::new(),
 		graphics,
+		dev_tools_state: settings.dev_tools_mode.initial_state(),
 		should_quit: false,
 	};
 	let egui_ctx = egui::Context::default();
@@ -69,7 +71,23 @@ where
 		let span = tracy_client::span!("create egui UI");
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_pass(egui_input);
-		app.debug_ui(&mut ctx, &egui_ctx);
+		if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
+			TopBottomPanel::top("main_menu").show_animated(&egui_ctx, visible, |ui| {
+				egui::MenuBar::new().ui(ui, |ui| {
+					app.debug_menu(&mut ctx, ui);
+					ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+						ui.label(format!(
+							"Average frame time: {:.1}ms ({:.0} FPS)",
+							ctx.average_frame_time().as_secs_f64() * 1000.0,
+							ctx.fps()
+						));
+					});
+				});
+			});
+			if visible {
+				app.debug_ui(&mut ctx, &egui_ctx);
+			}
+		}
 		let egui_output = egui_ctx.end_pass();
 		drop(span);
 		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
@@ -85,6 +103,13 @@ where
 			match event {
 				Event::WindowSizeChanged(size) => ctx.graphics.resize(size),
 				Event::Exited => ctx.should_quit = true,
+				Event::KeyPressed {
+					key: Scancode::F1, ..
+				} => {
+					if let DevToolsState::Enabled { visible } = &mut ctx.dev_tools_state {
+						*visible = !*visible;
+					}
+				}
 				_ => {}
 			}
 			app.event(&mut ctx, event);
@@ -114,16 +139,17 @@ where
 }
 
 pub struct Context {
-	pub(crate) gamepad: GamepadSubsystem,
-	pub(crate) event_pump: EventPump,
-	pub(crate) egui_wants_keyboard_input: bool,
-	pub(crate) egui_wants_mouse_input: bool,
+	gamepad: GamepadSubsystem,
+	event_pump: EventPump,
+	egui_wants_keyboard_input: bool,
+	egui_wants_mouse_input: bool,
 	// `graphics` needs to be before `window`, since it holds
 	// a `Surface` that must be dropped before the `Window`
 	pub(crate) graphics: GraphicsContext,
-	pub(crate) window: Window,
-	pub(crate) frame_time_tracker: FrameTimeTracker,
-	pub(crate) should_quit: bool,
+	window: Window,
+	frame_time_tracker: FrameTimeTracker,
+	should_quit: bool,
+	dev_tools_state: DevToolsState,
 }
 
 impl Context {
@@ -316,6 +342,7 @@ pub struct ContextSettings {
 	pub present_mode: PresentMode,
 	pub max_queued_frames: u32,
 	pub required_graphics_features: Features,
+	pub dev_tools_mode: DevToolsMode,
 }
 
 impl Default for ContextSettings {
@@ -327,6 +354,32 @@ impl Default for ContextSettings {
 			present_mode: PresentMode::AutoVsync,
 			max_queued_frames: 1,
 			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+			dev_tools_mode: DevToolsMode::default(),
+		}
+	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DevToolsMode {
+	Disabled,
+	Enabled { show_by_default: bool },
+}
+
+impl DevToolsMode {
+	fn initial_state(self) -> DevToolsState {
+		match self {
+			DevToolsMode::Disabled => DevToolsState::Disabled,
+			DevToolsMode::Enabled { show_by_default } => DevToolsState::Enabled {
+				visible: show_by_default,
+			},
+		}
+	}
+}
+
+impl Default for DevToolsMode {
+	fn default() -> Self {
+		Self::Enabled {
+			show_by_default: true,
 		}
 	}
 }
@@ -400,4 +453,10 @@ impl DerefMut for OnDrop<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum DevToolsState {
+	Disabled,
+	Enabled { visible: bool },
 }

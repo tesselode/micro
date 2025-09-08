@@ -1,7 +1,7 @@
 use std::{collections::HashMap, hash::Hash};
 
 use exhaust::Exhaust;
-use glam::Vec2;
+use micro::math::Vec2;
 
 use super::RealControl;
 

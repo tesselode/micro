@@ -4,15 +4,16 @@ mod traits;
 
 pub use config::*;
 use exhaust::Exhaust;
-use glam::Vec2;
 pub use real_control::*;
 pub use traits::*;
 
 use std::{collections::HashMap, hash::Hash};
 
-use crate::{context::Context, math::CardinalDirection};
-
-use super::Gamepad;
+use micro::{
+	Context,
+	input::Gamepad,
+	math::{CardinalDirection, Vec2},
+};
 
 #[derive(Debug)]
 pub struct VirtualController<C, S = ()>
@@ -184,7 +185,7 @@ pub enum InputKind {
 #[macro_export]
 macro_rules! control_mapping {
 	($($virtual:expr => [$($real:expr),*$(,)?]),*$(,)?) => {{
-		let mut mapping = HashMap::new();
+		let mut mapping = std::collections::HashMap::new();
 		$(mapping.insert($virtual, vec![$($real.into()),*]);)*
 		mapping
 	}};

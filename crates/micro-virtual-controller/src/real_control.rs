@@ -1,5 +1,5 @@
-use crate::{
-	context::Context,
+use micro::{
+	Context,
 	input::{Axis, Button, Gamepad, MouseButton, Scancode},
 };
 

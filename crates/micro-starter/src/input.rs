@@ -1,15 +1,10 @@
-use std::collections::HashMap;
-
 use exhaust::Exhaust;
 use micro::{
-	control_mapping,
-	input::{
-		Axis, Button, Scancode,
-		virtual_controller::{
-			AxisDirection, DeadzoneShape, VirtualAnalogSticks, VirtualControllerConfig,
-		},
-	},
+	input::{Axis, Button, Scancode},
 	math::CardinalDirection::{self, *},
+};
+use micro_virtual_controller::{
+	AxisDirection, DeadzoneShape, VirtualAnalogSticks, VirtualControllerConfig, control_mapping,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Exhaust)]

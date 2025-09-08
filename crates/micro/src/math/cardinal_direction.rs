@@ -1,12 +1,12 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
-use exhaust::Exhaust;
 use glam::{IVec2, Vec2};
 
 use super::ClockDirection;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Exhaust)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "exhaust", derive(exhaust::Exhaust))]
 pub enum CardinalDirection {
 	Left,
 	Right,

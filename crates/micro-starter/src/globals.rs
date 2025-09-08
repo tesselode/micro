@@ -1,5 +1,6 @@
-use micro::{Context, input::virtual_controller::VirtualController};
+use micro::Context;
 use micro_resource::{FontLoader, Resources, TextureLoader};
+use micro_virtual_controller::VirtualController;
 
 use crate::input::{Controls, Sticks, default_input_config};
 

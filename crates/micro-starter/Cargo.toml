@@ -12,6 +12,7 @@ exhaust = "0.2.0"
 hecs = "0.10.3"
 micro = { path = "../micro" }
 micro-resource = { path = "../micro-resource" }
+micro-virtual-controller = { path = "../micro-virtual-controller" }
 tracing = "0.1.37"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

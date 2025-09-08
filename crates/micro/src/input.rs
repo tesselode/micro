@@ -2,7 +2,6 @@ mod axis;
 mod button;
 mod mouse_button;
 mod scancode;
-pub mod virtual_controller;
 
 use std::fmt::Debug;
 

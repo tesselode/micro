@@ -1,0 +1,15 @@
+[package]
+name = "micro-scene-manager"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+micro = { path = "../micro" }
+tracy-client = { version = "0.18.0", default-features = false, features = [
+    "broadcast",
+    "callstack-inlines",
+    "code-transfer",
+    "context-switch-tracing",
+    "sampling",
+    "system-tracing",
+] }

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+backtrace = "0.3.73"
 bytemuck = { version = "1.21.0", features = ["derive"] }
 crunch = "0.5.3"
 derive_more = { version = "2.0.1", features = ["display", "error", "from"] }
@@ -27,6 +28,8 @@ sdl3 = { version = "0.14.41", features = [
 ] }
 serde = { version = "1.0", features = ["derive"], optional = true }
 tracing = "0.1.41"
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracy-client = { version = "0.18.0", default-features = false, features = [
     "broadcast",
     "callstack-inlines",

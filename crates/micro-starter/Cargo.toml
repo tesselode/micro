@@ -6,7 +6,6 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-backtrace = "0.3.73"
 directories = "6.0.0"
 exhaust = "0.2.0"
 hecs = "0.10.3"
@@ -14,8 +13,6 @@ micro = { path = "../micro" }
 micro-asset = { path = "../micro-asset" }
 micro-virtual-controller = { path = "../micro-virtual-controller" }
 tracing = "0.1.37"
-tracing-appender = "0.2.3"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [build-dependencies]
 embed-manifest = "1.3.1"

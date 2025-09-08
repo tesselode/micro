@@ -1,5 +1,5 @@
 mod loader;
-mod resource_with_metadata;
+mod asset_with_metadata;
 
 pub use loader::*;
 
@@ -14,36 +14,36 @@ use std::{
 use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
-use self::resource_with_metadata::ResourceWithMetadata;
+use self::asset_with_metadata::AssetWithMetadata;
 
 const HOT_RELOAD_INTERVAL: Duration = Duration::from_secs(1);
 
-pub struct Resources<L: ResourceLoader> {
+pub struct Assets<L: AssetLoader> {
 	base_dir: PathBuf,
 	loader: L,
-	resources: IndexMap<PathBuf, ResourceWithMetadata<L>>,
-	placeholder: Option<L::Resource>,
+	assets: IndexMap<PathBuf, AssetWithMetadata<L>>,
+	placeholder: Option<L::Asset>,
 	hot_reload_timer: Duration,
-	missing_resource_logger: MissingResourceLogger,
+	missing_asset_logger: MissingAssetLogger,
 }
 
-impl<L: ResourceLoader> Resources<L> {
+impl<L: AssetLoader> Assets<L> {
 	pub fn new(ctx: &mut L::Context, base_dir: impl AsRef<Path>, mut loader: L) -> Self {
 		let placeholder = loader.placeholder(ctx);
 		Self {
-			base_dir: base_resources_path().join(base_dir.as_ref()),
+			base_dir: base_assets_path().join(base_dir.as_ref()),
 			loader,
-			resources: IndexMap::new(),
+			assets: IndexMap::new(),
 			placeholder,
 			hot_reload_timer: Duration::ZERO,
-			missing_resource_logger: MissingResourceLogger::new(),
+			missing_asset_logger: MissingAssetLogger::new(),
 		}
 	}
 
 	pub fn autoloaded(ctx: &mut L::Context, base_dir: impl AsRef<Path>, loader: L) -> Self {
-		let mut resources = Self::new(ctx, base_dir, loader);
-		resources.load_all(ctx);
-		resources
+		let mut assets = Self::new(ctx, base_dir, loader);
+		assets.load_all(ctx);
+		assets
 	}
 
 	pub fn load(&mut self, ctx: &mut L::Context, path: impl AsRef<Path>) {
@@ -56,20 +56,20 @@ impl<L: ResourceLoader> Resources<L> {
 
 	pub fn unload(&mut self, dir: impl AsRef<Path>) {
 		let dir = dir.as_ref();
-		self.resources.retain(|path, _| path.starts_with(dir));
+		self.assets.retain(|path, _| path.starts_with(dir));
 	}
 
 	pub fn append(&mut self, mut other: Self) {
-		self.resources.extend(other.resources.drain(..));
+		self.assets.extend(other.assets.drain(..));
 	}
 
-	pub fn get(&self, path: impl AsRef<Path>) -> Option<&L::Resource> {
+	pub fn get(&self, path: impl AsRef<Path>) -> Option<&L::Asset> {
 		let path = path.as_ref();
-		if let Some(resource) = self.resources.get(path) {
-			Some(&resource.resource)
+		if let Some(asset) = self.assets.get(path) {
+			Some(&asset.asset)
 		} else {
 			if self.loader.warn_on_missing() {
-				self.missing_resource_logger.log(path);
+				self.missing_asset_logger.log(path);
 			}
 			if let Some(placeholder) = &self.placeholder {
 				Some(placeholder)
@@ -79,13 +79,13 @@ impl<L: ResourceLoader> Resources<L> {
 		}
 	}
 
-	pub fn get_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut L::Resource> {
+	pub fn get_mut(&mut self, path: impl AsRef<Path>) -> Option<&mut L::Asset> {
 		let path = path.as_ref();
-		if let Some(resource) = self.resources.get_mut(path) {
-			Some(&mut resource.resource)
+		if let Some(asset) = self.assets.get_mut(path) {
+			Some(&mut asset.asset)
 		} else {
 			if self.loader.warn_on_missing() {
-				self.missing_resource_logger.log(path);
+				self.missing_asset_logger.log(path);
 			}
 			if let Some(placeholder) = &mut self.placeholder {
 				Some(placeholder)
@@ -95,10 +95,10 @@ impl<L: ResourceLoader> Resources<L> {
 		}
 	}
 
-	pub fn iter(&self) -> impl Iterator<Item = (&Path, &L::Resource)> {
-		self.resources
+	pub fn iter(&self) -> impl Iterator<Item = (&Path, &L::Asset)> {
+		self.assets
 			.iter()
-			.map(|(path, resource)| (path.as_ref(), &resource.resource))
+			.map(|(path, asset)| (path.as_ref(), &asset.asset))
 	}
 
 	#[cfg(debug_assertions)]
@@ -114,48 +114,48 @@ impl<L: ResourceLoader> Resources<L> {
 	pub fn update_hot_reload(&mut self, _ctx: &mut L::Context, _delta_time: Duration) {}
 
 	fn load_inner(&mut self, ctx: &mut L::Context, path: &Path) {
-		let full_resource_path = self.base_dir.join(path);
-		if full_resource_path.is_dir() {
-			let resource_paths = match self.resources_in_dir(&full_resource_path) {
+		let full_asset_path = self.base_dir.join(path);
+		if full_asset_path.is_dir() {
+			let asset_paths = match self.assets_in_dir(&full_asset_path) {
 				Ok(paths) => paths,
 				Err(err) => {
 					tracing::error!(
-						"Error getting resources in {}: {}",
-						full_resource_path.display(),
+						"Error getting assets in {}: {}",
+						full_asset_path.display(),
 						err
 					);
 					return;
 				}
 			};
-			for resource_path in resource_paths {
-				self.load_inner(ctx, &resource_path);
+			for asset_path in asset_paths {
+				self.load_inner(ctx, &asset_path);
 			}
 		} else {
-			let resource =
-				match ResourceWithMetadata::load(ctx, &full_resource_path, &mut self.loader) {
-					Ok(Some(resource)) => resource,
+			let asset =
+				match AssetWithMetadata::load(ctx, &full_asset_path, &mut self.loader) {
+					Ok(Some(asset)) => asset,
 					Ok(None) => return,
 					Err(err) => {
 						tracing::error!(
-							"Error loading resource at path {}: {:?}",
-							full_resource_path.display(),
+							"Error loading asset at path {}: {:?}",
+							full_asset_path.display(),
 							err
 						);
 						return;
 					}
 				};
-			self.resources.insert(path.into(), resource);
+			self.assets.insert(path.into(), asset);
 		}
 	}
 
-	fn resources_in_dir(
+	fn assets_in_dir(
 		&mut self,
 		full_path: &PathBuf,
 	) -> Result<IndexSet<PathBuf>, std::io::Error> {
-		let mut resource_paths = IndexSet::new();
+		let mut asset_paths = IndexSet::new();
 		for entry in std::fs::read_dir(full_path)? {
 			let entry = entry?;
-			resource_paths.insert(
+			asset_paths.insert(
 				entry
 					.path()
 					.strip_prefix(&self.base_dir)
@@ -163,95 +163,95 @@ impl<L: ResourceLoader> Resources<L> {
 					.with_extension(""),
 			);
 		}
-		Ok(resource_paths)
+		Ok(asset_paths)
 	}
 
 	fn hot_reload(&mut self, ctx: &mut L::Context) {
-		for (path, resource) in &mut self.resources {
-			let reloaded = resource.reload(ctx, &mut self.loader);
+		for (path, asset) in &mut self.assets {
+			let reloaded = asset.reload(ctx, &mut self.loader);
 			if reloaded {
-				self.missing_resource_logger.on_reloaded(path);
+				self.missing_asset_logger.on_reloaded(path);
 			}
 		}
 	}
 }
 
-impl<L> Debug for Resources<L>
+impl<L> Debug for Assets<L>
 where
-	L: ResourceLoader + Debug,
-	L::Resource: Debug,
+	L: AssetLoader + Debug,
+	L::Asset: Debug,
 	L::Settings: Debug,
 {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.debug_struct("Resources")
+		f.debug_struct("Assets")
 			.field("base_dir", &self.base_dir)
 			.field("loader", &self.loader)
-			.field("resources", &self.resources)
+			.field("assets", &self.assets)
 			.field("placeholder", &self.placeholder)
 			.field("hot_reload_timer", &self.hot_reload_timer)
 			.finish()
 	}
 }
 
-impl<L> Clone for Resources<L>
+impl<L> Clone for Assets<L>
 where
-	L: ResourceLoader + Clone,
-	L::Resource: Clone,
+	L: AssetLoader + Clone,
+	L::Asset: Clone,
 	L::Settings: Clone,
 {
 	fn clone(&self) -> Self {
 		Self {
 			base_dir: self.base_dir.clone(),
 			loader: self.loader.clone(),
-			resources: self.resources.clone(),
+			assets: self.assets.clone(),
 			placeholder: self.placeholder.clone(),
 			hot_reload_timer: self.hot_reload_timer,
-			missing_resource_logger: self.missing_resource_logger.clone(),
+			missing_asset_logger: self.missing_asset_logger.clone(),
 		}
 	}
 }
 
-impl<L> PartialEq for Resources<L>
+impl<L> PartialEq for Assets<L>
 where
-	L: ResourceLoader + PartialEq,
-	L::Resource: PartialEq,
+	L: AssetLoader + PartialEq,
+	L::Asset: PartialEq,
 	L::Settings: PartialEq,
 {
 	fn eq(&self, other: &Self) -> bool {
 		self.base_dir == other.base_dir
 			&& self.loader == other.loader
-			&& self.resources == other.resources
+			&& self.assets == other.assets
 			&& self.placeholder == other.placeholder
 			&& self.hot_reload_timer == other.hot_reload_timer
 	}
 }
 
-impl<L> Eq for Resources<L>
+impl<L> Eq for Assets<L>
 where
-	L: ResourceLoader + Eq,
-	L::Resource: Eq,
+	L: AssetLoader + Eq,
+	L::Asset: Eq,
 	L::Settings: Eq,
 {
 }
 
-impl<T: AsRef<Path>, L: ResourceLoader> Index<T> for Resources<L> {
-	type Output = L::Resource;
+impl<T: AsRef<Path>, L: AssetLoader> Index<T> for Assets<L> {
+	type Output = L::Asset;
 
 	fn index(&self, path: T) -> &Self::Output {
 		self.get(path).unwrap()
 	}
 }
 
-impl<T: AsRef<Path>, L: ResourceLoader> IndexMut<T> for Resources<L> {
+impl<T: AsRef<Path>, L: AssetLoader> IndexMut<T> for Assets<L> {
 	fn index_mut(&mut self, path: T) -> &mut Self::Output {
 		self.get_mut(path).unwrap()
 	}
 }
 
-pub fn base_resources_path() -> PathBuf {
+pub fn base_assets_path() -> PathBuf {
 	#[cfg(debug_assertions)]
 	{
-		"resources".into()
+		"assets".into()
 	}
 	#[cfg(not(debug_assertions))]
 	{
@@ -259,15 +259,15 @@ pub fn base_resources_path() -> PathBuf {
 			.expect("could not get current executable path")
 			.parent()
 			.expect("could not get current executable directory")
-			.join("resources")
+			.join("assets")
 	}
 }
 
-struct MissingResourceLogger {
+struct MissingAssetLogger {
 	logged_paths: Mutex<IndexSet<PathBuf>>,
 }
 
-impl MissingResourceLogger {
+impl MissingAssetLogger {
 	fn new() -> Self {
 		Self {
 			logged_paths: Mutex::new(IndexSet::new()),
@@ -279,7 +279,7 @@ impl MissingResourceLogger {
 		if logged_paths.contains(path) {
 			return;
 		}
-		warn!("Missing resource '{}'", path.display());
+		warn!("Missing asset '{}'", path.display());
 		logged_paths.insert(path.to_path_buf());
 	}
 
@@ -289,7 +289,7 @@ impl MissingResourceLogger {
 	}
 }
 
-impl Clone for MissingResourceLogger {
+impl Clone for MissingAssetLogger {
 	fn clone(&self) -> Self {
 		Self {
 			logged_paths: Mutex::new(self.logged_paths.lock().unwrap().clone()),

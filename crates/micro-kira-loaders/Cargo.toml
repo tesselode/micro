@@ -8,4 +8,4 @@ kira = { version = "0.10.1", default-features = false, features = [
 	"symphonia",
 ] }
 micro = { path = "../micro" }
-micro-resource = { path = "../micro-resource" }
+micro-asset = { path = "../micro-asset" }

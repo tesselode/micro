@@ -6,7 +6,7 @@ use micro::{
 	math::UVec2,
 };
 
-use super::ResourceLoader;
+use super::AssetLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TextureLoader {
@@ -14,8 +14,8 @@ pub struct TextureLoader {
 	pub placeholder_texture_size: UVec2,
 }
 
-impl ResourceLoader for TextureLoader {
-	type Resource = Texture;
+impl AssetLoader for TextureLoader {
+	type Asset = Texture;
 
 	type Error = LoadTextureError;
 
@@ -30,7 +30,7 @@ impl ResourceLoader for TextureLoader {
 		ctx: &mut Context,
 		path: &std::path::Path,
 		settings: Option<&Self::Settings>,
-	) -> Result<Self::Resource, Self::Error> {
+	) -> Result<Self::Asset, Self::Error> {
 		Texture::from_file(
 			ctx,
 			path,
@@ -41,16 +41,16 @@ impl ResourceLoader for TextureLoader {
 	fn reload(
 		&mut self,
 		ctx: &mut Context,
-		resource: &mut Self::Resource,
+		asset: &mut Self::Asset,
 		path: &std::path::Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
-		resource.replace(ctx, UVec2::ZERO, &image);
+		asset.replace(ctx, UVec2::ZERO, &image);
 		Ok(())
 	}
 
-	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Resource> {
+	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Asset> {
 		let color = Srgba::from_u32::<Rgba>(0xe93cfcff);
 		let image = ImageBuffer::from_pixel(
 			self.placeholder_texture_size.x,

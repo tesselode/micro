@@ -1,15 +1,15 @@
 use std::path::Path;
 
 use kira::sound::streaming::{StreamingSoundData, StreamingSoundSettings};
-use micro_resource::ResourceLoader;
+use micro_asset::AssetLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StreamingSoundDataLoader {
 	pub default_settings: StreamingSoundSettings,
 }
 
-impl ResourceLoader for StreamingSoundDataLoader {
-	type Resource = StreamingSoundData<kira::sound::FromFileError>;
+impl AssetLoader for StreamingSoundDataLoader {
+	type Asset = StreamingSoundData<kira::sound::FromFileError>;
 
 	type Error = kira::sound::FromFileError;
 
@@ -24,7 +24,7 @@ impl ResourceLoader for StreamingSoundDataLoader {
 		_ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
-	) -> Result<Self::Resource, Self::Error> {
+	) -> Result<Self::Asset, Self::Error> {
 		Ok(StreamingSoundData::from_file(path)?.with_settings(self.default_settings))
 	}
 }

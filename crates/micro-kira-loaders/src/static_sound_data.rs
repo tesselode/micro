@@ -4,15 +4,15 @@ use kira::{
 	Frame,
 	sound::static_sound::{StaticSoundData, StaticSoundSettings},
 };
-use micro_resource::ResourceLoader;
+use micro_asset::AssetLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct StaticSoundDataLoader {
 	pub default_settings: StaticSoundSettings,
 }
 
-impl ResourceLoader for StaticSoundDataLoader {
-	type Resource = StaticSoundData;
+impl AssetLoader for StaticSoundDataLoader {
+	type Asset = StaticSoundData;
 
 	type Error = kira::sound::FromFileError;
 
@@ -27,11 +27,11 @@ impl ResourceLoader for StaticSoundDataLoader {
 		_ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
-	) -> Result<Self::Resource, Self::Error> {
+	) -> Result<Self::Asset, Self::Error> {
 		Ok(StaticSoundData::from_file(path)?.with_settings(self.default_settings))
 	}
 
-	fn placeholder(&mut self, _ctx: &mut ()) -> Option<Self::Resource> {
+	fn placeholder(&mut self, _ctx: &mut ()) -> Option<Self::Asset> {
 		Some(StaticSoundData {
 			sample_rate: 0,
 			frames: vec![Frame::ZERO].into(),

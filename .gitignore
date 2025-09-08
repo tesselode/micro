@@ -1,11 +1,4 @@
 /target
 Cargo.lock
-/resources/ppl
-
-# Added by cargo
-#
-# already existing elements were commented out
-
-#/target
 SDL3.dll
 SDL3.lib

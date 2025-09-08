@@ -8,7 +8,7 @@ use micro::{
 	graphics::text::{Font, FontSettings, LoadFontError},
 };
 
-use super::ResourceLoader;
+use super::AssetLoader;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FontLoader {
@@ -27,8 +27,8 @@ impl Default for FontLoader {
 	}
 }
 
-impl ResourceLoader for FontLoader {
-	type Resource = Font;
+impl AssetLoader for FontLoader {
+	type Asset = Font;
 
 	type Error = LoadFontDefinitionError;
 
@@ -43,7 +43,7 @@ impl ResourceLoader for FontLoader {
 		ctx: &mut Context,
 		font_definition_path: &Path,
 		_settings: Option<&Self::Settings>,
-	) -> Result<Self::Resource, Self::Error> {
+	) -> Result<Self::Asset, Self::Error> {
 		let font_definition_string = std::fs::read_to_string(font_definition_path)?;
 		let font_definition = serde_json::from_str::<FontDefinition>(&font_definition_string)?;
 		let font_path = font_definition_path

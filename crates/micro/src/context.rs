@@ -72,6 +72,8 @@ where
 		app.debug_ui(&mut ctx, &egui_ctx);
 		let egui_output = egui_ctx.end_pass();
 		drop(span);
+		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
+		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
 
 		// dispatch events to state
 		let span = tracy_client::span!("dispatch events");
@@ -88,8 +90,6 @@ where
 			app.event(&mut ctx, event);
 		}
 		drop(span);
-		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
-		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
 
 		// update state
 		let span = tracy_client::span!("update");
@@ -98,9 +98,8 @@ where
 
 		// draw state and egui UI
 		let span = tracy_client::span!("draw");
-
-		drop(span);
 		app.draw(&mut ctx);
+		drop(span);
 		let span = tracy_client::span!("draw egui UI");
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
 		drop(span);

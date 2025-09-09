@@ -1,38 +1,39 @@
-use std::{any::TypeId, borrow::Cow, collections::HashMap};
+mod cached_resources;
+mod default_resources;
+mod layouts;
+
+pub(crate) use default_resources::*;
+pub(crate) use layouts::*;
+
+use std::{any::TypeId, collections::HashMap};
 
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
-	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-	BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
-	ColorTargetState, ColorWrites, CompareFunction, CompositeAlphaMode, DepthBiasState,
-	DepthStencilState as WgpuDepthStencilState, Device, DeviceDescriptor, FragmentState,
-	IndexFormat, Instance, LoadOp, MultisampleState, Operations, PipelineCompilationOptions,
-	PipelineLayout, PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveState, Queue,
-	RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
-	RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptions, SamplerBindingType,
-	ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface,
-	SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureSampleType, TextureUsages,
-	TextureViewDescriptor, TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexState,
-	VertexStepMode,
-	naga::ShaderStage,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource, Buffer,
+	BufferUsages, CompositeAlphaMode, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp,
+	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
+	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline, RequestAdapterOptions,
+	StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureUsages,
+	TextureViewDescriptor,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
 use crate::{
 	ContextSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
-	context::Push,
+	context::{
+		Push,
+		graphics::cached_resources::{CachedResources, RenderPipelineSettings},
+	},
 	graphics::{
 		BlendMode, Canvas, CanvasKind, RenderToCanvasSettings, Shader, StencilState, Vertex,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
 };
-
-const DEFAULT_SHADER_SOURCE: &str = include_str!("shader.glsl");
 
 pub(crate) struct GraphicsContext {
 	pub(crate) device: Device,
@@ -41,17 +42,11 @@ pub(crate) struct GraphicsContext {
 	config: SurfaceConfiguration,
 	surface: Surface<'static>,
 	main_surface_depth_stencil_texture: Texture,
-	mesh_bind_group_layout: BindGroupLayout,
-	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
-	pipeline_layout: PipelineLayout,
-	pub(crate) default_texture: Texture,
-	default_shader: Shader,
-	default_shader_params_bind_group: BindGroup,
+	pub(crate) layouts: Layouts,
+	pub(crate) default_resources: DefaultResources,
 	pub(crate) clear_color: LinSrgb,
 	graphics_state_stack: Vec<GraphicsState>,
-	vertex_info: HashMap<TypeId, VertexInfo>,
-	shaders: HashMap<String, ShaderModulePair>,
-	render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
+	cached_resources: CachedResources,
 	main_surface_draw_commands: Vec<DrawCommand>,
 	current_canvas_render_pass: Option<CanvasRenderPass>,
 	finished_canvas_render_passes: Vec<CanvasRenderPass>,
@@ -101,55 +96,8 @@ impl GraphicsContext {
 			view_formats: vec![],
 		};
 		surface.configure(&device, &config);
-		let mesh_bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-			label: Some("Mesh Bind Group Layout"),
-			entries: &[
-				BindGroupLayoutEntry {
-					binding: 0,
-					visibility: ShaderStages::VERTEX,
-					ty: BindingType::Buffer {
-						ty: BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
-					},
-					count: None,
-				},
-				BindGroupLayoutEntry {
-					binding: 1,
-					visibility: ShaderStages::FRAGMENT,
-					ty: BindingType::Texture {
-						sample_type: TextureSampleType::Float { filterable: true },
-						view_dimension: TextureViewDimension::D2,
-						multisampled: false,
-					},
-					count: None,
-				},
-				BindGroupLayoutEntry {
-					binding: 2,
-					visibility: ShaderStages::FRAGMENT,
-					ty: BindingType::Sampler(SamplerBindingType::Filtering),
-					count: None,
-				},
-			],
-		});
-		let shader_params_bind_group_layout =
-			device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-				label: Some("Shader Params Bind Group Layout"),
-				entries: &[BindGroupLayoutEntry {
-					binding: 0,
-					visibility: ShaderStages::VERTEX_FRAGMENT,
-					ty: BindingType::Buffer {
-						ty: BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
-					},
-					count: None,
-				}],
-			});
-		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-			bind_group_layouts: &[&mesh_bind_group_layout, &shader_params_bind_group_layout],
-			..Default::default()
-		});
+		let layouts = Layouts::new(&device);
+		let default_resources = DefaultResources::new(&device, &queue, &layouts);
 		let main_surface_depth_stencil_texture = Texture::new(
 			&device,
 			&queue,
@@ -161,30 +109,6 @@ impl GraphicsContext {
 				sample_count: 1,
 			},
 		);
-		let default_texture = Texture::new(
-			&device,
-			&queue,
-			UVec2::new(1, 1),
-			Some(&[255, 255, 255, 255]),
-			TextureSettings::default(),
-			InternalTextureSettings::default(),
-		);
-		let default_shader = Shader::from_string("Default Shader", DEFAULT_SHADER_SOURCE);
-		let default_shader_params_bind_group = {
-			let buffer = device.create_buffer_init(&BufferInitDescriptor {
-				label: Some("Default Shader - Shader Params Buffer"),
-				contents: bytemuck::cast_slice(&[0]),
-				usage: BufferUsages::UNIFORM,
-			});
-			device.create_bind_group(&BindGroupDescriptor {
-				label: Some("Default Shader - Shader Params Bind Group"),
-				layout: &shader_params_bind_group_layout,
-				entries: &[BindGroupEntry {
-					binding: 0,
-					resource: buffer.as_entire_binding(),
-				}],
-			})
-		};
 		let mut ctx = Self {
 			device,
 			queue,
@@ -192,17 +116,11 @@ impl GraphicsContext {
 			config,
 			surface,
 			main_surface_depth_stencil_texture,
-			mesh_bind_group_layout,
-			shader_params_bind_group_layout,
-			pipeline_layout,
-			default_texture,
-			default_shader,
-			default_shader_params_bind_group,
+			layouts,
+			default_resources,
 			clear_color: LinSrgb::BLACK,
 			graphics_state_stack: vec![],
-			vertex_info: HashMap::new(),
-			shaders: HashMap::new(),
-			render_pipelines: HashMap::new(),
+			cached_resources: CachedResources::new(),
 			main_surface_draw_commands: vec![],
 			current_canvas_render_pass: None,
 			finished_canvas_render_passes: vec![],
@@ -253,9 +171,7 @@ impl GraphicsContext {
 
 	pub(crate) fn queue_draw_command<V: Vertex>(&mut self, settings: QueueDrawCommandSettings) {
 		let vertex_type = TypeId::of::<V>();
-		self.vertex_info
-			.entry(vertex_type)
-			.or_insert_with(|| VertexInfo::for_type::<V>());
+		self.cached_resources.cache_vertex_info::<V>();
 		let graphics_state = self
 			.graphics_state_stack
 			.last()
@@ -287,7 +203,7 @@ impl GraphicsContext {
 				.shader
 				.params_bind_group
 				.as_ref()
-				.unwrap_or(&self.default_shader_params_bind_group)
+				.unwrap_or(&self.default_resources.default_shader_params_bind_group)
 				.clone(),
 			stencil_reference: graphics_state.stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
@@ -412,8 +328,8 @@ impl GraphicsContext {
 			});
 			run_draw_commands(
 				&self.device,
-				&self.mesh_bind_group_layout,
-				&self.render_pipelines,
+				&self.layouts.mesh_bind_group_layout,
+				&self.cached_resources.render_pipelines,
 				&mut draw_commands,
 				render_pass,
 			);
@@ -453,8 +369,8 @@ impl GraphicsContext {
 			});
 			run_draw_commands(
 				&self.device,
-				&self.mesh_bind_group_layout,
-				&self.render_pipelines,
+				&self.layouts.mesh_bind_group_layout,
+				&self.cached_resources.render_pipelines,
 				&mut self.main_surface_draw_commands,
 				render_pass,
 			);
@@ -471,7 +387,7 @@ impl GraphicsContext {
 	fn default_graphics_state(&self) -> GraphicsState {
 		GraphicsState {
 			transform: self.default_transform(),
-			shader: self.default_shader.clone(),
+			shader: self.default_resources.default_shader.clone(),
 			blend_mode: BlendMode::default(),
 			stencil_state: StencilState::default(),
 			enable_depth_testing: false,
@@ -499,76 +415,26 @@ impl GraphicsContext {
 	}
 
 	fn create_shaders(&mut self) {
-		for DrawCommand {
-			render_pipeline_settings,
-			..
-		} in &self.main_surface_draw_commands
-		{
-			self.shaders
-				.entry(render_pipeline_settings.shader_source.clone())
-				.or_insert_with(|| {
-					ShaderModulePair::new(
-						&self.device,
-						&render_pipeline_settings.shader_name,
-						&render_pipeline_settings.shader_source,
-					)
-				});
-		}
+		self.cached_resources
+			.create_shaders(&self.device, &self.main_surface_draw_commands);
 		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
-			for DrawCommand {
-				render_pipeline_settings,
-				..
-			} in draw_commands
-			{
-				self.shaders
-					.entry(render_pipeline_settings.shader_source.clone())
-					.or_insert_with(|| {
-						ShaderModulePair::new(
-							&self.device,
-							&render_pipeline_settings.shader_name,
-							&render_pipeline_settings.shader_source,
-						)
-					});
-			}
+			self.cached_resources
+				.create_shaders(&self.device, draw_commands);
 		}
 	}
 
 	fn create_render_pipelines(&mut self) {
-		for DrawCommand {
-			render_pipeline_settings,
-			..
-		} in &self.main_surface_draw_commands
-		{
-			self.render_pipelines
-				.entry(render_pipeline_settings.clone())
-				.or_insert_with(|| {
-					create_render_pipeline(
-						&self.device,
-						&self.vertex_info,
-						&self.shaders,
-						render_pipeline_settings,
-						&self.pipeline_layout,
-					)
-				});
-		}
+		self.cached_resources.create_render_pipelines(
+			&self.device,
+			&self.layouts.pipeline_layout,
+			&self.main_surface_draw_commands,
+		);
 		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
-			for DrawCommand {
-				render_pipeline_settings,
-				..
-			} in draw_commands
-			{
-				self.render_pipelines
-					.entry(render_pipeline_settings.clone())
-					.or_insert_with(|| {
-						create_render_pipeline(
-							&self.device,
-							&self.vertex_info,
-							&self.shaders,
-							render_pipeline_settings,
-							&self.pipeline_layout,
-						)
-					});
-			}
+			self.cached_resources.create_render_pipelines(
+				&self.device,
+				&self.layouts.pipeline_layout,
+				draw_commands,
+			);
 		}
 	}
 }
@@ -603,64 +469,10 @@ struct DrawParams {
 	color: LinSrgba,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct RenderPipelineSettings {
-	vertex_type: TypeId,
-	shader_name: String,
-	shader_source: String,
-	blend_mode: BlendMode,
-	enable_color_writes: bool,
-	enable_depth_testing: bool,
-	wgpu_stencil_state: wgpu::StencilState,
-	format: TextureFormat,
-	sample_count: u32,
-}
-
 struct CanvasRenderPass {
 	canvas: Canvas,
 	settings: RenderToCanvasSettings,
 	draw_commands: Vec<DrawCommand>,
-}
-
-struct ShaderModulePair {
-	vertex: ShaderModule,
-	fragment: ShaderModule,
-}
-
-impl ShaderModulePair {
-	fn new(device: &Device, name: &str, source: &str) -> Self {
-		let vertex = device.create_shader_module(ShaderModuleDescriptor {
-			label: Some(&format!("{} - Vertex Shader", &name)),
-			source: ShaderSource::Glsl {
-				shader: Cow::Borrowed(source),
-				stage: ShaderStage::Vertex,
-				defines: &[("VERTEX", "1")],
-			},
-		});
-		let fragment = device.create_shader_module(ShaderModuleDescriptor {
-			label: Some(&format!("{} - Fragment Shader", &name)),
-			source: ShaderSource::Glsl {
-				shader: Cow::Borrowed(source),
-				stage: ShaderStage::Fragment,
-				defines: &[("FRAGMENT", "1")],
-			},
-		});
-		Self { vertex, fragment }
-	}
-}
-
-struct VertexInfo {
-	size: usize,
-	attributes: Vec<VertexAttribute>,
-}
-
-impl VertexInfo {
-	fn for_type<V: Vertex>() -> Self {
-		Self {
-			size: std::mem::size_of::<V>(),
-			attributes: V::attributes(),
-		}
-	}
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -690,62 +502,6 @@ impl GraphicsState {
 			scissor_rect: push.scissor_rect.unwrap_or(self.scissor_rect),
 		}
 	}
-}
-
-fn create_render_pipeline(
-	device: &Device,
-	vertex_info: &HashMap<TypeId, VertexInfo>,
-	shaders: &HashMap<String, ShaderModulePair>,
-	settings: &RenderPipelineSettings,
-	pipeline_layout: &PipelineLayout,
-) -> RenderPipeline {
-	let vertex_info = &vertex_info[&settings.vertex_type];
-	device.create_render_pipeline(&RenderPipelineDescriptor {
-		label: None,
-		layout: Some(pipeline_layout),
-		vertex: VertexState {
-			module: &shaders[&settings.shader_source].vertex,
-			entry_point: Some("main"),
-			compilation_options: PipelineCompilationOptions::default(),
-			buffers: &[VertexBufferLayout {
-				array_stride: vertex_info.size as u64,
-				step_mode: VertexStepMode::Vertex,
-				attributes: &vertex_info.attributes,
-			}],
-		},
-		primitive: PrimitiveState::default(),
-		depth_stencil: Some(WgpuDepthStencilState {
-			format: TextureFormat::Depth24PlusStencil8,
-			depth_write_enabled: settings.enable_depth_testing,
-			depth_compare: if settings.enable_depth_testing {
-				CompareFunction::Less
-			} else {
-				CompareFunction::Always
-			},
-			stencil: settings.wgpu_stencil_state.clone(),
-			bias: DepthBiasState::default(),
-		}),
-		multisample: MultisampleState {
-			count: settings.sample_count,
-			..Default::default()
-		},
-		fragment: Some(FragmentState {
-			module: &shaders[&settings.shader_source].fragment,
-			entry_point: Some("main"),
-			compilation_options: PipelineCompilationOptions::default(),
-			targets: &[Some(ColorTargetState {
-				format: settings.format,
-				blend: Some(settings.blend_mode.to_blend_state()),
-				write_mask: if settings.enable_color_writes {
-					ColorWrites::ALL
-				} else {
-					ColorWrites::empty()
-				},
-			})],
-		}),
-		multiview: None,
-		cache: None,
-	})
 }
 
 fn run_draw_commands(

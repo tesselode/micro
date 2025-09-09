@@ -40,7 +40,7 @@ impl Shader {
 			});
 		let params_bind_group = ctx.graphics.device.create_bind_group(&BindGroupDescriptor {
 			label: Some(&format!("{} - Shader Params Bind Group", &self.name)),
-			layout: &ctx.graphics.shader_params_bind_group_layout,
+			layout: &ctx.graphics.layouts.shader_params_bind_group_layout,
 			entries: &[BindGroupEntry {
 				binding: 0,
 				resource: buffer.as_entire_binding(),

@@ -1,4 +1,7 @@
 pub(crate) mod graphics;
+mod push;
+
+pub use push::*;
 
 use std::{
 	collections::HashMap,
@@ -21,10 +24,8 @@ use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	context::graphics::GraphicsContext,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
-	graphics::{BlendMode, Shader, StencilState},
 	input::{Gamepad, MouseButton, Scancode},
 	log::setup_logging,
-	math::URect,
 };
 
 pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F)
@@ -393,52 +394,6 @@ impl Default for DevToolsMode {
 	fn default() -> Self {
 		Self::Enabled {
 			show_by_default: true,
-		}
-	}
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct Push {
-	pub transform: Option<Mat4>,
-	pub shader: Option<Shader>,
-	pub blend_mode: Option<BlendMode>,
-	pub stencil_state: Option<StencilState>,
-	pub enable_depth_testing: Option<bool>,
-	pub scissor_rect: Option<URect>,
-}
-
-impl From<Mat4> for Push {
-	fn from(transform: Mat4) -> Self {
-		Self {
-			transform: Some(transform),
-			..Default::default()
-		}
-	}
-}
-
-impl From<&Shader> for Push {
-	fn from(shader: &Shader) -> Self {
-		Self {
-			shader: Some(shader.clone()),
-			..Default::default()
-		}
-	}
-}
-
-impl From<BlendMode> for Push {
-	fn from(blend_mode: BlendMode) -> Self {
-		Self {
-			blend_mode: Some(blend_mode),
-			..Default::default()
-		}
-	}
-}
-
-impl From<StencilState> for Push {
-	fn from(stencil_state: StencilState) -> Self {
-		Self {
-			stencil_state: Some(stencil_state),
-			..Default::default()
 		}
 	}
 }

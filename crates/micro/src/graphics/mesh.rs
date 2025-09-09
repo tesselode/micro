@@ -98,7 +98,7 @@ impl<V: Vertex> Mesh<V> {
 				texture: self
 					.texture
 					.as_ref()
-					.unwrap_or(&ctx.graphics.default_texture)
+					.unwrap_or(&ctx.graphics.default_resources.default_texture)
 					.clone(),
 				transform: self.transform,
 				color: self.color,

@@ -10,17 +10,20 @@ pub struct Circle {
 }
 
 impl Circle {
-	pub fn new(center: Vec2, radius: f32) -> Self {
-		Self { center, radius }
+	pub fn new(center: impl Into<Vec2>, radius: f32) -> Self {
+		Self {
+			center: center.into(),
+			radius,
+		}
 	}
 
 	pub fn around_zero(radius: f32) -> Self {
 		Self::new(Vec2::ZERO, radius)
 	}
 
-	pub fn translated(self, translation: Vec2) -> Self {
+	pub fn translated(self, translation: impl Into<Vec2>) -> Self {
 		Self {
-			center: self.center + translation,
+			center: self.center + translation.into(),
 			..self
 		}
 	}
@@ -36,8 +39,8 @@ impl Circle {
 		Rect::centered_around(self.center, Vec2::splat(self.radius * 2.0))
 	}
 
-	pub fn contains_point(self, point: Vec2) -> bool {
-		(point - self.center).length_squared() <= self.radius.powi(2)
+	pub fn contains_point(self, point: impl Into<Vec2>) -> bool {
+		(point.into() - self.center).length_squared() <= self.radius.powi(2)
 	}
 
 	pub fn overlaps(self, other: Circle) -> bool {

@@ -86,7 +86,8 @@ impl Rect {
 		self.top() + (self.bottom() - self.top()) * fraction
 	}
 
-	pub fn fractional_point(self, fraction: Vec2) -> Vec2 {
+	pub fn fractional_point(self, fraction: impl Into<Vec2>) -> Vec2 {
+		let fraction = fraction.into();
 		Vec2::new(self.fractional_x(fraction.x), self.fractional_y(fraction.y))
 	}
 

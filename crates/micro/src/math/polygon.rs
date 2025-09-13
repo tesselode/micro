@@ -25,7 +25,8 @@ impl Polygon {
 		}
 	}
 
-	pub fn translated(self, translation: Vec2) -> Self {
+	pub fn translated(self, translation: impl Into<Vec2>) -> Self {
+		let translation = translation.into();
 		Self {
 			points: self
 				.points
@@ -44,7 +45,8 @@ impl Polygon {
 		self.translated(vec2(0.0, translation))
 	}
 
-	pub fn scaled(self, scale: Vec2) -> Self {
+	pub fn scaled(self, scale: impl Into<Vec2>) -> Self {
+		let scale = scale.into();
 		Self {
 			points: self
 				.points
@@ -84,7 +86,8 @@ impl Polygon {
 	}
 
 	// https://www.jeffreythompson.org/collision-detection/poly-point.php
-	pub fn contains_point(&self, point: Vec2) -> bool {
+	pub fn contains_point(&self, point: impl Into<Vec2>) -> bool {
+		let point = point.into();
 		self.line_segments()
 			.filter(|LineSegment { start: s, end: e }| {
 				((s.y > point.y) != (e.y > point.y))

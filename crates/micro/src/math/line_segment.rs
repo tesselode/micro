@@ -22,7 +22,8 @@ impl LineSegment {
 		}
 	}
 
-	pub fn translated(self, translation: Vec2) -> Self {
+	pub fn translated(self, translation: impl Into<Vec2>) -> Self {
+		let translation = translation.into();
 		Self {
 			start: self.start + translation,
 			end: self.end + translation,
@@ -37,7 +38,8 @@ impl LineSegment {
 		self.translated(vec2(0.0, translation))
 	}
 
-	pub fn scaled(self, scale: Vec2) -> Self {
+	pub fn scaled(self, scale: impl Into<Vec2>) -> Self {
+		let scale = scale.into();
 		Self {
 			start: self.start * scale,
 			end: self.end * scale,

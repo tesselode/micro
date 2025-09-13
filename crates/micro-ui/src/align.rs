@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use micro::{Context, math::Vec2};
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{child_fns, sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -46,15 +46,15 @@ impl Align {
 		center: (0.5, 0.5),
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
 		}
 	}
 
-	with_child_fns!();
-	with_sizing_fns!();
+	child_fns!();
+	sizing_fns!();
 }
 
 impl Widget for Align {

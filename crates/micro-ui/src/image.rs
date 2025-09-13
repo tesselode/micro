@@ -25,42 +25,42 @@ impl Image {
 		}
 	}
 
-	pub fn with_color(self, color: impl Into<LinSrgba>) -> Self {
+	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			color: color.into(),
 			..self
 		}
 	}
 
-	pub fn with_scale(self, scale: impl Into<Vec2>) -> Self {
+	pub fn scale(self, scale: impl Into<Vec2>) -> Self {
 		Self {
 			scale: scale.into(),
 			..self
 		}
 	}
 
-	pub fn with_scale_x(self, scale_x: f32) -> Self {
+	pub fn scale_x(self, scale_x: f32) -> Self {
 		Self {
 			scale: vec2(scale_x, self.scale.y),
 			..self
 		}
 	}
 
-	pub fn with_scale_y(self, scale_y: f32) -> Self {
+	pub fn scale_y(self, scale_y: f32) -> Self {
 		Self {
 			scale: vec2(self.scale.x, scale_y),
 			..self
 		}
 	}
 
-	pub fn with_uniform_scale(self, scale: f32) -> Self {
+	pub fn uniform_scale(self, scale: f32) -> Self {
 		Self {
 			scale: Vec2::splat(scale),
 			..self
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self

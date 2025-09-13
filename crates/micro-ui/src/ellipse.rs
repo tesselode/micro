@@ -7,7 +7,7 @@ use micro::{
 	math::Vec2,
 };
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{child_fns, sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -25,29 +25,29 @@ impl Ellipse {
 		Self::default()
 	}
 
-	pub fn with_fill(self, color: impl Into<LinSrgba>) -> Self {
+	pub fn fill(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			fill: Some(color.into()),
 			..self
 		}
 	}
 
-	pub fn with_stroke(self, width: f32, color: impl Into<LinSrgba>) -> Self {
+	pub fn stroke(self, width: f32, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			stroke: Some((width, color.into())),
 			..self
 		}
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
 		}
 	}
 
-	with_child_fns!();
-	with_sizing_fns!();
+	child_fns!();
+	sizing_fns!();
 }
 
 impl Default for Ellipse {

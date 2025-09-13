@@ -3,7 +3,7 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{with_child_fns, with_sizing_fns};
+use crate::{child_fns, sizing_fns};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
@@ -63,15 +63,15 @@ impl Padding {
 		Self::new(0.0, 0.0, 0.0, padding)
 	}
 
-	pub fn with_mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),
 			..self
 		}
 	}
 
-	with_child_fns!();
-	with_sizing_fns!();
+	child_fns!();
+	sizing_fns!();
 
 	fn total_padding(&self) -> Vec2 {
 		vec2(self.left + self.right, self.top + self.bottom)

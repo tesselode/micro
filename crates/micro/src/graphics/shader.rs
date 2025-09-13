@@ -26,6 +26,10 @@ impl Shader {
 		Ok(Self::from_string(name, &source))
 	}
 
+	pub fn set_source(&mut self, source: String) {
+		self.source = source;
+	}
+
 	pub fn from_string(name: impl Into<String>, source: impl Into<String>) -> Self {
 		Self {
 			name: name.into(),

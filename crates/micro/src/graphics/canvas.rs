@@ -4,7 +4,9 @@ use glam::{Mat4, UVec2, Vec2};
 use palette::LinSrgba;
 use wgpu::TextureFormat;
 
-use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
+use crate::{
+	Context, color::ColorConstants, graphics::BlendMode, math::Rect, standard_draw_param_methods,
+};
 
 use super::texture::{InternalTextureSettings, Texture, TextureSettings};
 
@@ -19,6 +21,7 @@ pub struct Canvas {
 	pub region: Rect,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
 }
 
 impl Canvas {
@@ -80,6 +83,7 @@ impl Canvas {
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
 		}
 	}
 
@@ -120,6 +124,7 @@ impl Canvas {
 			.region(self.region)
 			.transformed(self.transform)
 			.color(self.color)
+			.blend_mode(self.blend_mode)
 			.draw(ctx)
 	}
 

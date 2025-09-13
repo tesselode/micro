@@ -12,7 +12,7 @@ use palette::LinSrgba;
 use crate::{
 	Context,
 	color::ColorConstants,
-	graphics::{mesh::Mesh, texture::Texture},
+	graphics::{BlendMode, mesh::Mesh, texture::Texture},
 	math::Rect,
 	standard_draw_param_methods,
 };
@@ -26,6 +26,7 @@ pub struct SpriteBatch {
 	mesh: Mesh,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
 	pub range: Option<(u32, u32)>,
 }
 
@@ -60,6 +61,7 @@ impl SpriteBatch {
 			mesh: Mesh::new(ctx, &vertices, &indices),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
 			range: None,
 		}
 	}
@@ -159,6 +161,7 @@ impl SpriteBatch {
 			.texture(&self.texture)
 			.transformed(self.transform)
 			.color(self.color)
+			.blend_mode(self.blend_mode)
 			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
 			.draw(ctx)
 	}

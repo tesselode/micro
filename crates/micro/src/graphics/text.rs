@@ -10,7 +10,9 @@ use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 use tracing::warn;
 
-use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
+use crate::{
+	Context, color::ColorConstants, graphics::BlendMode, math::Rect, standard_draw_param_methods,
+};
 
 use super::{
 	IntoIndexRange,
@@ -24,6 +26,7 @@ pub struct Text {
 	// params
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
 
 	pub range: Option<(u32, u32)>,
 }
@@ -109,6 +112,7 @@ impl Text {
 			sprite_batch
 				.transformed(self.transform)
 				.color(self.color)
+				.blend_mode(self.blend_mode)
 				.range(self.range)
 				.draw(ctx);
 		}
@@ -173,6 +177,7 @@ impl Text {
 			}),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
 			range: None,
 		}
 	}

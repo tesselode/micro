@@ -91,5 +91,11 @@ macro_rules! standard_draw_param_methods {
 			new.color = color.into();
 			new
 		}
+
+		pub fn blend_mode(&self, blend_mode: $crate::graphics::BlendMode) -> Self {
+			let mut new = self.clone();
+			new.blend_mode = blend_mode;
+			new
+		}
 	};
 }

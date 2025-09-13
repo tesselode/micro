@@ -211,7 +211,7 @@ impl GraphicsContext {
 				vertex_type,
 				shader_name: graphics_state.shader.name.clone(),
 				shader_source: graphics_state.shader.source.clone(),
-				blend_mode: graphics_state.blend_mode,
+				blend_mode: settings.blend_mode,
 				enable_color_writes: graphics_state.stencil_state.enable_color_writes,
 				enable_depth_testing: graphics_state.enable_depth_testing,
 				wgpu_stencil_state: graphics_state.stencil_state.as_wgpu_stencil_state(),
@@ -389,7 +389,6 @@ impl GraphicsContext {
 		GraphicsState {
 			transform: self.default_transform(),
 			shader: self.default_resources.default_shader.clone(),
-			blend_mode: BlendMode::default(),
 			stencil_state: StencilState::default(),
 			enable_depth_testing: false,
 			scissor_rect: self.default_scissor_rect(),
@@ -448,6 +447,7 @@ pub(crate) struct QueueDrawCommandSettings {
 	pub(crate) texture: Texture,
 	pub(crate) transform: Mat4,
 	pub(crate) color: LinSrgba,
+	pub(crate) blend_mode: BlendMode,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -482,7 +482,6 @@ struct CanvasRenderPass {
 struct GraphicsState {
 	transform: Mat4,
 	shader: Shader,
-	blend_mode: BlendMode,
 	stencil_state: StencilState,
 	enable_depth_testing: bool,
 	scissor_rect: URect,
@@ -497,7 +496,6 @@ impl GraphicsState {
 				self.transform
 			},
 			shader: push.shader.as_ref().unwrap_or(&self.shader).clone(),
-			blend_mode: push.blend_mode.unwrap_or(self.blend_mode),
 			stencil_state: push.stencil_state.unwrap_or(self.stencil_state),
 			enable_depth_testing: push
 				.enable_depth_testing

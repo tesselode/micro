@@ -6,7 +6,7 @@ use std::{
 use micro::{
 	Context,
 	color::{ColorConstants, LinSrgba},
-	graphics::texture::Texture,
+	graphics::{BlendMode, texture::Texture},
 	math::Mat4,
 	standard_draw_param_methods,
 };
@@ -18,6 +18,7 @@ pub struct AnimationPlayer {
 	inner: Arc<Mutex<AnimationPlayerInner>>,
 	pub transform: Mat4,
 	pub color: LinSrgba,
+	pub blend_mode: BlendMode,
 }
 
 impl AnimationPlayer {
@@ -38,6 +39,7 @@ impl AnimationPlayer {
 			})),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
 		}
 	}
 
@@ -111,6 +113,7 @@ impl AnimationPlayer {
 			)
 			.transformed(self.transform)
 			.color(self.color)
+			.blend_mode(self.blend_mode)
 			.draw(ctx);
 	}
 }

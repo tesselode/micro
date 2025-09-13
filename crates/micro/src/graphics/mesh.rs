@@ -15,7 +15,7 @@ use crate::{
 	Context,
 	color::ColorConstants,
 	context::graphics::QueueDrawCommandSettings,
-	graphics::{IntoRange, texture::Texture},
+	graphics::{IntoIndexRange, IntoInstanceRange, texture::Texture},
 	math::{Circle, Rect},
 	standard_draw_param_methods,
 };
@@ -33,6 +33,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub transform: Mat4,
 	pub color: LinSrgba,
 	pub range: Option<(u32, u32)>,
+	pub instances: (u32, u32),
 }
 
 impl<V: Vertex> Mesh<V> {
@@ -63,6 +64,7 @@ impl<V: Vertex> Mesh<V> {
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			range: None,
+			instances: (0, 1),
 		}
 	}
 
@@ -75,9 +77,15 @@ impl<V: Vertex> Mesh<V> {
 		}
 	}
 
-	pub fn range(&self, range: impl IntoRange) -> Self {
+	pub fn range(&self, range: impl IntoIndexRange) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_range(self.num_indices);
+		new.range = range.into_index_range(self.num_indices);
+		new
+	}
+
+	pub fn instances(&self, instances: impl IntoInstanceRange) -> Self {
+		let mut new = self.clone();
+		new.instances = instances.into_instance_range();
 		new
 	}
 
@@ -95,6 +103,7 @@ impl<V: Vertex> Mesh<V> {
 				vertex_buffer: self.vertex_buffer.clone(),
 				index_buffer: self.index_buffer.clone(),
 				range: self.range.unwrap_or((0, self.num_indices)),
+				instances: self.instances,
 				texture: self
 					.texture
 					.as_ref()

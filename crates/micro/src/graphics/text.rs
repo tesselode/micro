@@ -13,7 +13,7 @@ use tracing::warn;
 use crate::{Context, color::ColorConstants, math::Rect, standard_draw_param_methods};
 
 use super::{
-	IntoRange,
+	IntoIndexRange,
 	sprite_batch::{SpriteBatch, SpriteParams},
 };
 
@@ -76,9 +76,9 @@ impl Text {
 
 	standard_draw_param_methods!();
 
-	pub fn range(&self, range: impl IntoRange) -> Self {
+	pub fn range(&self, range: impl IntoIndexRange) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_range(self.inner.num_glyphs);
+		new.range = range.into_index_range(self.inner.num_glyphs);
 		new
 	}
 

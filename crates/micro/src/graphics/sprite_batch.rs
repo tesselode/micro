@@ -17,7 +17,7 @@ use crate::{
 	standard_draw_param_methods,
 };
 
-use super::{IntoRange, Vertex2d};
+use super::{IntoIndexRange, Vertex2d};
 
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
@@ -66,9 +66,9 @@ impl SpriteBatch {
 
 	standard_draw_param_methods!();
 
-	pub fn range(&self, range: impl IntoRange) -> Self {
+	pub fn range(&self, range: impl IntoIndexRange) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_range(self.len() as u32);
+		new.range = range.into_index_range(self.len() as u32);
 		new
 	}
 

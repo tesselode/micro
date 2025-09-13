@@ -192,6 +192,7 @@ impl GraphicsContext {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
 			range: settings.range,
+			instances: settings.instances,
 			texture: settings.texture,
 			draw_params: DrawParams {
 				global_transform: graphics_state.transform * settings.transform,
@@ -443,6 +444,7 @@ pub(crate) struct QueueDrawCommandSettings {
 	pub(crate) vertex_buffer: Buffer,
 	pub(crate) index_buffer: Buffer,
 	pub(crate) range: (u32, u32),
+	pub(crate) instances: (u32, u32),
 	pub(crate) texture: Texture,
 	pub(crate) transform: Mat4,
 	pub(crate) color: LinSrgba,
@@ -453,6 +455,7 @@ struct DrawCommand {
 	vertex_buffer: Buffer,
 	index_buffer: Buffer,
 	range: (u32, u32),
+	instances: (u32, u32),
 	texture: Texture,
 	draw_params: DrawParams,
 	scissor_rect: URect,
@@ -515,6 +518,7 @@ fn run_draw_commands(
 		vertex_buffer,
 		index_buffer,
 		range,
+		instances,
 		texture,
 		draw_params,
 		scissor_rect,
@@ -558,6 +562,6 @@ fn run_draw_commands(
 			scissor_rect.size.y,
 		);
 		render_pass.set_stencil_reference(stencil_reference as u32);
-		render_pass.draw_indexed(range.0..range.1, 0, 0..1);
+		render_pass.draw_indexed(range.0..range.1, 0, instances.0..instances.1);
 	}
 }

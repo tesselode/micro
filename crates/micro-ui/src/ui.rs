@@ -8,7 +8,7 @@ use itertools::izip;
 use micro::{
 	Context,
 	color::{LinSrgb, LinSrgba},
-	graphics::mesh::Mesh,
+	graphics::{CompareFunction, StencilOperation, StencilState, mesh::Mesh},
 	math::{Mat4, Rect, Vec2},
 };
 use mouse_input::MouseInput;
@@ -77,6 +77,7 @@ struct BakedWidget {
 	name: &'static str,
 	path: PathBuf,
 	children: Vec<BakedWidget>,
+	mask: Option<Box<BakedWidget>>,
 	layout_result: LayoutResult,
 	allotted_size_from_parent: Vec2,
 }
@@ -103,10 +104,19 @@ impl BakedWidget {
 			children.push(baked_child);
 		}
 		let layout_result = raw_widget.layout(ctx, allotted_size_from_parent, &child_sizes);
+		let mask = raw_widget.mask().map(|mask| {
+			Box::new(BakedWidget::new(
+				ctx,
+				path.join("mask"),
+				mask,
+				layout_result.size,
+			))
+		});
 		Self {
 			name: raw_widget.name(),
 			path,
 			children,
+			mask,
 			layout_result,
 			allotted_size_from_parent,
 		}
@@ -159,8 +169,22 @@ impl BakedWidget {
 
 	fn draw(&self, ctx: &mut Context, raw_widget: &dyn Widget) {
 		let _span = tracy_client::span!();
-		let mut ctx = ctx.push(raw_widget.transform(self.layout_result.size));
-		raw_widget.draw_before_children(&mut ctx, self.layout_result.size);
+		if let Some((raw_mask, baked_mask)) = raw_widget.mask().zip(self.mask.as_ref()) {
+			{
+				let ctx = &mut ctx.push(StencilState::write(StencilOperation::Replace, 1));
+				baked_mask.draw(ctx, raw_mask);
+			}
+			{
+				let ctx = &mut ctx.push(StencilState::read(CompareFunction::Equal, 1));
+				self.draw_non_mask_contents(ctx, raw_widget);
+			}
+		} else {
+			self.draw_non_mask_contents(ctx, raw_widget);
+		}
+	}
+
+	fn draw_non_mask_contents(&self, ctx: &mut Context, raw_widget: &dyn Widget) {
+		raw_widget.draw_before_children(ctx, self.layout_result.size);
 		for (raw_child, baked_child, position) in izip!(
 			raw_widget.children(),
 			&self.children,
@@ -169,7 +193,7 @@ impl BakedWidget {
 			let ctx = &mut ctx.push_translation_2d(position.round());
 			baked_child.draw(ctx, raw_child.as_ref());
 		}
-		raw_widget.draw_after_children(&mut ctx, self.layout_result.size);
+		raw_widget.draw_after_children(ctx, self.layout_result.size);
 	}
 
 	fn draw_debug(&self, ctx: &mut Context, draw_debug_state: &DrawDebugState) {

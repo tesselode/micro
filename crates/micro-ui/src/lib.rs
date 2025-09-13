@@ -2,6 +2,7 @@ mod align;
 mod ellipse;
 mod image;
 mod macros;
+mod mask;
 mod padding;
 mod polygon;
 mod polyline;
@@ -15,6 +16,7 @@ mod ui;
 pub use align::*;
 pub use ellipse::*;
 pub use image::*;
+pub use mask::*;
 pub use padding::*;
 pub use polygon::*;
 pub use polyline::*;
@@ -40,6 +42,10 @@ pub trait Widget: Debug {
 
 	fn transform(&self, size: Vec2) -> Mat4 {
 		Mat4::IDENTITY
+	}
+
+	fn mask(&self) -> Option<&dyn Widget> {
+		None
 	}
 
 	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel>;

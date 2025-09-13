@@ -29,7 +29,8 @@ use crate::{
 		graphics::cached_resources::{CachedResources, RenderPipelineSettings},
 	},
 	graphics::{
-		BlendMode, Canvas, CanvasKind, RenderToCanvasSettings, Shader, StencilState, Vertex,
+		BlendMode, Canvas, CanvasKind, RenderToCanvasSettings, Shader, StencilState, StorageBuffer,
+		Vertex,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,
@@ -206,6 +207,7 @@ impl GraphicsContext {
 				.as_ref()
 				.unwrap_or(&self.default_resources.default_shader_params_bind_group)
 				.clone(),
+			storage_buffers: graphics_state.shader.storage_buffers.clone(),
 			stencil_reference: graphics_state.stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
 				vertex_type,
@@ -217,6 +219,7 @@ impl GraphicsContext {
 				wgpu_stencil_state: graphics_state.stencil_state.as_wgpu_stencil_state(),
 				sample_count,
 				format,
+				num_storage_buffers: graphics_state.shader.storage_buffers.len(),
 			},
 		};
 		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
@@ -426,13 +429,13 @@ impl GraphicsContext {
 	fn create_render_pipelines(&mut self) {
 		self.cached_resources.create_render_pipelines(
 			&self.device,
-			&self.layouts.pipeline_layout,
+			&self.layouts,
 			&self.main_surface_draw_commands,
 		);
 		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
 			self.cached_resources.create_render_pipelines(
 				&self.device,
-				&self.layouts.pipeline_layout,
+				&self.layouts,
 				draw_commands,
 			);
 		}
@@ -460,6 +463,7 @@ struct DrawCommand {
 	draw_params: DrawParams,
 	scissor_rect: URect,
 	shader_params_bind_group: BindGroup,
+	storage_buffers: Vec<StorageBuffer>,
 	stencil_reference: u8,
 	render_pipeline_settings: RenderPipelineSettings,
 }
@@ -521,36 +525,58 @@ fn run_draw_commands(
 		draw_params,
 		scissor_rect,
 		shader_params_bind_group,
+		storage_buffers,
 		stencil_reference,
 		render_pipeline_settings,
 	} in draw_commands.drain(..)
 	{
-		let draw_params_buffer = device.create_buffer_init(&BufferInitDescriptor {
-			label: Some("Draw Params Buffer"),
-			contents: bytemuck::cast_slice(&[draw_params]),
-			usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-		});
-		let mesh_bind_group = device.create_bind_group(&BindGroupDescriptor {
-			label: Some("Draw Params Bind Group"),
-			layout: mesh_bind_group_layout,
-			entries: &[
-				BindGroupEntry {
-					binding: 0,
-					resource: draw_params_buffer.as_entire_binding(),
-				},
-				BindGroupEntry {
-					binding: 1,
-					resource: BindingResource::TextureView(&texture.view),
-				},
-				BindGroupEntry {
-					binding: 2,
-					resource: BindingResource::Sampler(&texture.sampler),
-				},
-			],
-		});
-		render_pass.set_pipeline(&render_pipelines[&render_pipeline_settings]);
-		render_pass.set_bind_group(0, &mesh_bind_group, &[]);
+		let pipeline = &render_pipelines[&render_pipeline_settings];
+		render_pass.set_pipeline(pipeline);
+		render_pass.set_bind_group(
+			0,
+			&device.create_bind_group(&BindGroupDescriptor {
+				label: Some("Mesh Bind Group"),
+				layout: mesh_bind_group_layout,
+				entries: &[
+					BindGroupEntry {
+						binding: 0,
+						resource: device
+							.create_buffer_init(&BufferInitDescriptor {
+								label: Some("Draw Params Buffer"),
+								contents: bytemuck::cast_slice(&[draw_params]),
+								usage: BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+							})
+							.as_entire_binding(),
+					},
+					BindGroupEntry {
+						binding: 1,
+						resource: BindingResource::TextureView(&texture.view),
+					},
+					BindGroupEntry {
+						binding: 2,
+						resource: BindingResource::Sampler(&texture.sampler),
+					},
+				],
+			}),
+			&[],
+		);
 		render_pass.set_bind_group(1, &shader_params_bind_group, &[]);
+		render_pass.set_bind_group(
+			2,
+			&device.create_bind_group(&BindGroupDescriptor {
+				label: Some("Storage Buffers Bind Group"),
+				layout: &pipeline.get_bind_group_layout(2),
+				entries: &storage_buffers
+					.iter()
+					.enumerate()
+					.map(|(i, buffer)| BindGroupEntry {
+						binding: i as u32,
+						resource: buffer.0.as_entire_binding(),
+					})
+					.collect::<Vec<_>>(),
+			}),
+			&[],
+		);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.set_scissor_rect(

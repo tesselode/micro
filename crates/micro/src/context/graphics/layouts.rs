@@ -1,13 +1,12 @@
 use wgpu::{
 	BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
-	BufferBindingType, Device, PipelineLayout, PipelineLayoutDescriptor, SamplerBindingType,
-	ShaderStages, TextureSampleType, TextureViewDimension,
+	BufferBindingType, Device, SamplerBindingType, ShaderStages, TextureSampleType,
+	TextureViewDimension,
 };
 
 pub(crate) struct Layouts {
 	pub(crate) mesh_bind_group_layout: BindGroupLayout,
 	pub(crate) shader_params_bind_group_layout: BindGroupLayout,
-	pub(crate) pipeline_layout: PipelineLayout,
 }
 
 impl Layouts {
@@ -57,14 +56,9 @@ impl Layouts {
 					count: None,
 				}],
 			});
-		let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-			bind_group_layouts: &[&mesh_bind_group_layout, &shader_params_bind_group_layout],
-			..Default::default()
-		});
 		Self {
 			mesh_bind_group_layout,
 			shader_params_bind_group_layout,
-			pipeline_layout,
 		}
 	}
 }

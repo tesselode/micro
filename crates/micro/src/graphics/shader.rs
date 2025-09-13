@@ -6,13 +6,14 @@ use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
-use crate::Context;
+use crate::{Context, graphics::storage_buffer::StorageBuffer};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Shader {
 	pub(crate) name: String,
 	pub(crate) source: String,
 	pub(crate) params_bind_group: Option<BindGroup>,
+	pub(crate) storage_buffers: Vec<StorageBuffer>,
 }
 
 impl Shader {
@@ -26,6 +27,7 @@ impl Shader {
 			name: name.into(),
 			source: source.into(),
 			params_bind_group: None,
+			storage_buffers: vec![],
 		}
 	}
 
@@ -54,5 +56,16 @@ impl Shader {
 
 	pub fn set_params(&mut self, ctx: &Context, params: impl Pod) {
 		*self = self.with_params(ctx, params);
+	}
+
+	pub fn with_storage_buffers(&self, buffers: Vec<StorageBuffer>) -> Self {
+		Self {
+			storage_buffers: buffers,
+			..self.clone()
+		}
+	}
+
+	pub fn set_storage_buffers(&mut self, buffers: Vec<StorageBuffer>) {
+		*self = self.with_storage_buffers(buffers);
 	}
 }

@@ -1,15 +1,16 @@
 use std::{any::TypeId, borrow::Cow, collections::HashMap};
 
 use wgpu::{
+	BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
 	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
-	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayout, PrimitiveState,
-	RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderModuleDescriptor, ShaderSource,
-	TextureFormat, VertexAttribute, VertexBufferLayout, VertexState, VertexStepMode,
-	naga::ShaderStage,
+	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor,
+	PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderModuleDescriptor,
+	ShaderSource, ShaderStages, TextureFormat, VertexAttribute, VertexBufferLayout, VertexState,
+	VertexStepMode, naga::ShaderStage,
 };
 
 use crate::{
-	context::graphics::DrawCommand,
+	context::graphics::{DrawCommand, Layouts},
 	graphics::{BlendMode, Vertex},
 };
 
@@ -56,7 +57,7 @@ impl CachedResources {
 	pub(super) fn create_render_pipelines(
 		&mut self,
 		device: &Device,
-		pipeline_layout: &PipelineLayout,
+		layouts: &Layouts,
 		draw_commands: &[DrawCommand],
 	) {
 		for DrawCommand {
@@ -69,10 +70,10 @@ impl CachedResources {
 				.or_insert_with(|| {
 					create_render_pipeline(
 						device,
+						layouts,
 						&self.vertex_info,
 						&self.shaders,
 						render_pipeline_settings,
-						pipeline_layout,
 					)
 				});
 		}
@@ -131,19 +132,45 @@ pub(super) struct RenderPipelineSettings {
 	pub(super) wgpu_stencil_state: wgpu::StencilState,
 	pub(super) format: TextureFormat,
 	pub(super) sample_count: u32,
+	pub(super) num_storage_buffers: usize,
 }
 
 fn create_render_pipeline(
 	device: &Device,
+	layouts: &Layouts,
 	vertex_info: &HashMap<TypeId, VertexInfo>,
 	shaders: &HashMap<String, ShaderModulePair>,
 	settings: &RenderPipelineSettings,
-	pipeline_layout: &PipelineLayout,
 ) -> RenderPipeline {
 	let vertex_info = &vertex_info[&settings.vertex_type];
+	let storage_buffers_bind_group_layout =
+		device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+			label: Some("Storage Buffers Bind Group Layout"),
+			entries: &(0..settings.num_storage_buffers)
+				.map(|i| BindGroupLayoutEntry {
+					binding: i as u32,
+					visibility: ShaderStages::VERTEX_FRAGMENT,
+					ty: BindingType::Buffer {
+						ty: BufferBindingType::Storage { read_only: true },
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				})
+				.collect::<Vec<_>>(),
+		});
+	let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+		label: Some("Render Pipeline Layout"),
+		bind_group_layouts: &[
+			&layouts.mesh_bind_group_layout,
+			&layouts.shader_params_bind_group_layout,
+			&storage_buffers_bind_group_layout,
+		],
+		push_constant_ranges: &[],
+	});
 	device.create_render_pipeline(&RenderPipelineDescriptor {
 		label: None,
-		layout: Some(pipeline_layout),
+		layout: Some(&pipeline_layout),
 		vertex: VertexState {
 			module: &shaders[&settings.shader_source].vertex,
 			entry_point: Some("main"),

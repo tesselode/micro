@@ -7,6 +7,7 @@ pub mod mesh;
 mod shader;
 pub mod sprite_batch;
 mod stencil;
+mod storage_buffer;
 pub mod text;
 pub mod texture;
 mod vertex;
@@ -18,6 +19,7 @@ pub use into_index_range::*;
 pub use into_instance_range::*;
 pub use shader::*;
 pub use stencil::*;
+pub use storage_buffer::*;
 pub use vertex::*;
 pub use wgpu::{Features, PresentMode, TextureFormat};
 

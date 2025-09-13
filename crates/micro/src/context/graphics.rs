@@ -208,6 +208,7 @@ impl GraphicsContext {
 				.unwrap_or(&self.default_resources.default_shader_params_bind_group)
 				.clone(),
 			storage_buffers: graphics_state.shader.storage_buffers.clone(),
+			shader_textures: graphics_state.shader.textures.clone(),
 			stencil_reference: graphics_state.stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
 				vertex_type,
@@ -220,6 +221,7 @@ impl GraphicsContext {
 				sample_count,
 				format,
 				num_storage_buffers: graphics_state.shader.storage_buffers.len(),
+				num_shader_textures: graphics_state.shader.textures.len(),
 			},
 		};
 		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
@@ -464,6 +466,7 @@ struct DrawCommand {
 	scissor_rect: URect,
 	shader_params_bind_group: BindGroup,
 	storage_buffers: Vec<StorageBuffer>,
+	shader_textures: Vec<Texture>,
 	stencil_reference: u8,
 	render_pipeline_settings: RenderPipelineSettings,
 }
@@ -526,6 +529,7 @@ fn run_draw_commands(
 		scissor_rect,
 		shader_params_bind_group,
 		storage_buffers,
+		shader_textures,
 		stencil_reference,
 		render_pipeline_settings,
 	} in draw_commands.drain(..)
@@ -577,6 +581,11 @@ fn run_draw_commands(
 			}),
 			&[],
 		);
+		render_pass.set_bind_group(
+			3,
+			&create_shader_textures_bind_group(device, pipeline, &shader_textures),
+			&[],
+		);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
 		render_pass.set_scissor_rect(
@@ -588,4 +597,27 @@ fn run_draw_commands(
 		render_pass.set_stencil_reference(stencil_reference as u32);
 		render_pass.draw_indexed(range.0..range.1, 0, instances.0..instances.1);
 	}
+}
+
+fn create_shader_textures_bind_group(
+	device: &Device,
+	pipeline: &RenderPipeline,
+	textures: &[Texture],
+) -> BindGroup {
+	let mut entries = vec![];
+	for (i, texture) in textures.iter().enumerate() {
+		entries.push(BindGroupEntry {
+			binding: (i * 2) as u32,
+			resource: BindingResource::TextureView(&texture.view),
+		});
+		entries.push(BindGroupEntry {
+			binding: (i * 2 + 1) as u32,
+			resource: BindingResource::Sampler(&texture.sampler),
+		});
+	}
+	device.create_bind_group(&BindGroupDescriptor {
+		label: Some("Shader Textures Bind Group"),
+		layout: &pipeline.get_bind_group_layout(3),
+		entries: &entries,
+	})
 }

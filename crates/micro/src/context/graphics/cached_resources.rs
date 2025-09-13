@@ -4,9 +4,10 @@ use wgpu::{
 	BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
 	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
 	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor,
-	PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderModuleDescriptor,
-	ShaderSource, ShaderStages, TextureFormat, VertexAttribute, VertexBufferLayout, VertexState,
-	VertexStepMode, naga::ShaderStage,
+	PrimitiveState, RenderPipeline, RenderPipelineDescriptor, SamplerBindingType, ShaderModule,
+	ShaderModuleDescriptor, ShaderSource, ShaderStages, TextureFormat, TextureSampleType,
+	TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexState, VertexStepMode,
+	naga::ShaderStage,
 };
 
 use crate::{
@@ -133,6 +134,7 @@ pub(super) struct RenderPipelineSettings {
 	pub(super) format: TextureFormat,
 	pub(super) sample_count: u32,
 	pub(super) num_storage_buffers: usize,
+	pub(super) num_shader_textures: usize,
 }
 
 fn create_render_pipeline(
@@ -159,12 +161,15 @@ fn create_render_pipeline(
 				})
 				.collect::<Vec<_>>(),
 		});
+	let shader_textures_bind_group_layout =
+		create_shader_textures_bind_group_layout(device, settings.num_shader_textures);
 	let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 		label: Some("Render Pipeline Layout"),
 		bind_group_layouts: &[
 			&layouts.mesh_bind_group_layout,
 			&layouts.shader_params_bind_group_layout,
 			&storage_buffers_bind_group_layout,
+			&shader_textures_bind_group_layout,
 		],
 		push_constant_ranges: &[],
 	});
@@ -213,5 +218,34 @@ fn create_render_pipeline(
 		}),
 		multiview: None,
 		cache: None,
+	})
+}
+
+fn create_shader_textures_bind_group_layout(
+	device: &Device,
+	num_shader_textures: usize,
+) -> wgpu::BindGroupLayout {
+	let mut entries = vec![];
+	for i in 0..num_shader_textures {
+		entries.push(BindGroupLayoutEntry {
+			binding: (i * 2) as u32,
+			visibility: ShaderStages::FRAGMENT,
+			ty: BindingType::Texture {
+				sample_type: TextureSampleType::Float { filterable: true },
+				view_dimension: TextureViewDimension::D2,
+				multisampled: false,
+			},
+			count: None,
+		});
+		entries.push(BindGroupLayoutEntry {
+			binding: (i * 2 + 1) as u32,
+			visibility: ShaderStages::FRAGMENT,
+			ty: BindingType::Sampler(SamplerBindingType::Filtering),
+			count: None,
+		});
+	}
+	device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+		label: Some("Shader Textures Bind Group Layout"),
+		entries: &entries,
 	})
 }

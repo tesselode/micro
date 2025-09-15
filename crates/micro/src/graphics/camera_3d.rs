@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use glam::{Mat4, Vec3};
 
-use crate::{Context, math::Rect};
+use crate::{Context, Push, context::OnDrop, math::Rect};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Camera3d {
@@ -102,6 +102,14 @@ impl Camera3d {
 	pub fn transform(self, ctx: &Context) -> Mat4 {
 		let _span = tracy_client::span!();
 		Self::undo_2d_coordinate_system_transform(ctx) * self.projection() * self.view()
+	}
+
+	pub fn push(self, ctx: &'_ mut Context) -> OnDrop<'_> {
+		ctx.push(Push {
+			transform: Some(self.transform(ctx)),
+			enable_depth_testing: Some(true),
+			..Default::default()
+		})
 	}
 
 	fn undo_2d_coordinate_system_transform(ctx: &Context) -> Mat4 {

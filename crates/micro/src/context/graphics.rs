@@ -29,8 +29,8 @@ use crate::{
 		graphics::cached_resources::{CachedResources, RenderPipelineSettings},
 	},
 	graphics::{
-		BlendMode, Canvas, CanvasKind, RenderToCanvasSettings, Shader, StencilState, StorageBuffer,
-		Vertex,
+		BlendMode, Canvas, RenderToCanvasSettings, Shader, StencilState, StorageBuffer, Vertex,
+		canvas::CanvasKind,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
 	math::URect,

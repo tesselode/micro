@@ -1,6 +1,6 @@
 mod blend_mode;
 mod camera_3d;
-mod canvas;
+pub mod canvas;
 mod into_index_range;
 mod into_instance_range;
 pub mod mesh;
@@ -14,7 +14,7 @@ mod vertex;
 
 pub use blend_mode::*;
 pub use camera_3d::*;
-pub use canvas::*;
+pub use canvas::{Canvas, CanvasSettings, RenderToCanvasSettings};
 pub use into_index_range::*;
 pub use into_instance_range::*;
 pub use shader::*;

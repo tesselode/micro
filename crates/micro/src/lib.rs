@@ -14,7 +14,7 @@ pub mod tween;
 mod window;
 
 pub use app::*;
-pub use context::{Context, ContextSettings, Push, run};
+pub use context::*;
 pub use event::*;
 pub use time::*;
 pub use window::*;

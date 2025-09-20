@@ -4,17 +4,37 @@ use crate::{Context, event::Event};
 
 #[allow(unused_variables)]
 pub trait App {
+	type Error;
+
 	fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
 		None
 	}
 
-	fn debug_menu(&mut self, ctx: &mut Context, ui: &mut crate::egui::Ui) {}
+	fn debug_menu(
+		&mut self,
+		ctx: &mut Context,
+		ui: &mut crate::egui::Ui,
+	) -> Result<(), Self::Error> {
+		Ok(())
+	}
 
-	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &crate::egui::Context) {}
+	fn debug_ui(
+		&mut self,
+		ctx: &mut Context,
+		egui_ctx: &crate::egui::Context,
+	) -> Result<(), Self::Error> {
+		Ok(())
+	}
 
-	fn event(&mut self, ctx: &mut Context, event: Event) {}
+	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), Self::Error> {
+		Ok(())
+	}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {}
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), Self::Error> {
+		Ok(())
+	}
 
-	fn draw(&mut self, ctx: &mut Context) {}
+	fn draw(&mut self, ctx: &mut Context) -> Result<(), Self::Error> {
+		Ok(())
+	}
 }

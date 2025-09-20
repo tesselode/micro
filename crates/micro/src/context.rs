@@ -5,6 +5,7 @@ pub use push::*;
 
 use std::{
 	collections::HashMap,
+	fmt::Debug,
 	ops::{Deref, DerefMut},
 	path::PathBuf,
 	time::{Duration, Instant},
@@ -26,12 +27,14 @@ use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
 	input::{Gamepad, MouseButton, Scancode},
 	log::setup_logging,
+	log_if_err,
 };
 
-pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F)
+pub fn run<A, F>(settings: ContextSettings, app_constructor: F)
 where
 	A: App,
-	F: FnMut(&mut Context) -> A,
+	A::Error: Debug,
+	F: FnMut(&mut Context) -> Result<A, A::Error>,
 {
 	#[cfg(debug_assertions)]
 	setup_logging();
@@ -41,6 +44,15 @@ where
 		tracing::error!("{}\n{:?}", info, Backtrace::new())
 	}));
 
+	log_if_err!(run_inner(settings, app_constructor), with_backtrace);
+}
+
+fn run_inner<A, F>(settings: ContextSettings, mut app_constructor: F) -> Result<(), A::Error>
+where
+	A: App,
+	A::Error: Debug,
+	F: FnMut(&mut Context) -> Result<A, A::Error>,
+{
 	let sdl = sdl3::init().expect("error initializing SDL");
 	let video = sdl.video().expect("error initializing video subsystem");
 	let controller = sdl
@@ -63,7 +75,7 @@ where
 	};
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
-	let mut app = app_constructor(&mut ctx);
+	let mut app = app_constructor(&mut ctx)?;
 
 	let mut last_update_time = Instant::now();
 
@@ -84,26 +96,33 @@ where
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
 		egui_ctx.begin_pass(egui_input);
 		if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
-			TopBottomPanel::top("main_menu").show_animated(&egui_ctx, visible, |ui| {
-				egui::MenuBar::new().ui(ui, |ui| {
-					app.debug_menu(&mut ctx, ui);
-					ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-						ui.label(format!(
-							"Average frame time: {:.1}ms ({:.0} FPS)",
-							ctx.average_frame_time().as_secs_f64() * 1000.0,
-							ctx.fps()
-						));
-						if let Some(stats) = app.debug_stats(&mut ctx) {
-							for stat in stats {
-								ui.separator();
-								ui.label(stat);
-							}
-						}
-					});
-				});
-			});
+			TopBottomPanel::top("main_menu")
+				.show_animated(&egui_ctx, visible, |ui| -> Result<(), A::Error> {
+					egui::MenuBar::new()
+						.ui(ui, |ui| -> Result<(), A::Error> {
+							app.debug_menu(&mut ctx, ui)?;
+							ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+								ui.label(format!(
+									"Average frame time: {:.1}ms ({:.0} FPS)",
+									ctx.average_frame_time().as_secs_f64() * 1000.0,
+									ctx.fps()
+								));
+								if let Some(stats) = app.debug_stats(&mut ctx) {
+									for stat in stats {
+										ui.separator();
+										ui.label(stat);
+									}
+								}
+							});
+							Ok(())
+						})
+						.inner?;
+					Ok(())
+				})
+				.map(|response| response.inner)
+				.transpose()?;
 			if visible {
-				app.debug_ui(&mut ctx, &egui_ctx);
+				app.debug_ui(&mut ctx, &egui_ctx)?;
 			}
 		}
 		let egui_output = egui_ctx.end_pass();
@@ -130,18 +149,18 @@ where
 				}
 				_ => {}
 			}
-			app.event(&mut ctx, event);
+			app.event(&mut ctx, event)?;
 		}
 		drop(span);
 
 		// update state
 		let span = tracy_client::span!("update");
-		app.update(&mut ctx, delta_time);
+		app.update(&mut ctx, delta_time)?;
 		drop(span);
 
 		// draw state and egui UI
 		let span = tracy_client::span!("draw");
-		app.draw(&mut ctx);
+		app.draw(&mut ctx)?;
 		drop(span);
 		let span = tracy_client::span!("draw egui UI");
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
@@ -154,6 +173,8 @@ where
 			break;
 		}
 	}
+
+	Ok(())
 }
 
 pub struct Context {

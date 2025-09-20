@@ -6,6 +6,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.100"
 directories = "6.0.0"
 exhaust = "0.2.0"
 hecs = "0.10.3"

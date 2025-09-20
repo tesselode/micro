@@ -29,31 +29,37 @@ fn main() {
 
 struct Game {
 	globals: Globals,
-	scene_manager: SceneManager<Globals>,
+	scene_manager: SceneManager<Globals, anyhow::Error>,
 }
 
 impl Game {
-	fn new(ctx: &mut Context) -> Self {
+	fn new(ctx: &mut Context) -> anyhow::Result<Self> {
 		let mut globals = Globals::new(ctx);
-		let gameplay = Gameplay::new(ctx, &mut globals);
-		Self {
+		let gameplay = Gameplay::new(ctx, &mut globals)?;
+		Ok(Self {
 			globals,
 			scene_manager: SceneManager::new(gameplay),
-		}
+		})
 	}
 }
 
 impl App for Game {
+	type Error = anyhow::Error;
+
 	fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
 		self.scene_manager.debug_stats(ctx, &mut self.globals)
 	}
 
-	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
+	fn debug_ui(
+		&mut self,
+		ctx: &mut Context,
+		egui_ctx: &micro::egui::Context,
+	) -> anyhow::Result<()> {
 		self.scene_manager
-			.debug_ui(ctx, egui_ctx, &mut self.globals);
+			.debug_ui(ctx, egui_ctx, &mut self.globals)
 	}
 
-	fn event(&mut self, ctx: &mut Context, event: Event) {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> anyhow::Result<()> {
 		if let Event::KeyPressed {
 			key: Scancode::Escape,
 			..
@@ -61,16 +67,16 @@ impl App for Game {
 		{
 			ctx.quit();
 		}
-		self.scene_manager.event(ctx, &mut self.globals, event);
+		self.scene_manager.event(ctx, &mut self.globals, event)
 	}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> anyhow::Result<()> {
 		self.globals.input.update(ctx);
 		self.scene_manager
-			.update(ctx, &mut self.globals, delta_time);
+			.update(ctx, &mut self.globals, delta_time)
 	}
 
-	fn draw(&mut self, ctx: &mut Context) {
-		self.scene_manager.draw(ctx, &mut self.globals);
+	fn draw(&mut self, ctx: &mut Context) -> anyhow::Result<()> {
+		self.scene_manager.draw(ctx, &mut self.globals)
 	}
 }

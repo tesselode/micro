@@ -5,6 +5,11 @@ macro_rules! log_if_err {
 			tracing::error!("{:?}", err);
 		}
 	};
+	($e:expr, with_backtrace) => {
+		if let Err(err) = &$e {
+			tracing::error!("{:?}\n{:?}", err, $crate::backtrace::Backtrace::new());
+		}
+	};
 }
 
 #[cfg(debug_assertions)]

@@ -1,15 +1,16 @@
 use std::collections::VecDeque;
 
 use hecs::CommandBuffer;
+use micro_scene_manager::SceneChange;
 
-use crate::scene_manager::SceneChange;
+use crate::globals::Globals;
 
 use super::event::GameplayEvent;
 
 pub struct GameplayContext {
 	pub world_command_buffer: CommandBuffer,
 	pub event_queue: VecDeque<GameplayEvent>,
-	pub scene_change: Option<SceneChange>,
+	pub scene_change: Option<SceneChange<Globals>>,
 }
 
 impl GameplayContext {

@@ -8,12 +8,11 @@ use std::time::Duration;
 
 use hecs::World;
 use micro::{Context, Event};
+use micro_scene_manager::{Scene, SceneChange};
 
-use crate::{globals::Globals, scene_manager::SceneChange};
+use crate::globals::Globals;
 
 use self::{context::GameplayContext, system::System};
-
-use super::Scene;
 
 pub struct Gameplay {
 	gameplay_ctx: GameplayContext,
@@ -64,7 +63,11 @@ impl Gameplay {
 	}
 }
 
-impl Scene for Gameplay {
+impl Scene<Globals> for Gameplay {
+	fn name(&self) -> &'static str {
+		"Gameplay"
+	}
+
 	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
@@ -90,7 +93,7 @@ impl Scene for Gameplay {
 		self.dispatch_gameplay_events(ctx, globals);
 	}
 
-	fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
+	/* fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
 		let mut stats = vec![format!("Number of entities: {}", self.world.len())];
 		for system in &mut self.systems {
 			if let Some(mut system_stats) =
@@ -100,7 +103,7 @@ impl Scene for Gameplay {
 			}
 		}
 		Some(stats)
-	}
+	} */
 
 	fn event(&mut self, ctx: &mut Context, globals: &mut Globals, event: &Event) {
 		for system in &mut self.systems {
@@ -131,7 +134,7 @@ impl Scene for Gameplay {
 			.run_on(&mut self.world);
 	}
 
-	fn scene_change(&mut self) -> Option<SceneChange> {
+	fn scene_change(&mut self) -> Option<SceneChange<Globals>> {
 		self.gameplay_ctx.scene_change.take()
 	}
 }

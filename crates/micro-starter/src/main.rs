@@ -4,15 +4,14 @@ mod dirs;
 mod globals;
 mod input;
 mod scene;
-mod scene_manager;
 
 use std::time::Duration;
 
 use globals::Globals;
 use micro::math::UVec2;
 use micro::{App, Context, ContextSettings, Event, WindowMode, input::Scancode};
+use micro_scene_manager::SceneManager;
 use scene::gameplay::Gameplay;
-use scene_manager::SceneManager;
 
 fn main() {
 	micro::run(
@@ -30,7 +29,7 @@ fn main() {
 
 struct Game {
 	globals: Globals,
-	scene_manager: SceneManager,
+	scene_manager: SceneManager<Globals>,
 }
 
 impl Game {
@@ -45,9 +44,9 @@ impl Game {
 }
 
 impl App for Game {
-	fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
+	/* fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
 		self.scene_manager.debug_stats(ctx, &mut self.globals)
-	}
+	} */
 
 	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
 		self.scene_manager

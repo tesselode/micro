@@ -340,6 +340,10 @@ impl Context {
 		1.0 / self.average_frame_time().as_secs_f32()
 	}
 
+	pub fn dev_tools_state(&self) -> DevToolsState {
+		self.dev_tools_state
+	}
+
 	/// Quits the game.
 	pub fn quit(&mut self) {
 		self.should_quit = true;
@@ -398,6 +402,12 @@ impl Default for DevToolsMode {
 	}
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DevToolsState {
+	Disabled,
+	Enabled { visible: bool },
+}
+
 #[must_use]
 pub struct OnDrop<'a> {
 	ctx: &'a mut Context,
@@ -421,10 +431,4 @@ impl DerefMut for OnDrop<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum DevToolsState {
-	Disabled,
-	Enabled { visible: bool },
 }

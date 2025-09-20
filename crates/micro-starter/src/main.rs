@@ -3,18 +3,30 @@
 mod dirs;
 mod globals;
 mod input;
+mod log;
 mod scene;
 
 use std::time::Duration;
 
+use backtrace::Backtrace;
 use globals::Globals;
+use log::setup_logging;
+use micro::log_if_err;
 use micro::math::UVec2;
 use micro::{App, Context, ContextSettings, Event, WindowMode, input::Scancode};
 use micro_scene_manager::SceneManager;
 use scene::gameplay::Gameplay;
 
 fn main() {
-	micro::run(
+	#[cfg(debug_assertions)]
+	setup_logging();
+	#[cfg(not(debug_assertions))]
+	let _guard = setup_logging();
+	std::panic::set_hook(Box::new(|info| {
+		tracing::error!("{}\n{:?}", info, Backtrace::new())
+	}));
+
+	log_if_err!(micro::run(
 		ContextSettings {
 			window_title: "Game".to_string(),
 			window_mode: WindowMode::Windowed {
@@ -24,7 +36,7 @@ fn main() {
 			..Default::default()
 		},
 		Game::new,
-	);
+	));
 }
 
 struct Game {

@@ -19,6 +19,5 @@ pub use event::*;
 pub use time::*;
 pub use window::*;
 
-pub use backtrace;
 pub use egui;
 pub use image;

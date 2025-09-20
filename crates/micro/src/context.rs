@@ -7,11 +7,9 @@ use std::{
 	collections::HashMap,
 	fmt::Debug,
 	ops::{Deref, DerefMut},
-	path::PathBuf,
 	time::{Duration, Instant},
 };
 
-use backtrace::Backtrace;
 use egui::{Align, Layout, TopBottomPanel};
 use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
 use palette::LinSrgb;
@@ -26,28 +24,9 @@ use crate::{
 	context::graphics::GraphicsContext,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
 	input::{Gamepad, MouseButton, Scancode},
-	log::setup_logging,
-	log_if_err,
 };
 
-pub fn run<A, F>(settings: ContextSettings, app_constructor: F)
-where
-	A: App,
-	A::Error: Debug,
-	F: FnMut(&mut Context) -> Result<A, A::Error>,
-{
-	#[cfg(debug_assertions)]
-	setup_logging();
-	#[cfg(not(debug_assertions))]
-	let _guard = setup_logging(settings.logs_dir.clone());
-	std::panic::set_hook(Box::new(|info| {
-		tracing::error!("{}\n{:?}", info, Backtrace::new())
-	}));
-
-	log_if_err!(run_inner(settings, app_constructor), with_backtrace);
-}
-
-fn run_inner<A, F>(settings: ContextSettings, mut app_constructor: F) -> Result<(), A::Error>
+pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F) -> Result<(), A::Error>
 where
 	A: App,
 	A::Error: Debug,
@@ -385,7 +364,6 @@ pub struct ContextSettings {
 	pub present_mode: PresentMode,
 	pub max_queued_frames: u32,
 	pub required_graphics_features: Features,
-	pub logs_dir: Option<PathBuf>,
 	pub dev_tools_mode: DevToolsMode,
 }
 
@@ -398,7 +376,6 @@ impl Default for ContextSettings {
 			present_mode: PresentMode::AutoVsync,
 			max_queued_frames: 1,
 			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
-			logs_dir: None,
 			dev_tools_mode: DevToolsMode::default(),
 		}
 	}

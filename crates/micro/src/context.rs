@@ -93,6 +93,12 @@ where
 							ctx.average_frame_time().as_secs_f64() * 1000.0,
 							ctx.fps()
 						));
+						if let Some(stats) = app.debug_stats(&mut ctx) {
+							for stat in stats {
+								ui.separator();
+								ui.label(stat);
+							}
+						}
 					});
 				});
 			});

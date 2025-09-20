@@ -14,6 +14,12 @@ pub trait Scene<Globals> {
 		None
 	}
 
+	fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
+		None
+	}
+
+	fn debug_menu(&mut self, ctx: &mut Context, ui: &mut micro::egui::Ui, globals: &mut Globals) {}
+
 	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
@@ -21,8 +27,6 @@ pub trait Scene<Globals> {
 		globals: &mut Globals,
 	) {
 	}
-
-	fn debug_menu(&mut self, ctx: &mut Context, ui: &mut micro::egui::Ui, globals: &mut Globals) {}
 
 	fn event(&mut self, ctx: &mut Context, globals: &mut Globals, event: &Event) {}
 
@@ -48,13 +52,8 @@ impl<Globals> SceneManager<Globals> {
 		}
 	}
 
-	pub fn debug_ui(
-		&mut self,
-		ctx: &mut Context,
-		egui_ctx: &micro::egui::Context,
-		globals: &mut Globals,
-	) {
-		self.current_scene().debug_ui(ctx, egui_ctx, globals)
+	pub fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
+		self.current_scene().debug_stats(ctx, globals)
 	}
 
 	pub fn debug_menu(
@@ -64,6 +63,15 @@ impl<Globals> SceneManager<Globals> {
 		globals: &mut Globals,
 	) {
 		self.current_scene().debug_menu(ctx, ui, globals)
+	}
+
+	pub fn debug_ui(
+		&mut self,
+		ctx: &mut Context,
+		egui_ctx: &micro::egui::Context,
+		globals: &mut Globals,
+	) {
+		self.current_scene().debug_ui(ctx, egui_ctx, globals)
 	}
 
 	pub fn event(&mut self, ctx: &mut Context, globals: &mut Globals, event: Event) {

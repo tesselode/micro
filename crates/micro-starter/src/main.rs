@@ -44,9 +44,9 @@ impl Game {
 }
 
 impl App for Game {
-	/* fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
+	fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
 		self.scene_manager.debug_stats(ctx, &mut self.globals)
-	} */
+	}
 
 	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
 		self.scene_manager

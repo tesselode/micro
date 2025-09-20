@@ -93,7 +93,7 @@ impl Scene<Globals> for Gameplay {
 		self.dispatch_gameplay_events(ctx, globals);
 	}
 
-	/* fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
+	fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
 		let mut stats = vec![format!("Number of entities: {}", self.world.len())];
 		for system in &mut self.systems {
 			if let Some(mut system_stats) =
@@ -103,7 +103,7 @@ impl Scene<Globals> for Gameplay {
 			}
 		}
 		Some(stats)
-	} */
+	}
 
 	fn event(&mut self, ctx: &mut Context, globals: &mut Globals, event: &Event) {
 		for system in &mut self.systems {

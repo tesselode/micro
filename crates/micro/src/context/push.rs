@@ -11,7 +11,7 @@ pub struct Push {
 	pub shader: Option<Shader>,
 	pub stencil_state: Option<StencilState>,
 	pub enable_depth_testing: Option<bool>,
-	pub scissor_rect: Option<URect>,
+	pub scissor_rect: Option<Option<URect>>,
 }
 
 impl From<Mat4> for Push {

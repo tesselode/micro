@@ -338,6 +338,7 @@ impl GraphicsContext {
 				&self.cached_resources.render_pipelines,
 				&mut draw_commands,
 				render_pass,
+				URect::new(UVec2::ZERO, canvas.size()),
 			);
 		}
 
@@ -379,6 +380,7 @@ impl GraphicsContext {
 				&self.cached_resources.render_pipelines,
 				&mut self.main_surface_draw_commands,
 				render_pass,
+				URect::new(UVec2::ZERO, uvec2(self.config.width, self.config.height)),
 			);
 		}
 
@@ -396,7 +398,7 @@ impl GraphicsContext {
 			shader: self.default_resources.default_shader.clone(),
 			stencil_state: StencilState::default(),
 			enable_depth_testing: false,
-			scissor_rect: self.default_scissor_rect(),
+			scissor_rect: None,
 		}
 	}
 
@@ -408,15 +410,6 @@ impl GraphicsContext {
 				-2.0 / current_render_target_size.y as f32,
 				1.0,
 			))
-	}
-
-	fn default_scissor_rect(&self) -> URect {
-		let size = if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
-			canvas.size()
-		} else {
-			uvec2(self.config.width, self.config.height)
-		};
-		URect::new(UVec2::ZERO, size)
 	}
 
 	fn create_shaders(&mut self) {
@@ -463,7 +456,7 @@ struct DrawCommand {
 	instances: (u32, u32),
 	texture: Texture,
 	draw_params: DrawParams,
-	scissor_rect: URect,
+	scissor_rect: Option<URect>,
 	shader_params_bind_group: BindGroup,
 	storage_buffers: Vec<StorageBuffer>,
 	shader_textures: Vec<Texture>,
@@ -491,7 +484,7 @@ struct GraphicsState {
 	shader: Shader,
 	stencil_state: StencilState,
 	enable_depth_testing: bool,
-	scissor_rect: URect,
+	scissor_rect: Option<URect>,
 }
 
 impl GraphicsState {
@@ -518,6 +511,7 @@ fn run_draw_commands(
 	render_pipelines: &HashMap<RenderPipelineSettings, RenderPipeline>,
 	draw_commands: &mut Vec<DrawCommand>,
 	mut render_pass: wgpu::RenderPass<'_>,
+	default_scissor_rect: URect,
 ) {
 	for DrawCommand {
 		vertex_buffer,
@@ -588,6 +582,7 @@ fn run_draw_commands(
 		);
 		render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
 		render_pass.set_index_buffer(index_buffer.slice(..), IndexFormat::Uint32);
+		let scissor_rect = scissor_rect.unwrap_or(default_scissor_rect);
 		render_pass.set_scissor_rect(
 			scissor_rect.left(),
 			scissor_rect.top(),

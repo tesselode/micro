@@ -74,7 +74,7 @@ pub fn draw_egui_output(
 				)
 				.as_urect();
 				let ctx = &mut ctx.push(Push {
-					scissor_rect: Some(clip_rect_pixels),
+					scissor_rect: Some(Some(clip_rect_pixels)),
 					..Default::default()
 				});
 				egui_mesh_to_micro_mesh(ctx, mesh)

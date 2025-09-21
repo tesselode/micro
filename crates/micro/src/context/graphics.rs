@@ -196,7 +196,9 @@ impl GraphicsContext {
 			instances: settings.instances,
 			texture: settings.texture,
 			draw_params: DrawParams {
-				global_transform: graphics_state.transform * settings.transform,
+				global_transform: self.coordinate_system_transform()
+					* graphics_state.transform
+					* settings.transform,
 				local_transform: settings.transform,
 				color: settings.color,
 			},
@@ -394,7 +396,7 @@ impl GraphicsContext {
 
 	fn default_graphics_state(&self) -> GraphicsState {
 		GraphicsState {
-			transform: self.default_transform(),
+			transform: Mat4::IDENTITY,
 			shader: self.default_resources.default_shader.clone(),
 			stencil_state: StencilState::default(),
 			enable_depth_testing: false,
@@ -402,7 +404,7 @@ impl GraphicsContext {
 		}
 	}
 
-	fn default_transform(&self) -> Mat4 {
+	fn coordinate_system_transform(&self) -> Mat4 {
 		let current_render_target_size = self.current_render_target_size();
 		Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
 			* Mat4::from_scale(Vec3::new(

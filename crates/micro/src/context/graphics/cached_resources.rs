@@ -102,6 +102,8 @@ pub(super) struct ShaderModulePair {
 
 impl ShaderModulePair {
 	fn new(device: &Device, name: &str, source: &str) -> Self {
+		let span = tracy_client::span!();
+		span.emit_text(name);
 		let vertex = device.create_shader_module(ShaderModuleDescriptor {
 			label: Some(&format!("{} - Vertex Shader", &name)),
 			source: ShaderSource::Glsl {
@@ -144,6 +146,8 @@ fn create_render_pipeline(
 	shaders: &HashMap<String, ShaderModulePair>,
 	settings: &RenderPipelineSettings,
 ) -> RenderPipeline {
+	let span = tracy_client::span!();
+	span.emit_text(&format!("{:#?}", settings));
 	let vertex_info = &vertex_info[&settings.vertex_type];
 	let storage_buffers_bind_group_layout =
 		device.create_bind_group_layout(&BindGroupLayoutDescriptor {

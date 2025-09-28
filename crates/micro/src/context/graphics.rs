@@ -415,6 +415,7 @@ impl GraphicsContext {
 	}
 
 	fn create_shaders(&mut self) {
+		let _span = tracy_client::span!();
 		self.cached_resources
 			.create_shaders(&self.device, &self.main_surface_draw_commands);
 		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
@@ -424,6 +425,7 @@ impl GraphicsContext {
 	}
 
 	fn create_render_pipelines(&mut self) {
+		let _span = tracy_client::span!();
 		self.cached_resources.create_render_pipelines(
 			&self.device,
 			&self.layouts,

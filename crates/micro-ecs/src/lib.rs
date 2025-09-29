@@ -69,14 +69,14 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		)
 	}
 
-	pub fn dispatch_world_event(
+	pub fn dispatch_ecs_event(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		event: &EcsEvent,
 	) -> Result<(), Error> {
-		self.systems.world_event(
+		self.systems.ecs_event(
 			ctx,
 			globals,
 			ecs_ctx,

@@ -71,7 +71,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		Ok(())
 	}
 
-	pub fn world_event(
+	pub fn ecs_event(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -84,7 +84,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 			return Ok(());
 		}
 		self.system
-			.world_event(ctx, globals, ecs_ctx, world, queues, event)?;
+			.ecs_event(ctx, globals, ecs_ctx, world, queues, event)?;
 		Ok(())
 	}
 

@@ -6,19 +6,19 @@ use hecs::World;
 use indexmap::IndexMap;
 use micro::{Context, Event};
 
-use crate::{Queues, Resources, system::system_wrapper::SystemWrapper};
+use crate::{Queues, system::system_wrapper::SystemWrapper};
 
 #[allow(unused_variables)]
-pub trait System<Globals, WorldEvent, Error> {
+pub trait System<Globals, EcsContext, EcsEvent, Error> {
 	fn name(&self) -> &'static str;
 
 	fn init(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		Ok(())
 	}
@@ -28,9 +28,9 @@ pub trait System<Globals, WorldEvent, Error> {
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		Ok(())
 	}
@@ -39,9 +39,9 @@ pub trait System<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		event: &Event,
 	) -> Result<(), Error> {
 		Ok(())
@@ -51,10 +51,10 @@ pub trait System<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
-		event: &WorldEvent,
+		queues: &mut Queues<EcsEvent>,
+		event: &EcsEvent,
 	) -> Result<(), Error> {
 		Ok(())
 	}
@@ -63,9 +63,9 @@ pub trait System<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
 	) -> Result<(), Error> {
 		Ok(())
@@ -75,9 +75,9 @@ pub trait System<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
 	) -> Result<(), Error> {
 		Ok(())
@@ -87,9 +87,9 @@ pub trait System<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		Ok(())
 	}
@@ -98,9 +98,9 @@ pub trait System<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		Ok(())
 	}
@@ -109,9 +109,9 @@ pub trait System<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		Ok(())
 	}
@@ -120,24 +120,24 @@ pub trait System<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		Ok(())
 	}
 }
 
-pub(crate) struct Systems<Globals, WorldEvent, Error>(
-	Vec<SystemWrapper<Globals, WorldEvent, Error>>,
+pub(crate) struct Systems<Globals, EcsContext, EcsEvent, Error>(
+	Vec<SystemWrapper<Globals, EcsContext, EcsEvent, Error>>,
 );
 
-impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
+impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent, Error> {
 	pub fn new() -> Self {
 		Self(vec![])
 	}
 
-	pub fn add(&mut self, system: impl System<Globals, WorldEvent, Error> + 'static) {
+	pub fn add(&mut self, system: impl System<Globals, EcsContext, EcsEvent, Error> + 'static) {
 		self.0.push(SystemWrapper::new(system));
 	}
 
@@ -145,14 +145,14 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.init(ctx, globals, resources, world, queues)?;
+			system.init(ctx, globals, ecs_ctx, world, queues)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -161,14 +161,14 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.debug_ui(ctx, egui_ctx, globals, resources, world, queues)?;
+			system.debug_ui(ctx, egui_ctx, globals, ecs_ctx, world, queues)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -176,15 +176,15 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		event: &Event,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.event(ctx, globals, resources, world, queues, event)?;
+			system.event(ctx, globals, ecs_ctx, world, queues, event)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -192,15 +192,15 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
-		event: &WorldEvent,
+		queues: &mut Queues<EcsEvent>,
+		event: &EcsEvent,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.world_event(ctx, globals, resources, world, queues, event)?;
+			system.world_event(ctx, globals, ecs_ctx, world, queues, event)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -208,15 +208,15 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.update(ctx, globals, resources, world, queues, delta_time)?;
+			system.update(ctx, globals, ecs_ctx, world, queues, delta_time)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -224,15 +224,15 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.update_cosmetic(ctx, globals, resources, world, queues, delta_time)?;
+			system.update_cosmetic(ctx, globals, ecs_ctx, world, queues, delta_time)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -240,14 +240,14 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.pause(ctx, globals, resources, world, queues)?;
+			system.pause(ctx, globals, ecs_ctx, world, queues)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -255,14 +255,14 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.resume(ctx, globals, resources, world, queues)?;
+			system.resume(ctx, globals, ecs_ctx, world, queues)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -270,14 +270,14 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.leave(ctx, globals, resources, world, queues)?;
+			system.leave(ctx, globals, ecs_ctx, world, queues)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -285,14 +285,14 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		for system in &mut self.0 {
-			system.draw(ctx, globals, resources, world, queues)?;
+			system.draw(ctx, globals, ecs_ctx, world, queues)?;
 		}
-		self.dispatch_world_events(ctx, globals, resources, world, queues)?;
+		self.dispatch_world_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -339,13 +339,13 @@ impl<Globals, WorldEvent, Error> Systems<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		while let Some(event) = queues.pop_event() {
 			for system in &mut self.0 {
-				system.world_event(ctx, globals, resources, world, queues, &event)?;
+				system.world_event(ctx, globals, ecs_ctx, world, queues, &event)?;
 			}
 		}
 		Ok(())

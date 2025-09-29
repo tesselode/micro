@@ -3,15 +3,15 @@ use std::time::Duration;
 use hecs::World;
 use micro::{Context, Event};
 
-use crate::{Queues, Resources, System};
+use crate::{Queues, System};
 
-pub(super) struct SystemWrapper<Globals, WorldEvent, Error> {
-	system: Box<dyn System<Globals, WorldEvent, Error>>,
+pub(super) struct SystemWrapper<Globals, EcsContext, EcsEvent, Error> {
+	system: Box<dyn System<Globals, EcsContext, EcsEvent, Error>>,
 	pub enabled: bool,
 }
 
-impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
-	pub fn new(system: impl System<Globals, WorldEvent, Error> + 'static) -> Self {
+impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, EcsEvent, Error> {
+	pub fn new(system: impl System<Globals, EcsContext, EcsEvent, Error> + 'static) -> Self {
 		Self {
 			system: Box::new(system),
 			enabled: true,
@@ -26,14 +26,14 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
-		self.system.init(ctx, globals, resources, world, queues)?;
+		self.system.init(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -42,15 +42,15 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
 		self.system
-			.debug_ui(ctx, egui_ctx, globals, resources, world, queues)?;
+			.debug_ui(ctx, egui_ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -58,16 +58,16 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		event: &Event,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
 		self.system
-			.event(ctx, globals, resources, world, queues, event)?;
+			.event(ctx, globals, ecs_ctx, world, queues, event)?;
 		Ok(())
 	}
 
@@ -75,16 +75,16 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
-		event: &WorldEvent,
+		queues: &mut Queues<EcsEvent>,
+		event: &EcsEvent,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
 		self.system
-			.world_event(ctx, globals, resources, world, queues, event)?;
+			.world_event(ctx, globals, ecs_ctx, world, queues, event)?;
 		Ok(())
 	}
 
@@ -92,16 +92,16 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
 		self.system
-			.update(ctx, globals, resources, world, queues, delta_time)?;
+			.update(ctx, globals, ecs_ctx, world, queues, delta_time)?;
 		Ok(())
 	}
 
@@ -109,16 +109,16 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
 		self.system
-			.update_cosmetic(ctx, globals, resources, world, queues, delta_time)?;
+			.update_cosmetic(ctx, globals, ecs_ctx, world, queues, delta_time)?;
 		Ok(())
 	}
 
@@ -126,14 +126,14 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
-		self.system.pause(ctx, globals, resources, world, queues)?;
+		self.system.pause(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -141,14 +141,14 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
-		self.system.resume(ctx, globals, resources, world, queues)?;
+		self.system.resume(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -156,14 +156,14 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
-		self.system.leave(ctx, globals, resources, world, queues)?;
+		self.system.leave(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 
@@ -171,14 +171,14 @@ impl<Globals, WorldEvent, Error> SystemWrapper<Globals, WorldEvent, Error> {
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
-		resources: &mut Resources,
+		ecs_ctx: &mut EcsContext,
 		world: &mut World,
-		queues: &mut Queues<WorldEvent>,
+		queues: &mut Queues<EcsEvent>,
 	) -> Result<(), Error> {
 		if !self.enabled {
 			return Ok(());
 		}
-		self.system.draw(ctx, globals, resources, world, queues)?;
+		self.system.draw(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 }

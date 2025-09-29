@@ -3,20 +3,20 @@ use std::collections::VecDeque;
 use hecs::{Bundle, CommandBuffer, Component, DynamicBundle, Entity};
 use indexmap::IndexSet;
 
-pub struct Queues<WorldEvent> {
-	event_queue: VecDeque<WorldEvent>,
+pub struct Queues<EcsEvent> {
+	event_queue: VecDeque<EcsEvent>,
 	command_buffer: CommandBuffer,
 	queued_for_despawn: IndexSet<Entity>,
 }
 
-impl<WorldEvent> Queues<WorldEvent> {
-	pub fn push_event(&mut self, event: WorldEvent) {
+impl<EcsEvent> Queues<EcsEvent> {
+	pub fn push_event(&mut self, event: EcsEvent) {
 		self.event_queue.push_back(event);
 	}
 
 	pub fn despawn(&mut self, entity: Entity)
 	where
-		WorldEvent: From<EntityWillDespawn>,
+		EcsEvent: From<EntityWillDespawn>,
 	{
 		self.command_buffer.despawn(entity);
 		if !self.queued_for_despawn.contains(&entity) {
@@ -58,7 +58,7 @@ impl<WorldEvent> Queues<WorldEvent> {
 		}
 	}
 
-	pub(crate) fn pop_event(&mut self) -> Option<WorldEvent> {
+	pub(crate) fn pop_event(&mut self) -> Option<EcsEvent> {
 		self.event_queue.pop_front()
 	}
 }

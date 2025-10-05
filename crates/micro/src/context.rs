@@ -38,6 +38,7 @@ where
 		.gamepad()
 		.expect("error initializing controller subsystem");
 	let window = build_window(&video, &settings);
+	video.text_input().start(&window);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
 	let graphics = GraphicsContext::new(&window, &settings);
 

@@ -68,7 +68,7 @@ impl Gameplay {
 	}
 }
 
-impl Scene<Globals, anyhow::Error> for Gameplay {
+impl Scene<Globals> for Gameplay {
 	fn name(&self) -> &'static str {
 		"Gameplay"
 	}
@@ -155,7 +155,7 @@ impl Scene<Globals, anyhow::Error> for Gameplay {
 		Ok(())
 	}
 
-	fn scene_change(&mut self) -> Option<SceneChange<Globals, anyhow::Error>> {
+	fn scene_change(&mut self) -> Option<SceneChange<Globals>> {
 		self.gameplay_ctx.scene_change.take()
 	}
 }

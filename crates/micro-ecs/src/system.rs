@@ -9,7 +9,7 @@ use micro::{Context, Event};
 use crate::{Queues, system::system_wrapper::SystemWrapper};
 
 #[allow(unused_variables)]
-pub trait System<Globals, EcsContext, EcsEvent, Error> {
+pub trait System<Globals, EcsContext, EcsEvent> {
 	fn name(&self) -> &'static str;
 
 	fn init(
@@ -19,7 +19,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -31,7 +31,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -43,7 +43,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &Event,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -55,7 +55,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &EcsEvent,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -67,7 +67,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -79,7 +79,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -90,7 +90,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -101,7 +101,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -112,7 +112,7 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -123,21 +123,21 @@ pub trait System<Globals, EcsContext, EcsEvent, Error> {
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 }
 
-pub(crate) struct Systems<Globals, EcsContext, EcsEvent, Error>(
-	Vec<SystemWrapper<Globals, EcsContext, EcsEvent, Error>>,
+pub(crate) struct Systems<Globals, EcsContext, EcsEvent>(
+	Vec<SystemWrapper<Globals, EcsContext, EcsEvent>>,
 );
 
-impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent, Error> {
+impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 	pub fn new() -> Self {
 		Self(vec![])
 	}
 
-	pub fn add(&mut self, system: impl System<Globals, EcsContext, EcsEvent, Error> + 'static) {
+	pub fn add(&mut self, system: impl System<Globals, EcsContext, EcsEvent> + 'static) {
 		self.0.push(SystemWrapper::new(system));
 	}
 
@@ -148,7 +148,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.init(ctx, globals, ecs_ctx, world, queues)?;
 		}
@@ -164,7 +164,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.debug_ui(ctx, egui_ctx, globals, ecs_ctx, world, queues)?;
 		}
@@ -180,7 +180,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &Event,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.event(ctx, globals, ecs_ctx, world, queues, event)?;
 		}
@@ -196,7 +196,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &EcsEvent,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.ecs_event(ctx, globals, ecs_ctx, world, queues, event)?;
 		}
@@ -212,7 +212,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.update(ctx, globals, ecs_ctx, world, queues, delta_time)?;
 		}
@@ -228,7 +228,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.update_cosmetic(ctx, globals, ecs_ctx, world, queues, delta_time)?;
 		}
@@ -243,7 +243,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.pause(ctx, globals, ecs_ctx, world, queues)?;
 		}
@@ -258,7 +258,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.resume(ctx, globals, ecs_ctx, world, queues)?;
 		}
@@ -273,7 +273,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.leave(ctx, globals, ecs_ctx, world, queues)?;
 		}
@@ -288,7 +288,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.draw(ctx, globals, ecs_ctx, world, queues)?;
 		}
@@ -342,7 +342,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Systems<Globals, EcsContext, EcsEvent
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		while let Some(event) = queues.pop_event() {
 			for system in &mut self.0 {
 				system.ecs_event(ctx, globals, ecs_ctx, world, queues, &event)?;

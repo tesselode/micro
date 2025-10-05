@@ -3,14 +3,14 @@ use std::time::Duration;
 use micro::{Context, Event};
 
 #[allow(unused_variables)]
-pub trait Scene<Globals, Error> {
+pub trait Scene<Globals> {
 	fn name(&self) -> &'static str;
 
 	fn transparent(&self) -> bool {
 		false
 	}
 
-	fn scene_change(&mut self) -> Option<SceneChange<Globals, Error>> {
+	fn scene_change(&mut self) -> Option<SceneChange<Globals>> {
 		None
 	}
 
@@ -23,7 +23,7 @@ pub trait Scene<Globals, Error> {
 		ctx: &mut Context,
 		ui: &mut micro::egui::Ui,
 		globals: &mut Globals,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -32,7 +32,7 @@ pub trait Scene<Globals, Error> {
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -41,7 +41,7 @@ pub trait Scene<Globals, Error> {
 		ctx: &mut Context,
 		globals: &mut Globals,
 		event: &Event,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
@@ -50,33 +50,33 @@ pub trait Scene<Globals, Error> {
 		ctx: &mut Context,
 		globals: &mut Globals,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> Result<(), Error> {
+	fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn pause(&mut self, ctx: &mut Context, globals: &mut Globals) -> Result<(), Error> {
+	fn pause(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn resume(&mut self, ctx: &mut Context, globals: &mut Globals) -> Result<(), Error> {
+	fn resume(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
 
-	fn leave(&mut self, ctx: &mut Context, globals: &mut Globals) -> Result<(), Error> {
+	fn leave(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
 }
 
-pub struct SceneManager<Globals, Error> {
-	scenes: Vec<Box<dyn Scene<Globals, Error>>>,
+pub struct SceneManager<Globals> {
+	scenes: Vec<Box<dyn Scene<Globals>>>,
 }
 
-impl<Globals, Error> SceneManager<Globals, Error> {
-	pub fn new(first_scene: impl Scene<Globals, Error> + 'static) -> Self {
+impl<Globals> SceneManager<Globals> {
+	pub fn new(first_scene: impl Scene<Globals> + 'static) -> Self {
 		Self {
 			scenes: vec![Box::new(first_scene)],
 		}
@@ -91,7 +91,7 @@ impl<Globals, Error> SceneManager<Globals, Error> {
 		ctx: &mut Context,
 		ui: &mut micro::egui::Ui,
 		globals: &mut Globals,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.current_scene().debug_menu(ctx, ui, globals)
 	}
 
@@ -100,7 +100,7 @@ impl<Globals, Error> SceneManager<Globals, Error> {
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.current_scene().debug_ui(ctx, egui_ctx, globals)
 	}
 
@@ -109,7 +109,7 @@ impl<Globals, Error> SceneManager<Globals, Error> {
 		ctx: &mut Context,
 		globals: &mut Globals,
 		event: Event,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.current_scene().event(ctx, globals, &event)
 	}
 
@@ -118,11 +118,11 @@ impl<Globals, Error> SceneManager<Globals, Error> {
 		ctx: &mut Context,
 		globals: &mut Globals,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.current_scene().update(ctx, globals, delta_time)
 	}
 
-	pub fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> Result<(), Error> {
+	pub fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		let mut first_scene_to_draw_index = self.scenes.len() - 1;
 		while first_scene_to_draw_index > 0 && self.scenes[first_scene_to_draw_index].transparent()
 		{
@@ -137,16 +137,16 @@ impl<Globals, Error> SceneManager<Globals, Error> {
 		Ok(())
 	}
 
-	fn current_scene(&mut self) -> &mut Box<dyn Scene<Globals, Error>> {
+	fn current_scene(&mut self) -> &mut Box<dyn Scene<Globals>> {
 		self.scenes.last_mut().expect("no current scene")
 	}
 
 	fn apply_scene_change(
 		&mut self,
 		ctx: &mut Context,
-		scene_change: SceneChange<Globals, Error>,
+		scene_change: SceneChange<Globals>,
 		globals: &mut Globals,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		match scene_change {
 			SceneChange::Switch(scene) => {
 				tracy_client::Client::running()
@@ -191,23 +191,23 @@ impl<Globals, Error> SceneManager<Globals, Error> {
 	}
 }
 
-pub enum SceneChange<Globals, Error> {
-	Switch(Box<dyn Scene<Globals, Error>>),
-	Push(Box<dyn Scene<Globals, Error>>),
+pub enum SceneChange<Globals> {
+	Switch(Box<dyn Scene<Globals>>),
+	Push(Box<dyn Scene<Globals>>),
 	Pop,
-	PopAndSwitch(Box<dyn Scene<Globals, Error>>),
+	PopAndSwitch(Box<dyn Scene<Globals>>),
 }
 
-impl<Globals, Error> SceneChange<Globals, Error> {
-	pub fn switch(scene: impl Scene<Globals, Error> + 'static) -> Self {
+impl<Globals> SceneChange<Globals> {
+	pub fn switch(scene: impl Scene<Globals> + 'static) -> Self {
 		Self::Switch(Box::new(scene))
 	}
 
-	pub fn push(scene: impl Scene<Globals, Error> + 'static) -> Self {
+	pub fn push(scene: impl Scene<Globals> + 'static) -> Self {
 		Self::Push(Box::new(scene))
 	}
 
-	pub fn pop_and_switch(scene: impl Scene<Globals, Error> + 'static) -> Self {
+	pub fn pop_and_switch(scene: impl Scene<Globals> + 'static) -> Self {
 		Self::PopAndSwitch(Box::new(scene))
 	}
 }

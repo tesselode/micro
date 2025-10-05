@@ -5,13 +5,13 @@ use micro::{Context, Event};
 
 use crate::{Queues, System};
 
-pub(super) struct SystemWrapper<Globals, EcsContext, EcsEvent, Error> {
-	system: Box<dyn System<Globals, EcsContext, EcsEvent, Error>>,
+pub(super) struct SystemWrapper<Globals, EcsContext, EcsEvent> {
+	system: Box<dyn System<Globals, EcsContext, EcsEvent>>,
 	pub enabled: bool,
 }
 
-impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, EcsEvent, Error> {
-	pub fn new(system: impl System<Globals, EcsContext, EcsEvent, Error> + 'static) -> Self {
+impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent> {
+	pub fn new(system: impl System<Globals, EcsContext, EcsEvent> + 'static) -> Self {
 		Self {
 			system: Box::new(system),
 			enabled: true,
@@ -29,7 +29,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -45,7 +45,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -62,7 +62,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &Event,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -79,7 +79,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &EcsEvent,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -96,7 +96,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -113,7 +113,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -129,7 +129,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -144,7 +144,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -159,7 +159,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}
@@ -174,7 +174,7 @@ impl<Globals, EcsContext, EcsEvent, Error> SystemWrapper<Globals, EcsContext, Ec
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		if !self.enabled {
 			return Ok(());
 		}

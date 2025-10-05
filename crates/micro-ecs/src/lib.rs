@@ -12,13 +12,13 @@ use std::time::Duration;
 use indexmap::IndexMap;
 use micro::{Context, Event};
 
-pub struct Ecs<Globals, EcsContext, EcsEvent, Error> {
+pub struct Ecs<Globals, EcsContext, EcsEvent> {
 	world: World,
 	queues: Queues<EcsEvent>,
-	systems: Systems<Globals, EcsContext, EcsEvent, Error>,
+	systems: Systems<Globals, EcsContext, EcsEvent>,
 }
 
-impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Error> {
+impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 	pub fn world(&self) -> &World {
 		&self.world
 	}
@@ -41,7 +41,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		egui_ctx: &micro::egui::Context,
 		ecs_ctx: &mut EcsContext,
 		globals: &mut Globals,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems.debug_ui(
 			ctx,
 			egui_ctx,
@@ -58,7 +58,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		event: &Event,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems.event(
 			ctx,
 			globals,
@@ -75,7 +75,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		event: &EcsEvent,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems.ecs_event(
 			ctx,
 			globals,
@@ -92,7 +92,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems.update(
 			ctx,
 			globals,
@@ -109,7 +109,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		delta_time: Duration,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems.update_cosmetic(
 			ctx,
 			globals,
@@ -125,7 +125,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems
 			.pause(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
@@ -135,7 +135,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems
 			.resume(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
@@ -145,7 +145,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems
 			.leave(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
@@ -155,7 +155,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems
 			.draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)?;
 		self.queues.flush_world_queue(&mut self.world);
@@ -176,7 +176,7 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> Result<(), Error> {
+	) -> anyhow::Result<()> {
 		self.systems
 			.init(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)?;
 		self.queues.flush_world_queue(&mut self.world);
@@ -184,21 +184,18 @@ impl<Globals, EcsContext, EcsEvent, Error> Ecs<Globals, EcsContext, EcsEvent, Er
 	}
 }
 
-pub struct EcsBuilder<Globals, EcsContext, EcsEvent, Error> {
-	systems: Systems<Globals, EcsContext, EcsEvent, Error>,
+pub struct EcsBuilder<Globals, EcsContext, EcsEvent> {
+	systems: Systems<Globals, EcsContext, EcsEvent>,
 }
 
-impl<Globals, EcsContext, EcsEvent, Error> EcsBuilder<Globals, EcsContext, EcsEvent, Error> {
+impl<Globals, EcsContext, EcsEvent> EcsBuilder<Globals, EcsContext, EcsEvent> {
 	pub fn new() -> Self {
 		Self {
 			systems: Systems::new(),
 		}
 	}
 
-	pub fn system(
-		mut self,
-		system: impl System<Globals, EcsContext, EcsEvent, Error> + 'static,
-	) -> Self {
+	pub fn system(mut self, system: impl System<Globals, EcsContext, EcsEvent> + 'static) -> Self {
 		self.systems.add(system);
 		self
 	}
@@ -208,7 +205,7 @@ impl<Globals, EcsContext, EcsEvent, Error> EcsBuilder<Globals, EcsContext, EcsEv
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> Result<Ecs<Globals, EcsContext, EcsEvent, Error>, Error> {
+	) -> anyhow::Result<Ecs<Globals, EcsContext, EcsEvent>> {
 		let mut ecs = Ecs {
 			world: World::new(),
 			queues: Queues::new(),
@@ -219,9 +216,7 @@ impl<Globals, EcsContext, EcsEvent, Error> EcsBuilder<Globals, EcsContext, EcsEv
 	}
 }
 
-impl<Globals, EcsContext, EcsEvent, Error> Default
-	for EcsBuilder<Globals, EcsContext, EcsEvent, Error>
-{
+impl<Globals, EcsContext, EcsEvent> Default for EcsBuilder<Globals, EcsContext, EcsEvent> {
 	fn default() -> Self {
 		Self::new()
 	}

@@ -10,7 +10,7 @@ use super::event::GameplayEvent;
 pub struct GameplayContext {
 	pub world_command_buffer: CommandBuffer,
 	pub event_queue: VecDeque<GameplayEvent>,
-	pub scene_change: Option<SceneChange<Globals, anyhow::Error>>,
+	pub scene_change: Option<SceneChange<Globals>>,
 }
 
 impl GameplayContext {

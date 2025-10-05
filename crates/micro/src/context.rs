@@ -26,11 +26,10 @@ use crate::{
 	input::{Gamepad, MouseButton, Scancode},
 };
 
-pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F) -> Result<(), A::Error>
+pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F) -> anyhow::Result<()>
 where
 	A: App,
-	A::Error: Debug,
-	F: FnMut(&mut Context) -> Result<A, A::Error>,
+	F: FnMut(&mut Context) -> anyhow::Result<A>,
 {
 	let sdl = sdl3::init().expect("error initializing SDL");
 	let video = sdl.video().expect("error initializing video subsystem");
@@ -77,9 +76,9 @@ where
 		egui_ctx.begin_pass(egui_input);
 		if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
 			TopBottomPanel::top("main_menu")
-				.show_animated(&egui_ctx, visible, |ui| -> Result<(), A::Error> {
+				.show_animated(&egui_ctx, visible, |ui| -> anyhow::Result<()> {
 					egui::MenuBar::new()
-						.ui(ui, |ui| -> Result<(), A::Error> {
+						.ui(ui, |ui| -> anyhow::Result<()> {
 							app.debug_menu(&mut ctx, ui)?;
 							ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
 								ui.label(format!(

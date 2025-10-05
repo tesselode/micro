@@ -41,7 +41,7 @@ fn main() {
 
 struct Game {
 	globals: Globals,
-	scene_manager: SceneManager<Globals, anyhow::Error>,
+	scene_manager: SceneManager<Globals>,
 }
 
 impl Game {
@@ -56,8 +56,6 @@ impl Game {
 }
 
 impl App for Game {
-	type Error = anyhow::Error;
-
 	fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
 		self.scene_manager.debug_stats(ctx, &mut self.globals)
 	}

@@ -8,7 +8,7 @@ anyhow = "1.0.100"
 bytemuck = { version = "1.21.0", features = ["derive"] }
 crunch = "0.5.3"
 derive_more = { version = "2.0.1", features = ["display", "error", "from"] }
-egui = "0.32.1"
+egui = "0.33.0"
 exhaust = { version = "0.2.1", optional = true }
 fontdue = "0.9.3"
 generational-arena = "0.2.9"
@@ -22,7 +22,7 @@ palette = { version = "0.7.6", default-features = false, features = [
 ] }
 pollster = "0.4.0"
 rand = { version = "0.9.0", optional = true }
-sdl3 = { version = "0.15.1", features = [
+sdl3 = { version = "0.16.1", features = [
     "build-from-source",
     "raw-window-handle",
 ] }
@@ -36,7 +36,7 @@ tracy-client = { version = "0.18.0", default-features = false, features = [
     "sampling",
     "system-tracing",
 ] }
-wgpu = { version = "26.0.1", default-features = false, features = [
+wgpu = { version = "27.0.1", default-features = false, features = [
     "dx12",
     "metal",
     "vulkan",

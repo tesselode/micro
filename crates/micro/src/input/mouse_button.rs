@@ -1,13 +1,20 @@
 use sdl3::mouse::MouseButton as sdl3MouseButton;
 
+/// A button on a computer mouse.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum MouseButton {
+	/// An unrecognized button.
 	Unknown,
+	/// The left mouse button.
 	Left,
+	/// The middle mouse button (pressing down the scroll wheel).
 	Middle,
+	/// The right mouse button.
 	Right,
+	/// Side button 1.
 	X1,
+	/// Side button 2.
 	X2,
 }
 

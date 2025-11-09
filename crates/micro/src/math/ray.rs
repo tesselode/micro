@@ -2,15 +2,17 @@ use glam::Vec2;
 
 use super::Circle;
 
+/// A line that starts from an origin and extends infinitely in a direction.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ray {
-	/// The point of origin of the ray.
+	/// The starting point of the ray.
 	pub origin: Vec2,
 	/// A unit vector representing the direction of the ray.
 	pub direction: Vec2,
 }
 
 impl Ray {
+	/// Returns all the points where the ray intersects the specified circle.
 	// https://www.bluebill.net/circle_ray_intersection.html
 	pub fn circle_intersection_points(self, circle: Circle) -> Vec<Vec2> {
 		let u = circle.center - self.origin;

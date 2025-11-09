@@ -2,8 +2,10 @@ use sdl3::keyboard::Scancode as Sdl3Scancode;
 
 macro_rules! scancodes {
 	($($scancode:ident),*$(,)?) => {
+		/// A keyboard key.
 		#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 		#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+		#[allow(missing_docs)]
 		pub enum Scancode {
 			$($scancode),*
 		}

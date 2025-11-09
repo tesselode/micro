@@ -2,18 +2,22 @@ use glam::{Mat4, Vec2, vec2};
 
 use super::{Circle, LineSegment, Rect};
 
+/// A 2D polygon.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Polygon {
+	/// The points that make up the polygon.
 	pub points: Vec<Vec2>,
 }
 
 impl Polygon {
+	/// Creates a new polygon.
 	pub fn new(points: impl Into<Vec<Vec2>>) -> Self {
 		Self {
 			points: points.into(),
 		}
 	}
 
+	/// Returns a new polygon with the transform applied to each point.
 	pub fn transformed(self, transform: Mat4) -> Self {
 		Self {
 			points: self
@@ -25,6 +29,7 @@ impl Polygon {
 		}
 	}
 
+	/// Returns a new polygobn with each point translated by the specified vector.
 	pub fn translated(self, translation: impl Into<Vec2>) -> Self {
 		let translation = translation.into();
 		Self {
@@ -37,14 +42,20 @@ impl Polygon {
 		}
 	}
 
+	/// Returns a new polygon with each point translated along the X
+	/// axis by the specified amount.
 	pub fn translated_x(self, translation: f32) -> Self {
 		self.translated(vec2(translation, 0.0))
 	}
 
+	/// Returns a new polygon with each point translated along the Y
+	/// axis by the specified amount.
 	pub fn translated_y(self, translation: f32) -> Self {
 		self.translated(vec2(0.0, translation))
 	}
 
+	/// Returns a new polygon with each point scaled by the specified
+	/// amounts along the X and Y axes.
 	pub fn scaled(self, scale: impl Into<Vec2>) -> Self {
 		let scale = scale.into();
 		Self {
@@ -57,18 +68,25 @@ impl Polygon {
 		}
 	}
 
+	/// Returns a new polygon with each point scaled by the specified
+	/// amount along the X axis.
 	pub fn scaled_x(self, scale: f32) -> Self {
 		self.scaled(vec2(scale, 0.0))
 	}
 
+	/// Returns a new polygon with each point scaled by the specified
+	/// amount along the Y axis.
 	pub fn scaled_y(self, scale: f32) -> Self {
 		self.scaled(vec2(0.0, scale))
 	}
 
+	/// Returns a new polygon with each point rotated by the specified
+	/// amount (in radians).
 	pub fn rotated(self, rotation: f32) -> Self {
 		self.transformed(Mat4::from_rotation_z(rotation))
 	}
 
+	/// Returns an iterator over all the line segments that make up the polygon.
 	pub fn line_segments(&self) -> impl Iterator<Item = LineSegment> + '_ {
 		(0..self.points.len()).map(|i| {
 			let start = self.points[i];
@@ -77,6 +95,7 @@ impl Polygon {
 		})
 	}
 
+	/// Returns a rectangle that tightly hugs the polygon.
 	pub fn bounding_rect(&self) -> Option<Rect> {
 		let left = self.points.iter().map(|point| point.x).reduce(f32::min)?;
 		let right = self.points.iter().map(|point| point.x).reduce(f32::max)?;
@@ -85,6 +104,7 @@ impl Polygon {
 		Some(Rect::from_corners(vec2(left, top), vec2(right, bottom)))
 	}
 
+	/// Returns true if the specified point lies inside the polygon.
 	// https://www.jeffreythompson.org/collision-detection/poly-point.php
 	pub fn contains_point(&self, point: impl Into<Vec2>) -> bool {
 		let point = point.into();
@@ -97,6 +117,9 @@ impl Polygon {
 			== 1
 	}
 
+	/// Returns true if the polygon overlaps the specified circle.
+	/// The `tolerance` is the maximum distance the circle can be away from
+	/// the polygon and still be considered touching the polygon.
 	// https://www.jeffreythompson.org/collision-detection/poly-circle.php
 	pub fn overlaps_circle(&self, circle: Circle, tolerance: f32) -> bool {
 		let edge_intersects_circle = self

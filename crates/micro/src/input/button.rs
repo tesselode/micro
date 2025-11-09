@@ -1,16 +1,24 @@
 use sdl3::gamepad::Button as sdl3Button;
 
+/// A gamepad button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+#[allow(missing_docs)]
 pub enum Button {
+	/// The south face button (A on an Xbox controller).
 	South,
+	/// The east face button (B on an Xbox controller).
 	East,
+	/// The west face button (X on an Xbox controller).
 	West,
+	/// The north face button (Y on an Xbox controller).
 	North,
 	Back,
 	Guide,
 	Start,
+	/// The button pressed by clicking the left stick in.
 	LeftStick,
+	/// The button pressed by clicking the right stick in.
 	RightStick,
 	LeftShoulder,
 	RightShoulder,
@@ -95,6 +103,7 @@ impl From<Button> for sdl3Button {
 }
 
 impl Button {
+	/// Return a string for the button in the same format used by game controller mapping strings.
 	pub fn string(self) -> String {
 		sdl3Button::from(self).string()
 	}

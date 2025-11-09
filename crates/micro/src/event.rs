@@ -2,42 +2,72 @@ use glam::{UVec2, Vec2};
 
 use crate::input::{Axis, Button, MouseButton, Scancode};
 
+/// An event sent by Micro to your [`App`](crate::App).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
+	/// The window size change.
 	WindowSizeChanged(UVec2),
+	/// A keyboard key was pressed.
 	KeyPressed {
+		/// The key that was pressed.
 		key: Scancode,
+		/// Whether the key press event comes from key repeat from
+		/// holding down a key.
 		is_repeat: bool,
 	},
+	/// A keyboard key was released.
 	KeyReleased(Scancode),
+	/// The mouse was moved.
 	MouseMoved {
+		/// The new mouse position (in pixels).
 		position: Vec2,
+		/// How much the mouse moved (in pixels).
 		delta: Vec2,
 	},
+	/// A mouse button was pressed.
 	MouseButtonPressed {
+		/// The mouse button that was pressed.
 		button: MouseButton,
+		/// The position of the mouse at the time of the button press (in pixels).
 		mouse_position: Vec2,
 	},
+	/// A mouse button was released.
 	MouseButtonReleased {
+		/// The mouse button that was released.
 		button: MouseButton,
+		/// The position of the mouse at the time of the button release (in pixels).
 		mouse_position: Vec2,
 	},
+	/// The mouse scroll wheel was moved.
 	MouseWheelMoved(Vec2),
+	/// A gamepad axis was moved.
 	GamepadAxisMoved {
+		/// The index of the gamepad.
 		gamepad_id: u32,
+		/// Which axis was moved.
 		axis: Axis,
+		/// The new value of that axis.
 		value: f32,
 	},
+	/// A gamepad button was pressed.
 	GamepadButtonPressed {
+		/// The index of the gamepad.
 		gamepad_id: u32,
+		/// The button that was pressed.
 		button: Button,
 	},
+	/// A gamepad button was released.
 	GamepadButtonReleased {
+		/// The index of the gamepad.
 		gamepad_id: u32,
+		/// The button that was released.
 		button: Button,
 	},
+	/// A gamepad was connected.
 	GamepadConnected(u32),
+	/// A gamepad was disconnected.
 	GamepadDisconnected(u32),
+	/// The app was exited.
 	Exited,
 }
 

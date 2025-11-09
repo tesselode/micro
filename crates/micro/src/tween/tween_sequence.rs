@@ -4,12 +4,12 @@ use std::{
 	time::Duration,
 };
 
-use derive_more::derive::{Display, Error};
-
 use crate::math::{InverseLerp, Lerp};
 
 use super::Easing;
 
+/// Smoothly animates a value through multiple target values using a series
+/// of tweens.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TweenSequence<V, T = Duration> {
@@ -19,6 +19,7 @@ pub struct TweenSequence<V, T = Duration> {
 }
 
 impl<Value, Time> TweenSequence<Value, Time> {
+	/// Creates a new [`TweenSequence`] starting with an initial value.
 	pub fn new(initial_value: Value) -> Self
 	where
 		Time: Default,
@@ -34,6 +35,8 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		}
 	}
 
+	/// Creates a new [`TweenSequence`] where the first keyframe has the
+	/// specified time and value.
 	pub fn starting_at(time: Time, initial_value: Value) -> Self
 	where
 		Time: Copy,
@@ -49,6 +52,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		}
 	}
 
+	/// Creates a [`TweenSequence`] with one tween between the given values.
 	pub fn simple(duration: Time, values: RangeInclusive<Value>, easing: Easing) -> Self
 	where
 		Time: Default + Copy,
@@ -72,6 +76,8 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		}
 	}
 
+	/// Adds a keyframe that causes the value to stay the same for the
+	/// given `duration`.
 	pub fn wait(mut self, duration: Time) -> Self
 	where
 		Value: Copy,
@@ -86,6 +92,8 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self
 	}
 
+	/// Adds a keyframe that causes the value to stay the same until
+	/// the given `time`.
 	pub fn wait_until(mut self, time: Time) -> Self
 	where
 		Value: Copy,
@@ -103,6 +111,8 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self
 	}
 
+	/// Adds a keyframe that causes the value to change to the `target`
+	/// value over the course of the given `duration`.
 	pub fn tween(mut self, duration: Time, target: Value, easing: Easing) -> Self
 	where
 		Time: Copy + Add<Time, Output = Time>,
@@ -116,6 +126,8 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self
 	}
 
+	/// Adds a keyframe that causes the value to change to the `target`
+	/// value until the given `time`.
 	pub fn tween_until(mut self, time: Time, value: Value, easing: Easing) -> Self
 	where
 		Time: PartialOrd,
@@ -131,6 +143,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self
 	}
 
+	/// Makes the [`TweenSequence`] a looping animation.
 	pub fn looping(self) -> Self {
 		Self {
 			looping: true,
@@ -138,6 +151,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		}
 	}
 
+	/// Returns the time of the last keyframe.
 	pub fn duration(&self) -> Time
 	where
 		Time: Copy,
@@ -145,6 +159,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self.keyframes.last().unwrap().time
 	}
 
+	/// Progresses the animation by the given amount of time.
 	pub fn update(&mut self, delta_time: Time)
 	where
 		Time: Copy + PartialOrd + AddAssign<Time> + SubAssign<Time>,
@@ -157,6 +172,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		}
 	}
 
+	/// Gets the output value at the given `time`.
 	pub fn get(&self, mut time: Time) -> Value
 	where
 		Value: Copy + Lerp,
@@ -189,6 +205,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		}
 	}
 
+	/// Gets the output value at the current time.
 	pub fn current(&self) -> Value
 	where
 		Value: Copy + Lerp,
@@ -197,6 +214,7 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self.get(self.current_time)
 	}
 
+	/// Returns `true` if the animation has finished.
 	pub fn finished(&self) -> bool
 	where
 		Time: PartialOrd + Copy,
@@ -204,6 +222,8 @@ impl<Value, Time> TweenSequence<Value, Time> {
 		self.current_time >= self.duration()
 	}
 
+	/// Creates a new [`TweenSequence`] with the keyframe values mapped
+	/// to new values by the given callback.
 	pub fn map<NewValue>(
 		&self,
 		mut f: impl FnMut(Value) -> NewValue,
@@ -228,17 +248,16 @@ impl<Value, Time> TweenSequence<Value, Time> {
 	}
 }
 
+/// A keyframe in a [`TweenSequence`]. These define the animation.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct Keyframe<V, T = Duration> {
+	/// The time the keyframe occurs at.
 	pub time: T,
+	/// The target value of the keyframe.
 	pub value: V,
+	/// The curve of the animation between the previous keyframe and this one.
+	///
+	/// For the first keyframe, this has no effect.
 	pub easing: Easing,
-}
-
-#[derive(Debug, Clone, PartialEq, Error, Display)]
-#[display("Sequence already has a keyframe at time {time}")]
-pub struct KeyframeAlreadyAtTime<V, T> {
-	pub time: T,
-	pub sequence: TweenSequence<V, T>,
 }

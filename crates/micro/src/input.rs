@@ -15,6 +15,10 @@ pub use sdl3::mouse::MouseWheelDirection;
 pub struct Gamepad(pub(crate) sdl3::gamepad::Gamepad);
 
 impl Gamepad {
+	pub fn id(&self) -> u32 {
+		self.0.id().unwrap()
+	}
+
 	pub fn is_connected(&self) -> bool {
 		self.0.connected()
 	}

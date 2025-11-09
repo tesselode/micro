@@ -26,6 +26,8 @@ use crate::{
 	input::{Gamepad, MouseButton, Scancode},
 };
 
+/// Starts a Micro application. The app constructor should return a value of a type
+/// that implements [`App`].
 pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F) -> anyhow::Result<()>
 where
 	A: App,
@@ -156,6 +158,8 @@ where
 	Ok(())
 }
 
+/// Allows you to interact with Micro to check for keyboard inputs,
+/// draw graphics, change window settings, etc.
 pub struct Context {
 	gamepad: GamepadSubsystem,
 	event_pump: EventPump,
@@ -177,6 +181,7 @@ impl Context {
 		UVec2::new(width, height)
 	}
 
+	/// Returns the number of pixels per logical point on screen.
 	pub fn window_scale(&self) -> f32 {
 		self.window.display_scale()
 	}
@@ -219,91 +224,137 @@ impl Context {
 		Ok(())
 	}
 
+	/// Returns the current [`PresentMode`].
 	pub fn present_mode(&self) -> PresentMode {
 		self.graphics.present_mode()
 	}
 
-	pub fn max_queued_frames(&self) -> u32 {
-		self.graphics.max_queued_frames()
+	/// Returns the desired maximum number of frames that can be queued up
+	/// ahead of time.
+	pub fn desired_maximum_frame_latency(&self) -> u32 {
+		self.graphics.desired_maximum_frame_latency()
 	}
 
+	/// Returns the texture format of the window surface.
 	pub fn surface_format(&self) -> TextureFormat {
 		self.graphics.surface_format()
 	}
 
+	/**
+	Returns the size in pixels of the current render target, which is
+	either:
+	- The current canvas being rendered to if there is one, or
+	- The window
+	*/
 	pub fn current_render_target_size(&self) -> UVec2 {
 		self.graphics.current_render_target_size()
 	}
 
+	/// Sets the [`PresentMode`].
 	pub fn set_present_mode(&mut self, present_mode: PresentMode) {
 		self.graphics.set_present_mode(present_mode);
 	}
 
-	pub fn set_max_queued_frames(&mut self, frames: u32) {
-		self.graphics.set_max_queued_frames(frames);
+	/// Sets the desired maximum number of frames that can be queued up
+	/// ahead of time. Higher values can stabilize framerates, but increase
+	/// input lag.
+	pub fn set_desired_maximum_frame_latency(&mut self, frames: u32) {
+		self.graphics.set_desired_maximum_frame_latency(frames);
 	}
 
+	/// Returns the sample counts for MSAA that the graphics card supports.
 	pub fn supported_sample_counts(&self) -> &[u32] {
 		&self.graphics.supported_sample_counts
 	}
 
+	/// Sets the color the window surface will be cleared to at the start
+	/// of each frame.
 	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
 		self.graphics.clear_color = color.into();
 	}
 
+	/// Pushes a set of graphics settings that will be used for upcoming
+	/// drawing operations. Returns an object which, when dropped, will
+	/// restore the previous set of graphics settings.
 	pub fn push(&mut self, push: impl Into<Push>) -> OnDrop<'_> {
 		self.graphics.push_graphics_state(push.into());
 		OnDrop { ctx: self }
 	}
 
+	/// Pushes a transformation that translates all drawing operations by the
+	/// specified amount along the X and Y axes.
 	pub fn push_translation_2d(&mut self, translation: impl Into<Vec2>) -> OnDrop<'_> {
 		self.push(Mat4::from_translation(translation.into().extend(0.0)))
 	}
 
+	/// Pushes a transformation that translates all drawing operations by the
+	/// specified amount along the X, Y, and Z axes.
 	pub fn push_translation_3d(&mut self, translation: impl Into<Vec3>) -> OnDrop<'_> {
 		self.push(Mat4::from_translation(translation.into()))
 	}
 
+	/// Pushes a transformation that translates all drawing operations by the
+	/// specified amount along the X axis.
 	pub fn push_translation_x(&mut self, translation: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
 	}
 
+	/// Pushes a transformation that translates all drawing operations by the
+	/// specified amount along the Y axis.
 	pub fn push_translation_y(&mut self, translation: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
 	}
 
+	/// Pushes a transformation that translates all drawing operations by the
+	/// specified amount along the Z axis.
 	pub fn push_translation_z(&mut self, translation: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
 	}
 
+	/// Pushes a transformation that scales all drawing operations by the
+	/// specified amount along the X and Y axes.
 	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_> {
 		self.push(Mat4::from_scale(scale.into().extend(0.0)))
 	}
 
+	/// Pushes a transformation that scales all drawing operations by the
+	/// specified amount along the X, Y, and Z axes.
 	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_> {
 		self.push(Mat4::from_scale(scale.into()))
 	}
 
+	/// Pushes a transformation that scales all drawing operations by the
+	/// specified amount along the X axis.
 	pub fn push_scale_x(&mut self, scale: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
 	}
 
+	/// Pushes a transformation that scales all drawing operations by the
+	/// specified amount along the Y axis.
 	pub fn push_scale_y(&mut self, scale: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
 	}
 
+	/// Pushes a transformation that scales all drawing operations by the
+	/// specified amount along the Z axis.
 	pub fn push_scale_z(&mut self, scale: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
 	}
 
+	/// Pushes a transformation that rotates all drawing operations by the
+	/// specified amount around the X axis.
 	pub fn push_rotation_x(&mut self, rotation: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_rotation_x(rotation))
 	}
 
+	/// Pushes a transformation that rotates all drawing operations by the
+	/// specified amount around the Y axis.
 	pub fn push_rotation_y(&mut self, rotation: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_rotation_y(rotation))
 	}
 
+	/// Pushes a transformation that rotates all drawing operations by the
+	/// specified amount around the Z axis.
 	pub fn push_rotation_z(&mut self, rotation: f32) -> OnDrop<'_> {
 		self.push(Mat4::from_rotation_z(rotation))
 	}
@@ -346,6 +397,7 @@ impl Context {
 		1.0 / self.average_frame_time().as_secs_f32()
 	}
 
+	/// Returns the current activation state of the dev tools.
 	pub fn dev_tools_state(&self) -> DevToolsState {
 		self.dev_tools_state
 	}
@@ -356,14 +408,24 @@ impl Context {
 	}
 }
 
+/// Settings for starting an application.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ContextSettings {
+	/// The title of the application window.
 	pub window_title: String,
+	/// The size and fullscreen state of the window.
 	pub window_mode: WindowMode,
+	/// Whether the window is resizable.
 	pub resizable: bool,
+	/// The [`PresentMode`] used by the application.
 	pub present_mode: PresentMode,
-	pub max_queued_frames: u32,
+	/// The desired maximum number of frames that can be queued up
+	/// ahead of time. Higher values can stabilize framerates, but increase
+	/// input lag.
+	pub desired_maximum_frame_latency: u32,
+	/// A bitset of graphics features the application will use.
 	pub required_graphics_features: Features,
+	/// Whether dev tools should be enabled or not.
 	pub dev_tools_mode: DevToolsMode,
 }
 
@@ -374,17 +436,25 @@ impl Default for ContextSettings {
 			window_mode: WindowMode::default(),
 			resizable: false,
 			present_mode: PresentMode::AutoVsync,
-			max_queued_frames: 1,
+			desired_maximum_frame_latency: 1,
 			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
 			dev_tools_mode: DevToolsMode::default(),
 		}
 	}
 }
 
+/// Configures whether dev tools will be available on this run of the
+/// application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DevToolsMode {
+	/// Dev tools are disabled.
 	Disabled,
-	Enabled { show_by_default: bool },
+	/// Dev tools are enabled.
+	Enabled {
+		/// Whether the dev tools UI should be shown by default.
+		/// This can be toggled at runtime by pressing F1.
+		show_by_default: bool,
+	},
 }
 
 impl DevToolsMode {
@@ -406,12 +476,21 @@ impl Default for DevToolsMode {
 	}
 }
 
+/// Whether the dev tools are currently enabled, and if so, whether the UI
+/// is currently visible.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DevToolsState {
+	/// Dev tools are disabled.
 	Disabled,
-	Enabled { visible: bool },
+	/// Dev tools are enabled.
+	Enabled {
+		/// Whether the dev tools UI is visible or not.
+		visible: bool,
+	},
 }
 
+/// Restores the previous graphics settings when dropped. Returned by
+/// the `Context::push_*` functions.
 #[must_use]
 pub struct OnDrop<'a> {
 	ctx: &'a mut Context,

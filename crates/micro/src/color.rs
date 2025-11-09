@@ -1,10 +1,18 @@
+//! Color-related types. Mostly re-exports from [`palette`].
+
 pub use palette::*;
 
+/// An extension trait that adds useful constants to [`palette`] types.
 pub trait ColorConstants {
+	/// Pure white (255, 255, 255).
 	const WHITE: Self;
+	/// Pure black (0, 0, 0).
 	const BLACK: Self;
+	/// Pure red (255, 0, 0).
 	const RED: Self;
+	/// Pure green (0, 255, 0).
 	const GREEN: Self;
+	/// Pure blue (0, 0, 255).
 	const BLUE: Self;
 }
 

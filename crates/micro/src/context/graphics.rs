@@ -92,7 +92,7 @@ impl GraphicsContext {
 			width,
 			height,
 			present_mode: settings.present_mode,
-			desired_maximum_frame_latency: settings.max_queued_frames,
+			desired_maximum_frame_latency: settings.desired_maximum_frame_latency,
 			alpha_mode: CompositeAlphaMode::Auto,
 			view_formats: vec![],
 		};
@@ -251,7 +251,7 @@ impl GraphicsContext {
 		self.config.present_mode
 	}
 
-	pub(crate) fn max_queued_frames(&self) -> u32 {
+	pub(crate) fn desired_maximum_frame_latency(&self) -> u32 {
 		self.config.desired_maximum_frame_latency
 	}
 
@@ -272,7 +272,7 @@ impl GraphicsContext {
 		self.surface.configure(&self.device, &self.config);
 	}
 
-	pub(crate) fn set_max_queued_frames(&mut self, frames: u32) {
+	pub(crate) fn set_desired_maximum_frame_latency(&mut self, frames: u32) {
 		self.config.desired_maximum_frame_latency = frames;
 		self.surface.configure(&self.device, &self.config);
 	}

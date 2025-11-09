@@ -5,7 +5,11 @@ use std::{
 
 use super::{Circle, Rect};
 
+/// A trait for values that can be linearly interpolated to another value.
 pub trait Lerp {
+	/// Returns the value `f` of the way from `self` to `other`, where an
+	/// `f` of `0.0` yields `self`, an `f` of `1.0` yields `other`, and an
+	/// `f` of `0.5` yields a value halfway between `self` and `other`.
 	fn lerp(self, other: Self, f: f32) -> Self;
 }
 
@@ -39,7 +43,10 @@ impl Lerp for Rect {
 	}
 }
 
+/// A trait for values that can have inverse lerps performed.
 pub trait InverseLerp {
+	/// Returns a value from `0.0` to `1.0` which represents how
+	/// far `self` is along an imaginary line from `start` to `end`.
 	fn inverse_lerp(self, start: Self, end: Self) -> f32;
 }
 

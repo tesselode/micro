@@ -1,4 +1,9 @@
+//! Micro is an SDL3 and wgpu-based framework for developing video games and interactive
+//! applications.
+
 #![allow(clippy::large_enum_variant)]
+#![warn(missing_docs)]
+#![allow(clippy::tabs_in_doc_comments)]
 
 mod app;
 pub mod color;

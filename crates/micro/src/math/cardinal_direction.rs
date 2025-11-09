@@ -4,17 +4,23 @@ use glam::{IVec2, Vec2};
 
 use super::ClockDirection;
 
+/// A non-diagonal direction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "exhaust", derive(exhaust::Exhaust))]
 pub enum CardinalDirection {
+	/// West or negative X in the default coordinate system.
 	Left,
+	/// East or positive X in the default coordinate system.
 	Right,
+	/// North or negative Y in the default coordinate system.
 	Up,
+	/// South or positive Y in the default coordinate system.
 	Down,
 }
 
 impl CardinalDirection {
+	/// Returns the direction as a unit float vector in the default coordinate system.
 	pub fn as_vec2(self) -> Vec2 {
 		match self {
 			CardinalDirection::Left => Vec2::new(-1.0, 0.0),
@@ -24,6 +30,7 @@ impl CardinalDirection {
 		}
 	}
 
+	/// Returns the direction as a unit integer vector in the default coordinate system.
 	pub fn as_ivec2(self) -> IVec2 {
 		match self {
 			CardinalDirection::Left => IVec2::new(-1, 0),
@@ -33,6 +40,8 @@ impl CardinalDirection {
 		}
 	}
 
+	/// Returns an angle (in radians), which, when passed into [`Vec2::from_angle`],
+	/// returns a unit vector in the default coordinate system.
 	pub fn as_angle(self) -> f32 {
 		match self {
 			CardinalDirection::Left => PI,
@@ -42,6 +51,7 @@ impl CardinalDirection {
 		}
 	}
 
+	/// Returns `true` if the direction is left or right, false otherwise.
 	pub fn is_horizontal(self) -> bool {
 		match self {
 			CardinalDirection::Left => true,
@@ -51,6 +61,7 @@ impl CardinalDirection {
 		}
 	}
 
+	/// Returns `true` if the direction is up or down, false otherwise.
 	pub fn is_vertical(self) -> bool {
 		match self {
 			CardinalDirection::Left => false,
@@ -60,6 +71,7 @@ impl CardinalDirection {
 		}
 	}
 
+	/// Returns the direction rotated clockwise or counter-clockwise.
 	pub fn rotated(self, direction: ClockDirection) -> Self {
 		match direction {
 			ClockDirection::Clockwise => match self {

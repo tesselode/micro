@@ -1,3 +1,5 @@
+//! Types related to input devices.
+
 mod axis;
 mod button;
 mod mouse_button;

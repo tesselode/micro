@@ -1,3 +1,5 @@
+//! Types related to animating things from one value to another.
+
 mod tween_sequence;
 
 pub use tween_sequence::*;

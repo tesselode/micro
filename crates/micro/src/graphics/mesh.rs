@@ -1,3 +1,5 @@
+//! Types for drawing shapes with the GPU.
+
 mod builder;
 
 pub use builder::*;

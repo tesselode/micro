@@ -1,3 +1,5 @@
+//! Types related to drawing text.
+
 mod font;
 
 use std::sync::Arc;
@@ -19,19 +21,27 @@ use super::{
 	sprite_batch::{SpriteBatch, SpriteParams},
 };
 
+/// A block of text rendered into a texture.
 #[derive(Debug, Clone)]
 pub struct Text {
 	inner: Arc<TextInner>,
 
 	// params
+	/// The transform to use when drawing this text.
 	pub transform: Mat4,
+	/// The blend color to use when drawing this text.
 	pub color: LinSrgba,
+	/// The blend mode to use when drawing this text.
 	pub blend_mode: BlendMode,
-
+	/// The min and max character index to use when drawing this text.
+	///
+	/// Setting this results in a portion of the text being drawn.
+	/// When `None`, all the characters are drawn.
 	pub range: Option<(u32, u32)>,
 }
 
 impl Text {
+	/// Creates a new [`Text`].
 	pub fn new(
 		ctx: &Context,
 		font: &Font,
@@ -50,6 +60,7 @@ impl Text {
 		)
 	}
 
+	/// Creates a block of text involving multiple [`Font`]s.
 	pub fn with_multiple_fonts<'a>(
 		ctx: &Context,
 		fonts: &[&Font],
@@ -79,12 +90,17 @@ impl Text {
 
 	standard_draw_param_methods!();
 
+	/// Sets the range of character indices used for drawing.
+	///
+	/// Setting this results in a portion of the text being drawn.
+	/// When `None`, all the characters are drawn.
 	pub fn range(&self, range: impl IntoIndexRange) -> Self {
 		let mut new = self.clone();
 		new.range = range.into_index_range(self.inner.num_glyphs);
 		new
 	}
 
+	/// Returns the number of glyphs this text contains.
 	pub fn num_glyphs(&self) -> usize {
 		self.inner
 			.sprite_batches
@@ -93,14 +109,22 @@ impl Text {
 			.sum()
 	}
 
+	/// Returns a rectangle that tightly hugs the text.
+	///
+	/// Returns `None` if there's no characters in this [`Text`].
 	pub fn bounds(&self) -> Option<Rect> {
 		self.inner.bounds
 	}
 
+	/// Returns the y position of the lowest baseline of any
+	/// of the characters.
+	///
+	/// Returns `None` if there's no characters in this [`Text`].
 	pub fn lowest_baseline(&self) -> Option<f32> {
 		self.inner.lowest_baseline
 	}
 
+	/// Draws the text.
 	pub fn draw(&self, ctx: &mut Context) {
 		let _span = tracy_client::span!();
 		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
@@ -183,6 +207,7 @@ impl Text {
 	}
 }
 
+/// Determines how text is arranged.
 #[derive(Clone, Copy, PartialEq)]
 pub struct LayoutSettings {
 	/// The top-left boundary of the text region.
@@ -200,6 +225,7 @@ pub struct LayoutSettings {
 	pub horizontal_align: HorizontalAlign,
 	/// The default is Top. This option does nothing if the max_height isn't set.
 	pub vertical_align: VerticalAlign,
+	/// Sets the height of each line of text.
 	pub line_height: f32,
 	/// The default is Word. Wrap style is a hint for how strings of text should be wrapped to the
 	/// next line. Line wrapping can happen when the max width/height is reached.
@@ -240,9 +266,14 @@ impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
 	}
 }
 
+/// A fragment of text that uses one of multiple fonts.
+///
+/// Used with [`Text::with_multiple_fonts`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TextFragment {
+	/// The index of the font to use.
 	pub font_index: usize,
+	/// The text string.
 	pub text: String,
 }
 

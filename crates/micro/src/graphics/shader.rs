@@ -11,6 +11,8 @@ use crate::{
 	graphics::{storage_buffer::StorageBuffer, texture::Texture},
 };
 
+/// A shader program that can be used to draw
+/// [`Mesh`](crate::graphics::mesh::Mesh)es on the GPU.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Shader {
 	pub(crate) name: String,
@@ -21,15 +23,18 @@ pub struct Shader {
 }
 
 impl Shader {
+	/// Loads a shader from a file.
 	pub fn from_file(name: impl Into<String>, path: impl AsRef<Path>) -> std::io::Result<Self> {
 		let source = std::fs::read_to_string(path.as_ref())?;
 		Ok(Self::from_string(name, &source))
 	}
 
+	/// Replaces the source code of this shader.
 	pub fn set_source(&mut self, source: String) {
 		self.source = source;
 	}
 
+	/// Loads a shader from a string.
 	pub fn from_string(name: impl Into<String>, source: impl Into<String>) -> Self {
 		Self {
 			name: name.into(),
@@ -40,6 +45,7 @@ impl Shader {
 		}
 	}
 
+	/// Returns a clone of this shader with the specified set of uniform values.
 	pub fn with_params(&self, ctx: &Context, params: impl Pod) -> Self {
 		let buffer = ctx
 			.graphics
@@ -63,10 +69,12 @@ impl Shader {
 		}
 	}
 
+	/// Sets the uniforms to be used with this shader.
 	pub fn set_params(&mut self, ctx: &Context, params: impl Pod) {
 		*self = self.with_params(ctx, params);
 	}
 
+	/// Returns a clone of this shader with the specified set of storage buffers.
 	pub fn with_storage_buffers(&self, buffers: Vec<StorageBuffer>) -> Self {
 		Self {
 			storage_buffers: buffers,
@@ -74,10 +82,12 @@ impl Shader {
 		}
 	}
 
+	/// Sets the storage buffers to be used with this shader.
 	pub fn set_storage_buffers(&mut self, buffers: Vec<StorageBuffer>) {
 		*self = self.with_storage_buffers(buffers);
 	}
 
+	/// Returns a clone of this shader with the specified set of textures.
 	pub fn with_textures(&self, textures: Vec<Texture>) -> Self {
 		Self {
 			textures,
@@ -85,6 +95,7 @@ impl Shader {
 		}
 	}
 
+	/// Sets the textures to be used with this shader.
 	pub fn set_textures(&mut self, textures: Vec<Texture>) {
 		*self = self.with_textures(textures);
 	}

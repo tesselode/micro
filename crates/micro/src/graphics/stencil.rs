@@ -1,19 +1,33 @@
 use wgpu::StencilFaceState;
 pub use wgpu::{CompareFunction, StencilOperation};
 
+/// How drawing operations interact with the stencil buffer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StencilState {
+	/// Whether drawing operations should affect the color pixels.
 	pub enable_color_writes: bool,
+	/// The reference value used for some [`CompareFunction`]s and
+	/// [`StencilOperation`]s.
 	pub reference: u8,
+	/// Determines whether the stencil test passes or fails.
 	pub compare: CompareFunction,
+	/// How the drawing operation affects the stencil buffer if the stencil
+	/// test fails.
 	pub on_fail: StencilOperation,
+	/// How the drawing operation affects the stencil buffer if the stencil
+	/// test passes, but the depth test fails.
 	pub on_depth_fail: StencilOperation,
+	/// How the drawing operation affects the stencil buffer if the stencil
+	/// and depth tests pass.
 	pub on_pass: StencilOperation,
+	/// A bitmask applied when reading from the stencil buffer.
 	pub read_mask: u8,
+	/// A bitmask applied when writing to the stencil buffer.
 	pub write_mask: u8,
 }
 
 impl StencilState {
+	/// Returns a [`StencilState`] appropriate for writing to the stencil buffer.
 	pub fn write(operation: StencilOperation, reference: u8) -> Self {
 		Self {
 			enable_color_writes: false,
@@ -27,6 +41,8 @@ impl StencilState {
 		}
 	}
 
+	/// Returns a [`StencilState`] appropriate for using the stencil buffer to
+	/// mask drawing operations.
 	pub fn read(compare: CompareFunction, reference: u8) -> Self {
 		Self {
 			enable_color_writes: true,

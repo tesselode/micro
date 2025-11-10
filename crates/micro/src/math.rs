@@ -1,3 +1,5 @@
+//! Math types and utilities. Mostly re-exports from [`glam`].
+
 mod cardinal_direction;
 mod circle;
 mod clock_direction;

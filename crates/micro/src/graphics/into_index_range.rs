@@ -1,6 +1,10 @@
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
+/// A trait for types that can be used as ranges of vertex indices.
 pub trait IntoIndexRange {
+	/// Given the total number of indices, converts `self` into
+	/// a min and max vertex index, or `None` for the full range
+	/// of indices.
 	fn into_index_range(self, len: u32) -> Option<(u32, u32)>;
 }
 

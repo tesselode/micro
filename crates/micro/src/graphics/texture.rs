@@ -1,3 +1,5 @@
+//! Types related to drawing images.
+
 pub use wgpu::{AddressMode, FilterMode, SamplerBorderColor};
 
 use std::path::Path;
@@ -18,6 +20,10 @@ use crate::{
 
 use super::mesh::Mesh;
 
+/// Image data that's been uploaded to the GPU and can be drawn to the screen.
+///
+/// This can be cheaply cloned. Clones will point to the same image data
+/// on the GPU.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
 	pub(crate) texture: wgpu::Texture,
@@ -26,13 +32,18 @@ pub struct Texture {
 	size: UVec2,
 
 	// draw params
+	/// The portion of the texture to draw.
 	pub region: Rect,
+	/// The transform to use when drawing this texture.
 	pub transform: Mat4,
+	/// The blend color to use when drawing this texture.
 	pub color: LinSrgba,
+	/// The blend mode to use when drawing this texture.
 	pub blend_mode: BlendMode,
 }
 
 impl Texture {
+	/// Creates a new texture where all the pixels are transparent black.
 	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
@@ -45,6 +56,7 @@ impl Texture {
 		)
 	}
 
+	/// Creates a new texture from an image loaded by the [`image`] crate.
 	pub fn from_image(
 		ctx: &Context,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
@@ -61,6 +73,7 @@ impl Texture {
 		)
 	}
 
+	/// Creates a new texture from an image file.
 	pub fn from_file(
 		ctx: &Context,
 		path: impl AsRef<Path>,
@@ -71,6 +84,7 @@ impl Texture {
 		Ok(Self::from_image(ctx, &image, settings))
 	}
 
+	/// Sets the portion of the texture to draw.
 	pub fn region(&self, region: Rect) -> Self {
 		let mut new = self.clone();
 		new.region = region;
@@ -79,10 +93,13 @@ impl Texture {
 
 	standard_draw_param_methods!();
 
+	/// Returns the size of the texture in pixels.
 	pub fn size(&self) -> UVec2 {
 		self.size
 	}
 
+	/// Turns a rectangular region in pixels into a rectangular region
+	/// in the 0-1 range.
 	pub fn relative_rect(&self, absolute_rect: Rect) -> Rect {
 		let size = self.size.as_vec2();
 		Rect::from_corners(
@@ -91,6 +108,10 @@ impl Texture {
 		)
 	}
 
+	/// Overwrites the pixels in a rectangular region with the specified
+	/// top left corner.
+	///
+	/// This will modify all clones of this [`Texture`] as well.
 	pub fn replace(
 		&self,
 		ctx: &Context,
@@ -189,6 +210,7 @@ impl Texture {
 		}
 	}
 
+	/// Draws the texture.
 	pub fn draw(&self, ctx: &mut Context) {
 		let _span = tracy_client::span!();
 		Mesh::rectangle_with_texture_region(
@@ -204,14 +226,25 @@ impl Texture {
 	}
 }
 
+/// Settings for a [`Texture`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serializing", serde(default))]
 pub struct TextureSettings {
+	/// What should happen when reading beyond the left or right edges
+	/// of the texture.
 	pub address_mode_x: AddressMode,
+	/// What should happen when reading beyond the top or bottom edges
+	/// of the texture.
 	pub address_mode_y: AddressMode,
+	/// What color should be read when reading out of bounds and using
+	/// [`AddressMode::ClampToBorder`].
 	pub border_color: SamplerBorderColor,
+	/// What kind of filtering should be applied when scaling the
+	/// texture down.
 	pub minifying_filter: FilterMode,
+	/// What kind of filtering should be applied when scaling the
+	/// texture up.
 	pub magnifying_filter: FilterMode,
 }
 
@@ -227,9 +260,12 @@ impl Default for TextureSettings {
 	}
 }
 
+/// An error that can occur when loading a texture.
 #[derive(Debug, Error, Display, From)]
 pub enum LoadTextureError {
+	/// An error loading a texture from a file.
 	IoError(std::io::Error),
+	/// An error interpreting the image data.
 	ImageError(ImageError),
 }
 

@@ -1,3 +1,5 @@
+//! Types for grouping multiple drawing operations involving the same texture.
+
 mod sprite_params;
 
 pub use sprite_params::SpriteParams;
@@ -19,18 +21,31 @@ use crate::{
 
 use super::{IntoIndexRange, Vertex2d};
 
+/// Groups multiple drawing operations using the same texture
+/// for better performance.
+///
+/// Can be modified as needed or reused as-is if the sprites don't change.
 #[derive(Debug, Clone)]
 pub struct SpriteBatch {
 	inner: Arc<Mutex<SpriteBatchInner>>,
 	texture: Texture,
 	mesh: Mesh,
+	/// The transform to use when drawing this sprite batch.
 	pub transform: Mat4,
+	/// The blend color to use when drawing this sprite batch.
 	pub color: LinSrgba,
+	/// The blend mode to use when drawing this sprite batch.
 	pub blend_mode: BlendMode,
+	/// The min and max sprite index to draw.
+	///
+	/// Setting this results in only some of the sprites being drawn.
+	/// When `None`, all the sprites are drawn.
 	pub range: Option<(u32, u32)>,
 }
 
 impl SpriteBatch {
+	/// Creates a new [`SpriteBatch`] for the given `texture` that can hold
+	/// a maximum of `capacity` sprites.
 	pub fn new(ctx: &Context, texture: &Texture, capacity: usize) -> Self {
 		let _span = tracy_client::span!();
 		let vertices = vec![
@@ -68,12 +83,17 @@ impl SpriteBatch {
 
 	standard_draw_param_methods!();
 
+	/// Sets the range of sprites to draw.
+	///
+	/// Setting this results in only some of the sprites being drawn.
+	/// When `None`, all the sprites are drawn.
 	pub fn range(&self, range: impl IntoIndexRange) -> Self {
 		let mut new = self.clone();
 		new.range = range.into_index_range(self.len() as u32);
 		new
 	}
 
+	/// Returns the number of sprites in this [`SpriteBatch`].
 	pub fn len(&self) -> usize {
 		self.inner
 			.try_lock()
@@ -82,11 +102,15 @@ impl SpriteBatch {
 			.len()
 	}
 
+	/// Returns `true` if there are no sprites in this [`SpriteBatch`].
 	#[must_use]
 	pub fn is_empty(&self) -> bool {
 		self.len() == 0
 	}
 
+	/// Adds a sprite to the [`SpriteBatch`] containing the entire texture.
+	///
+	/// Returns a [`SpriteId`] which can be used to remove the sprite later.
 	pub fn add(
 		&mut self,
 		ctx: &Context,
@@ -97,6 +121,9 @@ impl SpriteBatch {
 		self.add_region(ctx, Rect::new(Vec2::ZERO, size), params)
 	}
 
+	/// Adds a sprite to the [`SpriteBatch`] containing a portion of the texture.
+	///
+	/// Returns a [`SpriteId`] which can be used to remove the sprite later.
 	pub fn add_region(
 		&mut self,
 		ctx: &Context,
@@ -133,6 +160,7 @@ impl SpriteBatch {
 		Ok(id)
 	}
 
+	/// Removes the sprite with the given `id` from the [`SpriteBatch`].
 	pub fn remove(&mut self, ctx: &Context, id: SpriteId) -> Result<(), InvalidSpriteId> {
 		let _span = tracy_client::span!();
 		if self
@@ -156,6 +184,7 @@ impl SpriteBatch {
 		Ok(())
 	}
 
+	/// Draws the [`SpriteBatch`].
 	pub fn draw(&self, ctx: &mut Context) {
 		self.mesh
 			.texture(&self.texture)
@@ -167,13 +196,18 @@ impl SpriteBatch {
 	}
 }
 
+/// Uniquely identifies a sprite within a [`SpriteBatch`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SpriteId(pub Index);
 
+/// An error that occurs when trying to add a sprite to a [`SpriteBatch`]
+/// that's full.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error, Display)]
 #[display("Cannot add more sprites to the sprite batch")]
 pub struct SpriteLimitReached;
 
+/// An error that occurs when trying to remove a sprite that doesn't exist
+/// in a [`SpriteBatch`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Error, Display)]
 #[display("No sprite with this ID exists")]
 pub struct InvalidSpriteId;

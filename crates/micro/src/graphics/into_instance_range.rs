@@ -1,6 +1,8 @@
 use std::ops::{Range, RangeInclusive, RangeTo, RangeToInclusive};
 
+/// A trait for types that can be used as ranges of instance indices.
 pub trait IntoInstanceRange {
+	/// Converts `self` into a min and max instance index.
 	fn into_instance_range(self) -> (u32, u32);
 }
 

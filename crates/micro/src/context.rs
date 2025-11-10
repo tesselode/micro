@@ -264,6 +264,7 @@ impl Context {
 
 	/// Returns the sample counts for MSAA that the graphics card supports.
 	pub fn supported_sample_counts(&self) -> &[u32] {
+		// TODO: figure out if this function needs a TextureFormat argument to be accurate
 		&self.graphics.supported_sample_counts
 	}
 

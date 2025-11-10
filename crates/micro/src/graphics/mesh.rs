@@ -22,22 +22,41 @@ use crate::{
 
 use super::{Vertex, Vertex2d};
 
+/// A set of vertices and indices that has been uploaded to the GPU
+/// and can be used to draw things on screen.
+///
+/// This can be cheaply cloned. Clones will point to the same vertex
+/// and index data on the GPU.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mesh<V: Vertex = Vertex2d> {
 	pub(crate) vertex_buffer: Buffer,
 	pub(crate) index_buffer: Buffer,
 	pub(crate) num_indices: u32,
 	_phantom_data: PhantomData<V>,
+
 	// draw params
+	/// The texture to use when drawing this mesh.
 	pub texture: Option<Texture>,
+	/// The transform to use when drawing this mesh.
 	pub transform: Mat4,
+	/// The blend color to use when drawing this mesh.
 	pub color: LinSrgba,
+	/// The blend mode to use when drawing this mesh.
 	pub blend_mode: BlendMode,
+	/// The min and max vertex index to use when drawing this mesh.
+	///
+	/// Setting this results in a portion of the mesh being drawn.
+	/// When `None`, all the vertices are drawn.
 	pub range: Option<(u32, u32)>,
+	/// The min and max instance indices to use when drawing this mesh.
+	///
+	/// Only useful when drawn with a shader that does something with
+	/// the instance index.
 	pub instances: (u32, u32),
 }
 
 impl<V: Vertex> Mesh<V> {
+	/// Creates a new mesh with the specified vertices and indices.
 	pub fn new(ctx: &Context, vertices: &[V], indices: &[u32]) -> Self {
 		let vertex_buffer = ctx
 			.graphics
@@ -72,6 +91,7 @@ impl<V: Vertex> Mesh<V> {
 
 	standard_draw_param_methods!();
 
+	/// Sets the texture used for drawing.
 	pub fn texture<'a>(&self, texture: impl Into<Option<&'a Texture>>) -> Self {
 		Self {
 			texture: texture.into().cloned(),
@@ -79,18 +99,29 @@ impl<V: Vertex> Mesh<V> {
 		}
 	}
 
+	/// Sets the range of vertex indices used for drawing.
+	///
+	/// Setting this results in a portion of the mesh being drawn.
+	/// When `None`, all the vertices are drawn.
 	pub fn range(&self, range: impl IntoIndexRange) -> Self {
 		let mut new = self.clone();
 		new.range = range.into_index_range(self.num_indices);
 		new
 	}
 
+	/// Sets the range of instance indices used for drawing.
+	///
+	/// Only useful when drawn with a shader that does something with
+	/// the instance index.
 	pub fn instances(&self, instances: impl IntoInstanceRange) -> Self {
 		let mut new = self.clone();
 		new.instances = instances.into_instance_range();
 		new
 	}
 
+	/// Overwrites vertex data starting at the specified `index`.
+	///
+	/// This will modify all clones of this [`Mesh`] as well.
 	pub fn set_vertices(&self, ctx: &Context, index: usize, vertices: &[V]) {
 		ctx.graphics.queue.write_buffer(
 			&self.vertex_buffer,
@@ -99,6 +130,7 @@ impl<V: Vertex> Mesh<V> {
 		);
 	}
 
+	/// Draws the mesh.
 	pub fn draw(&self, ctx: &mut Context) {
 		ctx.graphics
 			.queue_draw_command::<V>(QueueDrawCommandSettings {
@@ -119,11 +151,15 @@ impl<V: Vertex> Mesh<V> {
 }
 
 impl Mesh<Vertex2d> {
+	/// Creates a new filled rectangle mesh.
 	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
 		let _span = tracy_client::span!();
 		Self::rectangle_with_texture_region(ctx, rect, Rect::new((0.0, 0.0), (1.0, 1.0)))
 	}
 
+	/// Creates a new filled rectangle mesh with the specified texture region.
+	///
+	/// Useful for drawing parts of a texture. Used internally by [`Texture::draw`].
 	pub fn rectangle_with_texture_region(
 		ctx: &Context,
 		display_rect: Rect,
@@ -144,6 +180,7 @@ impl Mesh<Vertex2d> {
 		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
+	/// Creates a new outlined rectangle mesh.
 	pub fn outlined_rectangle(ctx: &Context, stroke_width: f32, rect: Rect) -> Self {
 		let _span = tracy_client::span!();
 		MeshBuilder::new()
@@ -151,6 +188,7 @@ impl Mesh<Vertex2d> {
 			.build(ctx)
 	}
 
+	/// Creates a new circle mesh.
 	pub fn circle(ctx: &Context, style: ShapeStyle, circle: Circle) -> Self {
 		let _span = tracy_client::span!();
 		MeshBuilder::new()
@@ -158,6 +196,7 @@ impl Mesh<Vertex2d> {
 			.build(ctx)
 	}
 
+	/// Creates a new ellipse mesh.
 	pub fn ellipse(
 		ctx: &Context,
 		style: ShapeStyle,
@@ -171,6 +210,7 @@ impl Mesh<Vertex2d> {
 			.build(ctx)
 	}
 
+	/// Creates a new filled polygon mesh.
 	pub fn filled_polygon(
 		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
@@ -179,6 +219,7 @@ impl Mesh<Vertex2d> {
 		MeshBuilder::new().with_filled_polygon(points).build(ctx)
 	}
 
+	/// Creates a new polyline mesh.
 	pub fn polyline(
 		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
@@ -188,6 +229,8 @@ impl Mesh<Vertex2d> {
 		MeshBuilder::new().with_polyline(points, closed).build(ctx)
 	}
 
+	/// Creates a new polygon mesh where all of the vertices have
+	/// the same color and stroke width (if applicable).
 	pub fn simple_polygon(
 		ctx: &Context,
 		style: ShapeStyle,
@@ -199,6 +242,8 @@ impl Mesh<Vertex2d> {
 			.build(ctx)
 	}
 
+	/// Creates a new polyline mesh where all of the vertices have
+	/// the same color and stroke width.
 	pub fn simple_polyline(
 		ctx: &Context,
 		stroke_width: f32,

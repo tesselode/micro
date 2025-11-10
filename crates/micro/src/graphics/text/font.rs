@@ -13,12 +13,14 @@ use crate::{
 
 const GLYPH_PADDING: usize = 2;
 
+/// A typeface for text.
 #[derive(Clone)]
 pub struct Font {
 	pub(crate) inner: Arc<FontInner>,
 }
 
 impl Font {
+	/// Loads a font from a file.
 	pub fn from_file(
 		ctx: &Context,
 		path: impl AsRef<Path>,
@@ -28,6 +30,7 @@ impl Font {
 		Self::from_bytes(ctx, &std::fs::read(path)?, settings)
 	}
 
+	/// Loads a font from a slice of bytes.
 	pub fn from_bytes(
 		ctx: &Context,
 		data: &[u8],
@@ -63,17 +66,26 @@ impl Font {
 		})
 	}
 
+	/// Returns `true` if the font has a rendered glyph for the
+	/// specified character.
+	///
+	/// This depends on what the value of [`FontSettings::chars`] was
+	/// when creating the font.
 	pub fn has_glyph(&self, glyph: char) -> bool {
 		self.inner.glyph_rects.contains_key(&glyph)
 	}
 }
 
+/// Settings for a font.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serializing", serde(default))]
 pub struct FontSettings {
+	/// The size to render glyphs at.
 	pub scale: f32,
+	/// A string containing all the characters that should be rendered.
 	pub chars: String,
+	/// Settings for the underlying font texture.
 	pub texture_settings: TextureSettings,
 }
 
@@ -87,9 +99,12 @@ impl Default for FontSettings {
 	}
 }
 
+/// An error that can occur when loading a font.
 #[derive(Debug, Error, Display, From)]
 pub enum LoadFontError {
+	/// An error loading a font from a file.
 	IoError(std::io::Error),
+	/// An error interpreting the font data.
 	FontError(#[error(not(source))] &'static str),
 }
 

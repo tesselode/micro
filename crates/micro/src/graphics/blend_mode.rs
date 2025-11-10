@@ -1,10 +1,19 @@
 use wgpu::{BlendComponent, BlendFactor, BlendOperation, BlendState};
 
+/// Determines how the pixels written by a drawing operation interact with
+/// the pixels already at the same place.
+///
+/// These are the same as the corresponding blend modes in
+/// [LÖVE](https://love2d.org/wiki/BlendMode).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BlendMode {
+	/// The opacity of what's drawn is determined by the alpha component.
 	Alpha(BlendAlphaMode),
+	/// Colors are added to what's already on the surface.
 	Add(BlendAlphaMode),
+	/// Colors are subtracted from what's already on the surface.
 	Subtract(BlendAlphaMode),
+	/// Colors are multiplied by what's already on the surface.
 	Multiply,
 }
 
@@ -78,9 +87,16 @@ impl Default for BlendMode {
 	}
 }
 
+/// How the alpha component of a color affects the red, green,
+/// and blue components.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum BlendAlphaMode {
+	/// The RGB components are multiplied by the alpha component.
 	#[default]
 	AlphaMultiply,
+	/// The RGB components are not multiplied by the alpha component.
+	///
+	/// This is used by default when drawing a [`Canvas`](crate::graphics::Canvas),
+	/// as it already has transparency applied to the pixels.
 	Premultiplied,
 }

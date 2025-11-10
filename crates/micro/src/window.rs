@@ -3,11 +3,17 @@ use sdl3::{VideoSubsystem, video::Window};
 
 use crate::context::ContextSettings;
 
+/// The size and type of a window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum WindowMode {
+	/// The window covers the entire screen.
 	Fullscreen,
-	Windowed { size: UVec2 },
+	/// The window covers a portion of the screen.
+	Windowed {
+		/// How big the window is.
+		size: UVec2,
+	},
 }
 
 impl Default for WindowMode {

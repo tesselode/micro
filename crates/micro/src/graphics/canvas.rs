@@ -13,6 +13,8 @@ use super::{
 	texture::{InternalTextureSettings, Texture, TextureSettings},
 };
 
+/// An off-screen surface that can be drawn to. It can then be drawn to the
+/// window surface (or another canvas) like any other texture.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
 	pub(crate) label: String,
@@ -21,13 +23,18 @@ pub struct Canvas {
 	format: TextureFormat,
 
 	// draw params
+	/// The portion of the canvas texture that should be drawn.
 	pub region: Rect,
+	/// The transform to use when drawing this canvas.
 	pub transform: Mat4,
+	/// The blend color to use when drawing this canvas.
 	pub color: LinSrgba,
+	/// The blend mode to use when drawing this canvas.
 	pub blend_mode: BlendMode,
 }
 
 impl Canvas {
+	/// Creates a new [`Canvas`] with the specified `size` in pixels.
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
 		Self {
 			label: settings.label,
@@ -92,6 +99,7 @@ impl Canvas {
 
 	standard_draw_param_methods!();
 
+	/// Returns the size of the canvas in pixels.
 	pub fn size(&self) -> UVec2 {
 		match &self.kind {
 			CanvasKind::Normal { texture } | CanvasKind::Multisampled { texture, .. } => {
@@ -100,6 +108,7 @@ impl Canvas {
 		}
 	}
 
+	/// Returns the number of samples used for MSAA.
 	pub fn sample_count(&self) -> u32 {
 		match &self.kind {
 			CanvasKind::Normal { .. } => 1,
@@ -107,10 +116,14 @@ impl Canvas {
 		}
 	}
 
+	/// Returns the format of the underlying texture.
 	pub fn format(&self) -> TextureFormat {
 		self.format
 	}
 
+	/// Sets future drawing operations to happen on this canvas instead of the
+	/// window. Returns an object which, when dropped, sets the render
+	/// target back to the window.
 	pub fn render_to<'a>(
 		&self,
 		ctx: &'a mut Context,
@@ -122,6 +135,7 @@ impl Canvas {
 		OnDrop { ctx }
 	}
 
+	/// Draws the canvas.
 	pub fn draw(&self, ctx: &mut Context) {
 		self.drawable_texture()
 			.region(self.region)
@@ -141,11 +155,22 @@ impl Canvas {
 	}
 }
 
+/// Settings for a [`Canvas`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct CanvasSettings {
+	/// The name of the canvas.
+	///
+	/// Visible in graphics debugging tools like RenderDoc.
 	pub label: String,
+	/// Settings for the underlying texture.
 	pub texture_settings: TextureSettings,
+	/// How many samples to use for MSAA. A sample count of `1`
+	/// means MSAA is not used.
+	///
+	/// You can get the supported sample counts with
+	/// [`Context::supported_sample_counts`].
 	pub sample_count: u32,
+	/// The format to use for the underlying texture.
 	pub format: TextureFormat,
 }
 
@@ -160,15 +185,25 @@ impl Default for CanvasSettings {
 	}
 }
 
+/// Settings to use when starting rendering to a canvas.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RenderToCanvasSettings {
+	/// The color to clear the pixels to before drawing,
+	/// or `None` to leave the existing pixels intact.
 	pub clear_color: Option<LinSrgba>,
+	/// Whether to clear the depth buffer or not.
 	pub clear_depth_buffer: bool,
+	/// Whether to clear the stencil buffer or not.
 	pub clear_stencil_value: bool,
+	/// The name of the render pass.
+	///
+	/// Visible in graphics debugging tools like RenderDoc.
 	pub render_pass_label: String,
 }
 
 impl RenderToCanvasSettings {
+	/// Returns a [`RenderToCanvasSettings`] configured to not clear
+	/// anything.
 	pub fn no_clear() -> Self {
 		Self {
 			clear_color: None,
@@ -190,6 +225,7 @@ impl Default for RenderToCanvasSettings {
 	}
 }
 
+/// Sets the render target back to the window surface when dropped.
 #[must_use]
 pub struct OnDrop<'a> {
 	pub(crate) ctx: &'a mut Context,

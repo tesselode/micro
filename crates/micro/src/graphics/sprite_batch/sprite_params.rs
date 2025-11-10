@@ -3,13 +3,17 @@ use palette::LinSrgba;
 
 use crate::color::ColorConstants;
 
+/// Settings for a sprite in a [`SpriteBatch`](super::SpriteBatch).
 #[derive(Debug, Clone, Copy)]
 pub struct SpriteParams {
+	/// The 2D transform of this sprite.
 	pub transform: Affine2,
+	/// The blend color of this sprite.
 	pub color: LinSrgba,
 }
 
 impl SpriteParams {
+	/// Creates a new [`SpriteParams`] with the default settings.
 	pub fn new() -> Self {
 		Self {
 			transform: Affine2::IDENTITY,
@@ -17,6 +21,7 @@ impl SpriteParams {
 		}
 	}
 
+	/// Applies the specified `transform` on top of the existing transform.
 	pub fn transformed(self, transform: Affine2) -> Self {
 		Self {
 			transform: transform * self.transform,
@@ -24,6 +29,7 @@ impl SpriteParams {
 		}
 	}
 
+	/// Moves the sprite by the specified `translation` vector.
 	pub fn translated(self, translation: impl Into<Vec2>) -> Self {
 		Self {
 			transform: Affine2::from_translation(translation.into()) * self.transform,
@@ -31,6 +37,7 @@ impl SpriteParams {
 		}
 	}
 
+	/// Scales the sprite by the specified amount along the X and Y axes.
 	pub fn scaled(self, scale: impl Into<Vec2>) -> Self {
 		Self {
 			transform: Affine2::from_scale(scale.into()) * self.transform,
@@ -38,6 +45,7 @@ impl SpriteParams {
 		}
 	}
 
+	/// Rotates the sprite by the specified amount (in radians).
 	pub fn rotated(self, rotation: f32) -> Self {
 		Self {
 			transform: Affine2::from_angle(rotation) * self.transform,
@@ -45,6 +53,7 @@ impl SpriteParams {
 		}
 	}
 
+	/// Sets the blend color of the sprite.
 	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
 		Self {
 			color: color.into(),

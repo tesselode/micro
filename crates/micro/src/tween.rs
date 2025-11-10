@@ -6,18 +6,31 @@ use std::f32::consts::PI;
 
 use crate::math::Lerp;
 
+/// Represents the curve of an animation from one value to another.
+///
+/// Most of these are [Robert Penner's easing curves](https://easings.net/).
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+#[allow(missing_docs)]
 pub enum Easing {
 	Linear,
 	InSine,
 	OutSine,
 	InOutSine,
+	/// Corresponds to InQuad, InCubic, InQuart, etc. Faster to calculate
+	/// than InPowf.
 	InPowi(i32),
+	/// Corresponds to OutQuad, OutCubic, OutQuart, etc. Faster to calculate
+	/// than OutPowf.
 	OutPowi(i32),
+	/// Corresponds to InOutQuad, InOutCubic, InOutQuart, etc. Faster to calculate
+	/// than InOutPowf.
 	InOutPowi(i32),
+	/// Corresponds to InQuad, InCubic, InQuart, etc.
 	InPowf(f32),
+	/// Corresponds to OutQuad, OutCubic, OutQuart, etc.
 	OutPowf(f32),
+	/// Corresponds to InOutQuad, InOutCubic, InOutQuart, etc.
 	InOutPowf(f32),
 	InBack {
 		overshoot: f32,
@@ -28,6 +41,7 @@ pub enum Easing {
 	InOutBack {
 		overshoot: f32,
 	},
+	/// Blends between two easing curves over time.
 	Mix {
 		a: Box<Easing>,
 		b: Box<Easing>,
@@ -36,6 +50,8 @@ pub enum Easing {
 }
 
 impl Easing {
+	/// Applies the easing curve to a value of a linear animation from
+	/// `0.0` to `1.0`.
 	pub fn ease(&self, x: f32) -> f32 {
 		match self {
 			Easing::Linear => x,
@@ -58,14 +74,20 @@ impl Easing {
 		}
 	}
 
+	/// Returns a value of `Easing::InBack` with a reasonable default
+	/// overshoot amount.
 	pub const fn in_back() -> Self {
 		Self::InBack { overshoot: 1.70158 }
 	}
 
+	/// Returns a value of `Easing::OutBack` with a reasonable default
+	/// overshoot amount.
 	pub const fn out_back() -> Self {
 		Self::OutBack { overshoot: 1.70158 }
 	}
 
+	/// Returns a value of `Easing::Mix`, boxing up the child easings
+	/// for you.
 	pub fn mix(a: Easing, b: Easing, f: Easing) -> Self {
 		Self::Mix {
 			a: Box::new(a),

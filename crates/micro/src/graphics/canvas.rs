@@ -8,7 +8,10 @@ use crate::{
 	Context, color::ColorConstants, graphics::BlendMode, math::Rect, standard_draw_param_methods,
 };
 
-use super::texture::{InternalTextureSettings, Texture, TextureSettings};
+use super::{
+	BlendAlphaMode,
+	texture::{InternalTextureSettings, Texture, TextureSettings},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
@@ -83,7 +86,7 @@ impl Canvas {
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
+			blend_mode: BlendMode::Alpha(BlendAlphaMode::Premultiplied),
 		}
 	}
 

@@ -58,7 +58,7 @@ impl CachedResources {
 	pub(super) fn create_render_pipelines(
 		&mut self,
 		device: &Device,
-		layouts: &Layouts,
+		layouts: &mut Layouts,
 		draw_commands: &[DrawCommand],
 	) {
 		for DrawCommand {
@@ -133,7 +133,8 @@ pub(super) struct RenderPipelineSettings {
 	pub(super) enable_color_writes: bool,
 	pub(super) enable_depth_testing: bool,
 	pub(super) wgpu_stencil_state: wgpu::StencilState,
-	pub(super) format: TextureFormat,
+	pub(super) texture_format: TextureFormat,
+	pub(super) texture_view_dimension: TextureViewDimension,
 	pub(super) sample_count: u32,
 	pub(super) num_storage_buffers: usize,
 	pub(super) num_shader_textures: usize,
@@ -141,7 +142,7 @@ pub(super) struct RenderPipelineSettings {
 
 fn create_render_pipeline(
 	device: &Device,
-	layouts: &Layouts,
+	layouts: &mut Layouts,
 	vertex_info: &HashMap<TypeId, VertexInfo>,
 	shaders: &HashMap<String, ShaderModulePair>,
 	settings: &RenderPipelineSettings,
@@ -170,7 +171,7 @@ fn create_render_pipeline(
 	let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 		label: Some("Render Pipeline Layout"),
 		bind_group_layouts: &[
-			&layouts.mesh_bind_group_layout,
+			&layouts.mesh_bind_group_layout(settings.texture_view_dimension, device),
 			&layouts.shader_params_bind_group_layout,
 			&storage_buffers_bind_group_layout,
 			&shader_textures_bind_group_layout,
@@ -211,7 +212,7 @@ fn create_render_pipeline(
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			targets: &[Some(ColorTargetState {
-				format: settings.format,
+				format: settings.texture_format,
 				blend: Some(settings.blend_mode.to_blend_state()),
 				write_mask: if settings.enable_color_writes {
 					ColorWrites::ALL

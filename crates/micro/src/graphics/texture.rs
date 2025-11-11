@@ -28,6 +28,7 @@ use super::mesh::Mesh;
 pub struct Texture {
 	pub(crate) texture: wgpu::Texture,
 	pub(crate) view: TextureView,
+	pub(crate) view_dimension: TextureViewDimension,
 	pub(crate) sampler: Sampler,
 	size: UVec2,
 
@@ -267,6 +268,7 @@ impl Texture {
 		Self {
 			texture,
 			view,
+			view_dimension: settings.view_dimension,
 			sampler,
 			size,
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),

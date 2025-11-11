@@ -12,9 +12,9 @@ use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
-	BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource, Buffer,
-	BufferUsages, CompositeAlphaMode, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp,
-	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
+	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Buffer, BufferUsages,
+	CompositeAlphaMode, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp, Operations,
+	PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
 	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline, RequestAdapterOptions,
 	StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureUsages,
 	TextureViewDescriptor,
@@ -185,12 +185,13 @@ impl GraphicsContext {
 			} else {
 				1
 			};
-		let format = if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass
-		{
-			canvas.format()
-		} else {
-			self.config.format
-		};
+		let texture_format =
+			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+				canvas.format()
+			} else {
+				self.config.format
+			};
+		let texture_view_dimension = settings.texture.view_dimension;
 		let draw_command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
@@ -223,7 +224,8 @@ impl GraphicsContext {
 				enable_depth_testing: graphics_state.enable_depth_testing,
 				wgpu_stencil_state: graphics_state.stencil_state.as_wgpu_stencil_state(),
 				sample_count,
-				format,
+				texture_format,
+				texture_view_dimension,
 				num_storage_buffers: graphics_state.shader.storage_buffers.len(),
 				num_shader_textures: graphics_state.shader.textures.len(),
 			},
@@ -338,7 +340,7 @@ impl GraphicsContext {
 			});
 			run_draw_commands(
 				&self.device,
-				&self.layouts.mesh_bind_group_layout,
+				&mut self.layouts,
 				&self.cached_resources.render_pipelines,
 				&mut draw_commands,
 				render_pass,
@@ -380,7 +382,7 @@ impl GraphicsContext {
 			});
 			run_draw_commands(
 				&self.device,
-				&self.layouts.mesh_bind_group_layout,
+				&mut self.layouts,
 				&self.cached_resources.render_pipelines,
 				&mut self.main_surface_draw_commands,
 				render_pass,
@@ -430,13 +432,13 @@ impl GraphicsContext {
 		let _span = tracy_client::span!();
 		self.cached_resources.create_render_pipelines(
 			&self.device,
-			&self.layouts,
+			&mut self.layouts,
 			&self.main_surface_draw_commands,
 		);
 		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
 			self.cached_resources.create_render_pipelines(
 				&self.device,
-				&self.layouts,
+				&mut self.layouts,
 				draw_commands,
 			);
 		}
@@ -513,7 +515,7 @@ impl GraphicsState {
 
 fn run_draw_commands(
 	device: &Device,
-	mesh_bind_group_layout: &BindGroupLayout,
+	layouts: &mut Layouts,
 	render_pipelines: &HashMap<RenderPipelineSettings, RenderPipeline>,
 	draw_commands: &mut Vec<DrawCommand>,
 	mut render_pass: wgpu::RenderPass<'_>,
@@ -540,7 +542,7 @@ fn run_draw_commands(
 			0,
 			&device.create_bind_group(&BindGroupDescriptor {
 				label: Some("Mesh Bind Group"),
-				layout: mesh_bind_group_layout,
+				layout: &layouts.mesh_bind_group_layout(texture.view_dimension, device),
 				entries: &[
 					BindGroupEntry {
 						binding: 0,

@@ -258,7 +258,7 @@ impl Texture {
 			label: Some(&format!("{} - sampler", &settings.label)),
 			address_mode_u: settings.address_mode_x,
 			address_mode_v: settings.address_mode_y,
-			address_mode_w: AddressMode::default(),
+			address_mode_w: settings.address_mode_z,
 			mag_filter: settings.magnifying_filter,
 			min_filter: settings.minifying_filter,
 			border_color: Some(settings.border_color),
@@ -307,6 +307,9 @@ pub struct TextureSettings {
 	/// What should happen when reading beyond the top or bottom edges
 	/// of the texture.
 	pub address_mode_y: AddressMode,
+	/// What should happen when reading beyond the first or last layer
+	/// of a multilayer texture.
+	pub address_mode_z: AddressMode,
 	/// What color should be read when reading out of bounds and using
 	/// [`AddressMode::ClampToBorder`].
 	pub border_color: SamplerBorderColor,
@@ -326,6 +329,7 @@ impl Default for TextureSettings {
 			label: "Texture".to_string(),
 			address_mode_x: Default::default(),
 			address_mode_y: Default::default(),
+			address_mode_z: Default::default(),
 			border_color: SamplerBorderColor::TransparentBlack,
 			minifying_filter: Default::default(),
 			magnifying_filter: Default::default(),

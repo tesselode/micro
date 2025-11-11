@@ -46,6 +46,7 @@ impl Canvas {
 						&ctx.graphics.device,
 						&ctx.graphics.queue,
 						size,
+						1,
 						None,
 						settings.texture_settings,
 						InternalTextureSettings {
@@ -59,6 +60,7 @@ impl Canvas {
 						&ctx.graphics.device,
 						&ctx.graphics.queue,
 						size,
+						1,
 						None,
 						settings.texture_settings,
 						InternalTextureSettings {
@@ -70,6 +72,7 @@ impl Canvas {
 						&ctx.graphics.device,
 						&ctx.graphics.queue,
 						size,
+						1,
 						None,
 						settings.texture_settings,
 						InternalTextureSettings {
@@ -84,6 +87,7 @@ impl Canvas {
 				&ctx.graphics.device,
 				&ctx.graphics.queue,
 				size,
+				1,
 				None,
 				settings.texture_settings,
 				InternalTextureSettings {

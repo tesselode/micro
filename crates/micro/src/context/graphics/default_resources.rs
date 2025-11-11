@@ -26,7 +26,8 @@ impl DefaultResources {
 			device,
 			queue,
 			UVec2::new(1, 1),
-			Some(&[255, 255, 255, 255]),
+			1,
+			[[255, 255, 255, 255].as_slice()],
 			TextureSettings::default(),
 			InternalTextureSettings::default(),
 		);

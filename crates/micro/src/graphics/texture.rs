@@ -1,8 +1,8 @@
 //! Types related to drawing images.
 
-pub use wgpu::{AddressMode, FilterMode, SamplerBorderColor};
+pub use wgpu::{AddressMode, FilterMode, SamplerBorderColor, TextureViewDimension};
 
-use std::path::Path;
+use std::{collections::HashSet, path::Path};
 
 use derive_more::{Display, Error, From};
 use glam::{Mat4, UVec2, Vec2};
@@ -50,6 +50,7 @@ impl Texture {
 			&ctx.graphics.device,
 			&ctx.graphics.queue,
 			size,
+			1,
 			None,
 			settings,
 			InternalTextureSettings::default(),
@@ -67,7 +68,8 @@ impl Texture {
 			&ctx.graphics.device,
 			&ctx.graphics.queue,
 			UVec2::new(image.width(), image.height()),
-			Some(image.as_raw()),
+			1,
+			[image.as_raw().as_slice()],
 			settings,
 			InternalTextureSettings::default(),
 		)
@@ -82,6 +84,57 @@ impl Texture {
 		let _span = tracy_client::span!();
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
 		Ok(Self::from_image(ctx, &image, settings))
+	}
+
+	/// Creates a new multi-layer texture from images loaded by the [`image`] crate.
+	pub fn layered_from_images(
+		ctx: &Context,
+		images: &[&ImageBuffer<image::Rgba<u8>, Vec<u8>>],
+		settings: TextureSettings,
+	) -> Self {
+		let _span = tracy_client::span!();
+		assert!(!images.is_empty(), "must provide at least one image");
+		let widths = images
+			.iter()
+			.map(|image| image.width())
+			.collect::<HashSet<_>>();
+		assert_eq!(widths.len(), 1, "images must all have the same width");
+		let heights = images
+			.iter()
+			.map(|image| image.height())
+			.collect::<HashSet<_>>();
+		assert_eq!(heights.len(), 1, "images must all have the same height");
+		let width = widths.iter().next().copied().unwrap();
+		let height = heights.iter().next().copied().unwrap();
+		let pixels = images.iter().map(|image| image.as_raw().as_slice());
+		Self::new(
+			&ctx.graphics.device,
+			&ctx.graphics.queue,
+			UVec2::new(width, height),
+			images.len() as u32,
+			pixels,
+			settings,
+			InternalTextureSettings::default(),
+		)
+	}
+
+	/// Creates a new multi-layer texture from image files.
+	pub fn layered_from_files(
+		ctx: &Context,
+		paths: &[impl AsRef<Path>],
+		settings: TextureSettings,
+	) -> Result<Self, LoadTextureError> {
+		let _span = tracy_client::span!();
+		let images = paths
+			.iter()
+			.map(|path| -> Result<_, LoadTextureError> {
+				Ok(image::ImageReader::open(path.as_ref())?
+					.decode()?
+					.to_rgba8())
+			})
+			.collect::<Result<Vec<_>, _>>()?;
+		let image_refs = images.iter().map(|image| image).collect::<Vec<_>>();
+		Ok(Self::layered_from_images(ctx, &image_refs, settings))
 	}
 
 	/// Sets the portion of the texture to draw.
@@ -145,18 +198,19 @@ impl Texture {
 		);
 	}
 
-	pub(crate) fn new(
+	pub(crate) fn new<'a>(
 		device: &Device,
 		queue: &Queue,
 		size: UVec2,
-		pixels: Option<&[u8]>,
+		num_layers: u32,
+		pixels: impl IntoIterator<Item = &'a [u8]>,
 		settings: TextureSettings,
 		internal_settings: InternalTextureSettings,
 	) -> Self {
 		let texture_extent = Extent3d {
 			width: size.x,
 			height: size.y,
-			depth_or_array_layers: 1,
+			depth_or_array_layers: num_layers,
 		};
 		let texture = device.create_texture(&TextureDescriptor {
 			label: None,
@@ -170,24 +224,35 @@ impl Texture {
 				| TextureUsages::RENDER_ATTACHMENT,
 			view_formats: &[],
 		});
-		if let Some(pixels) = pixels {
+		for (layer_index, layer) in pixels.into_iter().enumerate() {
 			queue.write_texture(
 				TexelCopyTextureInfo {
 					texture: &texture,
 					mip_level: 0,
-					origin: Origin3d::ZERO,
+					origin: Origin3d {
+						x: 0,
+						y: 0,
+						z: layer_index as u32,
+					},
 					aspect: TextureAspect::All,
 				},
-				pixels,
+				layer,
 				TexelCopyBufferLayout {
 					offset: 0,
 					bytes_per_row: Some(4 * size.x),
 					rows_per_image: Some(size.y),
 				},
-				texture_extent,
+				Extent3d {
+					width: size.x,
+					height: size.y,
+					depth_or_array_layers: 1,
+				},
 			);
 		}
-		let view = texture.create_view(&TextureViewDescriptor::default());
+		let view = texture.create_view(&TextureViewDescriptor {
+			dimension: Some(settings.view_dimension),
+			..Default::default()
+		});
 		let sampler = device.create_sampler(&SamplerDescriptor {
 			label: None,
 			address_mode_u: settings.address_mode_x,
@@ -246,6 +311,8 @@ pub struct TextureSettings {
 	/// What kind of filtering should be applied when scaling the
 	/// texture up.
 	pub magnifying_filter: FilterMode,
+	/// What kind of view to use for the texture.
+	pub view_dimension: TextureViewDimension,
 }
 
 impl Default for TextureSettings {
@@ -256,6 +323,7 @@ impl Default for TextureSettings {
 			border_color: SamplerBorderColor::TransparentBlack,
 			minifying_filter: Default::default(),
 			magnifying_filter: Default::default(),
+			view_dimension: Default::default(),
 		}
 	}
 }

@@ -103,6 +103,7 @@ impl GraphicsContext {
 			&device,
 			&queue,
 			uvec2(width, height),
+			1,
 			None,
 			TextureSettings::default(),
 			InternalTextureSettings {
@@ -138,6 +139,7 @@ impl GraphicsContext {
 			&self.device,
 			&self.queue,
 			size,
+			1,
 			None,
 			TextureSettings::default(),
 			InternalTextureSettings {

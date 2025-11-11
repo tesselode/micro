@@ -38,7 +38,6 @@ impl Font {
 	) -> Result<Self, LoadFontError> {
 		let _span = tracy_client::span!();
 		let scale = settings.scale;
-		let texture_settings = settings.texture_settings;
 		let font = fontdue::Font::from_bytes(
 			data,
 			fontdue::FontSettings {
@@ -47,14 +46,14 @@ impl Font {
 			},
 		)
 		.map_err(LoadFontError::FontError)?;
-		let glyph_image_data = rasterize_chars(&font, settings);
+		let glyph_image_data = rasterize_chars(&font, &settings);
 		let (width, height, glyph_rects) = pack_glyphs(&glyph_image_data);
 		let texture = create_texture(
 			ctx,
 			UVec2::new(width as u32, height as u32),
 			&glyph_image_data,
 			&glyph_rects,
-			texture_settings,
+			&settings.texture_settings,
 		);
 		Ok(Self {
 			inner: Arc::new(FontInner {
@@ -117,7 +116,7 @@ pub(crate) struct FontInner {
 
 fn rasterize_chars(
 	font: &fontdue::Font,
-	settings: FontSettings,
+	settings: &FontSettings,
 ) -> HashMap<char, ImageBuffer<image::Rgba<u8>, Vec<u8>>> {
 	settings
 		.chars
@@ -187,7 +186,7 @@ fn create_texture(
 	size: UVec2,
 	glyph_image_data: &HashMap<char, ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
 	glyph_rects: &HashMap<char, Rect>,
-	texture_settings: TextureSettings,
+	texture_settings: &TextureSettings,
 ) -> Texture {
 	let texture = Texture::empty(ctx, size, texture_settings);
 	for (char, rect) in glyph_rects {

@@ -48,7 +48,7 @@ impl Canvas {
 						size,
 						1,
 						None,
-						settings.texture_settings,
+						&settings.texture_settings,
 						InternalTextureSettings {
 							sample_count: 1,
 							format: settings.format,
@@ -62,7 +62,7 @@ impl Canvas {
 						size,
 						1,
 						None,
-						settings.texture_settings,
+						&settings.texture_settings,
 						InternalTextureSettings {
 							sample_count,
 							format: settings.format,
@@ -74,7 +74,7 @@ impl Canvas {
 						size,
 						1,
 						None,
-						settings.texture_settings,
+						&settings.texture_settings,
 						InternalTextureSettings {
 							sample_count: 1,
 							format: settings.format,
@@ -89,7 +89,7 @@ impl Canvas {
 				size,
 				1,
 				None,
-				settings.texture_settings,
+				&settings.texture_settings,
 				InternalTextureSettings {
 					format: TextureFormat::Depth24PlusStencil8,
 					sample_count: settings.sample_count,

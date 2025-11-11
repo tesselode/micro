@@ -44,7 +44,7 @@ pub struct Texture {
 
 impl Texture {
 	/// Creates a new texture where all the pixels are transparent black.
-	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
+	pub fn empty(ctx: &Context, size: UVec2, settings: &TextureSettings) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
 			&ctx.graphics.device,
@@ -61,7 +61,7 @@ impl Texture {
 	pub fn from_image(
 		ctx: &Context,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
-		settings: TextureSettings,
+		settings: &TextureSettings,
 	) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
@@ -79,7 +79,7 @@ impl Texture {
 	pub fn from_file(
 		ctx: &Context,
 		path: impl AsRef<Path>,
-		settings: TextureSettings,
+		settings: &TextureSettings,
 	) -> Result<Self, LoadTextureError> {
 		let _span = tracy_client::span!();
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
@@ -90,7 +90,7 @@ impl Texture {
 	pub fn layered_from_images(
 		ctx: &Context,
 		images: &[&ImageBuffer<image::Rgba<u8>, Vec<u8>>],
-		settings: TextureSettings,
+		settings: &TextureSettings,
 	) -> Self {
 		let _span = tracy_client::span!();
 		assert!(!images.is_empty(), "must provide at least one image");
@@ -122,7 +122,7 @@ impl Texture {
 	pub fn layered_from_files(
 		ctx: &Context,
 		paths: &[impl AsRef<Path>],
-		settings: TextureSettings,
+		settings: &TextureSettings,
 	) -> Result<Self, LoadTextureError> {
 		let _span = tracy_client::span!();
 		let images = paths
@@ -133,7 +133,7 @@ impl Texture {
 					.to_rgba8())
 			})
 			.collect::<Result<Vec<_>, _>>()?;
-		let image_refs = images.iter().map(|image| image).collect::<Vec<_>>();
+		let image_refs = images.iter().collect::<Vec<_>>();
 		Ok(Self::layered_from_images(ctx, &image_refs, settings))
 	}
 
@@ -204,7 +204,7 @@ impl Texture {
 		size: UVec2,
 		num_layers: u32,
 		pixels: impl IntoIterator<Item = &'a [u8]>,
-		settings: TextureSettings,
+		settings: &TextureSettings,
 		internal_settings: InternalTextureSettings,
 	) -> Self {
 		let texture_extent = Extent3d {
@@ -213,7 +213,7 @@ impl Texture {
 			depth_or_array_layers: num_layers,
 		};
 		let texture = device.create_texture(&TextureDescriptor {
-			label: None,
+			label: Some(&settings.label),
 			size: texture_extent,
 			mip_level_count: 1,
 			sample_count: internal_settings.sample_count,
@@ -250,11 +250,12 @@ impl Texture {
 			);
 		}
 		let view = texture.create_view(&TextureViewDescriptor {
+			label: Some(&format!("{} - view", &settings.label)),
 			dimension: Some(settings.view_dimension),
 			..Default::default()
 		});
 		let sampler = device.create_sampler(&SamplerDescriptor {
-			label: None,
+			label: Some(&format!("{} - sampler", &settings.label)),
 			address_mode_u: settings.address_mode_x,
 			address_mode_v: settings.address_mode_y,
 			address_mode_w: AddressMode::default(),
@@ -292,10 +293,14 @@ impl Texture {
 }
 
 /// Settings for a [`Texture`].
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serializing", serde(default))]
 pub struct TextureSettings {
+	/// A name for the texture.
+	///
+	/// This is visible in graphics debugging tools like RenderDoc.
+	pub label: String,
 	/// What should happen when reading beyond the left or right edges
 	/// of the texture.
 	pub address_mode_x: AddressMode,
@@ -318,6 +323,7 @@ pub struct TextureSettings {
 impl Default for TextureSettings {
 	fn default() -> Self {
 		Self {
+			label: "Texture".to_string(),
 			address_mode_x: Default::default(),
 			address_mode_y: Default::default(),
 			border_color: SamplerBorderColor::TransparentBlack,

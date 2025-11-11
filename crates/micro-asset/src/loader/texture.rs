@@ -8,7 +8,7 @@ use micro::{
 
 use super::AssetLoader;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TextureLoader {
 	pub default_settings: TextureSettings,
 	pub placeholder_texture_size: UVec2,
@@ -31,11 +31,7 @@ impl AssetLoader for TextureLoader {
 		path: &std::path::Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error> {
-		Texture::from_file(
-			ctx,
-			path,
-			settings.copied().unwrap_or(self.default_settings),
-		)
+		Texture::from_file(ctx, path, settings.unwrap_or(&self.default_settings))
 	}
 
 	fn reload(
@@ -57,7 +53,7 @@ impl AssetLoader for TextureLoader {
 			self.placeholder_texture_size.y,
 			image::Rgba(color.into()),
 		);
-		Some(Texture::from_image(ctx, &image, self.default_settings))
+		Some(Texture::from_image(ctx, &image, &self.default_settings))
 	}
 }
 

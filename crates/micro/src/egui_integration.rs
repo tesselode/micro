@@ -112,7 +112,7 @@ fn patch_textures(
 				Texture::from_image(
 					ctx,
 					&egui_image_data_to_image_buffer(&delta.image),
-					TextureSettings::default(),
+					&TextureSettings::default(),
 				),
 			);
 		}

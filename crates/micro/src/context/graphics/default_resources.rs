@@ -28,7 +28,7 @@ impl DefaultResources {
 			UVec2::new(1, 1),
 			1,
 			[[255, 255, 255, 255].as_slice()],
-			TextureSettings::default(),
+			&TextureSettings::default(),
 			InternalTextureSettings::default(),
 		);
 		let default_shader = Shader::from_string("Default Shader", DEFAULT_SHADER_SOURCE);

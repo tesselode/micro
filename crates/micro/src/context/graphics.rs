@@ -105,7 +105,7 @@ impl GraphicsContext {
 			uvec2(width, height),
 			1,
 			None,
-			TextureSettings::default(),
+			&TextureSettings::default(),
 			InternalTextureSettings {
 				format: TextureFormat::Depth24PlusStencil8,
 				sample_count: 1,
@@ -141,7 +141,7 @@ impl GraphicsContext {
 			size,
 			1,
 			None,
-			TextureSettings::default(),
+			&TextureSettings::default(),
 			InternalTextureSettings {
 				format: TextureFormat::Depth24PlusStencil8,
 				sample_count: 1,

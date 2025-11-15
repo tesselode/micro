@@ -204,6 +204,7 @@ impl GraphicsContext {
 					* settings.transform,
 				local_transform: settings.transform,
 				color: settings.color,
+				normal_transform: settings.transform.inverse().transpose(),
 			},
 			scissor_rect: graphics_state.scissor_rect,
 			shader_params_bind_group: graphics_state
@@ -478,6 +479,7 @@ struct DrawParams {
 	global_transform: Mat4,
 	local_transform: Mat4,
 	color: LinSrgba,
+	normal_transform: Mat4,
 }
 
 struct CanvasRenderPass {

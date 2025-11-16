@@ -140,6 +140,46 @@ impl Texture {
 		Ok(Self::layered_from_images(ctx, &image_refs, settings))
 	}
 
+	/// Creates a new cubemap texture from images loaded by the [`image`] crate.
+	pub fn cubemap_from_images(
+		ctx: &Context,
+		images: Cubemap<&ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
+		settings: TextureSettings,
+	) -> Self {
+		Self::layered_from_images(
+			ctx,
+			&[
+				images.right,
+				images.left,
+				images.top,
+				images.bottom,
+				images.front,
+				images.back,
+			],
+			settings,
+		)
+	}
+
+	/// Creates a new cubemap texture from image files.
+	pub fn cubemap_from_files(
+		ctx: &Context,
+		paths: Cubemap<impl AsRef<Path>>,
+		settings: TextureSettings,
+	) -> Result<Self, LoadTextureError> {
+		Self::layered_from_files(
+			ctx,
+			&[
+				paths.right,
+				paths.left,
+				paths.top,
+				paths.bottom,
+				paths.front,
+				paths.back,
+			],
+			settings,
+		)
+	}
+
 	/// Returns a new texture with the specified `size` and with data copied
 	/// over from the previous texture.
 	pub fn resized(&self, ctx: &Context, size: UVec2) -> Self {
@@ -397,6 +437,24 @@ pub enum LoadTextureError {
 	IoError(std::io::Error),
 	/// An error interpreting the image data.
 	ImageError(ImageError),
+}
+
+/// A map of cube faces to values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct Cubemap<T> {
+	/// The right (+X) face of the cube.
+	pub right: T,
+	/// The left (-X) face of the cube.
+	pub left: T,
+	/// The top (+Y) face of the cube.
+	pub top: T,
+	/// The bottom (-Y) face of the cube.
+	pub bottom: T,
+	/// The front (+Z) face of the cube.
+	pub front: T,
+	/// The front (-Z) face of the cube.
+	pub back: T,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

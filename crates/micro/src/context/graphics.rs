@@ -105,7 +105,7 @@ impl GraphicsContext {
 			uvec2(width, height),
 			1,
 			None,
-			&TextureSettings::default(),
+			TextureSettings::default(),
 			InternalTextureSettings {
 				format: TextureFormat::Depth24PlusStencil8,
 				sample_count: 1,
@@ -141,7 +141,7 @@ impl GraphicsContext {
 			size,
 			1,
 			None,
-			&TextureSettings::default(),
+			TextureSettings::default(),
 			InternalTextureSettings {
 				format: TextureFormat::Depth24PlusStencil8,
 				sample_count: 1,
@@ -191,7 +191,7 @@ impl GraphicsContext {
 			} else {
 				self.config.format
 			};
-		let texture_view_dimension = settings.texture.view_dimension;
+		let texture_view_dimension = settings.texture.view_dimension();
 		let draw_command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
 			index_buffer: settings.index_buffer,
@@ -544,7 +544,7 @@ fn run_draw_commands(
 			0,
 			&device.create_bind_group(&BindGroupDescriptor {
 				label: Some("Mesh Bind Group"),
-				layout: &layouts.mesh_bind_group_layout(texture.view_dimension, device),
+				layout: &layouts.mesh_bind_group_layout(texture.view_dimension(), device),
 				entries: &[
 					BindGroupEntry {
 						binding: 0,

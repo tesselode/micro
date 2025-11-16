@@ -53,7 +53,7 @@ impl Font {
 			UVec2::new(width as u32, height as u32),
 			&glyph_image_data,
 			&glyph_rects,
-			&settings.texture_settings,
+			settings.texture_settings,
 		);
 		Ok(Self {
 			inner: Arc::new(FontInner {
@@ -186,7 +186,7 @@ fn create_texture(
 	size: UVec2,
 	glyph_image_data: &HashMap<char, ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
 	glyph_rects: &HashMap<char, Rect>,
-	texture_settings: &TextureSettings,
+	texture_settings: TextureSettings,
 ) -> Texture {
 	let texture = Texture::empty(ctx, size, texture_settings);
 	for (char, rect) in glyph_rects {

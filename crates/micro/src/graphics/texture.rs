@@ -28,9 +28,11 @@ use super::mesh::Mesh;
 pub struct Texture {
 	pub(crate) texture: wgpu::Texture,
 	pub(crate) view: TextureView,
-	pub(crate) view_dimension: TextureViewDimension,
 	pub(crate) sampler: Sampler,
 	size: UVec2,
+	num_layers: u32,
+	settings: TextureSettings,
+	internal_settings: InternalTextureSettings,
 
 	// draw params
 	/// The portion of the texture to draw.
@@ -45,7 +47,7 @@ pub struct Texture {
 
 impl Texture {
 	/// Creates a new texture where all the pixels are transparent black.
-	pub fn empty(ctx: &Context, size: UVec2, settings: &TextureSettings) -> Self {
+	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
 			&ctx.graphics.device,
@@ -62,7 +64,7 @@ impl Texture {
 	pub fn from_image(
 		ctx: &Context,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
-		settings: &TextureSettings,
+		settings: TextureSettings,
 	) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
@@ -80,7 +82,7 @@ impl Texture {
 	pub fn from_file(
 		ctx: &Context,
 		path: impl AsRef<Path>,
-		settings: &TextureSettings,
+		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
 		let _span = tracy_client::span!();
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
@@ -91,7 +93,7 @@ impl Texture {
 	pub fn layered_from_images(
 		ctx: &Context,
 		images: &[&ImageBuffer<image::Rgba<u8>, Vec<u8>>],
-		settings: &TextureSettings,
+		settings: TextureSettings,
 	) -> Self {
 		let _span = tracy_client::span!();
 		assert!(!images.is_empty(), "must provide at least one image");
@@ -123,7 +125,7 @@ impl Texture {
 	pub fn layered_from_files(
 		ctx: &Context,
 		paths: &[impl AsRef<Path>],
-		settings: &TextureSettings,
+		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
 		let _span = tracy_client::span!();
 		let images = paths
@@ -138,6 +140,46 @@ impl Texture {
 		Ok(Self::layered_from_images(ctx, &image_refs, settings))
 	}
 
+	/// Returns a new texture with the specified `size` and with data copied
+	/// over from the previous texture.
+	pub fn resized(&self, ctx: &Context, size: UVec2) -> Self {
+		let mut encoder = ctx
+			.graphics
+			.device
+			.create_command_encoder(&Default::default());
+		let new_texture = Texture::new(
+			&ctx.graphics.device,
+			&ctx.graphics.queue,
+			size,
+			self.num_layers,
+			None,
+			self.settings.clone(),
+			self.internal_settings,
+		);
+		let copy_size = self.size.min(size);
+		encoder.copy_texture_to_texture(
+			TexelCopyTextureInfo {
+				texture: &self.texture,
+				mip_level: 0,
+				origin: Origin3d::ZERO,
+				aspect: TextureAspect::All,
+			},
+			TexelCopyTextureInfo {
+				texture: &new_texture.texture,
+				mip_level: 0,
+				origin: Origin3d::ZERO,
+				aspect: TextureAspect::All,
+			},
+			Extent3d {
+				width: copy_size.x,
+				height: copy_size.y,
+				depth_or_array_layers: self.num_layers,
+			},
+		);
+		ctx.graphics.queue.submit([encoder.finish()]);
+		new_texture
+	}
+
 	/// Sets the portion of the texture to draw.
 	pub fn region(&self, region: Rect) -> Self {
 		let mut new = self.clone();
@@ -150,6 +192,11 @@ impl Texture {
 	/// Returns the size of the texture in pixels.
 	pub fn size(&self) -> UVec2 {
 		self.size
+	}
+
+	/// Returns the kind of view the texture uses.
+	pub fn view_dimension(&self) -> TextureViewDimension {
+		self.settings.view_dimension
 	}
 
 	/// Turns a rectangular region in pixels into a rectangular region
@@ -199,13 +246,28 @@ impl Texture {
 		);
 	}
 
+	/// Draws the texture.
+	pub fn draw(&self, ctx: &mut Context) {
+		let _span = tracy_client::span!();
+		Mesh::rectangle_with_texture_region(
+			ctx,
+			Rect::new(Vec2::ZERO, self.region.size),
+			self.relative_rect(self.region),
+		)
+		.texture(self)
+		.transformed(self.transform)
+		.color(self.color)
+		.blend_mode(self.blend_mode)
+		.draw(ctx)
+	}
+
 	pub(crate) fn new<'a>(
 		device: &Device,
 		queue: &Queue,
 		size: UVec2,
 		num_layers: u32,
 		pixels: impl IntoIterator<Item = &'a [u8]>,
-		settings: &TextureSettings,
+		settings: TextureSettings,
 		internal_settings: InternalTextureSettings,
 	) -> Self {
 		let texture_extent = Extent3d {
@@ -221,6 +283,7 @@ impl Texture {
 			dimension: TextureDimension::D2,
 			format: internal_settings.format,
 			usage: TextureUsages::TEXTURE_BINDING
+				| TextureUsages::COPY_SRC
 				| TextureUsages::COPY_DST
 				| TextureUsages::RENDER_ATTACHMENT,
 			view_formats: &[],
@@ -268,29 +331,16 @@ impl Texture {
 		Self {
 			texture,
 			view,
-			view_dimension: settings.view_dimension,
 			sampler,
 			size,
+			num_layers,
+			settings,
+			internal_settings,
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
 		}
-	}
-
-	/// Draws the texture.
-	pub fn draw(&self, ctx: &mut Context) {
-		let _span = tracy_client::span!();
-		Mesh::rectangle_with_texture_region(
-			ctx,
-			Rect::new(Vec2::ZERO, self.region.size),
-			self.relative_rect(self.region),
-		)
-		.texture(self)
-		.transformed(self.transform)
-		.color(self.color)
-		.blend_mode(self.blend_mode)
-		.draw(ctx)
 	}
 }
 

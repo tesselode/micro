@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
-use glam::UVec2;
+use glam::{UVec2, uvec2};
 use image::ImageBuffer;
 use palette::{LinSrgba, Srgba};
 
@@ -96,16 +96,21 @@ fn patch_textures(
 	textures: &mut HashMap<egui::TextureId, Texture>,
 ) {
 	for (texture_id, delta) in &output.textures_delta.set {
-		if let Some(texture) = textures.get(texture_id) {
+		if let Some(texture) = textures.get_mut(texture_id) {
 			let top_left = delta
 				.pos
-				.map(|[x, y]| UVec2::new(x as u32, y as u32))
+				.map(|[x, y]| uvec2(x as u32, y as u32))
 				.unwrap_or_default();
+			let bottom_right =
+				top_left + uvec2(delta.image.size()[0] as u32, delta.image.size()[1] as u32);
+			if bottom_right.x >= texture.size().x || bottom_right.y >= texture.size().y {
+				*texture = texture.resized(ctx, bottom_right);
+			}
 			texture.replace(
 				ctx,
 				top_left,
 				&egui_image_data_to_image_buffer(&delta.image),
-			)
+			);
 		} else {
 			textures.insert(
 				*texture_id,

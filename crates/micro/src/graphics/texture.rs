@@ -144,7 +144,7 @@ impl Texture {
 	pub fn cubemap_from_images(
 		ctx: &Context,
 		images: Cubemap<&ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
-		settings: TextureSettings,
+		settings: CubemapSettings,
 	) -> Self {
 		Self::layered_from_images(
 			ctx,
@@ -156,7 +156,7 @@ impl Texture {
 				images.front,
 				images.back,
 			],
-			settings,
+			settings.into(),
 		)
 	}
 
@@ -164,7 +164,7 @@ impl Texture {
 	pub fn cubemap_from_files(
 		ctx: &Context,
 		paths: Cubemap<impl AsRef<Path>>,
-		settings: TextureSettings,
+		settings: CubemapSettings,
 	) -> Result<Self, LoadTextureError> {
 		Self::layered_from_files(
 			ctx,
@@ -176,7 +176,7 @@ impl Texture {
 				paths.front,
 				paths.back,
 			],
-			settings,
+			settings.into(),
 		)
 	}
 
@@ -426,6 +426,74 @@ impl Default for TextureSettings {
 			minifying_filter: Default::default(),
 			magnifying_filter: Default::default(),
 			view_dimension: Default::default(),
+		}
+	}
+}
+
+/// Settings for a cubemap [`Texture`].
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serializing", serde(default))]
+pub struct CubemapSettings {
+	/// A name for the texture.
+	///
+	/// This is visible in graphics debugging tools like RenderDoc.
+	pub label: String,
+	/// What should happen when reading beyond the left or right edges
+	/// of the texture.
+	pub address_mode_x: AddressMode,
+	/// What should happen when reading beyond the top or bottom edges
+	/// of the texture.
+	pub address_mode_y: AddressMode,
+	/// What should happen when reading beyond the first or last layer
+	/// of a multilayer texture.
+	pub address_mode_z: AddressMode,
+	/// What color should be read when reading out of bounds and using
+	/// [`AddressMode::ClampToBorder`].
+	pub border_color: SamplerBorderColor,
+	/// What kind of filtering should be applied when scaling the
+	/// texture down.
+	pub minifying_filter: FilterMode,
+	/// What kind of filtering should be applied when scaling the
+	/// texture up.
+	pub magnifying_filter: FilterMode,
+}
+
+impl Default for CubemapSettings {
+	fn default() -> Self {
+		Self {
+			label: "Texture".to_string(),
+			address_mode_x: Default::default(),
+			address_mode_y: Default::default(),
+			address_mode_z: Default::default(),
+			border_color: SamplerBorderColor::TransparentBlack,
+			minifying_filter: Default::default(),
+			magnifying_filter: Default::default(),
+		}
+	}
+}
+
+impl From<CubemapSettings> for TextureSettings {
+	fn from(
+		CubemapSettings {
+			label,
+			address_mode_x,
+			address_mode_y,
+			address_mode_z,
+			border_color,
+			minifying_filter,
+			magnifying_filter,
+		}: CubemapSettings,
+	) -> Self {
+		Self {
+			label,
+			address_mode_x,
+			address_mode_y,
+			address_mode_z,
+			border_color,
+			minifying_filter,
+			magnifying_filter,
+			view_dimension: TextureViewDimension::Cube,
 		}
 	}
 }

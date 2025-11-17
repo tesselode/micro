@@ -1,5 +1,5 @@
-mod loader;
 mod asset_with_metadata;
+mod loader;
 
 pub use loader::*;
 
@@ -101,6 +101,10 @@ impl<L: AssetLoader> Assets<L> {
 			.map(|(path, asset)| (path.as_ref(), &asset.asset))
 	}
 
+	pub fn paths(&self) -> impl Iterator<Item = &Path> {
+		self.iter().map(|(path, _)| path)
+	}
+
 	#[cfg(debug_assertions)]
 	pub fn update_hot_reload(&mut self, ctx: &mut L::Context, delta_time: Duration) {
 		self.hot_reload_timer += delta_time;
@@ -131,27 +135,23 @@ impl<L: AssetLoader> Assets<L> {
 				self.load_inner(ctx, &asset_path);
 			}
 		} else {
-			let asset =
-				match AssetWithMetadata::load(ctx, &full_asset_path, &mut self.loader) {
-					Ok(Some(asset)) => asset,
-					Ok(None) => return,
-					Err(err) => {
-						tracing::error!(
-							"Error loading asset at path {}: {:?}",
-							full_asset_path.display(),
-							err
-						);
-						return;
-					}
-				};
+			let asset = match AssetWithMetadata::load(ctx, &full_asset_path, &mut self.loader) {
+				Ok(Some(asset)) => asset,
+				Ok(None) => return,
+				Err(err) => {
+					tracing::error!(
+						"Error loading asset at path {}: {:?}",
+						full_asset_path.display(),
+						err
+					);
+					return;
+				}
+			};
 			self.assets.insert(path.into(), asset);
 		}
 	}
 
-	fn assets_in_dir(
-		&mut self,
-		full_path: &PathBuf,
-	) -> Result<IndexSet<PathBuf>, std::io::Error> {
+	fn assets_in_dir(&mut self, full_path: &PathBuf) -> Result<IndexSet<PathBuf>, std::io::Error> {
 		let mut asset_paths = IndexSet::new();
 		for entry in std::fs::read_dir(full_path)? {
 			let entry = entry?;

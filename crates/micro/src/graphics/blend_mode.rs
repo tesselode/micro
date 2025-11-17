@@ -6,6 +6,7 @@ use wgpu::{BlendComponent, BlendFactor, BlendOperation, BlendState};
 /// These are the same as the corresponding blend modes in
 /// [LÖVE](https://love2d.org/wiki/BlendMode).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum BlendMode {
 	/// The opacity of what's drawn is determined by the alpha component.
 	Alpha(BlendAlphaMode),
@@ -90,6 +91,7 @@ impl Default for BlendMode {
 /// How the alpha component of a color affects the red, green,
 /// and blue components.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum BlendAlphaMode {
 	/// The RGB components are multiplied by the alpha component.
 	#[default]

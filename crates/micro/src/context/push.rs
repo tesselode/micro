@@ -1,4 +1,5 @@
 use glam::Mat4;
+use wgpu::DepthBiasState;
 
 use crate::{
 	graphics::{Shader, StencilState},
@@ -20,6 +21,7 @@ pub struct Push {
 	pub stencil_state: Option<StencilState>,
 	/// Whether the depth buffer is used to occlude fragments.
 	pub enable_depth_testing: Option<bool>,
+	pub depth_bias_state: Option<DepthBiasState>,
 	/// A rectangular region to crop all drawing operations to.
 	pub scissor_rect: Option<Option<URect>>,
 }
@@ -46,6 +48,15 @@ impl From<StencilState> for Push {
 	fn from(stencil_state: StencilState) -> Self {
 		Self {
 			stencil_state: Some(stencil_state),
+			..Default::default()
+		}
+	}
+}
+
+impl From<DepthBiasState> for Push {
+	fn from(depth_bias_state: DepthBiasState) -> Self {
+		Self {
+			depth_bias_state: Some(depth_bias_state),
 			..Default::default()
 		}
 	}

@@ -13,8 +13,8 @@ use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Buffer, BufferUsages,
-	CompositeAlphaMode, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp, Operations,
-	PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
+	CompositeAlphaMode, DepthBiasState, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp,
+	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
 	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline, RequestAdapterOptions,
 	StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureUsages,
 	TextureViewDescriptor,
@@ -224,6 +224,7 @@ impl GraphicsContext {
 				enable_color_writes: graphics_state.stencil_state.enable_color_writes,
 				enable_depth_testing: graphics_state.enable_depth_testing,
 				wgpu_stencil_state: graphics_state.stencil_state.as_wgpu_stencil_state(),
+				depth_bias_state: graphics_state.depth_bias_state,
 				sample_count,
 				texture_format,
 				texture_view_dimension,
@@ -405,6 +406,7 @@ impl GraphicsContext {
 			shader: self.default_resources.default_shader.clone(),
 			stencil_state: StencilState::default(),
 			enable_depth_testing: false,
+			depth_bias_state: DepthBiasState::default(),
 			scissor_rect: None,
 		}
 	}
@@ -494,6 +496,7 @@ struct GraphicsState {
 	shader: Shader,
 	stencil_state: StencilState,
 	enable_depth_testing: bool,
+	depth_bias_state: DepthBiasState,
 	scissor_rect: Option<URect>,
 }
 
@@ -510,6 +513,7 @@ impl GraphicsState {
 			enable_depth_testing: push
 				.enable_depth_testing
 				.unwrap_or(self.enable_depth_testing),
+			depth_bias_state: push.depth_bias_state.unwrap_or(self.depth_bias_state),
 			scissor_rect: push.scissor_rect.unwrap_or(self.scissor_rect),
 		}
 	}

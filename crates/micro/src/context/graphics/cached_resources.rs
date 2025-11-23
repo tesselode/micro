@@ -133,6 +133,7 @@ pub(super) struct RenderPipelineSettings {
 	pub(super) enable_color_writes: bool,
 	pub(super) enable_depth_testing: bool,
 	pub(super) wgpu_stencil_state: wgpu::StencilState,
+	pub(super) depth_bias_state: DepthBiasState,
 	pub(super) texture_format: TextureFormat,
 	pub(super) texture_view_dimension: TextureViewDimension,
 	pub(super) sample_count: u32,
@@ -201,7 +202,7 @@ fn create_render_pipeline(
 				CompareFunction::Always
 			},
 			stencil: settings.wgpu_stencil_state.clone(),
-			bias: DepthBiasState::default(),
+			bias: settings.depth_bias_state,
 		}),
 		multisample: MultisampleState {
 			count: settings.sample_count,

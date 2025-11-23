@@ -23,7 +23,7 @@ pub use shader::*;
 pub use stencil::*;
 pub use storage_buffer::*;
 pub use vertex::*;
-pub use wgpu::{Features, PresentMode, TextureFormat};
+pub use wgpu::{DepthBiasState, Features, PresentMode, TextureFormat};
 
 /// Adds common methods to a drawable object for changing how the object is drawn.
 #[macro_export]

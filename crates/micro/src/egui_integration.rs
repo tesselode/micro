@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
-use glam::{UVec2, uvec2};
+use glam::uvec2;
 use image::ImageBuffer;
 use palette::{LinSrgba, Srgba};
 

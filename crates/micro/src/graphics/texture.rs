@@ -234,6 +234,10 @@ impl Texture {
 		self.size
 	}
 
+	pub fn num_layers(&self) -> u32 {
+		self.num_layers
+	}
+
 	/// Returns the kind of view the texture uses.
 	pub fn view_dimension(&self) -> TextureViewDimension {
 		self.settings.view_dimension

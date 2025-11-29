@@ -10,5 +10,6 @@ members = [
 	"crates/micro-tiled-loader",
 	"crates/micro-ui",
 	"crates/micro-virtual-controller",
+	"crates/micro-visualizer",
 ]
 resolver = "3"

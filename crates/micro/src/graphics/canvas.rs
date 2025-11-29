@@ -1,10 +1,17 @@
 //! Types for drawing to off-screen render targets.
 
-use std::ops::{Deref, DerefMut};
+use std::{
+	ops::{Deref, DerefMut},
+	sync::{Once, OnceLock},
+};
 
 use glam::{Mat4, UVec2, Vec2};
 use palette::LinSrgba;
-use wgpu::TextureFormat;
+use wgpu::{
+	Buffer, BufferUsages, Extent3d, MapMode, PollType, TexelCopyBufferInfo, TexelCopyBufferLayout,
+	TextureFormat,
+	wgt::{BufferDescriptor, CommandEncoderDescriptor},
+};
 
 use crate::{
 	Context, color::ColorConstants, graphics::BlendMode, math::Rect, standard_draw_param_methods,
@@ -23,6 +30,7 @@ pub struct Canvas {
 	pub(crate) kind: CanvasKind,
 	pub(crate) depth_stencil_texture: Texture,
 	format: TextureFormat,
+	read_buffer: Option<Buffer>,
 
 	// draw params
 	/// The portion of the canvas texture that should be drawn.
@@ -96,6 +104,18 @@ impl Canvas {
 				},
 			),
 			format: settings.format,
+			read_buffer: settings.readable.then(|| {
+				let bytes_per_pixel = settings
+					.format
+					.block_copy_size(None)
+					.expect("could not get bytes per pixel");
+				ctx.graphics.device.create_buffer(&BufferDescriptor {
+					label: Some("Canvas Read Buffer"),
+					size: bytes_per_pixel as u64 * size.x as u64 * size.y as u64,
+					usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+					mapped_at_creation: false,
+				})
+			}),
 			region: Rect::new(Vec2::ZERO, size.as_vec2()),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
@@ -125,6 +145,62 @@ impl Canvas {
 	/// Returns the format of the underlying texture.
 	pub fn format(&self) -> TextureFormat {
 		self.format
+	}
+
+	pub fn read(&self, ctx: &Context) -> Vec<u8> {
+		let bytes_per_pixel = self
+			.format
+			.block_copy_size(None)
+			.expect("could not get bytes per pixel");
+		let buffer = self
+			.read_buffer
+			.clone()
+			.expect("cannot read from a canvas not set as readable");
+		let mut encoder = ctx
+			.graphics
+			.device
+			.create_command_encoder(&CommandEncoderDescriptor {
+				label: Some("Read Canvas Command Encoder"),
+			});
+		let source = match &self.kind {
+			CanvasKind::Normal { texture } => texture,
+			CanvasKind::Multisampled {
+				resolve_texture, ..
+			} => resolve_texture,
+		};
+		encoder.copy_texture_to_buffer(
+			source.texture.as_image_copy(),
+			TexelCopyBufferInfo {
+				buffer: &buffer,
+				layout: TexelCopyBufferLayout {
+					offset: 0,
+					bytes_per_row: Some(bytes_per_pixel * self.size().x),
+					rows_per_image: Some(self.size().y),
+				},
+			},
+			Extent3d {
+				width: source.size().x,
+				height: source.size().y,
+				depth_or_array_layers: source.num_layers(),
+			},
+		);
+		encoder.map_buffer_on_submit(&buffer, MapMode::Read, .., |result| {
+			result.expect("error mapping buffer");
+		});
+		let submission = ctx.graphics.queue.submit([encoder.finish()]);
+		ctx.graphics
+			.device
+			.poll(PollType::Wait {
+				submission_index: Some(submission),
+				timeout: None,
+			})
+			.unwrap();
+		let view = buffer.get_mapped_range(..);
+		let slice: &[u8] = &view;
+		let data = Vec::from(slice);
+		drop(view);
+		buffer.unmap();
+		data
 	}
 
 	/// Sets future drawing operations to happen on this canvas instead of the
@@ -178,6 +254,10 @@ pub struct CanvasSettings {
 	pub sample_count: u32,
 	/// The format to use for the underlying texture.
 	pub format: TextureFormat,
+	/// Whether to allow calling [`read`](Canvas::read) on the canvas.
+	///
+	/// Pre-allocates some extra memory on the GPU.
+	pub readable: bool,
 }
 
 impl Default for CanvasSettings {
@@ -187,6 +267,7 @@ impl Default for CanvasSettings {
 			texture_settings: Default::default(),
 			sample_count: 1,
 			format: TextureFormat::Rgba8UnormSrgb,
+			readable: false,
 		}
 	}
 }

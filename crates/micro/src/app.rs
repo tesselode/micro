@@ -42,4 +42,10 @@ pub trait App {
 	fn draw(&mut self, ctx: &mut Context) -> anyhow::Result<()> {
 		Ok(())
 	}
+
+	/// Called on every tick of the game loop after drawing operations have been presented
+	/// to the screen.
+	fn post_draw(&mut self, ctx: &mut Context) -> anyhow::Result<()> {
+		Ok(())
+	}
 }

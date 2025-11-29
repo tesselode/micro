@@ -148,6 +148,8 @@ where
 		drop(span);
 		ctx.graphics.present();
 
+		app.post_draw(&mut ctx)?;
+
 		tracy_client::frame_mark();
 
 		if ctx.should_quit {

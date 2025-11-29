@@ -284,16 +284,22 @@ impl App for VisRunner {
 			ffmpeg_process,
 		} = &mut self.mode
 		{
-			let data = self.canvas.read(ctx);
-			let ffmpeg_stdin = ffmpeg_process.stdin.as_mut().unwrap();
-			let write_result = ffmpeg_stdin.write_all(&data);
-			if write_result.is_err() {
-				self.stop_rendering(ctx)?;
-			} else {
-				*current_frame += 1;
-				if *current_frame > *end_frame {
-					self.stop_rendering(ctx)?;
+			let mut should_stop_rendering = false;
+			self.canvas.read(ctx, |data| -> anyhow::Result<()> {
+				let ffmpeg_stdin = ffmpeg_process.stdin.as_mut().unwrap();
+				let write_result = ffmpeg_stdin.write_all(data);
+				if write_result.is_err() {
+					should_stop_rendering = true;
+				} else {
+					*current_frame += 1;
+					if *current_frame > *end_frame {
+						should_stop_rendering = true;
+					}
 				}
+				Ok(())
+			})?;
+			if should_stop_rendering {
+				self.stop_rendering(ctx)?;
 			}
 		}
 		Ok(())

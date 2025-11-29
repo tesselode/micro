@@ -147,7 +147,7 @@ impl Canvas {
 		self.format
 	}
 
-	pub fn read(&self, ctx: &Context) -> Vec<u8> {
+	pub fn read<T>(&self, ctx: &Context, f: impl FnOnce(&[u8]) -> T) -> T {
 		let bytes_per_pixel = self
 			.format
 			.block_copy_size(None)
@@ -197,10 +197,10 @@ impl Canvas {
 			.unwrap();
 		let view = buffer.get_mapped_range(..);
 		let slice: &[u8] = &view;
-		let data = Vec::from(slice);
+		let result = f(slice);
 		drop(view);
 		buffer.unmap();
-		data
+		result
 	}
 
 	/// Sets future drawing operations to happen on this canvas instead of the

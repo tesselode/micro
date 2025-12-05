@@ -181,4 +181,19 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		self.system.draw(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
+
+	pub fn post_draw(
+		&mut self,
+		ctx: &mut Context,
+		globals: &mut Globals,
+		ecs_ctx: &mut EcsContext,
+		world: &mut World,
+		queues: &mut Queues<EcsEvent>,
+	) -> anyhow::Result<()> {
+		if !self.enabled {
+			return Ok(());
+		}
+		self.system.draw(ctx, globals, ecs_ctx, world, queues)?;
+		Ok(())
+	}
 }

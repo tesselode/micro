@@ -126,6 +126,17 @@ pub trait System<Globals, EcsContext, EcsEvent> {
 	) -> anyhow::Result<()> {
 		Ok(())
 	}
+
+	fn post_draw(
+		&mut self,
+		ctx: &mut Context,
+		globals: &mut Globals,
+		ecs_ctx: &mut EcsContext,
+		world: &mut World,
+		queues: &mut Queues<EcsEvent>,
+	) -> anyhow::Result<()> {
+		Ok(())
+	}
 }
 
 pub(crate) struct Systems<Globals, EcsContext, EcsEvent>(
@@ -291,6 +302,21 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 	) -> anyhow::Result<()> {
 		for system in &mut self.0 {
 			system.draw(ctx, globals, ecs_ctx, world, queues)?;
+		}
+		self.dispatch_ecs_events(ctx, globals, ecs_ctx, world, queues)?;
+		Ok(())
+	}
+
+	pub fn post_draw(
+		&mut self,
+		ctx: &mut Context,
+		globals: &mut Globals,
+		ecs_ctx: &mut EcsContext,
+		world: &mut World,
+		queues: &mut Queues<EcsEvent>,
+	) -> anyhow::Result<()> {
+		for system in &mut self.0 {
+			system.post_draw(ctx, globals, ecs_ctx, world, queues)?;
 		}
 		self.dispatch_ecs_events(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())

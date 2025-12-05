@@ -58,6 +58,10 @@ pub trait Scene<Globals> {
 		Ok(())
 	}
 
+	fn post_draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+		Ok(())
+	}
+
 	fn pause(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
 		Ok(())
 	}
@@ -135,6 +139,10 @@ impl<Globals> SceneManager<Globals> {
 			self.apply_scene_change(ctx, scene_change, globals)?;
 		}
 		Ok(())
+	}
+
+	pub fn post_draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+		self.current_scene().post_draw(ctx, globals)
 	}
 
 	fn current_scene(&mut self) -> &mut Box<dyn Scene<Globals>> {

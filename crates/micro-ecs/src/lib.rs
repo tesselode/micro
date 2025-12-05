@@ -162,6 +162,18 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
+	pub fn post_draw(
+		&mut self,
+		ctx: &mut Context,
+		globals: &mut Globals,
+		ecs_ctx: &mut EcsContext,
+	) -> anyhow::Result<()> {
+		self.systems
+			.post_draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)?;
+		self.queues.flush_world_queue(&mut self.world);
+		Ok(())
+	}
+
 	pub fn show_systems_window(
 		&mut self,
 		open: &mut bool,

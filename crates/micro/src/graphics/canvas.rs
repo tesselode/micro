@@ -1,9 +1,6 @@
 //! Types for drawing to off-screen render targets.
 
-use std::{
-	ops::{Deref, DerefMut},
-	sync::{Once, OnceLock},
-};
+use std::ops::{Deref, DerefMut};
 
 use glam::{Mat4, UVec2, Vec2};
 use palette::LinSrgba;

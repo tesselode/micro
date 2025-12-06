@@ -306,7 +306,7 @@ impl App for VisRunner {
 				Ok(())
 			})?;
 			if should_stop_rendering {
-				self.stop_rendering(ctx)?;
+				self.on_rendering_finished(ctx)?;
 			}
 		}
 		Ok(())

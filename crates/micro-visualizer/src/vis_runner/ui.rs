@@ -1,7 +1,7 @@
 use kira::Decibels;
 use micro::{
 	egui::{ComboBox, InnerResponse, Slider, Ui},
-	Context,
+	log_if_err, Context,
 };
 
 use crate::conversions::frame_to_seconds;
@@ -52,7 +52,7 @@ impl VisRunner {
 		let response = micro::egui::Window::new("Rendering")
 			.open(&mut self.show_rendering_window)
 			.show(egui_ctx, |ui| {
-				let mut rendering_started = false;
+				let mut render_button_clicked = false;
 				if let Some(chapters) = self.visualizer.chapters() {
 					ComboBox::new("start_chapter_index", "Start Chapter Index").show_index(
 						ui,
@@ -67,16 +67,26 @@ impl VisRunner {
 						|i| &chapters[i].name,
 					);
 				}
-				if ui.button("Render").clicked() {
-					rendering_started = true;
+				let text = if let Mode::Rendering { .. } = &self.mode {
+					"Cancel"
+				} else {
+					"Start Render"
+				};
+				if ui.button(text).clicked() {
+					render_button_clicked = true;
 				}
-				rendering_started
+				render_button_clicked
 			});
 		if let Some(InnerResponse {
 			inner: Some(true), ..
 		}) = response
 		{
-			self.render(ctx)?;
+			if let Mode::Rendering { ffmpeg_process, .. } = &mut self.mode {
+				log_if_err!(ffmpeg_process.kill());
+				self.on_rendering_finished(ctx)?;
+			} else {
+				self.render(ctx)?;
+			}
 		}
 		Ok(())
 	}

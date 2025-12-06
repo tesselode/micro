@@ -68,7 +68,7 @@ impl VisRunner {
 		Ok(())
 	}
 
-	pub fn stop_rendering(&mut self, ctx: &mut Context) -> Result<(), anyhow::Error> {
+	pub fn on_rendering_finished(&mut self, ctx: &mut Context) -> Result<(), anyhow::Error> {
 		self.mode = Mode::Stopped {
 			data: Some(StreamingSoundData::from_file(self.visualizer.audio_path())?),
 			start_frame: 0,

@@ -188,12 +188,19 @@ impl VisRunner {
 }
 
 impl App for VisRunner {
+	fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
+		Some(vec![format!("{:.0} FPS", ctx.fps())])
+	}
+
+	fn debug_menu(&mut self, ctx: &mut Context, ui: &mut micro::egui::Ui) -> anyhow::Result<()> {
+		self.render_main_menu_contents(ctx, ui)
+	}
+
 	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 	) -> Result<(), anyhow::Error> {
-		self.render_main_menu(ctx, egui_ctx)?;
 		self.render_rendering_window(ctx, egui_ctx)?;
 		self.visualizer.ui(ctx, egui_ctx, self.vis_info())?;
 		Ok(())

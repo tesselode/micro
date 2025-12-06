@@ -1,6 +1,6 @@
 use kira::Decibels;
 use micro::{
-	egui::{ComboBox, InnerResponse, MenuBar, Slider, TopBottomPanel, Ui},
+	egui::{ComboBox, InnerResponse, Slider, Ui},
 	Context,
 };
 
@@ -9,50 +9,38 @@ use crate::conversions::frame_to_seconds;
 use super::{LiveResolution, Mode, VisRunner};
 
 impl VisRunner {
-	pub fn render_main_menu(
+	pub fn render_main_menu_contents(
 		&mut self,
 		ctx: &mut Context,
-		egui_ctx: &micro::egui::Context,
+		ui: &mut Ui,
 	) -> Result<(), anyhow::Error> {
-		TopBottomPanel::bottom("main_menu")
-			.show(egui_ctx, |ui| -> anyhow::Result<()> {
-				MenuBar::new()
-					.ui(ui, |ui| -> anyhow::Result<()> {
-						self.render_play_pause_button(ui)?;
-						self.render_seekbar(ui)?;
-						self.render_chapter_combo_box(ui)?;
-						if !matches!(self.mode, Mode::Rendering { .. }) {
-							if ui.button("<<").clicked() {
-								self.go_to_previous_chapter()?;
-							}
-							if ui.button(">>").clicked() {
-								self.go_to_next_chapter()?;
-							}
-						}
-						if !matches!(self.mode, Mode::Rendering { .. }) {
-							let mut selected_resolution_index = self.live_resolution as usize;
-							ComboBox::new("resolution", "").show_index(
-								ui,
-								&mut selected_resolution_index,
-								LiveResolution::NUM_RESOLUTIONS,
-								|index| LiveResolution::from(index).label(),
-							);
-							self.live_resolution = LiveResolution::from(selected_resolution_index);
-						}
-						if ui.button("Render").clicked() {
-							self.show_rendering_window = true;
-						}
-						ui.label("Volume");
-						ui.add(Slider::new(
-							&mut self.volume.0,
-							Decibels::SILENCE.0..=Decibels::IDENTITY.0,
-						));
-						self.visualizer.menu(ctx, ui, self.vis_info())?;
-						Ok(())
-					})
-					.inner
-			})
-			.inner?;
+		self.render_play_pause_button(ui)?;
+		self.render_seekbar(ui)?;
+		ui.separator();
+		self.render_chapter_switcher(ui)?;
+		ui.label("Volume");
+		ui.add(
+			Slider::new(
+				&mut self.volume.0,
+				Decibels::SILENCE.0..=Decibels::IDENTITY.0,
+			)
+			.show_value(false),
+		);
+		ui.separator();
+		if !matches!(self.mode, Mode::Rendering { .. }) {
+			let mut selected_resolution_index = self.live_resolution as usize;
+			ComboBox::new("resolution", "").show_index(
+				ui,
+				&mut selected_resolution_index,
+				LiveResolution::NUM_RESOLUTIONS,
+				|index| LiveResolution::from(index).label(),
+			);
+			self.live_resolution = LiveResolution::from(selected_resolution_index);
+		}
+		if ui.button("Render").clicked() {
+			self.show_rendering_window = true;
+		}
+		self.visualizer.menu(ctx, ui, self.vis_info())?;
 		Ok(())
 	}
 
@@ -137,7 +125,7 @@ impl VisRunner {
 		Ok(())
 	}
 
-	fn render_chapter_combo_box(&mut self, ui: &mut Ui) -> anyhow::Result<()> {
+	fn render_chapter_switcher(&mut self, ui: &mut Ui) -> anyhow::Result<()> {
 		let Some(chapters) = self.visualizer.chapters() else {
 			return Ok(());
 		};
@@ -156,6 +144,13 @@ impl VisRunner {
 				self.go_to_chapter(selected)?;
 			}
 		}
+		if ui.button("<<").clicked() {
+			self.go_to_previous_chapter()?;
+		}
+		if ui.button(">>").clicked() {
+			self.go_to_next_chapter()?;
+		}
+		ui.separator();
 		Ok(())
 	}
 }

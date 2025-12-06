@@ -83,14 +83,11 @@ where
 						.ui(ui, |ui| -> anyhow::Result<()> {
 							app.debug_menu(&mut ctx, ui)?;
 							ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-								ui.label(format!(
-									"Average frame time: {:.1}ms ({:.0} FPS)",
-									ctx.average_frame_time().as_secs_f64() * 1000.0,
-									ctx.fps()
-								));
 								if let Some(stats) = app.debug_stats(&mut ctx) {
-									for stat in stats {
-										ui.separator();
+									for (i, stat) in stats.iter().enumerate() {
+										if i > 0 {
+											ui.separator();
+										}
 										ui.label(stat);
 									}
 								}

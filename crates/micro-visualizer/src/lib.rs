@@ -17,7 +17,7 @@ pub fn run<T: Visualizer>(
 		ContextSettings {
 			window_title: "Micro Visualizer".into(),
 			window_mode: WindowMode::Windowed {
-				size: UVec2::new(1280, 720),
+				size: UVec2::new(1920, 1080),
 			},
 			resizable: true,
 			..Default::default()

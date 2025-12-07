@@ -164,6 +164,14 @@ impl VisRunner {
 
 	fn vis_info(&self) -> VisualizerInfo {
 		let current_frame = self.current_frame();
+		let current_chapter_frame = self
+			.visualizer
+			.chapters()
+			.and_then(|chapters| chapters.at_frame(current_frame))
+			.map(|chapter| current_frame - chapter.start_frame);
+		let current_chapter_time = current_chapter_frame.map(|frame| {
+			Duration::from_secs_f64(frame_to_seconds(frame, self.visualizer.frame_rate()))
+		});
 		VisualizerInfo {
 			resolution: self.current_resolution(),
 			current_frame,
@@ -175,6 +183,8 @@ impl VisRunner {
 				.visualizer
 				.chapters()
 				.and_then(|chapters| chapters.index_at_frame(current_frame)),
+			current_chapter_frame,
+			current_chapter_time,
 		}
 	}
 

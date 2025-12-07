@@ -95,4 +95,6 @@ pub struct VisualizerInfo {
 	pub current_frame: u64,
 	pub current_time: Duration,
 	pub current_chapter_index: Option<usize>,
+	pub current_chapter_frame: Option<u64>,
+	pub current_chapter_time: Option<Duration>,
 }

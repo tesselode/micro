@@ -49,7 +49,7 @@ pub(crate) struct GraphicsContext {
 	graphics_state_stack: Vec<GraphicsState>,
 	cached_resources: CachedResources,
 	main_surface_draw_commands: Vec<DrawCommand>,
-	current_canvas_render_pass: Option<CanvasRenderPass>,
+	canvas_render_pass_stack: Vec<CanvasRenderPass>,
 	finished_canvas_render_passes: Vec<CanvasRenderPass>,
 }
 
@@ -124,7 +124,7 @@ impl GraphicsContext {
 			graphics_state_stack: vec![],
 			cached_resources: CachedResources::new(),
 			main_surface_draw_commands: vec![],
-			current_canvas_render_pass: None,
+			canvas_render_pass_stack: vec![],
 			finished_canvas_render_passes: vec![],
 		};
 		ctx.graphics_state_stack.push(ctx.default_graphics_state());
@@ -154,10 +154,7 @@ impl GraphicsContext {
 		canvas: Canvas,
 		settings: RenderToCanvasSettings,
 	) {
-		if self.current_canvas_render_pass.is_some() {
-			panic!("cannot nest render_to calls");
-		}
-		self.current_canvas_render_pass = Some(CanvasRenderPass {
+		self.canvas_render_pass_stack.push(CanvasRenderPass {
 			canvas,
 			settings,
 			draw_commands: vec![],
@@ -166,8 +163,8 @@ impl GraphicsContext {
 
 	pub(crate) fn finish_canvas_render_pass(&mut self) {
 		let canvas_render_pass = self
-			.current_canvas_render_pass
-			.take()
+			.canvas_render_pass_stack
+			.pop()
 			.expect("no current canvas render pass");
 		self.finished_canvas_render_passes.push(canvas_render_pass);
 	}
@@ -180,13 +177,13 @@ impl GraphicsContext {
 			.last()
 			.expect("no graphics state on stack");
 		let sample_count =
-			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			if let Some(CanvasRenderPass { canvas, .. }) = self.canvas_render_pass_stack.last() {
 				canvas.sample_count()
 			} else {
 				1
 			};
 		let texture_format =
-			if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+			if let Some(CanvasRenderPass { canvas, .. }) = self.canvas_render_pass_stack.last() {
 				canvas.format()
 			} else {
 				self.config.format
@@ -232,7 +229,9 @@ impl GraphicsContext {
 				num_shader_textures: graphics_state.shader.textures.len(),
 			},
 		};
-		if let Some(CanvasRenderPass { draw_commands, .. }) = &mut self.current_canvas_render_pass {
+		if let Some(CanvasRenderPass { draw_commands, .. }) =
+			self.canvas_render_pass_stack.last_mut()
+		{
 			draw_commands.push(draw_command);
 		} else {
 			self.main_surface_draw_commands.push(draw_command);
@@ -266,7 +265,7 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn current_render_target_size(&self) -> UVec2 {
-		if let Some(CanvasRenderPass { canvas, .. }) = &self.current_canvas_render_pass {
+		if let Some(CanvasRenderPass { canvas, .. }) = self.canvas_render_pass_stack.last() {
 			canvas.size()
 		} else {
 			uvec2(self.config.width, self.config.height)

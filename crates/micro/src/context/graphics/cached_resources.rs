@@ -177,7 +177,7 @@ fn create_render_pipeline(
 			&storage_buffers_bind_group_layout,
 			&shader_textures_bind_group_layout,
 		],
-		push_constant_ranges: &[],
+		immediate_size: 0,
 	});
 	device.create_render_pipeline(&RenderPipelineDescriptor {
 		label: None,
@@ -222,7 +222,7 @@ fn create_render_pipeline(
 				},
 			})],
 		}),
-		multiview: None,
+		multiview_mask: None,
 		cache: None,
 	})
 }

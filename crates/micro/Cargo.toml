@@ -36,7 +36,7 @@ tracy-client = { version = "0.18.0", default-features = false, features = [
     "sampling",
     "system-tracing",
 ] }
-wgpu = { version = "27.0.1", default-features = false, features = [
+wgpu = { version = "28.0.0", default-features = false, features = [
     "dx12",
     "metal",
     "vulkan",

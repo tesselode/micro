@@ -338,6 +338,7 @@ impl GraphicsContext {
 				}),
 				timestamp_writes: None,
 				occlusion_query_set: None,
+				multiview_mask: None,
 			});
 			run_draw_commands(
 				&self.device,
@@ -380,6 +381,7 @@ impl GraphicsContext {
 				}),
 				timestamp_writes: None,
 				occlusion_query_set: None,
+				multiview_mask: None,
 			});
 			run_draw_commands(
 				&self.device,

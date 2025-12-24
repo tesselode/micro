@@ -12,7 +12,7 @@ use std::{
 
 use egui::{Align, Layout, TopBottomPanel};
 use glam::{Mat4, UVec2, Vec2, Vec3, vec2};
-use palette::LinSrgb;
+use palette::{LinSrgb, WithAlpha};
 use sdl3::{
 	EventPump, GamepadSubsystem, IntegerOrSdlError,
 	video::{FullscreenType, Window, WindowPos},
@@ -21,8 +21,10 @@ use wgpu::{Features, PresentMode, TextureFormat};
 
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
+	color::ColorConstants,
 	context::graphics::GraphicsContext,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
+	graphics::{Canvas, CanvasSettings, RenderToCanvasSettings},
 	input::{Gamepad, MouseButton, Scancode},
 };
 
@@ -42,6 +44,9 @@ where
 	video.text_input().start(&window);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
 	let graphics = GraphicsContext::new(&window, &settings);
+	let main_canvas = settings.main_canvas.map(|settings| {
+		Canvas::new_from_graphics_ctx(&graphics, settings.size, CanvasSettings::default())
+	});
 
 	let mut ctx = Context {
 		window,
@@ -49,6 +54,12 @@ where
 		event_pump,
 		egui_wants_keyboard_input: false,
 		egui_wants_mouse_input: false,
+		clear_color: LinSrgb::BLACK,
+		main_canvas_size: settings.main_canvas.map(|settings| settings.size),
+		integer_scaling_enabled: settings
+			.main_canvas
+			.map(|settings| settings.integer_scaling_enabled)
+			.unwrap_or_default(),
 		frame_time_tracker: FrameTimeTracker::new(),
 		graphics,
 		dev_tools_state: settings.dev_tools_mode.initial_state(),
@@ -61,6 +72,16 @@ where
 	let mut last_update_time = Instant::now();
 
 	loop {
+		// get main canvas transform, if applicable
+		// (used for events and drawing)
+		let main_canvas_transform = main_canvas.as_ref().map(|canvas| {
+			main_canvas_transform(
+				canvas.size(),
+				ctx.window_size(),
+				ctx.integer_scaling_enabled,
+			)
+		});
+
 		// measure and record delta time
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
@@ -110,6 +131,9 @@ where
 
 		// dispatch events to state
 		let span = tracy_client::span!("dispatch events");
+		let mouse_event_transform = main_canvas_transform
+			.map(|transform| transform.inverse())
+			.unwrap_or_default();
 		for event in events
 			.drain(..)
 			.filter(|event| !egui_took_sdl3_event(&egui_ctx, event))
@@ -127,7 +151,10 @@ where
 				}
 				_ => {}
 			}
-			app.event(&mut ctx, event)?;
+			app.event(
+				&mut ctx,
+				event.transform_mouse_events(mouse_event_transform),
+			)?;
 		}
 		drop(span);
 
@@ -138,7 +165,24 @@ where
 
 		// draw state and egui UI
 		let span = tracy_client::span!("draw");
-		app.draw(&mut ctx)?;
+		if let Some(main_canvas) = &main_canvas {
+			{
+				let clear_color = Some(ctx.clear_color.with_alpha(1.0));
+				let ctx = &mut main_canvas.render_to(
+					&mut ctx,
+					RenderToCanvasSettings {
+						clear_color,
+						..Default::default()
+					},
+				);
+				app.draw(ctx)?;
+			}
+			main_canvas
+				.transformed(main_canvas_transform.unwrap())
+				.draw(&mut ctx);
+		} else {
+			app.draw(&mut ctx)?;
+		}
 		drop(span);
 		let span = tracy_client::span!("draw egui UI");
 		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
@@ -168,6 +212,9 @@ pub struct Context {
 	// a `Surface` that must be dropped before the `Window`
 	pub(crate) graphics: GraphicsContext,
 	window: Window,
+	clear_color: LinSrgb,
+	main_canvas_size: Option<UVec2>,
+	integer_scaling_enabled: bool,
 	frame_time_tracker: FrameTimeTracker,
 	should_quit: bool,
 	dev_tools_state: DevToolsState,
@@ -202,6 +249,12 @@ impl Context {
 		Ok(UVec2::new(display_mode.w as u32, display_mode.h as u32))
 	}
 
+	/// Returns `true` if integer scaling is enabled. Only relevant if the
+	/// context was set up to use a main canvas.
+	pub fn integer_scaling_enabled(&self) -> bool {
+		self.integer_scaling_enabled
+	}
+
 	/// Sets the window mode (windowed or fullscreen).
 	pub fn set_window_mode(&mut self, window_mode: WindowMode) -> Result<(), sdl3::Error> {
 		match window_mode {
@@ -221,6 +274,12 @@ impl Context {
 			}
 		}
 		Ok(())
+	}
+
+	/// Sets whether integer scaling is enabled. Only relevant if the
+	/// context was set up to use a main canvas.
+	pub fn set_integer_scaling_enabled(&mut self, enabled: bool) {
+		self.integer_scaling_enabled = enabled;
 	}
 
 	/// Returns the current [`PresentMode`].
@@ -270,7 +329,11 @@ impl Context {
 	/// Sets the color the window surface will be cleared to at the start
 	/// of each frame.
 	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
-		self.graphics.clear_color = color.into();
+		let color = color.into();
+		self.clear_color = color;
+		if self.main_canvas_size.is_none() {
+			self.graphics.clear_color = color;
+		}
 	}
 
 	/// Pushes a set of graphics settings that will be used for upcoming
@@ -379,7 +442,17 @@ impl Context {
 	/// corner of the window).
 	pub fn mouse_position(&self) -> Vec2 {
 		let mouse_state = self.event_pump.mouse_state();
-		vec2(mouse_state.x(), mouse_state.y())
+		let transform = self
+			.main_canvas_size
+			.map(|size| {
+				main_canvas_transform(size, self.window_size(), self.integer_scaling_enabled)
+					.inverse()
+			})
+			.unwrap_or_default();
+		let untransformed = vec2(mouse_state.x(), mouse_state.y());
+		transform
+			.transform_point3(untransformed.extend(0.0))
+			.truncate()
 	}
 
 	/// Gets the gamepad with the given index if it's connected.
@@ -417,6 +490,7 @@ pub struct ContextSettings {
 	pub window_mode: WindowMode,
 	/// Whether the window is resizable.
 	pub resizable: bool,
+	pub main_canvas: Option<MainCanvasSettings>,
 	/// The [`PresentMode`] used by the application.
 	pub present_mode: PresentMode,
 	/// The desired maximum number of frames that can be queued up
@@ -435,12 +509,19 @@ impl Default for ContextSettings {
 			window_title: "Game".into(),
 			window_mode: WindowMode::default(),
 			resizable: false,
+			main_canvas: None,
 			present_mode: PresentMode::AutoVsync,
 			desired_maximum_frame_latency: 1,
 			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
 			dev_tools_mode: DevToolsMode::default(),
 		}
 	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MainCanvasSettings {
+	pub size: UVec2,
+	pub integer_scaling_enabled: bool,
 }
 
 /// Configures whether dev tools will be available on this run of the
@@ -514,4 +595,16 @@ impl DerefMut for OnDrop<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.ctx
 	}
+}
+
+fn main_canvas_transform(canvas_size: UVec2, window_size: UVec2, integer_scale: bool) -> Mat4 {
+	let max_horizontal_scale = window_size.x as f32 / canvas_size.x as f32;
+	let max_vertical_scale = window_size.y as f32 / canvas_size.y as f32;
+	let mut scale = max_horizontal_scale.min(max_vertical_scale);
+	if integer_scale {
+		scale = scale.floor();
+	}
+	Mat4::from_translation((window_size.as_vec2() / 2.0).extend(0.0))
+		* Mat4::from_scale(Vec3::splat(scale))
+		* Mat4::from_translation((-canvas_size.as_vec2() / 2.0).extend(0.0))
 }

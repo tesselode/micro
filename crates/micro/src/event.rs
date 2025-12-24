@@ -1,4 +1,4 @@
-use glam::{UVec2, Vec2};
+use glam::{Mat4, UVec2, Vec2};
 
 use crate::input::{Axis, Button, MouseButton, Scancode};
 
@@ -72,6 +72,34 @@ pub enum Event {
 }
 
 impl Event {
+	pub fn transform_mouse_events(self, transform: Mat4) -> Self {
+		match self {
+			Self::MouseMoved { position, delta } => Self::MouseMoved {
+				position: transform.transform_point3(position.extend(0.0)).truncate(),
+				delta: transform.transform_vector3(delta.extend(0.0)).truncate(),
+			},
+			Self::MouseButtonPressed {
+				button,
+				mouse_position,
+			} => Self::MouseButtonPressed {
+				button,
+				mouse_position: transform
+					.transform_point3(mouse_position.extend(0.0))
+					.truncate(),
+			},
+			Self::MouseButtonReleased {
+				button,
+				mouse_position,
+			} => Self::MouseButtonReleased {
+				button,
+				mouse_position: transform
+					.transform_point3(mouse_position.extend(0.0))
+					.truncate(),
+			},
+			_ => self,
+		}
+	}
+
 	pub(crate) fn from_sdl3_event(sdl3_event: sdl3::event::Event) -> Option<Self> {
 		match sdl3_event {
 			sdl3::event::Event::Quit { .. } => Some(Self::Exited),

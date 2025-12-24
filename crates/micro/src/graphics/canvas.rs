@@ -11,7 +11,8 @@ use wgpu::{
 };
 
 use crate::{
-	Context, color::ColorConstants, graphics::BlendMode, math::Rect, standard_draw_param_methods,
+	Context, color::ColorConstants, context::graphics::GraphicsContext, graphics::BlendMode,
+	math::Rect, standard_draw_param_methods,
 };
 
 use super::{
@@ -43,81 +44,7 @@ pub struct Canvas {
 impl Canvas {
 	/// Creates a new [`Canvas`] with the specified `size` in pixels.
 	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
-		Self {
-			label: settings.label,
-			kind: match settings.sample_count {
-				1 => CanvasKind::Normal {
-					texture: Texture::new(
-						&ctx.graphics.device,
-						&ctx.graphics.queue,
-						size,
-						1,
-						None,
-						settings.texture_settings.clone(),
-						InternalTextureSettings {
-							sample_count: 1,
-							format: settings.format,
-						},
-					),
-				},
-				sample_count => CanvasKind::Multisampled {
-					texture: Texture::new(
-						&ctx.graphics.device,
-						&ctx.graphics.queue,
-						size,
-						1,
-						None,
-						settings.texture_settings.clone(),
-						InternalTextureSettings {
-							sample_count,
-							format: settings.format,
-						},
-					),
-					resolve_texture: Texture::new(
-						&ctx.graphics.device,
-						&ctx.graphics.queue,
-						size,
-						1,
-						None,
-						settings.texture_settings.clone(),
-						InternalTextureSettings {
-							sample_count: 1,
-							format: settings.format,
-						},
-					),
-					sample_count,
-				},
-			},
-			depth_stencil_texture: Texture::new(
-				&ctx.graphics.device,
-				&ctx.graphics.queue,
-				size,
-				1,
-				None,
-				settings.texture_settings,
-				InternalTextureSettings {
-					format: TextureFormat::Depth24PlusStencil8,
-					sample_count: settings.sample_count,
-				},
-			),
-			format: settings.format,
-			read_buffer: settings.readable.then(|| {
-				let bytes_per_pixel = settings
-					.format
-					.block_copy_size(None)
-					.expect("could not get bytes per pixel");
-				ctx.graphics.device.create_buffer(&BufferDescriptor {
-					label: Some("Canvas Read Buffer"),
-					size: bytes_per_pixel as u64 * size.x as u64 * size.y as u64,
-					usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
-					mapped_at_creation: false,
-				})
-			}),
-			region: Rect::new(Vec2::ZERO, size.as_vec2()),
-			transform: Mat4::IDENTITY,
-			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::Alpha(BlendAlphaMode::Premultiplied),
-		}
+		Self::new_from_graphics_ctx(&ctx.graphics, size, settings)
 	}
 
 	standard_draw_param_methods!();
@@ -222,6 +149,88 @@ impl Canvas {
 			.color(self.color)
 			.blend_mode(self.blend_mode)
 			.draw(ctx)
+	}
+
+	pub(crate) fn new_from_graphics_ctx(
+		graphics: &GraphicsContext,
+		size: UVec2,
+		settings: CanvasSettings,
+	) -> Self {
+		Self {
+			label: settings.label,
+			kind: match settings.sample_count {
+				1 => CanvasKind::Normal {
+					texture: Texture::new(
+						&graphics.device,
+						&graphics.queue,
+						size,
+						1,
+						None,
+						settings.texture_settings.clone(),
+						InternalTextureSettings {
+							sample_count: 1,
+							format: settings.format,
+						},
+					),
+				},
+				sample_count => CanvasKind::Multisampled {
+					texture: Texture::new(
+						&graphics.device,
+						&graphics.queue,
+						size,
+						1,
+						None,
+						settings.texture_settings.clone(),
+						InternalTextureSettings {
+							sample_count,
+							format: settings.format,
+						},
+					),
+					resolve_texture: Texture::new(
+						&graphics.device,
+						&graphics.queue,
+						size,
+						1,
+						None,
+						settings.texture_settings.clone(),
+						InternalTextureSettings {
+							sample_count: 1,
+							format: settings.format,
+						},
+					),
+					sample_count,
+				},
+			},
+			depth_stencil_texture: Texture::new(
+				&graphics.device,
+				&graphics.queue,
+				size,
+				1,
+				None,
+				settings.texture_settings,
+				InternalTextureSettings {
+					format: TextureFormat::Depth24PlusStencil8,
+					sample_count: settings.sample_count,
+				},
+			),
+			format: settings.format,
+			read_buffer: settings.readable.then(|| {
+				let bytes_per_pixel = settings
+					.format
+					.block_copy_size(None)
+					.expect("could not get bytes per pixel");
+				graphics.device.create_buffer(&BufferDescriptor {
+					label: Some("Canvas Read Buffer"),
+					size: bytes_per_pixel as u64 * size.x as u64 * size.y as u64,
+					usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+					mapped_at_creation: false,
+				})
+			}),
+			region: Rect::new(Vec2::ZERO, size.as_vec2()),
+			transform: Mat4::IDENTITY,
+			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::Alpha(BlendAlphaMode::Premultiplied),
+		}
 	}
 
 	pub(crate) fn drawable_texture(&self) -> Texture {

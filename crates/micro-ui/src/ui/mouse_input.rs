@@ -13,7 +13,7 @@ pub struct MouseInput {
 
 impl MouseInput {
 	pub fn update(&mut self, ctx: &Context, transform: Mat4) {
-		let raw_mouse_position = ctx.mouse_position().as_vec2();
+		let raw_mouse_position = ctx.mouse_position();
 		let transformed_mouse_position = transform
 			.transform_point3(raw_mouse_position.extend(0.0))
 			.truncate();

@@ -11,7 +11,7 @@ use std::{
 };
 
 use egui::{Align, Layout, TopBottomPanel};
-use glam::{IVec2, Mat4, UVec2, Vec2, Vec3, vec2};
+use glam::{Mat4, UVec2, Vec2, Vec3, vec2};
 use palette::LinSrgb;
 use sdl3::{
 	EventPump, GamepadSubsystem, IntegerOrSdlError,
@@ -377,9 +377,9 @@ impl Context {
 
 	/// Returns the current mouse position (in pixels, relative to the top-left
 	/// corner of the window).
-	pub fn mouse_position(&self) -> IVec2 {
+	pub fn mouse_position(&self) -> Vec2 {
 		let mouse_state = self.event_pump.mouse_state();
-		vec2(mouse_state.x(), mouse_state.y()).as_ivec2()
+		vec2(mouse_state.x(), mouse_state.y())
 	}
 
 	/// Gets the gamepad with the given index if it's connected.

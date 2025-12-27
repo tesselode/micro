@@ -38,6 +38,7 @@ out vec4 fragColor;
 void main()
 {
     fragColor = texture(sampler2D(inTexture, inSampler), texCoord) * vertexColor;
+    if (fragColor.a == 0.0) discard;
 }
 
 #endif

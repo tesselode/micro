@@ -169,7 +169,7 @@ impl MeshBuilder {
 		rotation: f32,
 		color: impl Into<LinSrgba>,
 	) {
-		self.add_ellipse_inner(style, center, radii, rotation, color.into())
+		self.add_ellipse_inner(style, center.into(), radii.into(), rotation, color.into())
 	}
 
 	/// Adds an ellipse to the mesh and returns the [`MeshBuilder`].
@@ -460,14 +460,12 @@ impl MeshBuilder {
 	fn add_ellipse_inner(
 		&mut self,
 		style: ShapeStyle,
-		center: impl Into<Vec2>,
-		radii: impl Into<Vec2>,
+		center: Vec2,
+		radii: Vec2,
 		rotation: f32,
 		color: LinSrgba,
 	) {
 		let _span = tracy_client::span!();
-		let center = center.into();
-		let radii = radii.into();
 		let mut buffers_builder = BuffersBuilder::new(
 			&mut self.buffers,
 			vertex_constructors::PointWithoutColorToVertex { color },

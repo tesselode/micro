@@ -25,6 +25,7 @@ use super::Mesh;
 #[derive(Debug, Clone)]
 pub struct MeshBuilder {
 	pub(crate) buffers: VertexBuffers<Vertex2d, u32>,
+	pub tolerance: f32,
 }
 
 impl MeshBuilder {
@@ -32,6 +33,7 @@ impl MeshBuilder {
 	pub fn new() -> Self {
 		Self {
 			buffers: VertexBuffers::new(),
+			tolerance: FillOptions::DEFAULT_TOLERANCE,
 		}
 	}
 
@@ -94,6 +96,10 @@ impl MeshBuilder {
 	) -> Self {
 		let _span = tracy_client::span!();
 		Self::new().with_simple_polyline(stroke_width, points, color)
+	}
+
+	pub fn with_tolerance(self, tolerance: f32) -> Self {
+		Self { tolerance, ..self }
 	}
 
 	/// Adds a rectangle to the mesh.
@@ -167,7 +173,7 @@ impl MeshBuilder {
 			&mut self.buffers,
 			vertex_constructors::PointWithColorToVertex,
 		);
-		let options = FillOptions::default();
+		let options = FillOptions::default().with_tolerance(self.tolerance);
 		let mut builder =
 			fill_tessellator.builder_with_attributes(4, &options, &mut buffers_builder);
 		let mut points = points.into_iter();
@@ -222,7 +228,9 @@ impl MeshBuilder {
 			&mut self.buffers,
 			vertex_constructors::PointWithColorToVertex,
 		);
-		let options = StrokeOptions::default().with_variable_line_width(4);
+		let options = StrokeOptions::default()
+			.with_tolerance(self.tolerance)
+			.with_variable_line_width(4);
 		let mut builder =
 			stroke_tessellator.builder_with_attributes(5, &options, &mut buffers_builder);
 		let mut points = points.into_iter();
@@ -357,7 +365,7 @@ impl MeshBuilder {
 							rect.top_left.y + rect.size.y,
 						),
 					},
-					&FillOptions::default(),
+					&FillOptions::default().with_tolerance(self.tolerance),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
 						vertex_constructors::PointWithoutColorToVertex { color },
@@ -373,7 +381,9 @@ impl MeshBuilder {
 							rect.top_left.y + rect.size.y,
 						),
 					},
-					&StrokeOptions::default().with_line_width(width),
+					&StrokeOptions::default()
+						.with_tolerance(self.tolerance)
+						.with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
 						vertex_constructors::PointWithoutColorToVertex { color },
@@ -390,7 +400,7 @@ impl MeshBuilder {
 				.tessellate_circle(
 					lyon_tessellation::math::point(circle.center.x, circle.center.y),
 					circle.radius,
-					&FillOptions::default(),
+					&FillOptions::default().with_tolerance(self.tolerance),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
 						vertex_constructors::PointWithoutColorToVertex { color },
@@ -401,7 +411,9 @@ impl MeshBuilder {
 				.tessellate_circle(
 					lyon_tessellation::math::point(circle.center.x, circle.center.y),
 					circle.radius,
-					&StrokeOptions::default().with_line_width(width),
+					&StrokeOptions::default()
+						.with_tolerance(self.tolerance)
+						.with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
 						vertex_constructors::PointWithoutColorToVertex { color },
@@ -429,7 +441,7 @@ impl MeshBuilder {
 					lyon_tessellation::math::vector(radii.x, radii.y),
 					lyon_tessellation::math::Angle::radians(rotation),
 					Winding::Positive,
-					&FillOptions::default(),
+					&FillOptions::default().with_tolerance(self.tolerance),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
 						vertex_constructors::PointWithoutColorToVertex { color },
@@ -442,7 +454,9 @@ impl MeshBuilder {
 					lyon_tessellation::math::vector(radii.x, radii.y),
 					lyon_tessellation::math::Angle::radians(rotation),
 					Winding::Positive,
-					&StrokeOptions::default().with_line_width(width),
+					&StrokeOptions::default()
+						.with_tolerance(self.tolerance)
+						.with_line_width(width),
 					&mut BuffersBuilder::new(
 						&mut self.buffers,
 						vertex_constructors::PointWithoutColorToVertex { color },

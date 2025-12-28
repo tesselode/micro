@@ -60,6 +60,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 impl<V: Vertex> Mesh<V> {
 	/// Creates a new mesh with the specified vertices and indices.
 	pub fn new(ctx: &Context, vertices: &[V], indices: &[u32]) -> Self {
+		let _span = tracy_client::span!();
 		let vertex_buffer = ctx
 			.graphics
 			.device
@@ -125,6 +126,7 @@ impl<V: Vertex> Mesh<V> {
 	///
 	/// This will modify all clones of this [`Mesh`] as well.
 	pub fn set_vertices(&self, ctx: &Context, index: usize, vertices: &[V]) {
+		let _span = tracy_client::span!();
 		ctx.graphics.queue.write_buffer(
 			&self.vertex_buffer,
 			(index * std::mem::size_of::<V>()) as u64,
@@ -134,6 +136,7 @@ impl<V: Vertex> Mesh<V> {
 
 	/// Draws the mesh.
 	pub fn draw(&self, ctx: &mut Context) {
+		let _span = tracy_client::span!();
 		ctx.graphics
 			.queue_draw_command::<V>(QueueDrawCommandSettings {
 				vertex_buffer: self.vertex_buffer.clone(),
@@ -155,7 +158,6 @@ impl<V: Vertex> Mesh<V> {
 impl Mesh<Vertex2d> {
 	/// Creates a new filled rectangle mesh.
 	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
-		let _span = tracy_client::span!();
 		Self::rectangle_with_texture_region(ctx, rect, Rect::new((0.0, 0.0), (1.0, 1.0)))
 	}
 
@@ -184,7 +186,6 @@ impl Mesh<Vertex2d> {
 
 	/// Creates a new outlined rectangle mesh.
 	pub fn outlined_rectangle(ctx: &Context, stroke_width: f32, rect: Rect) -> Self {
-		let _span = tracy_client::span!();
 		MeshBuilder::new()
 			.with_rectangle(ShapeStyle::Stroke(stroke_width), rect, LinSrgba::WHITE)
 			.build(ctx)
@@ -197,7 +198,6 @@ impl Mesh<Vertex2d> {
 		rect: Rect,
 		radii: BorderRadii,
 	) -> Self {
-		let _span = tracy_client::span!();
 		MeshBuilder::new()
 			.with_rounded_rectangle(style, rect, radii, LinSrgba::WHITE)
 			.build(ctx)
@@ -205,7 +205,6 @@ impl Mesh<Vertex2d> {
 
 	/// Creates a new circle mesh.
 	pub fn circle(ctx: &Context, style: ShapeStyle, circle: Circle) -> Self {
-		let _span = tracy_client::span!();
 		MeshBuilder::new()
 			.with_circle(style, circle, LinSrgba::WHITE)
 			.build(ctx)
@@ -219,7 +218,6 @@ impl Mesh<Vertex2d> {
 		radii: impl Into<Vec2>,
 		rotation: f32,
 	) -> Self {
-		let _span = tracy_client::span!();
 		MeshBuilder::new()
 			.with_ellipse(style, center, radii, rotation, LinSrgba::WHITE)
 			.build(ctx)
@@ -230,7 +228,6 @@ impl Mesh<Vertex2d> {
 		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		MeshBuilder::new().with_filled_polygon(points).build(ctx)
 	}
 
@@ -240,7 +237,6 @@ impl Mesh<Vertex2d> {
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Self {
-		let _span = tracy_client::span!();
 		MeshBuilder::new().with_polyline(points, closed).build(ctx)
 	}
 
@@ -251,7 +247,6 @@ impl Mesh<Vertex2d> {
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		MeshBuilder::new()
 			.with_simple_polygon(style, points, LinSrgba::WHITE)
 			.build(ctx)
@@ -264,7 +259,6 @@ impl Mesh<Vertex2d> {
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		MeshBuilder::new()
 			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)
 			.build(ctx)

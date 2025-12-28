@@ -41,7 +41,6 @@ impl MeshBuilder {
 
 	/// Creates a new [`MeshBuilder`] and adds a rectangle to the mesh.
 	pub fn rectangle(style: ShapeStyle, rect: Rect, color: impl Into<LinSrgba>) -> Self {
-		let _span = tracy_client::span!();
 		Self::new().with_rectangle(style, rect, color)
 	}
 
@@ -52,13 +51,11 @@ impl MeshBuilder {
 		radii: BorderRadii,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		Self::new().with_rounded_rectangle(style, rect, radii, color)
 	}
 
 	/// Creates a new [`MeshBuilder`] and adds a circle to the mesh.
 	pub fn circle(style: ShapeStyle, circle: Circle, color: impl Into<LinSrgba>) -> Self {
-		let _span = tracy_client::span!();
 		Self::new().with_circle(style, circle, color)
 	}
 
@@ -70,13 +67,11 @@ impl MeshBuilder {
 		rotation: f32,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		Self::new().with_ellipse(style, center, radii, rotation, color)
 	}
 
 	/// Creates a new [`MeshBuilder`] and adds a filled polygon to the mesh.
 	pub fn filled_polygon(points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>) -> Self {
-		let _span = tracy_client::span!();
 		Self::new().with_filled_polygon(points)
 	}
 
@@ -85,7 +80,6 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Self {
-		let _span = tracy_client::span!();
 		Self::new().with_polyline(points, closed)
 	}
 
@@ -96,7 +90,6 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		Self::new().with_simple_polygon(style, points, color)
 	}
 
@@ -107,7 +100,6 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		Self::new().with_simple_polyline(stroke_width, points, color)
 	}
 
@@ -127,7 +119,6 @@ impl MeshBuilder {
 		rect: Rect,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		self.add_rectangle(style, rect, color);
 		self
 	}
@@ -165,7 +156,6 @@ impl MeshBuilder {
 		circle: Circle,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		self.add_circle(style, circle, color);
 		self
 	}
@@ -191,7 +181,6 @@ impl MeshBuilder {
 		rotation: f32,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		self.add_ellipse(style, center, radii, rotation, color);
 		self
 	}
@@ -245,7 +234,6 @@ impl MeshBuilder {
 		mut self,
 		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		self.add_filled_polygon(points);
 		self
 	}
@@ -305,7 +293,6 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Self {
-		let _span = tracy_client::span!();
 		self.add_polyline(points, closed);
 		self
 	}
@@ -330,7 +317,6 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		self.add_simple_polygon(style, points, color);
 		self
 	}
@@ -354,7 +340,6 @@ impl MeshBuilder {
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 		color: impl Into<LinSrgba>,
 	) -> Self {
-		let _span = tracy_client::span!();
 		self.add_simple_polyline(stroke_width, points, color);
 		self
 	}
@@ -376,7 +361,6 @@ impl MeshBuilder {
 	/// Appends the vertices from another [`MeshBuilder`] onto this one
 	/// and returns this [`MeshBuilder`].
 	pub fn appended_with(mut self, other: Self) -> Self {
-		let _span = tracy_client::span!();
 		self.append(other);
 		self
 	}

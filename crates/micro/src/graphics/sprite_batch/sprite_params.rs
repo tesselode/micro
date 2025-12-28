@@ -1,7 +1,7 @@
 use glam::{Affine2, Vec2};
 use palette::LinSrgba;
 
-use crate::color::ColorConstants;
+use crate::{color::ColorConstants, graphics::IntoScale2d};
 
 /// Settings for a sprite in a [`SpriteBatch`](super::SpriteBatch).
 #[derive(Debug, Clone, Copy)]
@@ -38,9 +38,9 @@ impl SpriteParams {
 	}
 
 	/// Scales the sprite by the specified amount along the X and Y axes.
-	pub fn scaled(self, scale: impl Into<Vec2>) -> Self {
+	pub fn scaled(self, scale: impl IntoScale2d) -> Self {
 		Self {
-			transform: Affine2::from_scale(scale.into()) * self.transform,
+			transform: Affine2::from_scale(scale.into_scale_2d()) * self.transform,
 			..self
 		}
 	}

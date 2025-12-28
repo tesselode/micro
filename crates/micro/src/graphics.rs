@@ -5,6 +5,7 @@ mod camera_3d;
 pub mod canvas;
 mod into_index_range;
 mod into_instance_range;
+mod into_scale;
 pub mod mesh;
 mod shader;
 pub mod sprite_batch;
@@ -19,6 +20,7 @@ pub use camera_3d::*;
 pub use canvas::{Canvas, CanvasSettings, RenderToCanvasSettings};
 pub use into_index_range::*;
 pub use into_instance_range::*;
+pub use into_scale::*;
 pub use shader::*;
 pub use stencil::*;
 pub use storage_buffer::*;
@@ -62,13 +64,13 @@ macro_rules! standard_draw_param_methods {
 		}
 
 		/// Scales the object along the X and Y axes by the specified amount when drawing.
-		pub fn scaled_2d(&self, scale: impl Into<$crate::math::Vec2>) -> Self {
-			self.transformed(Mat4::from_scale(scale.into().extend(1.0)))
+		pub fn scaled_2d(&self, scale: impl $crate::graphics::IntoScale2d) -> Self {
+			self.transformed(Mat4::from_scale(scale.into_scale_2d().extend(1.0)))
 		}
 
 		/// Scales the object along the X, Y, and Z axes by the specified amount when drawing.
-		pub fn scaled_3d(&self, scale: impl Into<$crate::math::Vec3>) -> Self {
-			self.transformed(Mat4::from_scale(scale.into()))
+		pub fn scaled_3d(&self, scale: impl $crate::graphics::IntoScale3d) -> Self {
+			self.transformed(Mat4::from_scale(scale.into_scale_3d()))
 		}
 
 		/// Scales the object along the X axis by the specified amount when drawing.

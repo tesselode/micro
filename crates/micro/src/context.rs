@@ -24,7 +24,7 @@ use crate::{
 	color::ColorConstants,
 	context::graphics::GraphicsContext,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
-	graphics::{Canvas, CanvasSettings, RenderToCanvasSettings},
+	graphics::{Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings},
 	input::{Gamepad, MouseButton, Scancode},
 };
 
@@ -376,14 +376,14 @@ impl Context {
 
 	/// Pushes a transformation that scales all drawing operations by the
 	/// specified amount along the X and Y axes.
-	pub fn push_scale_2d(&mut self, scale: impl Into<Vec2>) -> OnDrop<'_> {
-		self.push(Mat4::from_scale(scale.into().extend(0.0)))
+	pub fn push_scale_2d(&mut self, scale: impl IntoScale2d) -> OnDrop<'_> {
+		self.push(Mat4::from_scale(scale.into_scale_2d().extend(0.0)))
 	}
 
 	/// Pushes a transformation that scales all drawing operations by the
 	/// specified amount along the X, Y, and Z axes.
-	pub fn push_scale_3d(&mut self, scale: impl Into<Vec3>) -> OnDrop<'_> {
-		self.push(Mat4::from_scale(scale.into()))
+	pub fn push_scale_3d(&mut self, scale: impl IntoScale3d) -> OnDrop<'_> {
+		self.push(Mat4::from_scale(scale.into_scale_3d()))
 	}
 
 	/// Pushes a transformation that scales all drawing operations by the

@@ -352,3 +352,15 @@ impl Rect {
 		(circle.center - test).length_squared() <= circle.radius.powi(2)
 	}
 }
+
+impl From<Rect> for lyon_tessellation::math::Box2D {
+	fn from(value: Rect) -> Self {
+		lyon_tessellation::math::Box2D {
+			min: lyon_tessellation::math::point(value.top_left.x, value.top_left.y),
+			max: lyon_tessellation::math::point(
+				value.top_left.x + value.size.x,
+				value.top_left.y + value.size.y,
+			),
+		}
+	}
+}

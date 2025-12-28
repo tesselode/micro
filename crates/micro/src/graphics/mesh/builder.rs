@@ -1,5 +1,7 @@
 mod vertex_constructors;
 
+pub use lyon_tessellation::path::builder::BorderRadii;
+
 use std::fmt::Debug;
 
 use glam::Vec2;
@@ -41,6 +43,17 @@ impl MeshBuilder {
 	pub fn rectangle(style: ShapeStyle, rect: Rect, color: impl Into<LinSrgba>) -> Self {
 		let _span = tracy_client::span!();
 		Self::new().with_rectangle(style, rect, color)
+	}
+
+	/// Creates a new [`MeshBuilder`] and adds a rounded rectangle to the mesh.
+	pub fn rounded_rectangle(
+		style: ShapeStyle,
+		rect: Rect,
+		radii: BorderRadii,
+		color: impl Into<LinSrgba>,
+	) -> Self {
+		let _span = tracy_client::span!();
+		Self::new().with_rounded_rectangle(style, rect, radii, color)
 	}
 
 	/// Creates a new [`MeshBuilder`] and adds a circle to the mesh.
@@ -116,6 +129,27 @@ impl MeshBuilder {
 	) -> Self {
 		let _span = tracy_client::span!();
 		self.add_rectangle(style, rect, color);
+		self
+	}
+
+	pub fn add_rounded_rectangle(
+		&mut self,
+		style: ShapeStyle,
+		rect: Rect,
+		radii: BorderRadii,
+		color: impl Into<LinSrgba>,
+	) {
+		self.add_rounded_rectangle_inner(style, rect, radii, color.into());
+	}
+
+	pub fn with_rounded_rectangle(
+		mut self,
+		style: ShapeStyle,
+		rect: Rect,
+		radii: BorderRadii,
+		color: impl Into<LinSrgba>,
+	) -> Self {
+		self.add_rounded_rectangle(style, rect, radii, color);
 		self
 	}
 
@@ -355,56 +389,75 @@ impl MeshBuilder {
 
 	fn add_rectangle_inner(&mut self, style: ShapeStyle, rect: Rect, color: LinSrgba) {
 		let _span = tracy_client::span!();
+		let mut buffers_builder = BuffersBuilder::new(
+			&mut self.buffers,
+			vertex_constructors::PointWithoutColorToVertex { color },
+		);
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_rectangle(
-					&lyon_tessellation::math::Box2D {
-						min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-						max: lyon_tessellation::math::point(
-							rect.top_left.x + rect.size.x,
-							rect.top_left.y + rect.size.y,
-						),
-					},
+					&rect.into(),
 					&FillOptions::default().with_tolerance(self.tolerance),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						vertex_constructors::PointWithoutColorToVertex { color },
-					),
+					&mut buffers_builder,
 				)
 				.unwrap(),
 			ShapeStyle::Stroke(width) => StrokeTessellator::new()
 				.tessellate_rectangle(
-					&lyon_tessellation::math::Box2D {
-						min: lyon_tessellation::math::point(rect.top_left.x, rect.top_left.y),
-						max: lyon_tessellation::math::point(
-							rect.top_left.x + rect.size.x,
-							rect.top_left.y + rect.size.y,
-						),
-					},
+					&rect.into(),
 					&StrokeOptions::default()
 						.with_tolerance(self.tolerance)
 						.with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						vertex_constructors::PointWithoutColorToVertex { color },
-					),
+					&mut buffers_builder,
 				)
 				.unwrap(),
 		};
 	}
 
+	fn add_rounded_rectangle_inner(
+		&mut self,
+		style: ShapeStyle,
+		rect: Rect,
+		radii: BorderRadii,
+		color: LinSrgba,
+	) {
+		let _span = tracy_client::span!();
+		let mut buffers_builder = BuffersBuilder::new(
+			&mut self.buffers,
+			vertex_constructors::PointWithoutColorToVertex { color },
+		);
+		match style {
+			ShapeStyle::Fill => {
+				let mut fill_tessellator = FillTessellator::new();
+				let options = FillOptions::default().with_tolerance(self.tolerance);
+				let mut builder = fill_tessellator.builder(&options, &mut buffers_builder);
+				builder.add_rounded_rectangle(&rect.into(), &radii, Winding::Positive);
+				builder.build().unwrap()
+			}
+			ShapeStyle::Stroke(width) => {
+				let mut stroke_tessellator = StrokeTessellator::new();
+				let options = StrokeOptions::default()
+					.with_line_width(width)
+					.with_tolerance(self.tolerance);
+				let mut builder = stroke_tessellator.builder(&options, &mut buffers_builder);
+				builder.add_rounded_rectangle(&rect.into(), &radii, Winding::Positive);
+				builder.build().unwrap()
+			}
+		};
+	}
+
 	fn add_circle_inner(&mut self, style: ShapeStyle, circle: Circle, color: LinSrgba) {
 		let _span = tracy_client::span!();
+		let mut buffers_builder = BuffersBuilder::new(
+			&mut self.buffers,
+			vertex_constructors::PointWithoutColorToVertex { color },
+		);
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_circle(
 					lyon_tessellation::math::point(circle.center.x, circle.center.y),
 					circle.radius,
 					&FillOptions::default().with_tolerance(self.tolerance),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						vertex_constructors::PointWithoutColorToVertex { color },
-					),
+					&mut buffers_builder,
 				)
 				.unwrap(),
 			ShapeStyle::Stroke(width) => StrokeTessellator::new()
@@ -414,10 +467,7 @@ impl MeshBuilder {
 					&StrokeOptions::default()
 						.with_tolerance(self.tolerance)
 						.with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						vertex_constructors::PointWithoutColorToVertex { color },
-					),
+					&mut buffers_builder,
 				)
 				.unwrap(),
 		};
@@ -434,6 +484,10 @@ impl MeshBuilder {
 		let _span = tracy_client::span!();
 		let center = center.into();
 		let radii = radii.into();
+		let mut buffers_builder = BuffersBuilder::new(
+			&mut self.buffers,
+			vertex_constructors::PointWithoutColorToVertex { color },
+		);
 		match style {
 			ShapeStyle::Fill => FillTessellator::new()
 				.tessellate_ellipse(
@@ -442,10 +496,7 @@ impl MeshBuilder {
 					lyon_tessellation::math::Angle::radians(rotation),
 					Winding::Positive,
 					&FillOptions::default().with_tolerance(self.tolerance),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						vertex_constructors::PointWithoutColorToVertex { color },
-					),
+					&mut buffers_builder,
 				)
 				.unwrap(),
 			ShapeStyle::Stroke(width) => StrokeTessellator::new()
@@ -457,10 +508,7 @@ impl MeshBuilder {
 					&StrokeOptions::default()
 						.with_tolerance(self.tolerance)
 						.with_line_width(width),
-					&mut BuffersBuilder::new(
-						&mut self.buffers,
-						vertex_constructors::PointWithoutColorToVertex { color },
-					),
+					&mut buffers_builder,
 				)
 				.unwrap(),
 		};

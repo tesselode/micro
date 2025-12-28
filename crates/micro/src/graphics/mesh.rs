@@ -190,6 +190,19 @@ impl Mesh<Vertex2d> {
 			.build(ctx)
 	}
 
+	/// Creates a new rounded rectangle mesh.
+	pub fn rounded_rectangle(
+		ctx: &Context,
+		style: ShapeStyle,
+		rect: Rect,
+		radii: BorderRadii,
+	) -> Self {
+		let _span = tracy_client::span!();
+		MeshBuilder::new()
+			.with_rounded_rectangle(style, rect, radii, LinSrgba::WHITE)
+			.build(ctx)
+	}
+
 	/// Creates a new circle mesh.
 	pub fn circle(ctx: &Context, style: ShapeStyle, circle: Circle) -> Self {
 		let _span = tracy_client::span!();

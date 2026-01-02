@@ -8,7 +8,8 @@ use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
 
 #[derive(Debug)]
 pub struct Align {
-	align: Vec2,
+	parent_anchor: Vec2,
+	child_anchor: Vec2,
 	sizing: Sizing,
 	children: Vec<Box<dyn Widget>>,
 	mouse_event_channel: Option<WidgetMouseEventChannel>,
@@ -18,20 +19,26 @@ macro_rules! align_constructors {
 	($($name:ident: $align:expr),*$(,)?) => {
 		$(
 			pub fn $name() -> Self {
-				Self::new($align)
+				Self::simple($align)
 			}
 		)*
 	};
 }
 
 impl Align {
-	pub fn new(align: impl Into<Vec2>) -> Self {
+	pub fn new(parent_anchor: impl Into<Vec2>, child_anchor: impl Into<Vec2>) -> Self {
 		Self {
-			align: align.into(),
+			parent_anchor: parent_anchor.into(),
+			child_anchor: child_anchor.into(),
 			sizing: Sizing::EXPAND,
 			children: vec![],
 			mouse_event_channel: None,
 		}
+	}
+
+	pub fn simple(anchor: impl Into<Vec2>) -> Self {
+		let anchor = anchor.into();
+		Self::new(anchor, anchor)
 	}
 
 	align_constructors! {
@@ -93,7 +100,7 @@ impl Widget for Align {
 		let child_positions = child_sizes
 			.iter()
 			.copied()
-			.map(|size| (parent_size - size) * self.align)
+			.map(|child_size| parent_size * self.parent_anchor - child_size * self.child_anchor)
 			.collect();
 		LayoutResult {
 			size: parent_size,

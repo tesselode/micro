@@ -16,6 +16,22 @@ impl Sizing {
 		vertical: AxisSizing::Expand,
 	};
 
+	pub fn max(max: impl Into<Vec2>) -> Self {
+		let max = max.into();
+		Self {
+			horizontal: AxisSizing::Max(max.x),
+			vertical: AxisSizing::Max(max.y),
+		}
+	}
+
+	pub fn fractional(fraction: impl Into<Vec2>) -> Self {
+		let fraction = fraction.into();
+		Self {
+			horizontal: AxisSizing::Fractional(fraction.x),
+			vertical: AxisSizing::Fractional(fraction.y),
+		}
+	}
+
 	pub fn allotted_size_for_children(self, allotted_size_from_parent: Vec2) -> Vec2 {
 		vec2(
 			self.horizontal

@@ -53,9 +53,13 @@ impl Ui {
 	) {
 		let _span = tracy_client::span!();
 		let ctx = &mut ctx.push(settings.transform);
-		let size = ctx.window_size().as_vec2();
-		let mut baked_widget =
-			BakedWidget::new(ctx, PathBuf::new(), &widget, settings.size.unwrap_or(size));
+		let default_size = ctx.window_size().as_vec2();
+		let mut baked_widget = BakedWidget::new(
+			ctx,
+			PathBuf::new(),
+			&widget,
+			settings.size.unwrap_or(default_size),
+		);
 		self.mouse_input.update(ctx, settings.transform.inverse());
 		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);
 		baked_widget.draw(ctx, &widget);

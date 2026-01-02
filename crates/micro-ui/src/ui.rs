@@ -194,7 +194,7 @@ impl BakedWidget {
 			&self.children,
 			self.layout_result.child_positions.iter().copied()
 		) {
-			let ctx = &mut ctx.push_translation_2d(position.round());
+			let ctx = &mut ctx.push_translation_2d(position);
 			baked_child.draw(ctx, raw_child.as_ref());
 		}
 		raw_widget.draw_after_children(ctx, self.layout_result.size);

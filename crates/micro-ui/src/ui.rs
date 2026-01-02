@@ -173,6 +173,7 @@ impl BakedWidget {
 
 	fn draw(&self, ctx: &mut Context, raw_widget: &dyn Widget) {
 		let _span = tracy_client::span!();
+		let ctx = &mut ctx.push(raw_widget.transform(self.layout_result.size));
 		if let Some((raw_mask, baked_mask)) = raw_widget.mask().zip(self.mask.as_ref()) {
 			{
 				let ctx = &mut ctx.push(StencilState::write(StencilOperation::Replace, 1));

@@ -137,6 +137,9 @@ impl<V: Vertex> Mesh<V> {
 	/// Draws the mesh.
 	pub fn draw(&self, ctx: &mut Context) {
 		let _span = tracy_client::span!();
+		if self.num_indices == 0 {
+			return;
+		}
 		ctx.graphics
 			.queue_draw_command::<V>(QueueDrawCommandSettings {
 				vertex_buffer: self.vertex_buffer.clone(),

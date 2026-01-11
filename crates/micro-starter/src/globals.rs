@@ -15,7 +15,13 @@ pub struct Globals {
 impl Globals {
 	pub fn new(ctx: &mut Context) -> Self {
 		Self {
-			input: Input::new(default_input_config(), ctx.gamepad(0)),
+			input: Input::new(
+				default_input_config(),
+				ctx.gamepads()
+					.expect("could not get gamepads")
+					.drain(..)
+					.next(),
+			),
 			textures: Assets::autoloaded(ctx, "texture", TextureLoader::default()),
 			fonts: Assets::autoloaded(ctx, "font", FontLoader::default()),
 		}

@@ -6,4 +6,4 @@ edition = "2024"
 [dependencies]
 micro = { path = "../micro" }
 micro-asset = { path = "../micro-asset" }
-tiled = "0.13.0"
+tiled = "0.15.0"

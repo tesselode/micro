@@ -18,11 +18,6 @@ pub use sdl3::mouse::MouseWheelDirection;
 pub struct Gamepad(pub(crate) sdl3::gamepad::Gamepad);
 
 impl Gamepad {
-	/// The index of the gamepad.
-	pub fn id(&self) -> u32 {
-		self.0.id().unwrap()
-	}
-
 	/// Whether the gamepad is currently connected.
 	pub fn is_connected(&self) -> bool {
 		self.0.connected()

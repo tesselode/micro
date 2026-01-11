@@ -10,7 +10,7 @@ anyhow = "1.0.100"
 backtrace = "0.3.73"
 directories = "6.0.0"
 exhaust = "0.2.0"
-hecs = "0.10.3"
+hecs = "0.11.0"
 micro = { path = "../micro" }
 micro-asset = { path = "../micro-asset" }
 micro-scene-manager = { path = "../micro-scene-manager" }

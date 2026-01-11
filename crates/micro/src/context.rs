@@ -455,9 +455,13 @@ impl Context {
 			.truncate()
 	}
 
-	/// Gets the gamepad with the given index if it's connected.
-	pub fn gamepad(&self, index: u32) -> Option<Gamepad> {
-		self.gamepad.open(index).map(Gamepad).ok()
+	/// Gets the currently connected gamepads.
+	pub fn gamepads(&self) -> anyhow::Result<Vec<Gamepad>> {
+		let mut gamepads = vec![];
+		for id in self.gamepad.gamepads()? {
+			gamepads.push(Gamepad(self.gamepad.get(id)?));
+		}
+		Ok(gamepads)
 	}
 
 	/// Returns the average duration of a frame over the past 30 frames.

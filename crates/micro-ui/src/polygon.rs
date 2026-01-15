@@ -46,6 +46,18 @@ impl Polygon {
 		}
 	}
 
+	pub fn fill_if(self, condition: bool, color: impl Into<LinSrgba>) -> Self {
+		if condition { self.fill(color) } else { self }
+	}
+
+	pub fn stroke_if(self, condition: bool, width: f32, color: impl Into<LinSrgba>) -> Self {
+		if condition {
+			self.stroke(width, color)
+		} else {
+			self
+		}
+	}
+
 	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
 		Self {
 			mouse_event_channel: Some(channel.clone()),

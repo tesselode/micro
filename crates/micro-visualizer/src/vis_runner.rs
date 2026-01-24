@@ -345,16 +345,18 @@ enum LiveResolution {
 	Full,
 	Half,
 	Quarter,
+	Eighth,
 }
 
 impl LiveResolution {
-	const NUM_RESOLUTIONS: usize = 3;
+	const NUM_RESOLUTIONS: usize = 4;
 
 	fn as_divisor(self) -> u32 {
 		match self {
 			LiveResolution::Full => 1,
 			LiveResolution::Half => 2,
 			LiveResolution::Quarter => 4,
+			LiveResolution::Eighth => 8,
 		}
 	}
 
@@ -363,6 +365,7 @@ impl LiveResolution {
 			LiveResolution::Full => "Full",
 			LiveResolution::Half => "Half",
 			LiveResolution::Quarter => "Quarter",
+			LiveResolution::Eighth => "Eighth",
 		}
 	}
 }
@@ -373,6 +376,7 @@ impl From<usize> for LiveResolution {
 			0 => Self::Full,
 			1 => Self::Half,
 			2 => Self::Quarter,
+			3 => Self::Eighth,
 			_ => panic!("invalid LiveResolution"),
 		}
 	}

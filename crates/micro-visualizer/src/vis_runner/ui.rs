@@ -99,6 +99,7 @@ impl VisRunner {
 		if ui.button(play_pause_button_text).clicked() {
 			self.toggle_playback()?;
 		};
+		ui.checkbox(&mut self.repeat_chapter, "Loop");
 		Ok(())
 	}
 

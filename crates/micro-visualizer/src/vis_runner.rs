@@ -7,7 +7,7 @@ use std::{io::Write, process::Child, time::Duration};
 use kira::{
 	sound::{
 		streaming::{StreamingSoundData, StreamingSoundHandle},
-		FromFileError, PlaybackPosition, PlaybackState,
+		EndPosition, FromFileError, PlaybackPosition, PlaybackState, Region,
 	},
 	AudioManager, AudioManagerSettings, Decibels, Tween,
 };
@@ -29,6 +29,7 @@ pub struct VisRunner {
 	visualizer: Box<dyn Visualizer>,
 	audio_manager: AudioManager,
 	mode: Mode,
+	repeat_chapter: bool,
 	num_frames: u64,
 	previous_frame: u64,
 	canvas: Canvas,
@@ -67,6 +68,7 @@ impl VisRunner {
 				data: Some(sound_data),
 				start_frame: 0,
 			},
+			repeat_chapter: false,
 			num_frames,
 			previous_frame: u64::MAX,
 			canvas,
@@ -107,7 +109,9 @@ impl VisRunner {
 					self.visualizer.frame_rate(),
 				));
 				self.mode = Mode::PlayingOrPaused {
-					sound: self.audio_manager.play(data)?,
+					sound: self
+						.audio_manager
+						.play(data.loop_region(self.audio_loop_region()))?,
 					in_progress_seek: None,
 				};
 			}
@@ -195,6 +199,37 @@ impl VisRunner {
 			self.visualizer.video_resolution() / self.live_resolution.as_divisor()
 		}
 	}
+
+	fn audio_loop_region(&self) -> Option<Region> {
+		if !self.repeat_chapter {
+			return None;
+		}
+		if let Some(chapters) = self.visualizer.chapters() {
+			let current_chapter_index = chapters
+				.index_at_frame(self.current_frame())
+				.expect("no current chapter");
+			let current_chapter = &chapters[current_chapter_index];
+			let start_frame = current_chapter.start_frame;
+			let end_frame = chapters
+				.end_frame(current_chapter_index)
+				.unwrap_or(self.num_frames);
+			Some(Region {
+				start: PlaybackPosition::Seconds(frame_to_seconds(
+					start_frame,
+					self.visualizer.frame_rate(),
+				)),
+				end: EndPosition::Custom(PlaybackPosition::Seconds(frame_to_seconds(
+					end_frame,
+					self.visualizer.frame_rate(),
+				))),
+			})
+		} else {
+			Some(Region {
+				start: PlaybackPosition::Seconds(0.0),
+				end: EndPosition::EndOfAudio,
+			})
+		}
+	}
 }
 
 impl App for VisRunner {
@@ -234,6 +269,8 @@ impl App for VisRunner {
 	}
 
 	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), anyhow::Error> {
+		let loop_region = self.audio_loop_region();
+
 		if self.canvas.size() != self.current_resolution() {
 			self.canvas = Canvas::new(
 				ctx,
@@ -251,6 +288,7 @@ impl App for VisRunner {
 		} = &mut self.mode
 		{
 			sound.set_volume(self.volume, Tween::default());
+			sound.set_loop_region(loop_region);
 			if let Some(in_progress_seek_destination) = in_progress_seek {
 				let detection_threshold_frames = seconds_to_frames_i64(
 					FINISHED_SEEK_DETECTION_THRESHOLD.as_secs_f64(),

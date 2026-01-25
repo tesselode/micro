@@ -140,7 +140,7 @@ impl<L: AssetLoader> Assets<L> {
 				Ok(None) => return,
 				Err(err) => {
 					tracing::error!(
-						"Error loading asset at path {}: {:?}",
+						"Error loading asset at path {}: {}",
 						full_asset_path.display(),
 						err
 					);

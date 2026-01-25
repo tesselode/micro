@@ -8,13 +8,13 @@ pub use texture::*;
 
 use serde::Deserialize;
 
-use std::{fmt::Debug, path::Path};
+use std::{fmt::Display, path::Path};
 
 #[allow(unused_variables)]
 pub trait AssetLoader {
 	type Asset;
 
-	type Error: Debug;
+	type Error: Display;
 
 	type Settings: for<'a> Deserialize<'a>;
 

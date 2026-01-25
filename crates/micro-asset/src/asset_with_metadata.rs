@@ -100,7 +100,7 @@ impl<L: AssetLoader> AssetWithMetadata<L> {
 			self.settings.as_ref(),
 		) {
 			tracing::error!(
-				"Error loading asset at path {}: {:?}",
+				"Error loading asset at path {}: {}",
 				self.file_path.display(),
 				err
 			);

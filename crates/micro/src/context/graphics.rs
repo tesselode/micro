@@ -29,7 +29,8 @@ use crate::{
 		graphics::cached_resources::{CachedResources, RenderPipelineSettings},
 	},
 	graphics::{
-		BlendMode, Canvas, RenderToCanvasSettings, Shader, StencilState, StorageBuffer, Vertex,
+		BlendMode, Canvas, CompiledShader, RenderToCanvasSettings, Shader, StencilState,
+		StorageBuffer, Vertex,
 		canvas::CanvasKind,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
 	},
@@ -48,6 +49,7 @@ pub(crate) struct GraphicsContext {
 	pub(crate) clear_color: LinSrgb,
 	graphics_state_stack: Vec<GraphicsState>,
 	cached_resources: CachedResources,
+	pub(crate) compiled_shaders: HashMap<String, CompiledShader>,
 	main_surface_draw_commands: Vec<DrawCommand>,
 	canvas_render_pass_stack: Vec<CanvasRenderPass>,
 	finished_canvas_render_passes: Vec<CanvasRenderPass>,
@@ -98,7 +100,9 @@ impl GraphicsContext {
 		};
 		surface.configure(&device, &config);
 		let layouts = Layouts::new(&device);
-		let default_resources = DefaultResources::new(&device, &queue, &layouts);
+		let mut compiled_shaders = HashMap::new();
+		let default_resources =
+			DefaultResources::new(&device, &queue, &layouts, &mut compiled_shaders);
 		let main_surface_depth_stencil_texture = Texture::new(
 			&device,
 			&queue,
@@ -123,6 +127,7 @@ impl GraphicsContext {
 			clear_color: LinSrgb::BLACK,
 			graphics_state_stack: vec![],
 			cached_resources: CachedResources::new(),
+			compiled_shaders,
 			main_surface_draw_commands: vec![],
 			canvas_render_pass_stack: vec![],
 			finished_canvas_render_passes: vec![],
@@ -283,7 +288,6 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn present(&mut self) {
-		self.create_shaders();
 		self.create_render_pipelines();
 
 		let mut encoder = self.device.create_command_encoder(&Default::default());
@@ -422,27 +426,19 @@ impl GraphicsContext {
 			))
 	}
 
-	fn create_shaders(&mut self) {
-		let _span = tracy_client::span!();
-		self.cached_resources
-			.create_shaders(&self.device, &self.main_surface_draw_commands);
-		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
-			self.cached_resources
-				.create_shaders(&self.device, draw_commands);
-		}
-	}
-
 	fn create_render_pipelines(&mut self) {
 		let _span = tracy_client::span!();
 		self.cached_resources.create_render_pipelines(
 			&self.device,
 			&mut self.layouts,
+			&self.compiled_shaders,
 			&self.main_surface_draw_commands,
 		);
 		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
 			self.cached_resources.create_render_pipelines(
 				&self.device,
 				&mut self.layouts,
+				&self.compiled_shaders,
 				draw_commands,
 			);
 		}

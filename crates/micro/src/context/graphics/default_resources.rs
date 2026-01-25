@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use glam::UVec2;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BufferUsages, Device, Queue,
@@ -5,7 +7,7 @@ use wgpu::{
 };
 
 use crate::{
-	context::graphics::Layouts,
+	context::graphics::{CompiledShader, Layouts},
 	graphics::{
 		Shader,
 		texture::{InternalTextureSettings, Texture, TextureSettings},
@@ -21,7 +23,12 @@ pub(crate) struct DefaultResources {
 }
 
 impl DefaultResources {
-	pub(crate) fn new(device: &Device, queue: &Queue, layouts: &Layouts) -> Self {
+	pub(crate) fn new(
+		device: &Device,
+		queue: &Queue,
+		layouts: &Layouts,
+		compiled_shaders: &mut HashMap<String, CompiledShader>,
+	) -> Self {
 		let default_texture = Texture::new(
 			device,
 			queue,
@@ -31,7 +38,13 @@ impl DefaultResources {
 			TextureSettings::default(),
 			InternalTextureSettings::default(),
 		);
-		let default_shader = Shader::from_string("Default Shader", DEFAULT_SHADER_SOURCE);
+		let default_shader = Shader::new(
+			"Default Shader",
+			DEFAULT_SHADER_SOURCE,
+			device,
+			compiled_shaders,
+		)
+		.expect("error compiling default shader");
 		let default_shader_params_bind_group = {
 			let buffer = device.create_buffer_init(&BufferInitDescriptor {
 				label: Some("Default Shader - Shader Params Buffer"),

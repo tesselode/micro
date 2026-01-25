@@ -1,23 +1,21 @@
-use std::{any::TypeId, borrow::Cow, collections::HashMap};
+use std::{any::TypeId, collections::HashMap};
 
 use wgpu::{
 	BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
 	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
 	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor,
-	PrimitiveState, RenderPipeline, RenderPipelineDescriptor, SamplerBindingType, ShaderModule,
-	ShaderModuleDescriptor, ShaderSource, ShaderStages, TextureFormat, TextureSampleType,
-	TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexState, VertexStepMode,
-	naga::ShaderStage,
+	PrimitiveState, RenderPipeline, RenderPipelineDescriptor, SamplerBindingType, ShaderStages,
+	TextureFormat, TextureSampleType, TextureViewDimension, VertexAttribute, VertexBufferLayout,
+	VertexState, VertexStepMode,
 };
 
 use crate::{
 	context::graphics::{DrawCommand, Layouts},
-	graphics::{BlendMode, Vertex},
+	graphics::{BlendMode, CompiledShader, Vertex},
 };
 
 pub(super) struct CachedResources {
 	pub(super) vertex_info: HashMap<TypeId, VertexInfo>,
-	pub(super) shaders: HashMap<String, ShaderModulePair>,
 	pub(super) render_pipelines: HashMap<RenderPipelineSettings, RenderPipeline>,
 }
 
@@ -25,7 +23,6 @@ impl CachedResources {
 	pub(super) fn new() -> Self {
 		Self {
 			vertex_info: HashMap::new(),
-			shaders: HashMap::new(),
 			render_pipelines: HashMap::new(),
 		}
 	}
@@ -37,28 +34,11 @@ impl CachedResources {
 			.or_insert_with(|| VertexInfo::for_type::<V>());
 	}
 
-	pub(super) fn create_shaders(&mut self, device: &Device, draw_commands: &[DrawCommand]) {
-		for DrawCommand {
-			render_pipeline_settings,
-			..
-		} in draw_commands
-		{
-			self.shaders
-				.entry(render_pipeline_settings.shader_source.clone())
-				.or_insert_with(|| {
-					ShaderModulePair::new(
-						device,
-						&render_pipeline_settings.shader_name,
-						&render_pipeline_settings.shader_source,
-					)
-				});
-		}
-	}
-
 	pub(super) fn create_render_pipelines(
 		&mut self,
 		device: &Device,
 		layouts: &mut Layouts,
+		compiled_shaders: &HashMap<String, CompiledShader>,
 		draw_commands: &[DrawCommand],
 	) {
 		for DrawCommand {
@@ -73,7 +53,7 @@ impl CachedResources {
 						device,
 						layouts,
 						&self.vertex_info,
-						&self.shaders,
+						compiled_shaders,
 						render_pipeline_settings,
 					)
 				});
@@ -92,35 +72,6 @@ impl VertexInfo {
 			size: std::mem::size_of::<V>(),
 			attributes: V::attributes(),
 		}
-	}
-}
-
-pub(super) struct ShaderModulePair {
-	vertex: ShaderModule,
-	fragment: ShaderModule,
-}
-
-impl ShaderModulePair {
-	fn new(device: &Device, name: &str, source: &str) -> Self {
-		let span = tracy_client::span!();
-		span.emit_text(name);
-		let vertex = device.create_shader_module(ShaderModuleDescriptor {
-			label: Some(&format!("{} - Vertex Shader", &name)),
-			source: ShaderSource::Glsl {
-				shader: Cow::Borrowed(source),
-				stage: ShaderStage::Vertex,
-				defines: &[("VERTEX", "1")],
-			},
-		});
-		let fragment = device.create_shader_module(ShaderModuleDescriptor {
-			label: Some(&format!("{} - Fragment Shader", &name)),
-			source: ShaderSource::Glsl {
-				shader: Cow::Borrowed(source),
-				stage: ShaderStage::Fragment,
-				defines: &[("FRAGMENT", "1")],
-			},
-		});
-		Self { vertex, fragment }
 	}
 }
 
@@ -145,7 +96,7 @@ fn create_render_pipeline(
 	device: &Device,
 	layouts: &mut Layouts,
 	vertex_info: &HashMap<TypeId, VertexInfo>,
-	shaders: &HashMap<String, ShaderModulePair>,
+	compiled_shaders: &HashMap<String, CompiledShader>,
 	settings: &RenderPipelineSettings,
 ) -> RenderPipeline {
 	let span = tracy_client::span!();
@@ -183,7 +134,7 @@ fn create_render_pipeline(
 		label: None,
 		layout: Some(&pipeline_layout),
 		vertex: VertexState {
-			module: &shaders[&settings.shader_source].vertex,
+			module: &compiled_shaders[&settings.shader_source].vertex,
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			buffers: &[VertexBufferLayout {
@@ -209,7 +160,7 @@ fn create_render_pipeline(
 			..Default::default()
 		},
 		fragment: Some(FragmentState {
-			module: &shaders[&settings.shader_source].fragment,
+			module: &compiled_shaders[&settings.shader_source].fragment,
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
 			targets: &[Some(ColorTargetState {

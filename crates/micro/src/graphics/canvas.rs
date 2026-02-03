@@ -71,6 +71,15 @@ impl Canvas {
 		self.format
 	}
 
+	pub fn drawable_texture(&self) -> Texture {
+		match &self.kind {
+			CanvasKind::Normal { texture } => texture.clone(),
+			CanvasKind::Multisampled {
+				resolve_texture, ..
+			} => resolve_texture.clone(),
+		}
+	}
+
 	pub fn read<T>(&self, ctx: &Context, f: impl FnOnce(&[u8]) -> T) -> T {
 		let bytes_per_pixel = self
 			.format
@@ -230,15 +239,6 @@ impl Canvas {
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::Alpha(BlendAlphaMode::Premultiplied),
-		}
-	}
-
-	pub(crate) fn drawable_texture(&self) -> Texture {
-		match &self.kind {
-			CanvasKind::Normal { texture } => texture.clone(),
-			CanvasKind::Multisampled {
-				resolve_texture, ..
-			} => resolve_texture.clone(),
 		}
 	}
 }

@@ -9,13 +9,12 @@ use super::mouse_input::MouseInput;
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct WidgetMouseState {
 	pub hovered: bool,
-	pub hovered_previous: bool,
 	pub pressed: HashSet<MouseButton>,
 }
 
 impl WidgetMouseState {
 	pub fn update(&mut self, mouse_input: &MouseInput, size: Vec2) -> UpdateMouseStateResult {
-		self.hovered_previous = self.hovered;
+		let hovered_previous = self.hovered;
 		self.hovered = mouse_input
 			.mouse_position
 			.is_some_and(|position| Rect::new(Vec2::ZERO, size).contains_point(position));
@@ -49,8 +48,8 @@ impl WidgetMouseState {
 			}
 		}
 		UpdateMouseStateResult {
-			hovered: self.hovered && !self.hovered_previous,
-			unhovered: self.hovered_previous && !self.hovered,
+			hovered: self.hovered && !hovered_previous,
+			unhovered: hovered_previous && !self.hovered,
 			click_started,
 			clicked,
 		}

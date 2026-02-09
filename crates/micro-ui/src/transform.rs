@@ -5,7 +5,7 @@ use micro::{
 
 use crate::{child_fns, sizing_fns};
 
-use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
+use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
 
 #[derive(Debug)]
 pub struct Transform {
@@ -13,7 +13,7 @@ pub struct Transform {
 	origin: Vec2,
 	transform: Mat4,
 	children: Vec<Box<dyn Widget>>,
-	mouse_event_channel: Option<WidgetMouseEventChannel>,
+	mouse_state: Option<WidgetMouseState>,
 }
 
 impl Transform {
@@ -23,7 +23,7 @@ impl Transform {
 			origin: Vec2::ZERO,
 			transform: transform.into(),
 			children: vec![],
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 
@@ -62,9 +62,9 @@ impl Transform {
 		}
 	}
 
-	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
 		Self {
-			mouse_event_channel: Some(channel.clone()),
+			mouse_state: Some(state.clone()),
 			..self
 		}
 	}
@@ -87,8 +87,8 @@ impl Widget for Transform {
 		origin_transform.inverse() * self.transform * origin_transform
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
-		self.mouse_event_channel.as_ref()
+	fn mouse_state(&self) -> Option<WidgetMouseState> {
+		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

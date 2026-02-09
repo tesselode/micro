@@ -9,7 +9,7 @@ use micro::{
 
 use crate::{child_fns, sizing_fns};
 
-use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
+use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
 
 #[derive(Debug)]
 pub struct Rectangle {
@@ -17,7 +17,7 @@ pub struct Rectangle {
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
 	children: Vec<Box<dyn Widget>>,
-	mouse_event_channel: Option<WidgetMouseEventChannel>,
+	mouse_state: Option<WidgetMouseState>,
 }
 
 impl Rectangle {
@@ -51,9 +51,9 @@ impl Rectangle {
 		}
 	}
 
-	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
 		Self {
-			mouse_event_channel: Some(channel.clone()),
+			mouse_state: Some(state.clone()),
 			..self
 		}
 	}
@@ -69,7 +69,7 @@ impl Default for Rectangle {
 			fill: Default::default(),
 			stroke: Default::default(),
 			children: Default::default(),
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 }
@@ -83,8 +83,8 @@ impl Widget for Rectangle {
 		&self.children
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
-		self.mouse_event_channel.as_ref()
+	fn mouse_state(&self) -> Option<WidgetMouseState> {
+		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

@@ -1,6 +1,6 @@
 use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
-use super::{LayoutResult, Widget, WidgetMouseEventChannel};
+use super::{LayoutResult, Widget, WidgetMouseState};
 
 #[derive(Debug)]
 pub struct Polyline {
@@ -8,7 +8,7 @@ pub struct Polyline {
 	stroke_width: f32,
 	color: LinSrgba,
 	size: Vec2,
-	mouse_event_channel: Option<WidgetMouseEventChannel>,
+	mouse_state: Option<WidgetMouseState>,
 }
 
 impl Polyline {
@@ -27,13 +27,13 @@ impl Polyline {
 			stroke_width,
 			color: color.into(),
 			size,
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 
-	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
 		Self {
-			mouse_event_channel: Some(channel.clone()),
+			mouse_state: Some(state.clone()),
 			..self
 		}
 	}
@@ -48,8 +48,8 @@ impl Widget for Polyline {
 		&[]
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
-		self.mouse_event_channel.as_ref()
+	fn mouse_state(&self) -> Option<WidgetMouseState> {
+		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

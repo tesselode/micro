@@ -10,14 +10,14 @@ use micro::{
 	math::Vec2,
 };
 
-use super::{LayoutResult, Widget, WidgetMouseEventChannel};
+use super::{LayoutResult, Widget, WidgetMouseState};
 
 pub struct TextWidget {
 	font: Font,
 	text: String,
 	settings: TextSettings,
 	rendered: RefCell<Option<Text>>,
-	mouse_event_channel: Option<WidgetMouseEventChannel>,
+	mouse_state: Option<WidgetMouseState>,
 }
 
 impl TextWidget {
@@ -27,13 +27,13 @@ impl TextWidget {
 			text: text.into(),
 			settings,
 			rendered: RefCell::new(None),
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 
-	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
 		Self {
-			mouse_event_channel: Some(channel.clone()),
+			mouse_state: Some(state.clone()),
 			..self
 		}
 	}
@@ -48,8 +48,8 @@ impl Widget for TextWidget {
 		&[]
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
-		self.mouse_event_channel.as_ref()
+	fn mouse_state(&self) -> Option<WidgetMouseState> {
+		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

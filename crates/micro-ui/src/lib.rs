@@ -3,6 +3,7 @@ mod ellipse;
 mod image;
 mod macros;
 mod mask;
+mod mouse_input;
 mod padding;
 mod polygon;
 mod polyline;
@@ -12,6 +13,7 @@ mod stack;
 mod text;
 mod transform;
 mod ui;
+mod widget_mouse_state;
 
 pub use align::*;
 pub use ellipse::*;
@@ -26,8 +28,9 @@ pub use stack::*;
 pub use text::*;
 pub use transform::*;
 pub use ui::*;
+pub use widget_mouse_state::*;
 
-use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
+use std::fmt::Debug;
 
 use micro::{
 	Context,
@@ -48,7 +51,7 @@ pub trait Widget: Debug {
 		None
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel>;
+	fn mouse_state(&self) -> Option<WidgetMouseState>;
 
 	fn allotted_size_for_next_child(
 		&self,
@@ -72,35 +75,4 @@ pub trait Widget: Debug {
 pub struct LayoutResult {
 	pub size: Vec2,
 	pub child_positions: Vec<Vec2>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WidgetMouseEventChannel(Rc<RefCell<VecDeque<WidgetMouseEvent>>>);
-
-impl WidgetMouseEventChannel {
-	pub fn new() -> Self {
-		Self(Rc::new(RefCell::new(VecDeque::new())))
-	}
-
-	pub fn push(&self, event: WidgetMouseEvent) {
-		self.0.borrow_mut().push_back(event);
-	}
-
-	pub fn pop(&self) -> Option<WidgetMouseEvent> {
-		self.0.borrow_mut().pop_front()
-	}
-}
-
-impl Default for WidgetMouseEventChannel {
-	fn default() -> Self {
-		Self::new()
-	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WidgetMouseEvent {
-	Hovered,
-	Unhovered,
-	ClickStarted,
-	Clicked,
 }

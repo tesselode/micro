@@ -2,9 +2,9 @@ use std::fmt::Debug;
 
 use micro::{Context, math::Vec2};
 
-use crate::{child_fns, sizing_fns};
+use crate::{WidgetMouseState, child_fns, sizing_fns};
 
-use super::{LayoutResult, Sizing, Widget, WidgetMouseEventChannel};
+use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Align {
@@ -12,7 +12,7 @@ pub struct Align {
 	child_anchor: Vec2,
 	sizing: Sizing,
 	children: Vec<Box<dyn Widget>>,
-	mouse_event_channel: Option<WidgetMouseEventChannel>,
+	mouse_state: Option<WidgetMouseState>,
 }
 
 macro_rules! align_constructors {
@@ -32,7 +32,7 @@ impl Align {
 			child_anchor: child_anchor.into(),
 			sizing: Sizing::EXPAND,
 			children: vec![],
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 
@@ -53,9 +53,9 @@ impl Align {
 		center: (0.5, 0.5),
 	}
 
-	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
 		Self {
-			mouse_event_channel: Some(channel.clone()),
+			mouse_state: Some(state.clone()),
 			..self
 		}
 	}
@@ -73,8 +73,8 @@ impl Widget for Align {
 		&self.children
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
-		self.mouse_event_channel.as_ref()
+	fn mouse_state(&self) -> Option<WidgetMouseState> {
+		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

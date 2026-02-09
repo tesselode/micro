@@ -5,14 +5,14 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use super::{LayoutResult, Widget, WidgetMouseEventChannel};
+use super::{LayoutResult, Widget, WidgetMouseState};
 
 #[derive(Debug)]
 pub struct Image {
 	texture: Texture,
 	scale: Vec2,
 	color: LinSrgba,
-	mouse_event_channel: Option<WidgetMouseEventChannel>,
+	mouse_state: Option<WidgetMouseState>,
 }
 
 impl Image {
@@ -21,7 +21,7 @@ impl Image {
 			texture: texture.clone(),
 			scale: Vec2::ONE,
 			color: LinSrgba::WHITE,
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 
@@ -60,9 +60,9 @@ impl Image {
 		}
 	}
 
-	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
 		Self {
-			mouse_event_channel: Some(channel.clone()),
+			mouse_state: Some(state.clone()),
 			..self
 		}
 	}
@@ -77,8 +77,8 @@ impl Widget for Image {
 		&[]
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
-		self.mouse_event_channel.as_ref()
+	fn mouse_state(&self) -> Option<WidgetMouseState> {
+		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

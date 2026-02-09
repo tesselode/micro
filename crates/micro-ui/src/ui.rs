@@ -1,9 +1,7 @@
-mod mouse_input;
-mod widget_mouse_state;
-
 use std::{collections::HashMap, path::PathBuf};
 
-use indexmap::IndexMap;
+use crate::mouse_input::MouseInput;
+
 use itertools::izip;
 use micro::{
 	Context,
@@ -11,16 +9,13 @@ use micro::{
 	graphics::{CompareFunction, StencilOperation, StencilState, mesh::Mesh},
 	math::{Mat4, Rect, Vec2},
 };
-use mouse_input::MouseInput;
-use widget_mouse_state::{UpdateMouseStateResult, WidgetMouseState};
 
-use super::{LayoutResult, Widget, WidgetMouseEvent};
+use super::{LayoutResult, Widget};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Ui {
 	previous_baked_widget: Option<BakedWidget>,
 	mouse_input: MouseInput,
-	widget_mouse_state: IndexMap<PathBuf, WidgetMouseState>,
 	draw_debug_state: Option<DrawDebugState>,
 }
 
@@ -61,7 +56,7 @@ impl Ui {
 			settings.size.unwrap_or(default_size),
 		);
 		self.mouse_input.update(ctx, settings.transform.inverse());
-		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);
+		baked_widget.use_mouse_input(&widget, self.mouse_input.clone());
 		baked_widget.draw(ctx, &widget);
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
 			baked_widget.draw_debug(ctx, &draw_debug_state);
@@ -126,48 +121,19 @@ impl BakedWidget {
 		}
 	}
 
-	fn use_mouse_input(
-		&mut self,
-		raw_widget: &dyn Widget,
-		mut mouse_input: MouseInput,
-		widget_mouse_state: &mut IndexMap<PathBuf, WidgetMouseState>,
-	) {
+	fn use_mouse_input(&mut self, raw_widget: &dyn Widget, mut mouse_input: MouseInput) {
 		let _span = tracy_client::span!();
 		mouse_input =
 			mouse_input.transformed(raw_widget.transform(self.layout_result.size).inverse());
-		let UpdateMouseStateResult {
-			hovered,
-			unhovered,
-			click_started,
-			clicked,
-		} = widget_mouse_state
-			.entry(self.path.clone())
-			.or_default()
-			.update(mouse_input, self.layout_result.size);
-		if let Some(channel) = raw_widget.mouse_event_channel() {
-			if hovered {
-				channel.push(WidgetMouseEvent::Hovered);
-			}
-			if unhovered {
-				channel.push(WidgetMouseEvent::Unhovered);
-			}
-			if click_started {
-				channel.push(WidgetMouseEvent::ClickStarted);
-			}
-			if clicked {
-				channel.push(WidgetMouseEvent::Clicked);
-			}
+		if let Some(mouse_state) = raw_widget.mouse_state() {
+			mouse_state.update(&mouse_input, self.layout_result.size);
 		}
 		for (raw_child, baked_child, position) in izip!(
 			raw_widget.children(),
 			&mut self.children,
 			&self.layout_result.child_positions
 		) {
-			baked_child.use_mouse_input(
-				raw_child.as_ref(),
-				mouse_input.translated(-position),
-				widget_mouse_state,
-			);
+			baked_child.use_mouse_input(raw_child.as_ref(), mouse_input.translated(-position));
 		}
 	}
 

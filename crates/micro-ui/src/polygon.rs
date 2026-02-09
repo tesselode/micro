@@ -5,7 +5,7 @@ use micro::{
 	math::Vec2,
 };
 
-use super::{LayoutResult, Widget, WidgetMouseEventChannel};
+use super::{LayoutResult, Widget, WidgetMouseState};
 
 #[derive(Debug)]
 pub struct Polygon {
@@ -13,7 +13,7 @@ pub struct Polygon {
 	size: Vec2,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
-	mouse_event_channel: Option<WidgetMouseEventChannel>,
+	mouse_state: Option<WidgetMouseState>,
 }
 
 impl Polygon {
@@ -28,7 +28,7 @@ impl Polygon {
 			size,
 			fill: None,
 			stroke: None,
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 
@@ -58,9 +58,9 @@ impl Polygon {
 		}
 	}
 
-	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
 		Self {
-			mouse_event_channel: Some(channel.clone()),
+			mouse_state: Some(state.clone()),
 			..self
 		}
 	}
@@ -75,8 +75,8 @@ impl Widget for Polygon {
 		&[]
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
-		self.mouse_event_channel.as_ref()
+	fn mouse_state(&self) -> Option<WidgetMouseState> {
+		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

@@ -7,14 +7,14 @@ use micro::{
 
 use crate::child_fns;
 
-use super::{AxisSizing, LayoutResult, Widget, WidgetMouseEventChannel};
+use super::{AxisSizing, LayoutResult, Widget, WidgetMouseState};
 
 #[derive(Debug)]
 pub struct Stack {
 	direction: Axis,
 	settings: StackSettings,
 	children: Vec<Box<dyn Widget>>,
-	mouse_event_channel: Option<WidgetMouseEventChannel>,
+	mouse_state: Option<WidgetMouseState>,
 }
 
 impl Stack {
@@ -23,7 +23,7 @@ impl Stack {
 			direction: Axis::Horizontal,
 			settings,
 			children: vec![],
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 
@@ -32,13 +32,13 @@ impl Stack {
 			direction: Axis::Vertical,
 			settings,
 			children: vec![],
-			mouse_event_channel: None,
+			mouse_state: None,
 		}
 	}
 
-	pub fn mouse_event_channel(self, channel: &WidgetMouseEventChannel) -> Self {
+	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
 		Self {
-			mouse_event_channel: Some(channel.clone()),
+			mouse_state: Some(state.clone()),
 			..self
 		}
 	}
@@ -55,8 +55,8 @@ impl Widget for Stack {
 		&self.children
 	}
 
-	fn mouse_event_channel(&self) -> Option<&WidgetMouseEventChannel> {
-		self.mouse_event_channel.as_ref()
+	fn mouse_state(&self) -> Option<WidgetMouseState> {
+		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

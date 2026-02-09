@@ -18,6 +18,10 @@ pub enum MouseButton {
 	X2,
 }
 
+impl MouseButton {
+	pub const KNOWN: [Self; 5] = [Self::Left, Self::Middle, Self::Right, Self::X1, Self::X2];
+}
+
 impl From<sdl3MouseButton> for MouseButton {
 	fn from(value: sdl3MouseButton) -> Self {
 		match value {

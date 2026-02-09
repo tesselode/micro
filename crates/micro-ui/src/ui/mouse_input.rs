@@ -1,48 +1,69 @@
+use std::collections::HashMap;
+
 use micro::{
 	Context,
 	input::MouseButton,
 	math::{Mat4, Vec2},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MouseInput {
 	pub mouse_position: Option<Vec2>,
-	pub left_held: bool,
-	pub left_held_previous: bool,
+	pub held_state: HashMap<MouseButton, HeldState>,
 }
 
 impl MouseInput {
+	pub fn new() -> Self {
+		Self {
+			mouse_position: None,
+			held_state: MouseButton::KNOWN
+				.iter()
+				.map(|button| (*button, HeldState::default()))
+				.collect(),
+		}
+	}
+
 	pub fn update(&mut self, ctx: &Context, transform: Mat4) {
 		let raw_mouse_position = ctx.mouse_position();
 		let transformed_mouse_position = transform
 			.transform_point3(raw_mouse_position.extend(0.0))
 			.truncate();
 		self.mouse_position = Some(transformed_mouse_position);
-		self.left_held_previous = self.left_held;
-		self.left_held = ctx.is_mouse_button_down(MouseButton::Left);
+		for (button, held_state) in &mut self.held_state {
+			held_state.held_previous = held_state.held;
+			held_state.held = ctx.is_mouse_button_down(*button);
+		}
 	}
 
-	pub fn transformed(self, transform: Mat4) -> Self {
+	pub fn transformed(&self, transform: Mat4) -> Self {
 		Self {
 			mouse_position: self
 				.mouse_position
 				.map(|position| transform.transform_point3(position.extend(0.0)).truncate()),
-			..self
+			..self.clone()
 		}
 	}
 
-	pub fn translated(self, translation: Vec2) -> Self {
+	pub fn translated(&self, translation: Vec2) -> Self {
 		Self {
 			mouse_position: self.mouse_position.map(|position| position + translation),
-			..self
+			..self.clone()
 		}
 	}
 
-	pub fn left_pressed(self) -> bool {
-		self.left_held && !self.left_held_previous
+	pub fn pressed(&self, button: MouseButton) -> bool {
+		let held_state = &self.held_state[&button];
+		held_state.held && !held_state.held_previous
 	}
 
-	pub fn left_released(self) -> bool {
-		self.left_held_previous && !self.left_held
+	pub fn released(&self, button: MouseButton) -> bool {
+		let held_state = &self.held_state[&button];
+		!held_state.held && held_state.held_previous
 	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct HeldState {
+	pub held: bool,
+	pub held_previous: bool,
 }

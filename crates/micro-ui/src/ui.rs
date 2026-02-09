@@ -16,7 +16,7 @@ use widget_mouse_state::{UpdateMouseStateResult, WidgetMouseState};
 
 use super::{LayoutResult, Widget, WidgetMouseEvent};
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Ui {
 	previous_baked_widget: Option<BakedWidget>,
 	mouse_input: MouseInput,
@@ -26,7 +26,12 @@ pub struct Ui {
 
 impl Ui {
 	pub fn new() -> Self {
-		Self::default()
+		Self {
+			previous_baked_widget: None,
+			mouse_input: MouseInput::new(),
+			widget_mouse_state: IndexMap::new(),
+			draw_debug_state: None,
+		}
 	}
 
 	pub fn show_debug_window(&mut self, egui_ctx: &micro::egui::Context, open: &mut bool) {
@@ -61,12 +66,18 @@ impl Ui {
 			settings.size.unwrap_or(default_size),
 		);
 		self.mouse_input.update(ctx, settings.transform.inverse());
-		baked_widget.use_mouse_input(&widget, self.mouse_input, &mut self.widget_mouse_state);
+		baked_widget.use_mouse_input(&widget, &self.mouse_input, &mut self.widget_mouse_state);
 		baked_widget.draw(ctx, &widget);
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
 			baked_widget.draw_debug(ctx, &draw_debug_state);
 		}
 		self.previous_baked_widget = Some(baked_widget);
+	}
+}
+
+impl Default for Ui {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
@@ -129,11 +140,11 @@ impl BakedWidget {
 	fn use_mouse_input(
 		&mut self,
 		raw_widget: &dyn Widget,
-		mut mouse_input: MouseInput,
+		mouse_input: &MouseInput,
 		widget_mouse_state: &mut IndexMap<PathBuf, WidgetMouseState>,
 	) {
 		let _span = tracy_client::span!();
-		mouse_input =
+		let mouse_input =
 			mouse_input.transformed(raw_widget.transform(self.layout_result.size).inverse());
 		let UpdateMouseStateResult {
 			hovered,
@@ -143,7 +154,7 @@ impl BakedWidget {
 		} = widget_mouse_state
 			.entry(self.path.clone())
 			.or_default()
-			.update(mouse_input, self.layout_result.size);
+			.update(&mouse_input, self.layout_result.size);
 		if let Some(channel) = raw_widget.mouse_event_channel() {
 			if hovered {
 				channel.push(WidgetMouseEvent::Hovered);
@@ -151,11 +162,21 @@ impl BakedWidget {
 			if unhovered {
 				channel.push(WidgetMouseEvent::Unhovered);
 			}
-			if click_started {
-				channel.push(WidgetMouseEvent::ClickStarted);
+			for button in click_started {
+				channel.push(WidgetMouseEvent::ClickStarted {
+					button,
+					relative_pos: mouse_input.mouse_position.expect(
+						"click started event was triggered without a mouse position. this shouldn't be possible",
+					),
+				});
 			}
-			if clicked {
-				channel.push(WidgetMouseEvent::Clicked);
+			for button in clicked {
+				channel.push(WidgetMouseEvent::Clicked {
+					button,
+					relative_pos: mouse_input.mouse_position.expect(
+						"click started event was triggered without a mouse position. this shouldn't be possible",
+					),
+				});
 			}
 		}
 		for (raw_child, baked_child, position) in izip!(
@@ -165,7 +186,7 @@ impl BakedWidget {
 		) {
 			baked_child.use_mouse_input(
 				raw_child.as_ref(),
-				mouse_input.translated(-position),
+				&mouse_input.translated(-position),
 				widget_mouse_state,
 			);
 		}

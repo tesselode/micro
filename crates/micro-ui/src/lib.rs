@@ -31,6 +31,7 @@ use std::{cell::RefCell, collections::VecDeque, fmt::Debug, rc::Rc};
 
 use micro::{
 	Context,
+	input::MouseButton,
 	math::{Mat4, Vec2},
 };
 
@@ -74,7 +75,7 @@ pub struct LayoutResult {
 	pub child_positions: Vec<Vec2>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WidgetMouseEventChannel(Rc<RefCell<VecDeque<WidgetMouseEvent>>>);
 
 impl WidgetMouseEventChannel {
@@ -97,10 +98,16 @@ impl Default for WidgetMouseEventChannel {
 	}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WidgetMouseEvent {
 	Hovered,
 	Unhovered,
-	ClickStarted,
-	Clicked,
+	ClickStarted {
+		button: MouseButton,
+		relative_pos: Vec2,
+	},
+	Clicked {
+		button: MouseButton,
+		relative_pos: Vec2,
+	},
 }

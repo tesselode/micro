@@ -1,30 +1,27 @@
-//! Types related to drawing text.
+use std::time::Instant;
 
-mod font;
+pub use cosmic_text::{
+	Align as TextAlign, Stretch as TextStretch, Style as TextStyle, Weight as TextWeight,
+};
 
-use std::sync::Arc;
-
-pub use font::*;
-pub use fontdue::layout::{HorizontalAlign, VerticalAlign, WrapStyle};
-
-use fontdue::layout::{CoordinateSystem, Layout, TextStyle};
-use glam::{Mat4, Vec2};
+use cosmic_text::{Attrs, Family, LetterSpacing, Metrics, Shaping};
+use glam::{Mat4, Vec2, vec2};
+use image::{Rgba, RgbaImage};
 use palette::LinSrgba;
-use tracing::warn;
 
 use crate::{
-	Context, color::ColorConstants, graphics::BlendMode, math::Rect, standard_draw_param_methods,
+	Context,
+	color::ColorConstants,
+	graphics::{
+		BlendMode,
+		texture::{Texture, TextureSettings},
+	},
+	standard_draw_param_methods,
 };
 
-use super::{
-	IntoIndexRange,
-	sprite_batch::{SpriteBatch, SpriteParams},
-};
-
-/// A block of text rendered into a texture.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Text {
-	inner: Arc<TextInner>,
+	texture: Texture,
 
 	// params
 	/// The transform to use when drawing this text.
@@ -33,254 +30,182 @@ pub struct Text {
 	pub color: LinSrgba,
 	/// The blend mode to use when drawing this text.
 	pub blend_mode: BlendMode,
-	/// The min and max character index to use when drawing this text.
-	///
-	/// Setting this results in a portion of the text being drawn.
-	/// When `None`, all the characters are drawn.
-	pub range: Option<(u32, u32)>,
 }
 
 impl Text {
-	/// Creates a new [`Text`].
-	pub fn new(
-		ctx: &Context,
-		font: &Font,
-		text: impl Into<String>,
-		layout_settings: LayoutSettings,
-	) -> Self {
-		let _span = tracy_client::span!();
-		Self::with_multiple_fonts(
-			ctx,
-			&[font],
-			&[TextFragment {
-				font_index: 0,
-				text: text.into(),
-			}],
-			layout_settings,
-		)
-	}
-
-	/// Creates a block of text involving multiple [`Font`]s.
-	pub fn with_multiple_fonts<'a>(
-		ctx: &Context,
-		fonts: &[&Font],
-		text_fragments: impl IntoIterator<Item = &'a TextFragment>,
-		layout_settings: LayoutSettings,
-	) -> Self {
-		let _span = tracy_client::span!();
-		let fontdue_fonts = fonts
-			.iter()
-			.map(|font| &font.inner.font)
-			.collect::<Vec<_>>();
-		let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
-		layout.reset(&layout_settings.into());
-		for TextFragment { font_index, text } in text_fragments {
-			layout.append(
-				&fontdue_fonts,
-				&TextStyle {
-					text,
-					px: fonts[*font_index].inner.scale,
-					font_index: *font_index,
-					user_data: (),
-				},
-			);
-		}
-		Self::from_layout(ctx, layout, fonts)
-	}
-
 	standard_draw_param_methods!();
 
-	/// Sets the range of character indices used for drawing.
-	///
-	/// Setting this results in a portion of the text being drawn.
-	/// When `None`, all the characters are drawn.
-	pub fn range(&self, range: impl IntoIndexRange) -> Self {
-		let mut new = self.clone();
-		new.range = range.into_index_range(self.inner.num_glyphs);
-		new
+	pub fn size(&self) -> glam::UVec2 {
+		self.texture.size()
 	}
 
-	/// Returns the number of glyphs this text contains.
-	pub fn num_glyphs(&self) -> usize {
-		self.inner
-			.sprite_batches
-			.iter()
-			.map(|sprite_batch| sprite_batch.len())
-			.sum()
-	}
-
-	/// Returns a rectangle that tightly hugs the text.
-	///
-	/// Returns `None` if there's no characters in this [`Text`].
-	pub fn bounds(&self) -> Option<Rect> {
-		self.inner.bounds
-	}
-
-	/// Returns the y position of the lowest baseline of any
-	/// of the characters.
-	///
-	/// Returns `None` if there's no characters in this [`Text`].
-	pub fn lowest_baseline(&self) -> Option<f32> {
-		self.inner.lowest_baseline
-	}
-
-	/// Draws the text.
 	pub fn draw(&self, ctx: &mut Context) {
 		let _span = tracy_client::span!();
-		if self.range.is_some() && self.inner.sprite_batches.len() > 1 {
-			unimplemented!(
-				"drawing a text range is not implemented for text with more than one font"
-			);
-		}
-		for sprite_batch in &self.inner.sprite_batches {
-			sprite_batch
-				.transformed(self.transform)
-				.color(self.color)
-				.blend_mode(self.blend_mode)
-				.range(self.range)
-				.draw(ctx);
-		}
+		self.texture
+			.transformed(self.transform)
+			.color(self.color)
+			.blend_mode(self.blend_mode)
+			.draw(ctx);
 	}
 
-	fn from_layout(ctx: &Context, layout: Layout, fonts: &[&Font]) -> Text {
-		let glyphs = layout.glyphs();
-		let lowest_baseline = layout.lines().map(|lines| {
-			lines
-				.iter()
-				.map(|line| line.baseline_y)
-				.reduce(f32::max)
-				.unwrap()
-		});
-		let mut sprite_batches = fonts
-			.iter()
-			.enumerate()
-			.map(|(i, font)| {
-				SpriteBatch::new(
-					ctx,
-					&font.inner.texture,
-					glyphs.iter().filter(|glyph| glyph.font_index == i).count(),
-				)
+	fn new(ctx: &mut Context, builder: TextBuilder) -> Self {
+		let _span = tracy_client::span!();
+		let mut buffer = cosmic_text::Buffer::new(
+			&mut ctx.font_system,
+			Metrics::relative(builder.font_size, builder.line_height),
+		);
+		let mut buffer = buffer.borrow_with(&mut ctx.font_system);
+		buffer.set_size(builder.width, builder.height);
+		let attrs = Attrs {
+			family: Family::Name(&builder.font_family),
+			stretch: builder.stretch,
+			style: builder.style,
+			weight: builder.weight,
+			letter_spacing_opt: builder.letter_spacing.map(LetterSpacing),
+			..Attrs::new()
+		};
+		buffer.set_text(
+			&builder.text,
+			&attrs,
+			Shaping::Advanced,
+			Some(builder.align),
+		);
+		buffer.shape_until_scroll(true);
+		let texture_size = buffer
+			.layout_runs()
+			.fold(Vec2::ZERO, |previous, run| {
+				previous.max(vec2(run.line_w, run.line_top + run.line_height))
 			})
-			.collect::<Vec<_>>();
-		let mut bounds: Option<Rect> = None;
-		let mut num_glyphs = 0;
-		for glyph in glyphs {
-			if !glyph.char_data.rasterize() {
-				continue;
-			}
-			let display_rect = Rect::new(
-				Vec2::new(glyph.x, glyph.y),
-				Vec2::new(glyph.width as f32, glyph.height as f32),
-			);
-			if let Some(bounds) = &mut bounds {
-				*bounds = bounds.union(display_rect);
-			} else {
-				bounds = Some(display_rect);
-			}
-			let Some(&texture_region) =
-				fonts[glyph.font_index].inner.glyph_rects.get(&glyph.parent)
-			else {
-				warn!("No glyph rect for the character {}", glyph.parent);
-				continue;
-			};
-			sprite_batches[glyph.font_index]
-				.add_region(
-					ctx,
-					texture_region,
-					SpriteParams::new().translated(Vec2::new(glyph.x, glyph.y)),
-				)
-				.expect("Not enough capacity in the sprite batch");
-			num_glyphs += 1;
-		}
+			.ceil()
+			.as_uvec2();
+		let mut image = RgbaImage::new(texture_size.x, texture_size.y + 4);
+		buffer.draw(
+			&mut ctx.swash_cache,
+			cosmic_text::Color::rgb(0xff, 0xff, 0xff),
+			|x, y, w, h, color| {
+				for pixel_x in x as u32..(x + w as i32) as u32 {
+					for pixel_y in y as u32..(y + h as i32) as u32 {
+						if pixel_x < texture_size.x && pixel_y < texture_size.y {
+							image.put_pixel(pixel_x, pixel_y, Rgba::from(color.as_rgba()));
+						}
+					}
+				}
+			},
+		);
+		let texture = Texture::from_image(ctx, &image, builder.texture_settings);
 		Self {
-			inner: Arc::new(TextInner {
-				sprite_batches,
-				bounds,
-				num_glyphs,
-				lowest_baseline,
-			}),
+			texture,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
-			range: None,
 		}
 	}
 }
 
-/// Determines how text is arranged.
-#[derive(Clone, Copy, PartialEq)]
-pub struct LayoutSettings {
-	/// The top-left boundary of the text region.
-	pub position: Vec2,
-	/// An optional rightmost boundary on the text region. A line of text that exceeds the
-	/// max_width is wrapped to the line below. If the width of a glyph is larger than the
-	/// max_width, the glyph will overflow past the max_width. The application is responsible for
-	/// handling the overflow.
-	pub max_width: Option<f32>,
-	/// An optional bottom boundary on the text region. This is used for positioning the
-	/// vertical_align option. Text that exceeds the defined max_height will overflow past it. The
-	/// application is responsible for handling the overflow.
-	pub max_height: Option<f32>,
-	/// The default is Left. This option does nothing if the max_width isn't set.
-	pub horizontal_align: HorizontalAlign,
-	/// The default is Top. This option does nothing if the max_height isn't set.
-	pub vertical_align: VerticalAlign,
-	/// Sets the height of each line of text.
-	pub line_height: f32,
-	/// The default is Word. Wrap style is a hint for how strings of text should be wrapped to the
-	/// next line. Line wrapping can happen when the max width/height is reached.
-	pub wrap_style: WrapStyle,
-	/// The default is true. This option enables hard breaks, like new line characters, to
-	/// prematurely wrap lines. If false, hard breaks will not prematurely create a new line.
-	pub wrap_hard_breaks: bool,
-}
-
-impl Default for LayoutSettings {
-	fn default() -> LayoutSettings {
-		LayoutSettings {
-			position: Vec2::ZERO,
-			max_width: None,
-			max_height: None,
-			horizontal_align: HorizontalAlign::Left,
-			vertical_align: VerticalAlign::Top,
-			line_height: 1.0,
-			wrap_style: WrapStyle::Word,
-			wrap_hard_breaks: true,
-		}
-	}
-}
-
-impl From<LayoutSettings> for fontdue::layout::LayoutSettings {
-	fn from(settings: LayoutSettings) -> Self {
-		fontdue::layout::LayoutSettings {
-			x: settings.position.x,
-			y: settings.position.y,
-			max_width: settings.max_width,
-			max_height: settings.max_height,
-			horizontal_align: settings.horizontal_align,
-			vertical_align: settings.vertical_align,
-			line_height: settings.line_height,
-			wrap_style: settings.wrap_style,
-			wrap_hard_breaks: settings.wrap_hard_breaks,
-		}
-	}
-}
-
-/// A fragment of text that uses one of multiple fonts.
-///
-/// Used with [`Text::with_multiple_fonts`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TextFragment {
-	/// The index of the font to use.
-	pub font_index: usize,
-	/// The text string.
+pub struct TextBuilder {
+	pub font_family: String,
 	pub text: String,
+	pub font_size: f32,
+	pub line_height: f32,
+	pub stretch: TextStretch,
+	pub style: TextStyle,
+	pub weight: TextWeight,
+	pub letter_spacing: Option<f32>,
+	pub width: Option<f32>,
+	pub height: Option<f32>,
+	pub align: TextAlign,
+	pub texture_settings: TextureSettings,
 }
 
-#[derive(Debug)]
-struct TextInner {
-	pub(crate) sprite_batches: Vec<SpriteBatch>,
-	pub(crate) bounds: Option<Rect>,
-	pub(crate) lowest_baseline: Option<f32>,
-	pub(crate) num_glyphs: u32,
+impl TextBuilder {
+	pub fn new(font_family: impl Into<String>, text: impl Into<String>) -> Self {
+		Self {
+			font_family: font_family.into(),
+			text: text.into(),
+			font_size: 16.0,
+			line_height: 1.25,
+			stretch: TextStretch::Normal,
+			style: TextStyle::Normal,
+			weight: TextWeight::NORMAL,
+			letter_spacing: None,
+			width: None,
+			height: None,
+			align: TextAlign::Left,
+			texture_settings: TextureSettings::default(),
+		}
+	}
+
+	pub fn font_family(self, font_family: impl Into<String>) -> Self {
+		Self {
+			font_family: font_family.into(),
+			..self
+		}
+	}
+
+	pub fn text(self, text: impl Into<String>) -> Self {
+		Self {
+			text: text.into(),
+			..self
+		}
+	}
+
+	pub fn font_size(self, font_size: f32) -> Self {
+		Self { font_size, ..self }
+	}
+
+	pub fn line_height(self, line_height: f32) -> Self {
+		Self {
+			line_height,
+			..self
+		}
+	}
+
+	pub fn stretch(self, stretch: TextStretch) -> Self {
+		Self { stretch, ..self }
+	}
+
+	pub fn style(self, style: TextStyle) -> Self {
+		Self { style, ..self }
+	}
+
+	pub fn weight(self, weight: TextWeight) -> Self {
+		Self { weight, ..self }
+	}
+
+	pub fn letter_spacing(self, letter_spacing: impl Into<Option<f32>>) -> Self {
+		Self {
+			letter_spacing: letter_spacing.into(),
+			..self
+		}
+	}
+
+	pub fn width(self, width: impl Into<Option<f32>>) -> Self {
+		Self {
+			width: width.into(),
+			..self
+		}
+	}
+
+	pub fn height(self, height: impl Into<Option<f32>>) -> Self {
+		Self {
+			height: height.into(),
+			..self
+		}
+	}
+
+	pub fn size(self, size: impl Into<Vec2>) -> Self {
+		let size = size.into();
+		self.width(Some(size.x)).height(Some(size.y))
+	}
+
+	pub fn texture_settings(self, texture_settings: TextureSettings) -> Self {
+		Self {
+			texture_settings,
+			..self
+		}
+	}
+
+	pub fn build(self, ctx: &mut Context) -> Text {
+		Text::new(ctx, self)
+	}
 }

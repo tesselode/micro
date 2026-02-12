@@ -1,12 +1,14 @@
 pub(crate) mod graphics;
 mod push;
 
+use cosmic_text::{FontSystem, SwashCache, fontdb::Database};
 pub use push::*;
 
 use std::{
 	collections::HashMap,
 	fmt::Debug,
 	ops::{Deref, DerefMut},
+	path::Path,
 	time::{Duration, Instant},
 };
 
@@ -55,6 +57,8 @@ where
 		egui_wants_keyboard_input: false,
 		egui_wants_mouse_input: false,
 		clear_color: LinSrgb::BLACK,
+		font_system: FontSystem::new_with_locale_and_db("en-US".to_string(), Database::new()),
+		swash_cache: SwashCache::new(),
 		main_canvas_size: settings.main_canvas.map(|settings| settings.size),
 		integer_scaling_enabled: settings
 			.main_canvas
@@ -212,6 +216,8 @@ pub struct Context {
 	// a `Surface` that must be dropped before the `Window`
 	pub(crate) graphics: GraphicsContext,
 	window: Window,
+	pub(crate) font_system: FontSystem,
+	pub(crate) swash_cache: SwashCache,
 	clear_color: LinSrgb,
 	main_canvas_size: Option<UVec2>,
 	integer_scaling_enabled: bool,
@@ -477,6 +483,14 @@ impl Context {
 	/// Returns the current activation state of the dev tools.
 	pub fn dev_tools_state(&self) -> DevToolsState {
 		self.dev_tools_state
+	}
+
+	pub fn load_font_file(&mut self, path: impl AsRef<Path>) -> std::io::Result<()> {
+		self.font_system.db_mut().load_font_file(path)
+	}
+
+	pub fn load_fonts_dir(&mut self, path: impl AsRef<Path>) {
+		self.font_system.db_mut().load_fonts_dir(path);
 	}
 
 	/// Quits the game.

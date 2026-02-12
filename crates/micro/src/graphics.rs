@@ -11,7 +11,7 @@ mod shader;
 pub mod sprite_batch;
 mod stencil;
 mod storage_buffer;
-pub mod text;
+mod text;
 pub mod texture;
 mod vertex;
 
@@ -24,6 +24,7 @@ pub use into_scale::*;
 pub use shader::*;
 pub use stencil::*;
 pub use storage_buffer::*;
+pub use text::*;
 pub use vertex::*;
 pub use wgpu::{DepthBiasState, Error, Features, PresentMode, TextureFormat};
 

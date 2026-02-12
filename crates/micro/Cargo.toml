@@ -6,11 +6,10 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 bytemuck = { version = "1.21.0", features = ["derive"] }
-crunch = "0.5.3"
+cosmic-text = "0.17.1"
 derive_more = { version = "2.0.1", features = ["display", "error", "from"] }
 egui = "0.33.0"
 exhaust = { version = "0.2.1", optional = true }
-fontdue = "0.9.3"
 generational-arena = "0.2.9"
 glam = { version = "0.30.0", features = ["bytemuck"] }
 image = { version = "0.25.0", default-features = false }

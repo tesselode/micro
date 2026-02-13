@@ -1,11 +1,9 @@
-use std::time::Instant;
-
 pub use cosmic_text::{
 	Align as TextAlign, Stretch as TextStretch, Style as TextStyle, Weight as TextWeight,
 };
 
 use cosmic_text::{Attrs, Family, LetterSpacing, Metrics, Shaping};
-use glam::{Mat4, Vec2, vec2};
+use glam::Mat4;
 use image::{Rgba, RgbaImage};
 use palette::LinSrgba;
 
@@ -55,37 +53,53 @@ impl Text {
 			Metrics::relative(builder.font_size, builder.line_height),
 		);
 		let mut buffer = buffer.borrow_with(&mut ctx.font_system);
-		buffer.set_size(builder.width, builder.height);
-		let attrs = Attrs {
-			family: Family::Name(&builder.font_family),
-			stretch: builder.stretch,
-			style: builder.style,
-			weight: builder.weight,
-			letter_spacing_opt: builder.letter_spacing.map(LetterSpacing),
-			..Attrs::new()
+		let (buffer_width, align) = match builder.horizontal_sizing {
+			TextHorizontalSizing::Min => (None, None),
+			TextHorizontalSizing::Fixed { width, align } => (Some(width), Some(align)),
 		};
+		buffer.set_size(buffer_width, None);
 		buffer.set_text(
 			&builder.text,
-			&attrs,
+			&Attrs {
+				family: Family::Name(&builder.font_family),
+				stretch: builder.stretch,
+				style: builder.style,
+				weight: builder.weight,
+				letter_spacing_opt: builder.letter_spacing.map(LetterSpacing),
+				..Attrs::new()
+			},
 			Shaping::Advanced,
-			Some(builder.align),
+			align,
 		);
 		buffer.shape_until_scroll(true);
-		let texture_size = buffer
-			.layout_runs()
-			.fold(Vec2::ZERO, |previous, run| {
-				previous.max(vec2(run.line_w, run.line_top + run.line_height))
-			})
-			.ceil()
-			.as_uvec2();
-		let mut image = RgbaImage::new(texture_size.x, texture_size.y + 4);
+		let texture_width = buffer_width
+			.map(|width| width.ceil() as u32)
+			.unwrap_or_else(|| {
+				buffer
+					.layout_runs()
+					.fold(0.0f32, |previous, run| previous.max(run.line_w))
+					.ceil() as u32
+			});
+		let texture_height = {
+			let mut height = 0;
+			buffer.draw(
+				&mut ctx.swash_cache,
+				cosmic_text::Color::rgb(0xff, 0xff, 0xff),
+				|_, y, _, h, _| {
+					let bottom = (y + h as i32) as u32;
+					height = height.max(bottom);
+				},
+			);
+			height
+		};
+		let mut image = RgbaImage::new(texture_width, texture_height);
 		buffer.draw(
 			&mut ctx.swash_cache,
 			cosmic_text::Color::rgb(0xff, 0xff, 0xff),
 			|x, y, w, h, color| {
 				for pixel_x in x as u32..(x + w as i32) as u32 {
 					for pixel_y in y as u32..(y + h as i32) as u32 {
-						if pixel_x < texture_size.x && pixel_y < texture_size.y {
+						if pixel_x < texture_width && pixel_y < texture_height {
 							image.put_pixel(pixel_x, pixel_y, Rgba::from(color.as_rgba()));
 						}
 					}
@@ -102,6 +116,7 @@ impl Text {
 	}
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct TextBuilder {
 	pub font_family: String,
 	pub text: String,
@@ -111,9 +126,7 @@ pub struct TextBuilder {
 	pub style: TextStyle,
 	pub weight: TextWeight,
 	pub letter_spacing: Option<f32>,
-	pub width: Option<f32>,
-	pub height: Option<f32>,
-	pub align: TextAlign,
+	pub horizontal_sizing: TextHorizontalSizing,
 	pub texture_settings: TextureSettings,
 }
 
@@ -123,14 +136,12 @@ impl TextBuilder {
 			font_family: font_family.into(),
 			text: text.into(),
 			font_size: 16.0,
-			line_height: 1.25,
+			line_height: 1.0,
 			stretch: TextStretch::Normal,
 			style: TextStyle::Normal,
 			weight: TextWeight::NORMAL,
 			letter_spacing: None,
-			width: None,
-			height: None,
-			align: TextAlign::Left,
+			horizontal_sizing: TextHorizontalSizing::default(),
 			texture_settings: TextureSettings::default(),
 		}
 	}
@@ -179,23 +190,11 @@ impl TextBuilder {
 		}
 	}
 
-	pub fn width(self, width: impl Into<Option<f32>>) -> Self {
+	pub fn horizontal_sizing(self, horizontal_sizing: TextHorizontalSizing) -> Self {
 		Self {
-			width: width.into(),
+			horizontal_sizing,
 			..self
 		}
-	}
-
-	pub fn height(self, height: impl Into<Option<f32>>) -> Self {
-		Self {
-			height: height.into(),
-			..self
-		}
-	}
-
-	pub fn size(self, size: impl Into<Vec2>) -> Self {
-		let size = size.into();
-		self.width(Some(size.x)).height(Some(size.y))
 	}
 
 	pub fn texture_settings(self, texture_settings: TextureSettings) -> Self {
@@ -208,4 +207,14 @@ impl TextBuilder {
 	pub fn build(self, ctx: &mut Context) -> Text {
 		Text::new(ctx, self)
 	}
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum TextHorizontalSizing {
+	#[default]
+	Min,
+	Fixed {
+		width: f32,
+		align: TextAlign,
+	},
 }

@@ -7,14 +7,14 @@ use cosmic_text::{Attrs, Family, LetterSpacing, Metrics, Shaping};
 
 use std::sync::Arc;
 
-use glam::{Affine2, Mat4, vec2};
+use glam::{Mat4, Vec2, vec2};
 use palette::LinSrgba;
 
 use crate::{
 	Context,
 	color::ColorConstants,
-	graphics::{BlendMode, sprite_batch::SpriteParams},
-	math::Rect,
+	graphics::BlendMode,
+	math::{IRect, Rect},
 	standard_draw_param_methods,
 	text::GlyphInfo,
 };
@@ -68,11 +68,9 @@ impl Text {
 		);
 		buffer.set_size(&mut ctx.text.font_system, width, None);
 		buffer.shape_until_scroll(&mut ctx.text.font_system, true);
-		let num_glyphs = buffer
-			.layout_runs()
-			.flat_map(|run| run.glyphs.iter())
-			.count();
-		let mut sprite_batch = SpriteBatch::new(ctx, &ctx.text.texture, num_glyphs);
+		let mut sprites: Vec<(IRect, Vec2)> = vec![];
+		let mut bounds: Option<Rect> = None;
+		let mut lowest_baseline: Option<f32> = None;
 		for run in buffer.layout_runs() {
 			for glyph in run.glyphs {
 				let physical_glyph = glyph.physical((0.0, 0.0), 1.0);
@@ -91,24 +89,32 @@ impl Text {
 					physical_glyph.x as f32,
 					run.line_top + physical_glyph.y as f32,
 				) + offset.as_vec2();
-				sprite_batch
-					.add_region(
-						ctx,
-						texture_rect.as_rect(),
-						SpriteParams {
-							transform: Affine2::from_translation(position),
-							..Default::default()
-						},
-					)
-					.expect("sprite batch is full");
+				sprites.push((texture_rect, position));
+				let glyph_bounds = Rect::new(position, texture_rect.size.as_vec2());
+				if let Some(bounds) = &mut bounds {
+					*bounds = bounds.union(glyph_bounds);
+				} else {
+					bounds = Some(glyph_bounds);
+				}
+				if let Some(lowest_baseline) = &mut lowest_baseline {
+					*lowest_baseline = lowest_baseline.max(run.line_top);
+				} else {
+					lowest_baseline = Some(run.line_top);
+				}
 			}
+		}
+		let mut sprite_batch = SpriteBatch::new(ctx, &ctx.text.texture, sprites.len());
+		for (texture_region, position) in &sprites {
+			sprite_batch
+				.add_region(ctx, texture_region.as_rect(), *position)
+				.expect("sprite batch is full");
 		}
 		Self {
 			inner: Arc::new(TextInner {
 				sprite_batch,
-				bounds: None,
-				lowest_baseline: None,
-				num_glyphs: num_glyphs as u32,
+				bounds,
+				lowest_baseline,
+				num_glyphs: sprites.len() as u32,
 			}),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,

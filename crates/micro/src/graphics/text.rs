@@ -7,7 +7,7 @@ use cosmic_text::{Attrs, Family, LetterSpacing, Metrics, Shaping};
 
 use std::sync::Arc;
 
-use glam::{Affine2, Mat4, uvec2, vec2};
+use glam::{Affine2, Mat4, vec2};
 use palette::LinSrgba;
 
 use crate::{
@@ -79,8 +79,11 @@ impl Text {
 				let Some(GlyphInfo {
 					texture_rect,
 					offset,
-				}) = ctx.text
-					.glyph_rect(&ctx.graphics.queue, physical_glyph.cache_key)
+				}) = ctx.text.glyph_rect(
+					&ctx.graphics.device,
+					&ctx.graphics.queue,
+					physical_glyph.cache_key,
+				)
 				else {
 					continue;
 				};

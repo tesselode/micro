@@ -183,41 +183,7 @@ impl Texture {
 	/// Returns a new texture with the specified `size` and with data copied
 	/// over from the previous texture.
 	pub fn resized(&self, ctx: &Context, size: UVec2) -> Self {
-		let mut encoder = ctx
-			.graphics
-			.device
-			.create_command_encoder(&Default::default());
-		let new_texture = Texture::new(
-			&ctx.graphics.device,
-			&ctx.graphics.queue,
-			size,
-			self.num_layers,
-			None,
-			self.settings.clone(),
-			self.internal_settings,
-		);
-		let copy_size = self.size.min(size);
-		encoder.copy_texture_to_texture(
-			TexelCopyTextureInfo {
-				texture: &self.texture,
-				mip_level: 0,
-				origin: Origin3d::ZERO,
-				aspect: TextureAspect::All,
-			},
-			TexelCopyTextureInfo {
-				texture: &new_texture.texture,
-				mip_level: 0,
-				origin: Origin3d::ZERO,
-				aspect: TextureAspect::All,
-			},
-			Extent3d {
-				width: copy_size.x,
-				height: copy_size.y,
-				depth_or_array_layers: self.num_layers,
-			},
-		);
-		ctx.graphics.queue.submit([encoder.finish()]);
-		new_texture
+		self.resized_inner(&ctx.graphics.device, &ctx.graphics.queue, size)
 	}
 
 	/// Sets the portion of the texture to draw.
@@ -394,6 +360,41 @@ impl Texture {
 			},
 			texture_extent,
 		);
+	}
+
+	pub(crate) fn resized_inner(&self, device: &Device, queue: &Queue, size: UVec2) -> Self {
+		let mut encoder = device.create_command_encoder(&Default::default());
+		let new_texture = Texture::new(
+			device,
+			queue,
+			size,
+			self.num_layers,
+			None,
+			self.settings.clone(),
+			self.internal_settings,
+		);
+		let copy_size = self.size.min(size);
+		encoder.copy_texture_to_texture(
+			TexelCopyTextureInfo {
+				texture: &self.texture,
+				mip_level: 0,
+				origin: Origin3d::ZERO,
+				aspect: TextureAspect::All,
+			},
+			TexelCopyTextureInfo {
+				texture: &new_texture.texture,
+				mip_level: 0,
+				origin: Origin3d::ZERO,
+				aspect: TextureAspect::All,
+			},
+			Extent3d {
+				width: copy_size.x,
+				height: copy_size.y,
+				depth_or_array_layers: self.num_layers,
+			},
+		);
+		queue.submit([encoder.finish()]);
+		new_texture
 	}
 }
 

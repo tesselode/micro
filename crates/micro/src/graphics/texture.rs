@@ -263,31 +263,7 @@ impl Texture {
 		top_left: UVec2,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 	) {
-		let _span = tracy_client::span!();
-		let texture_extent = Extent3d {
-			width: image.width(),
-			height: image.height(),
-			depth_or_array_layers: 1,
-		};
-		ctx.graphics.queue.write_texture(
-			TexelCopyTextureInfo {
-				texture: &self.texture,
-				mip_level: 0,
-				origin: Origin3d {
-					x: top_left.x,
-					y: top_left.y,
-					z: 0,
-				},
-				aspect: TextureAspect::All,
-			},
-			image.as_raw(),
-			TexelCopyBufferLayout {
-				offset: 0,
-				bytes_per_row: Some(4 * image.width()),
-				rows_per_image: Some(image.height()),
-			},
-			texture_extent,
-		);
+		self.replace_inner(&ctx.graphics.queue, top_left, image);
 	}
 
 	/// Draws the texture.
@@ -385,6 +361,39 @@ impl Texture {
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
 		}
+	}
+
+	pub(crate) fn replace_inner(
+		&self,
+		queue: &Queue,
+		top_left: UVec2,
+		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+	) {
+		let _span = tracy_client::span!();
+		let texture_extent = Extent3d {
+			width: image.width(),
+			height: image.height(),
+			depth_or_array_layers: 1,
+		};
+		queue.write_texture(
+			TexelCopyTextureInfo {
+				texture: &self.texture,
+				mip_level: 0,
+				origin: Origin3d {
+					x: top_left.x,
+					y: top_left.y,
+					z: 0,
+				},
+				aspect: TextureAspect::All,
+			},
+			image.as_raw(),
+			TexelCopyBufferLayout {
+				offset: 0,
+				bytes_per_row: Some(4 * image.width()),
+				rows_per_image: Some(image.height()),
+			},
+			texture_extent,
+		);
 	}
 }
 

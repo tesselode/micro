@@ -1,8 +1,6 @@
-mod font;
 mod shader;
 mod texture;
 
-pub use font::*;
 pub use shader::*;
 pub use texture::*;
 

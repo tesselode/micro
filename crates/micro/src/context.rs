@@ -1,4 +1,6 @@
 pub(crate) mod graphics;
+pub(crate) mod text;
+
 mod push;
 
 pub use push::*;
@@ -7,6 +9,7 @@ use std::{
 	collections::HashMap,
 	fmt::Debug,
 	ops::{Deref, DerefMut},
+	path::Path,
 	time::{Duration, Instant},
 };
 
@@ -26,6 +29,7 @@ use crate::{
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
 	graphics::{Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings},
 	input::{Gamepad, MouseButton, Scancode},
+	text::TextContext,
 };
 
 /// Starts a Micro application. The app constructor should return a value of a type
@@ -44,6 +48,7 @@ where
 	video.text_input().start(&window);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
 	let graphics = GraphicsContext::new(&window, &settings);
+	let text = TextContext::new(&graphics);
 	let main_canvas = settings.main_canvas.map(|settings| {
 		Canvas::new_from_graphics_ctx(&graphics, settings.size, CanvasSettings::default())
 	});
@@ -62,6 +67,7 @@ where
 			.unwrap_or_default(),
 		frame_time_tracker: FrameTimeTracker::new(),
 		graphics,
+		text,
 		dev_tools_state: settings.dev_tools_mode.initial_state(),
 		should_quit: false,
 	};
@@ -211,6 +217,7 @@ pub struct Context {
 	// `graphics` needs to be before `window`, since it holds
 	// a `Surface` that must be dropped before the `Window`
 	pub(crate) graphics: GraphicsContext,
+	pub(crate) text: TextContext,
 	window: Window,
 	clear_color: LinSrgb,
 	main_canvas_size: Option<UVec2>,
@@ -477,6 +484,14 @@ impl Context {
 	/// Returns the current activation state of the dev tools.
 	pub fn dev_tools_state(&self) -> DevToolsState {
 		self.dev_tools_state
+	}
+
+	pub fn load_font_file(&mut self, path: impl AsRef<Path>) -> std::io::Result<()> {
+		self.text.load_font_file(path)
+	}
+
+	pub fn load_fonts_dir(&mut self, path: impl AsRef<Path>) {
+		self.text.load_fonts_dir(path);
 	}
 
 	/// Quits the game.

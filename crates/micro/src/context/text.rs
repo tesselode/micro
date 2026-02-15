@@ -15,6 +15,7 @@ use crate::{
 
 const STARTING_ATLAS_SIZE: u32 = 256;
 const MAX_ATLAS_SIZE: u32 = 8192;
+const PADDING: i32 = 1;
 
 pub(crate) struct TextContext {
 	pub(crate) font_system: FontSystem,
@@ -125,14 +126,19 @@ impl TextContext {
 		let TryAllocateResult {
 			allocation,
 			new_size,
-		} = try_allocate(&mut self.atlas_allocator, width as i32, height as i32);
+		} = try_allocate(
+			&mut self.atlas_allocator,
+			width as i32 + PADDING * 2,
+			height as i32 + PADDING * 2,
+		);
 		let allocation = allocation?;
 		if let Some(new_size) = new_size {
 			self.texture = self
 				.texture
 				.resized_inner(device, queue, UVec2::splat(new_size));
 		}
-		let rectangle = etagere_rectangle_to_irect(allocation.rectangle);
+		let rectangle =
+			etagere_rectangle_to_irect(allocation.rectangle).padded((-PADDING, -PADDING));
 		let offset = ivec2(min_x, min_y);
 		self.texture
 			.replace_inner(queue, rectangle.top_left.as_uvec2(), &image);

@@ -12,7 +12,10 @@ use kira::{
 	AudioManager, AudioManagerSettings, Decibels, Tween,
 };
 use micro::{
-	graphics::{Canvas, CanvasSettings},
+	graphics::{
+		texture::{FilterMode, TextureSettings},
+		Canvas, CanvasSettings,
+	},
 	input::Scancode,
 	math::{UVec2, Vec2},
 	App, Context, Event,
@@ -45,14 +48,7 @@ impl VisRunner {
 		let sound_data = StreamingSoundData::from_file(visualizer.audio_path())?;
 		let num_frames =
 			seconds_to_frames(sound_data.duration().as_secs_f64(), visualizer.frame_rate());
-		let canvas = Canvas::new(
-			ctx,
-			visualizer.video_resolution(),
-			CanvasSettings {
-				readable: true,
-				..Default::default()
-			},
-		);
+		let canvas = Canvas::new(ctx, visualizer.video_resolution(), main_canvas_settings());
 		let rendering_settings = if let Some(chapters) = visualizer.chapters() {
 			RenderingSettings {
 				start_chapter_index: 0,
@@ -272,14 +268,7 @@ impl App for VisRunner {
 		let loop_region = self.audio_loop_region();
 
 		if self.canvas.size() != self.current_resolution() {
-			self.canvas = Canvas::new(
-				ctx,
-				self.current_resolution(),
-				CanvasSettings {
-					readable: true,
-					..Default::default()
-				},
-			);
+			self.canvas = Canvas::new(ctx, self.current_resolution(), main_canvas_settings());
 		}
 
 		if let Mode::PlayingOrPaused {
@@ -424,4 +413,16 @@ impl From<usize> for LiveResolution {
 struct RenderingSettings {
 	start_chapter_index: usize,
 	end_chapter_index: usize,
+}
+
+fn main_canvas_settings() -> CanvasSettings {
+	CanvasSettings {
+		readable: true,
+		texture_settings: TextureSettings {
+			minifying_filter: FilterMode::Linear,
+			magnifying_filter: FilterMode::Linear,
+			..Default::default()
+		},
+		..Default::default()
+	}
 }

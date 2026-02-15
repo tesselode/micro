@@ -1,33 +1,124 @@
-use std::{
-	cell::RefCell,
-	fmt::{Debug, Formatter},
-};
+use std::{cell::RefCell, fmt::Debug};
 
 use micro::{
 	Context,
 	color::{ColorConstants, LinSrgba},
-	graphics::text::{Font, HorizontalAlign, LayoutSettings, Text, VerticalAlign, WrapStyle},
+	graphics::text::{
+		Text, TextAlign, TextBuilder, TextHorizontalSizing, TextStretch, TextStyle, TextWeight,
+	},
 	math::Vec2,
 };
 
+use crate::{AxisSizing, Sizing, sizing_fns};
+
 use super::{LayoutResult, Widget, WidgetMouseState};
 
+#[derive(Debug, Clone)]
 pub struct TextWidget {
-	font: Font,
-	text: String,
-	settings: TextSettings,
-	rendered: RefCell<Option<Text>>,
+	builder: TextBuilder,
+	sizing: Sizing,
+	align: TextAlign,
+	color: LinSrgba,
+	shadow: Option<TextShadow>,
+	size_reporting: TextSizeReporting,
+	built: RefCell<Option<Text>>,
 	mouse_state: Option<WidgetMouseState>,
 }
 
 impl TextWidget {
-	pub fn new(font: &Font, text: impl Into<String>, settings: TextSettings) -> Self {
+	pub fn new(font_family: impl Into<String>, text: impl Into<String>) -> Self {
 		Self {
-			font: font.clone(),
-			text: text.into(),
-			settings,
-			rendered: RefCell::new(None),
+			builder: TextBuilder::new(font_family, text),
+			sizing: Sizing::SHRINK,
+			align: TextAlign::Left,
+			color: LinSrgba::WHITE,
+			shadow: None,
+			size_reporting: TextSizeReporting::default(),
+			built: RefCell::new(None),
 			mouse_state: None,
+		}
+	}
+
+	sizing_fns!();
+
+	pub fn align(self, align: TextAlign) -> Self {
+		Self { align, ..self }
+	}
+
+	pub fn font_family(self, font_family: impl Into<String>) -> Self {
+		Self {
+			builder: self.builder.font_family(font_family),
+			..self
+		}
+	}
+
+	pub fn text(self, text: impl Into<String>) -> Self {
+		Self {
+			builder: self.builder.text(text),
+			..self
+		}
+	}
+
+	pub fn font_size(self, font_size: f32) -> Self {
+		Self {
+			builder: self.builder.font_size(font_size),
+			..self
+		}
+	}
+
+	pub fn line_height(self, line_height: f32) -> Self {
+		Self {
+			builder: self.builder.line_height(line_height),
+			..self
+		}
+	}
+
+	pub fn stretch(self, stretch: TextStretch) -> Self {
+		Self {
+			builder: self.builder.stretch(stretch),
+			..self
+		}
+	}
+
+	pub fn style(self, style: TextStyle) -> Self {
+		Self {
+			builder: self.builder.style(style),
+			..self
+		}
+	}
+
+	pub fn weight(self, weight: TextWeight) -> Self {
+		Self {
+			builder: self.builder.weight(weight),
+			..self
+		}
+	}
+
+	pub fn letter_spacing(self, letter_spacing: impl Into<Option<f32>>) -> Self {
+		Self {
+			builder: self.builder.letter_spacing(letter_spacing),
+			..self
+		}
+	}
+
+	pub fn color(self, color: impl Into<LinSrgba>) -> Self {
+		Self {
+			color: color.into(),
+			..self
+		}
+	}
+
+	pub fn shadow(self, shadow: impl Into<Option<TextShadow>>) -> Self {
+		Self {
+			shadow: shadow.into(),
+			..self
+		}
+	}
+
+	pub fn size_reporting(self, size_reporting: TextSizeReporting) -> Self {
+		Self {
+			size_reporting,
+			..self
 		}
 	}
 
@@ -67,46 +158,23 @@ impl Widget for TextWidget {
 		_child_sizes: &[Vec2],
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
-		let layout_settings = match self.settings.sizing {
-			TextSizing::Min { .. } => LayoutSettings {
-				line_height: self.settings.line_height,
-				wrap_style: self.settings.wrap_style,
-				wrap_hard_breaks: self.settings.wrap_hard_breaks,
-				..Default::default()
-			},
-			TextSizing::Max {
-				horizontal_align,
-				vertical_align,
-			} => LayoutSettings {
-				max_width: Some(allotted_size_from_parent.x),
-				max_height: Some(allotted_size_from_parent.y),
-				horizontal_align,
-				vertical_align,
-				line_height: self.settings.line_height,
-				wrap_style: self.settings.wrap_style,
-				wrap_hard_breaks: self.settings.wrap_hard_breaks,
-				..Default::default()
-			},
-		};
-		let rendered = Text::new(ctx, &self.font, &self.text, layout_settings);
-		let size = match self.settings.sizing {
-			TextSizing::Min {
-				size_reporting: TextSizeReporting {
-					include_lowest_line_descenders,
+		let builder = self
+			.builder
+			.clone()
+			.horizontal_sizing(match self.sizing.horizontal {
+				AxisSizing::Shrink => TextHorizontalSizing::Min,
+				sizing => TextHorizontalSizing::Fixed {
+					width: sizing.allotted_size_for_children(allotted_size_from_parent.x),
+					align: self.align,
 				},
-			} => rendered
-				.bounds()
-				.map(|bounds| {
-					let mut size = bounds.bottom_right();
-					if !include_lowest_line_descenders {
-						size.y = rendered.lowest_baseline().unwrap();
-					}
-					size
-				})
-				.unwrap_or_default(),
-			TextSizing::Max { .. } => allotted_size_from_parent,
+			});
+		let built = builder.build(ctx);
+		let bounds = match self.size_reporting {
+			TextSizeReporting::Line => built.line_bounds(),
+			TextSizeReporting::Glyph => built.glyph_bounds(),
 		};
-		*self.rendered.borrow_mut() = Some(rendered);
+		let size = bounds.map(|bounds| bounds.size).unwrap_or_default();
+		*self.built.borrow_mut() = Some(built);
 		LayoutResult {
 			size,
 			child_positions: vec![],
@@ -115,75 +183,29 @@ impl Widget for TextWidget {
 
 	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) {
 		let _span = tracy_client::span!();
-		if let Some(TextShadow { color, offset }) = self.settings.shadow {
-			self.rendered
+		let borrow = self.built.borrow();
+		let built = borrow.as_ref().unwrap();
+		let bounds = match self.size_reporting {
+			TextSizeReporting::Line => built.line_bounds(),
+			TextSizeReporting::Glyph => built.glyph_bounds(),
+		};
+		let position = bounds.map(|bounds| bounds.top_left).unwrap_or_default();
+		if let Some(TextShadow { color, offset }) = self.shadow {
+			self.built
 				.borrow()
 				.as_ref()
 				.unwrap()
-				.translated_2d(offset)
+				.translated_2d(position + offset)
 				.color(color)
 				.draw(ctx);
 		}
-		self.rendered
+		self.built
 			.borrow()
 			.as_ref()
 			.unwrap()
-			.color(self.settings.color)
+			.translated_2d(position)
+			.color(self.color)
 			.draw(ctx);
-	}
-}
-
-impl Debug for TextWidget {
-	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		f.debug_struct("TextWidget")
-			.field("text", &self.text)
-			.finish()
-	}
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub struct TextSettings {
-	pub sizing: TextSizing,
-	pub line_height: f32,
-	/// The default is Word. Wrap style is a hint for how strings of text should be wrapped to the
-	/// next line. Line wrapping can happen when the max width/height is reached.
-	pub wrap_style: WrapStyle,
-	/// The default is true. This option enables hard breaks, like new line characters, to
-	/// prematurely wrap lines. If false, hard breaks will not prematurely create a new line.
-	pub wrap_hard_breaks: bool,
-	pub color: LinSrgba,
-	pub shadow: Option<TextShadow>,
-}
-
-impl Default for TextSettings {
-	fn default() -> Self {
-		Self {
-			sizing: Default::default(),
-			line_height: 1.0,
-			wrap_style: WrapStyle::Word,
-			wrap_hard_breaks: true,
-			color: LinSrgba::WHITE,
-			shadow: None,
-		}
-	}
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum TextSizing {
-	Min {
-		size_reporting: TextSizeReporting,
-	},
-	Max {
-		horizontal_align: HorizontalAlign,
-		vertical_align: VerticalAlign,
-	},
-}
-
-impl Default for TextSizing {
-	fn default() -> Self {
-		Self::Min {
-			size_reporting: TextSizeReporting::default(),
-		}
 	}
 }
 
@@ -193,15 +215,9 @@ pub struct TextShadow {
 	pub offset: Vec2,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TextSizeReporting {
-	pub include_lowest_line_descenders: bool,
-}
-
-impl Default for TextSizeReporting {
-	fn default() -> Self {
-		Self {
-			include_lowest_line_descenders: true,
-		}
-	}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum TextSizeReporting {
+	#[default]
+	Line,
+	Glyph,
 }

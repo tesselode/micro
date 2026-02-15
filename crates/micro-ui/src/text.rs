@@ -189,7 +189,7 @@ impl Widget for TextWidget {
 			TextSizeReporting::Line => built.line_bounds(),
 			TextSizeReporting::Glyph => built.glyph_bounds(),
 		};
-		let position = bounds.map(|bounds| bounds.top_left).unwrap_or_default();
+		let position = bounds.map(|bounds| -bounds.top_left).unwrap_or_default();
 		if let Some(TextShadow { color, offset }) = self.shadow {
 			self.built
 				.borrow()

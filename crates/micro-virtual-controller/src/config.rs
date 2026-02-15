@@ -12,8 +12,9 @@ pub struct VirtualControllerConfig<C: Sized + Hash + Eq + Copy + Exhaust + 'stat
 	pub deadzone_shape: DeadzoneShape,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum DeadzoneShape {
+	#[default]
 	Circle,
 	Square,
 }
@@ -41,11 +42,5 @@ impl DeadzoneShape {
 				},
 			},
 		}
-	}
-}
-
-impl Default for DeadzoneShape {
-	fn default() -> Self {
-		Self::Circle
 	}
 }

@@ -1,5 +1,5 @@
 use micro::Context;
-use micro_asset::{Assets, FontLoader, TextureLoader};
+use micro_asset::{Assets, TextureLoader};
 use micro_virtual_controller::VirtualController;
 
 use crate::input::{Controls, Sticks, default_input_config};
@@ -9,7 +9,6 @@ type Input = VirtualController<Controls, Sticks>;
 pub struct Globals {
 	pub input: Input,
 	pub textures: Assets<TextureLoader>,
-	pub fonts: Assets<FontLoader>,
 }
 
 impl Globals {
@@ -23,7 +22,6 @@ impl Globals {
 					.next(),
 			),
 			textures: Assets::autoloaded(ctx, "texture", TextureLoader::default()),
-			fonts: Assets::autoloaded(ctx, "font", FontLoader::default()),
 		}
 	}
 }

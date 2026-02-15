@@ -7,6 +7,7 @@ pub struct Chapter {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Index, IndexMut, IntoIterator)]
+#[into_iterator(owned, ref, ref_mut)]
 pub struct Chapters(pub Vec<Chapter>);
 
 impl Chapters {

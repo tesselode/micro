@@ -69,8 +69,8 @@ impl Text {
 		buffer.set_size(&mut ctx.text.font_system, width, None);
 		buffer.shape_until_scroll(&mut ctx.text.font_system, true);
 		let mut sprites: Vec<(IRect, Vec2)> = vec![];
-		let mut bounds: Option<Rect> = None;
-		let mut lowest_baseline: Option<f32> = None;
+		let mut glyph_bounds: Option<Rect> = None;
+		let mut line_bounds: Option<Rect> = None;
 		for run in buffer.layout_runs() {
 			for glyph in run.glyphs {
 				let physical_glyph = glyph.physical((0.0, 0.0), 1.0);
@@ -87,19 +87,25 @@ impl Text {
 				};
 				let position = vec2(
 					physical_glyph.x as f32,
-					run.line_top + physical_glyph.y as f32,
+					run.line_y + physical_glyph.y as f32,
 				) + offset.as_vec2();
 				sprites.push((texture_rect, position));
-				let glyph_bounds = Rect::new(position, texture_rect.size.as_vec2());
-				if let Some(bounds) = &mut bounds {
-					*bounds = bounds.union(glyph_bounds);
+				let individual_glyph_bounds = Rect::new(position, texture_rect.size.as_vec2());
+				if let Some(glyph_bounds) = &mut glyph_bounds {
+					*glyph_bounds = glyph_bounds.union(individual_glyph_bounds);
 				} else {
-					bounds = Some(glyph_bounds);
+					glyph_bounds = Some(individual_glyph_bounds);
 				}
-				if let Some(lowest_baseline) = &mut lowest_baseline {
-					*lowest_baseline = lowest_baseline.max(run.line_top);
+			}
+			if let Some(first_character_x) = run.glyphs.first().map(|glyph| glyph.x) {
+				let individual_line_bounds = Rect::new(
+					vec2(first_character_x, run.line_top),
+					vec2(run.line_w, run.line_y - run.line_top),
+				);
+				if let Some(line_bounds) = &mut line_bounds {
+					*line_bounds = line_bounds.union(individual_line_bounds);
 				} else {
-					lowest_baseline = Some(run.line_top);
+					line_bounds = Some(individual_line_bounds);
 				}
 			}
 		}
@@ -112,8 +118,8 @@ impl Text {
 		Self {
 			inner: Arc::new(TextInner {
 				sprite_batch,
-				bounds,
-				lowest_baseline,
+				glyph_bounds,
+				line_bounds,
 				num_glyphs: sprites.len() as u32,
 			}),
 			transform: Mat4::IDENTITY,
@@ -140,19 +146,19 @@ impl Text {
 		self.inner.num_glyphs
 	}
 
-	/// Returns a rectangle that tightly hugs the text.
+	/// Returns a rectangle that surrounds all the glyphs in the text.
 	///
 	/// Returns `None` if there's no characters in this [`Text`].
-	pub fn bounds(&self) -> Option<Rect> {
-		self.inner.bounds
+	pub fn glyph_bounds(&self) -> Option<Rect> {
+		self.inner.glyph_bounds
 	}
 
-	/// Returns the y position of the lowest baseline of any
-	/// of the characters.
+	/// Returns a rectangle that surrounds all the lines of the text.
+	/// Descenders in the bottom row of text are not included.
 	///
 	/// Returns `None` if there's no characters in this [`Text`].
-	pub fn lowest_baseline(&self) -> Option<f32> {
-		self.inner.lowest_baseline
+	pub fn line_bounds(&self) -> Option<Rect> {
+		self.inner.line_bounds
 	}
 
 	/// Draws the text.
@@ -171,8 +177,8 @@ impl Text {
 #[derive(Debug)]
 struct TextInner {
 	pub(crate) sprite_batch: SpriteBatch,
-	pub(crate) bounds: Option<Rect>,
-	pub(crate) lowest_baseline: Option<f32>,
+	pub(crate) glyph_bounds: Option<Rect>,
+	pub(crate) line_bounds: Option<Rect>,
 	pub(crate) num_glyphs: u32,
 }
 

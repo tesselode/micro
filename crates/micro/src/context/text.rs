@@ -82,21 +82,28 @@ impl TextContext {
 		queue: &Queue,
 		cache_key: CacheKey,
 	) -> Option<GlyphInfo> {
-		let mut min_x = 0;
-		let mut min_y = 0;
-		let mut max_x = 0;
-		let mut max_y = 0;
+		let mut min_x: Option<i32> = None;
+		let mut min_y: Option<i32> = None;
+		let mut max_x: Option<i32> = None;
+		let mut max_y: Option<i32> = None;
 		self.swash_cache.with_pixels(
 			&mut self.font_system,
 			cache_key,
 			cosmic_text::Color::rgb(0xff, 0xff, 0xff),
-			|x, y, _| {
-				min_x = min_x.min(x);
-				min_y = min_y.min(y);
-				max_x = max_x.max(x);
-				max_y = max_y.max(y);
+			|x, y, color| {
+				if color.a() == 0 {
+					return;
+				}
+				min_x = Some(min_x.map(|min_x| min_x.min(x)).unwrap_or(x));
+				min_y = Some(min_y.map(|min_y| min_y.min(y)).unwrap_or(y));
+				max_x = Some(max_x.map(|max_x| max_x.max(x)).unwrap_or(x));
+				max_y = Some(max_y.map(|max_y| max_y.max(y)).unwrap_or(y));
 			},
 		);
+		let (Some(min_x), Some(min_y), Some(max_x), Some(max_y)) = (min_x, min_y, max_x, max_y)
+		else {
+			return None;
+		};
 		let width = (max_x - min_x + 1) as u32;
 		let height = (max_y - min_y + 1) as u32;
 		let mut image = RgbaImage::new(width, height);
@@ -105,6 +112,9 @@ impl TextContext {
 			cache_key,
 			cosmic_text::Color::rgb(0xff, 0xff, 0xff),
 			|x, y, color| {
+				if color.a() == 0 {
+					return;
+				}
 				image.put_pixel(
 					(x - min_x) as u32,
 					(y - min_y) as u32,

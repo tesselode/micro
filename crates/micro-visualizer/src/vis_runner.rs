@@ -185,6 +185,7 @@ impl VisRunner {
 				.and_then(|chapters| chapters.index_at_frame(current_frame)),
 			current_chapter_frame,
 			current_chapter_time,
+			num_frames: self.num_frames,
 		}
 	}
 

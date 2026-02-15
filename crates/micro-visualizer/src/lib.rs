@@ -3,6 +3,7 @@ mod conversions;
 mod vis_runner;
 
 pub use chapters::*;
+pub use conversions::*;
 pub use micro::*;
 
 use std::{path::PathBuf, time::Duration};
@@ -97,4 +98,5 @@ pub struct VisualizerInfo {
 	pub current_chapter_index: Option<usize>,
 	pub current_chapter_frame: Option<u64>,
 	pub current_chapter_time: Option<Duration>,
+	pub num_frames: u64,
 }

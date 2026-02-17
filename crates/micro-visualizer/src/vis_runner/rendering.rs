@@ -53,7 +53,7 @@ impl VisRunner {
 			.arg("-b:a")
 			.arg("320k")
 			.arg("-c:v")
-			.arg("libx264")
+			.arg(std::env::var("CODEC").as_deref().unwrap_or("libx264"))
 			.arg("-r")
 			.arg(self.visualizer.frame_rate().to_string())
 			.arg("-shortest")

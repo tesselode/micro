@@ -44,6 +44,7 @@ pub struct VisRunner {
 
 impl VisRunner {
 	pub fn new(ctx: &mut Context, visualizer: Box<dyn Visualizer>) -> anyhow::Result<Self> {
+		dotenvy::dotenv().ok();
 		let audio_manager = AudioManager::new(AudioManagerSettings::default())?;
 		let sound_data = StreamingSoundData::from_file(visualizer.audio_path())?;
 		let num_frames =

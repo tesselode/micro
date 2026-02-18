@@ -22,6 +22,8 @@ impl ClockDirection {
 #[cfg(feature = "rand")]
 impl rand::distr::Distribution<ClockDirection> for rand::distr::StandardUniform {
 	fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> ClockDirection {
+		use rand::RngExt;
+
 		match rng.random_range(0..2) {
 			0 => ClockDirection::Clockwise,
 			1 => ClockDirection::CounterClockwise,

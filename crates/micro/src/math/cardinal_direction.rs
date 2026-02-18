@@ -93,6 +93,8 @@ impl CardinalDirection {
 #[cfg(feature = "rand")]
 impl rand::distr::Distribution<CardinalDirection> for rand::distr::StandardUniform {
 	fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> CardinalDirection {
+		use rand::RngExt;
+
 		match rng.random_range(0..4) {
 			0 => CardinalDirection::Left,
 			1 => CardinalDirection::Right,

@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 bytemuck = { version = "1.21.0", features = ["derive"] }
-cosmic-text = "0.17.1"
+cosmic-text = "0.18.2"
 derive_more = { version = "2.0.1", features = ["display", "error", "from"] }
 egui = "0.33.0"
 etagere = "0.2.15"

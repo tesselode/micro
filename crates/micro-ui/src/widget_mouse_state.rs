@@ -31,6 +31,10 @@ impl WidgetMouseState {
 			.map(|(current, previous)| current - previous)
 	}
 
+	pub fn wheel_delta(&self) -> Vec2 {
+		self.0.borrow().wheel_delta
+	}
+
 	/// Returns `true` if the mouse is inside the widget.
 	pub fn hovered(&self) -> bool {
 		self.0.borrow().relative_pos.is_some()
@@ -77,9 +81,14 @@ impl WidgetMouseState {
 		let mut state = self.0.borrow_mut();
 		state.relative_pos_previous = state.relative_pos;
 		state.relative_pos = mouse_input
-			.mouse_position
+			.position
 			.filter(|position| Rect::new(Vec2::ZERO, size).contains_point(*position));
 		let hovered = state.relative_pos.is_some();
+		state.wheel_delta = if hovered {
+			mouse_input.wheel_delta
+		} else {
+			Vec2::ZERO
+		};
 		for (
 			button,
 			ButtonState {
@@ -108,6 +117,7 @@ impl WidgetMouseState {
 struct WidgetMouseStateInner {
 	relative_pos: Option<Vec2>,
 	relative_pos_previous: Option<Vec2>,
+	wheel_delta: Vec2,
 	button_state: HashMap<MouseButton, ButtonState>,
 }
 
@@ -116,6 +126,7 @@ impl WidgetMouseStateInner {
 		Self {
 			relative_pos: None,
 			relative_pos_previous: None,
+			wheel_delta: Vec2::ZERO,
 			button_state: MouseButton::KNOWN
 				.iter()
 				.copied()

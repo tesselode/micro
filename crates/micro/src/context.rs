@@ -57,6 +57,7 @@ where
 		window,
 		gamepad: controller,
 		event_pump,
+		mouse_wheel_delta: Vec2::ZERO,
 		egui_wants_keyboard_input: false,
 		egui_wants_mouse_input: false,
 		clear_color: LinSrgb::BLACK,
@@ -97,6 +98,13 @@ where
 		// poll for events
 		let span = tracy_client::span!("poll events");
 		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
+		ctx.mouse_wheel_delta = events.iter().fold(Vec2::ZERO, |delta, event| {
+			if let sdl3::event::Event::MouseWheel { x, y, .. } = event {
+				delta + Vec2::new(*x, *y)
+			} else {
+				delta
+			}
+		});
 		drop(span);
 
 		// create egui UI
@@ -212,6 +220,7 @@ where
 pub struct Context {
 	gamepad: GamepadSubsystem,
 	event_pump: EventPump,
+	mouse_wheel_delta: Vec2,
 	egui_wants_keyboard_input: bool,
 	egui_wants_mouse_input: bool,
 	// `graphics` needs to be before `window`, since it holds
@@ -460,6 +469,10 @@ impl Context {
 		transform
 			.transform_point3(untransformed.extend(0.0))
 			.truncate()
+	}
+
+	pub fn mouse_wheel_delta(&self) -> Vec2 {
+		self.mouse_wheel_delta
 	}
 
 	/// Gets the currently connected gamepads.

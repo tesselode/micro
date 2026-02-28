@@ -1,5 +1,7 @@
 use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
+use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
+
 use super::{LayoutResult, Widget, WidgetMouseState};
 
 #[derive(Debug)]
@@ -9,6 +11,7 @@ pub struct Polyline {
 	color: LinSrgba,
 	size: Vec2,
 	mouse_state: Option<WidgetMouseState>,
+	inspector: Option<WidgetInspector>,
 }
 
 impl Polyline {
@@ -28,28 +31,22 @@ impl Polyline {
 			color: color.into(),
 			size,
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 
-	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
-		Self {
-			mouse_state: Some(state.clone()),
-			..self
-		}
-	}
+	common_functions!();
 }
 
 impl Widget for Polyline {
+	common_widget_trait_functions!();
+
 	fn name(&self) -> &'static str {
 		"polyline"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
 		&[]
-	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState> {
-		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

@@ -1,6 +1,7 @@
 mod align;
 mod ellipse;
 mod image;
+mod inspector;
 mod macros;
 mod mask;
 mod mouse_input;
@@ -18,6 +19,7 @@ mod widget_mouse_state;
 pub use align::*;
 pub use ellipse::*;
 pub use image::*;
+pub use inspector::*;
 pub use mask::*;
 pub use padding::*;
 pub use polygon::*;
@@ -52,6 +54,8 @@ pub trait Widget: Debug {
 	}
 
 	fn mouse_state(&self) -> Option<WidgetMouseState>;
+
+	fn inspector(&self) -> Option<WidgetInspector>;
 
 	fn allotted_size_for_next_child(
 		&self,

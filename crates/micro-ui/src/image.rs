@@ -5,6 +5,8 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
+use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
+
 use super::{LayoutResult, Widget, WidgetMouseState};
 
 #[derive(Debug)]
@@ -13,6 +15,7 @@ pub struct Image {
 	scale: Vec2,
 	color: LinSrgba,
 	mouse_state: Option<WidgetMouseState>,
+	inspector: Option<WidgetInspector>,
 }
 
 impl Image {
@@ -22,6 +25,7 @@ impl Image {
 			scale: Vec2::ONE,
 			color: LinSrgba::WHITE,
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 
@@ -60,25 +64,18 @@ impl Image {
 		}
 	}
 
-	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
-		Self {
-			mouse_state: Some(state.clone()),
-			..self
-		}
-	}
+	common_functions!();
 }
 
 impl Widget for Image {
+	common_widget_trait_functions!();
+
 	fn name(&self) -> &'static str {
 		"image"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
 		&[]
-	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState> {
-		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

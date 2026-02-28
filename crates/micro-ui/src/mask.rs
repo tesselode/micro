@@ -1,6 +1,9 @@
 use micro::{Context, math::Vec2};
 
-use crate::{child_fns, sizing_fns};
+use crate::{
+	WidgetInspector, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
+};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
 
@@ -10,6 +13,7 @@ pub struct Mask {
 	children: Vec<Box<dyn Widget>>,
 	mask: Box<dyn Widget>,
 	mouse_state: Option<WidgetMouseState>,
+	inspector: Option<WidgetInspector>,
 }
 
 impl Mask {
@@ -19,21 +23,18 @@ impl Mask {
 			children: vec![],
 			mask: Box::new(mask),
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 
-	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
-		Self {
-			mouse_state: Some(state.clone()),
-			..self
-		}
-	}
-
-	child_fns!();
-	sizing_fns!();
+	common_functions!();
+	child_functions!();
+	sizing_functions!();
 }
 
 impl Widget for Mask {
+	common_widget_trait_functions!();
+
 	fn name(&self) -> &'static str {
 		"mask"
 	}
@@ -44,10 +45,6 @@ impl Widget for Mask {
 
 	fn mask(&self) -> Option<&dyn Widget> {
 		Some(self.mask.as_ref())
-	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState> {
-		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

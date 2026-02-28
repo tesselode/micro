@@ -5,7 +5,7 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::child_fns;
+use crate::{WidgetInspector, child_functions, common_functions, common_widget_trait_functions};
 
 use super::{AxisSizing, LayoutResult, Widget, WidgetMouseState};
 
@@ -17,6 +17,7 @@ pub struct Stack {
 	cross_sizing: AxisSizing,
 	children: Vec<Box<dyn Widget>>,
 	mouse_state: Option<WidgetMouseState>,
+	inspector: Option<WidgetInspector>,
 }
 
 impl Stack {
@@ -28,6 +29,7 @@ impl Stack {
 			cross_sizing: AxisSizing::Shrink,
 			children: vec![],
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 
@@ -39,6 +41,7 @@ impl Stack {
 			cross_sizing: AxisSizing::Shrink,
 			children: vec![],
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 
@@ -60,27 +63,19 @@ impl Stack {
 		}
 	}
 
-	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
-		Self {
-			mouse_state: Some(state.clone()),
-			..self
-		}
-	}
-
-	child_fns!();
+	common_functions!();
+	child_functions!();
 }
 
 impl Widget for Stack {
+	common_widget_trait_functions!();
+
 	fn name(&self) -> &'static str {
 		"stack"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
 		&self.children
-	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState> {
-		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

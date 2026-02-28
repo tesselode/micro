@@ -7,7 +7,10 @@ use micro::{
 	math::Vec2,
 };
 
-use crate::{child_fns, sizing_fns};
+use crate::{
+	WidgetInspector, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
+};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
 
@@ -18,6 +21,7 @@ pub struct Ellipse {
 	stroke: Option<(f32, LinSrgba)>,
 	children: Vec<Box<dyn Widget>>,
 	mouse_state: Option<WidgetMouseState>,
+	inspector: Option<WidgetInspector>,
 }
 
 impl Ellipse {
@@ -51,15 +55,9 @@ impl Ellipse {
 		}
 	}
 
-	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
-		Self {
-			mouse_state: Some(state.clone()),
-			..self
-		}
-	}
-
-	child_fns!();
-	sizing_fns!();
+	common_functions!();
+	child_functions!();
+	sizing_functions!();
 }
 
 impl Default for Ellipse {
@@ -70,21 +68,20 @@ impl Default for Ellipse {
 			stroke: Default::default(),
 			children: Default::default(),
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 }
 
 impl Widget for Ellipse {
+	common_widget_trait_functions!();
+
 	fn name(&self) -> &'static str {
 		"ellipse"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
 		&self.children
-	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState> {
-		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

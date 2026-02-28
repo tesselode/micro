@@ -3,7 +3,10 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{child_fns, sizing_fns};
+use crate::{
+	WidgetInspector, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
+};
 
 use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
 
@@ -16,6 +19,7 @@ pub struct Padding {
 	bottom: f32,
 	children: Vec<Box<dyn Widget>>,
 	mouse_state: Option<WidgetMouseState>,
+	inspector: Option<WidgetInspector>,
 }
 
 impl Padding {
@@ -28,6 +32,7 @@ impl Padding {
 			bottom,
 			children: vec![],
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 
@@ -63,15 +68,9 @@ impl Padding {
 		Self::new(0.0, 0.0, 0.0, padding)
 	}
 
-	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
-		Self {
-			mouse_state: Some(state.clone()),
-			..self
-		}
-	}
-
-	child_fns!();
-	sizing_fns!();
+	common_functions!();
+	child_functions!();
+	sizing_functions!();
 
 	fn total_padding(&self) -> Vec2 {
 		vec2(self.left + self.right, self.top + self.bottom)
@@ -88,21 +87,20 @@ impl Default for Padding {
 			bottom: Default::default(),
 			children: Default::default(),
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 }
 
 impl Widget for Padding {
+	common_widget_trait_functions!();
+
 	fn name(&self) -> &'static str {
 		"padding"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
 		&self.children
-	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState> {
-		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

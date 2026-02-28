@@ -1,5 +1,37 @@
 #[macro_export]
-macro_rules! child_fns {
+macro_rules! common_functions {
+	() => {
+		pub fn mouse_state(self, state: &$crate::WidgetMouseState) -> Self {
+			Self {
+				mouse_state: Some(state.clone()),
+				..self
+			}
+		}
+
+		pub fn inspector(self, inspector: &$crate::WidgetInspector) -> Self {
+			Self {
+				inspector: Some(inspector.clone()),
+				..self
+			}
+		}
+	};
+}
+
+#[macro_export]
+macro_rules! common_widget_trait_functions {
+	() => {
+		fn mouse_state(&self) -> Option<$crate::WidgetMouseState> {
+			self.mouse_state.clone()
+		}
+
+		fn inspector(&self) -> Option<$crate::WidgetInspector> {
+			self.inspector.clone()
+		}
+	};
+}
+
+#[macro_export]
+macro_rules! child_functions {
 	() => {
 		pub fn child(mut self, child: impl Widget + 'static) -> Self {
 			self.children.push(Box::new(child));
@@ -68,7 +100,7 @@ macro_rules! child_fns {
 }
 
 #[macro_export]
-macro_rules! sizing_fns {
+macro_rules! sizing_functions {
 	() => {
 		pub fn sizing(self, sizing: $crate::Sizing) -> Self {
 			Self { sizing, ..self }

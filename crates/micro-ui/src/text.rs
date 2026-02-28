@@ -9,7 +9,10 @@ use micro::{
 	math::Vec2,
 };
 
-use crate::{AxisSizing, Sizing, sizing_fns};
+use crate::{
+	AxisSizing, Sizing, WidgetInspector, common_functions, common_widget_trait_functions,
+	sizing_functions,
+};
 
 use super::{LayoutResult, Widget, WidgetMouseState};
 
@@ -23,6 +26,7 @@ pub struct TextWidget {
 	size_reporting: TextSizeReporting,
 	built: RefCell<Option<Text>>,
 	mouse_state: Option<WidgetMouseState>,
+	inspector: Option<WidgetInspector>,
 }
 
 impl TextWidget {
@@ -36,10 +40,9 @@ impl TextWidget {
 			size_reporting: TextSizeReporting::default(),
 			built: RefCell::new(None),
 			mouse_state: None,
+			inspector: None,
 		}
 	}
-
-	sizing_fns!();
 
 	pub fn align(self, align: TextAlign) -> Self {
 		Self { align, ..self }
@@ -122,25 +125,19 @@ impl TextWidget {
 		}
 	}
 
-	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
-		Self {
-			mouse_state: Some(state.clone()),
-			..self
-		}
-	}
+	common_functions!();
+	sizing_functions!();
 }
 
 impl Widget for TextWidget {
+	common_widget_trait_functions!();
+
 	fn name(&self) -> &'static str {
 		"text"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
 		&[]
-	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState> {
-		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

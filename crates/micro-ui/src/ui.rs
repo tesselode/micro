@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use crate::mouse_input::MouseInput;
+use crate::{WidgetInspector, WidgetInspectorInner, mouse_input::MouseInput};
 
 use itertools::izip;
 use micro::{
@@ -61,6 +61,7 @@ impl Ui {
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
 			baked_widget.draw_debug(ctx, &draw_debug_state);
 		}
+		baked_widget.report(Vec2::ZERO, Vec2::ZERO, Mat4::IDENTITY);
 		self.previous_baked_widget = Some(baked_widget);
 	}
 }
@@ -76,7 +77,9 @@ struct BakedWidget {
 	name: &'static str,
 	path: PathBuf,
 	children: Vec<BakedWidget>,
+	transform: Mat4,
 	mask: Option<Box<BakedWidget>>,
+	inspector: Option<WidgetInspector>,
 	layout_result: LayoutResult,
 	allotted_size_from_parent: Vec2,
 }
@@ -111,11 +114,14 @@ impl BakedWidget {
 				layout_result.size,
 			))
 		});
+		let transform = raw_widget.transform(layout_result.size);
 		Self {
 			name: raw_widget.name(),
 			path,
 			children,
+			transform,
 			mask,
+			inspector: raw_widget.inspector(),
 			layout_result,
 			allotted_size_from_parent,
 		}
@@ -123,8 +129,7 @@ impl BakedWidget {
 
 	fn use_mouse_input(&mut self, raw_widget: &dyn Widget, mut mouse_input: MouseInput) {
 		let _span = tracy_client::span!();
-		mouse_input =
-			mouse_input.transformed(raw_widget.transform(self.layout_result.size).inverse());
+		mouse_input = mouse_input.transformed(self.transform.inverse());
 		if let Some(mouse_state) = raw_widget.mouse_state() {
 			mouse_state.update(&mouse_input, self.layout_result.size);
 		}
@@ -139,7 +144,7 @@ impl BakedWidget {
 
 	fn draw(&self, ctx: &mut Context, raw_widget: &dyn Widget) {
 		let _span = tracy_client::span!();
-		let ctx = &mut ctx.push(raw_widget.transform(self.layout_result.size));
+		let ctx = &mut ctx.push(self.transform);
 		if let Some((raw_mask, baked_mask)) = raw_widget.mask().zip(self.mask.as_ref()) {
 			{
 				let ctx = &mut ctx.push(StencilState::write(StencilOperation::Replace, 1));
@@ -187,6 +192,29 @@ impl BakedWidget {
 		{
 			let ctx = &mut ctx.push_translation_2d(position.round());
 			baked_child.draw_debug(ctx, draw_debug_state);
+		}
+	}
+
+	fn report(&self, parent_global_top_left: Vec2, my_offset: Vec2, parent_global_transform: Mat4) {
+		let my_global_top_left = parent_global_top_left + my_offset;
+		let my_global_transform = parent_global_transform
+			* Mat4::from_translation(my_offset.extend(0.0))
+			* self.transform;
+		if let Some(inspector) = &self.inspector {
+			*inspector.0.borrow_mut() = WidgetInspectorInner::Inspected {
+				bounds: Rect::new(my_global_top_left, self.layout_result.size),
+				transform: my_global_transform,
+			};
+		}
+		for (baked_child, child_offset) in self
+			.children
+			.iter()
+			.zip(self.layout_result.child_positions.iter().copied())
+		{
+			baked_child.report(my_global_top_left, child_offset, my_global_transform);
+		}
+		if let Some(mask) = &self.mask {
+			mask.report(parent_global_top_left, Vec2::ZERO, my_global_transform);
 		}
 	}
 }

@@ -5,6 +5,8 @@ use micro::{
 	math::Vec2,
 };
 
+use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
+
 use super::{LayoutResult, Widget, WidgetMouseState};
 
 #[derive(Debug)]
@@ -14,6 +16,7 @@ pub struct Polygon {
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
 	mouse_state: Option<WidgetMouseState>,
+	inspector: Option<WidgetInspector>,
 }
 
 impl Polygon {
@@ -29,6 +32,7 @@ impl Polygon {
 			fill: None,
 			stroke: None,
 			mouse_state: None,
+			inspector: None,
 		}
 	}
 
@@ -58,25 +62,18 @@ impl Polygon {
 		}
 	}
 
-	pub fn mouse_state(self, state: &WidgetMouseState) -> Self {
-		Self {
-			mouse_state: Some(state.clone()),
-			..self
-		}
-	}
+	common_functions!();
 }
 
 impl Widget for Polygon {
+	common_widget_trait_functions!();
+
 	fn name(&self) -> &'static str {
 		"polygon"
 	}
 
 	fn children(&self) -> &[Box<dyn Widget>] {
 		&[]
-	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState> {
-		self.mouse_state.clone()
 	}
 
 	fn allotted_size_for_next_child(

@@ -8,7 +8,7 @@ use crate::{
 #[derive(Debug)]
 pub struct ManuallyPositioned {
 	children: Vec<Box<dyn Widget>>,
-	child_positions: Vec<Vec2>,
+	child_positions: Vec<ChildPosition>,
 	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
@@ -23,7 +23,11 @@ impl ManuallyPositioned {
 		}
 	}
 
-	pub fn child(mut self, position: impl Into<Vec2>, child: impl Widget + 'static) -> Self {
+	pub fn child(
+		mut self,
+		position: impl Into<ChildPosition>,
+		child: impl Widget + 'static,
+	) -> Self {
 		self.children.push(Box::new(child));
 		self.child_positions.push(position.into());
 		self
@@ -31,7 +35,7 @@ impl ManuallyPositioned {
 
 	pub fn children(
 		mut self,
-		children: impl IntoIterator<Item = (impl Into<Vec2>, impl Widget + 'static)>,
+		children: impl IntoIterator<Item = (impl Into<ChildPosition>, impl Widget + 'static)>,
 	) -> Self {
 		for (position, child) in children {
 			self.children.push(Box::new(child));
@@ -40,7 +44,7 @@ impl ManuallyPositioned {
 		self
 	}
 
-	pub fn child_if<P: Into<Vec2>, W: Widget + 'static>(
+	pub fn child_if<P: Into<ChildPosition>, W: Widget + 'static>(
 		mut self,
 		condition: bool,
 		child: impl FnOnce() -> (P, W),
@@ -56,7 +60,7 @@ impl ManuallyPositioned {
 	pub fn children_if(
 		mut self,
 		condition: bool,
-		children: impl IntoIterator<Item = (impl Into<Vec2>, impl Widget + 'static)>,
+		children: impl IntoIterator<Item = (impl Into<ChildPosition>, impl Widget + 'static)>,
 	) -> Self {
 		if !condition {
 			return self;
@@ -68,7 +72,7 @@ impl ManuallyPositioned {
 		self
 	}
 
-	pub fn child_if_some<T, P: Into<Vec2>, W: Widget + 'static>(
+	pub fn child_if_some<T, P: Into<ChildPosition>, W: Widget + 'static>(
 		mut self,
 		value: &Option<T>,
 		child: impl FnOnce(&T) -> (P, W),
@@ -81,7 +85,10 @@ impl ManuallyPositioned {
 		self
 	}
 
-	pub fn children_if_some<T, W: IntoIterator<Item = (impl Into<Vec2>, impl Widget + 'static)>>(
+	pub fn children_if_some<
+		T,
+		W: IntoIterator<Item = (impl Into<ChildPosition>, impl Widget + 'static)>,
+	>(
 		mut self,
 		value: &Option<T>,
 		children: impl FnOnce(&T) -> W,
@@ -131,7 +138,61 @@ impl Widget for ManuallyPositioned {
 	) -> LayoutResult {
 		LayoutResult {
 			size: allotted_size_from_parent,
-			child_positions: self.child_positions.clone(),
+			child_positions: self
+				.child_positions
+				.iter()
+				.map(|child_position| child_position.get(allotted_size_from_parent))
+				.collect(),
 		}
+	}
+}
+
+pub enum ChildPosition {
+	Static(Vec2),
+	Dynamic(Box<dyn Fn(Vec2) -> Vec2>),
+}
+
+impl ChildPosition {
+	fn get(&self, size: Vec2) -> Vec2 {
+		match self {
+			ChildPosition::Static(position) => *position,
+			ChildPosition::Dynamic(f) => f(size),
+		}
+	}
+}
+
+impl std::fmt::Debug for ChildPosition {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::Static(arg0) => f.debug_tuple("Static").field(arg0).finish(),
+			Self::Dynamic(_) => f.debug_tuple("Dynamic").finish(),
+		}
+	}
+}
+
+impl<T> From<T> for ChildPosition
+where
+	T: Fn(Vec2) -> Vec2 + 'static,
+{
+	fn from(value: T) -> Self {
+		Self::Dynamic(Box::new(value))
+	}
+}
+
+impl From<Vec2> for ChildPosition {
+	fn from(value: Vec2) -> Self {
+		Self::Static(value)
+	}
+}
+
+impl From<(f32, f32)> for ChildPosition {
+	fn from(value: (f32, f32)) -> Self {
+		Self::Static(value.into())
+	}
+}
+
+impl From<[f32; 2]> for ChildPosition {
+	fn from(value: [f32; 2]) -> Self {
+		Self::Static(value.into())
 	}
 }

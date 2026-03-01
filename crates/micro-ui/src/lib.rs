@@ -1,5 +1,6 @@
 mod align;
 mod aspect_ratio;
+mod distribute;
 mod ellipse;
 mod image;
 mod inspector;
@@ -19,6 +20,7 @@ mod widget_mouse_state;
 
 pub use align::*;
 pub use aspect_ratio::*;
+pub use distribute::*;
 pub use ellipse::*;
 pub use image::*;
 pub use inspector::*;

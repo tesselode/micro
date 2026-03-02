@@ -9,6 +9,8 @@ use micro::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct MouseInput {
 	pub position: Option<Vec2>,
+	pub previous_position: Option<Vec2>,
+	pub delta: Vec2,
 	pub wheel_delta: Vec2,
 	held_state: HashMap<MouseButton, HeldState>,
 }
@@ -17,6 +19,8 @@ impl MouseInput {
 	pub fn new() -> Self {
 		Self {
 			position: None,
+			previous_position: None,
+			delta: Vec2::ZERO,
 			wheel_delta: Vec2::ZERO,
 			held_state: MouseButton::KNOWN
 				.iter()
@@ -26,11 +30,17 @@ impl MouseInput {
 	}
 
 	pub fn update(&mut self, ctx: &Context, transform: Mat4) {
+		self.previous_position = self.position;
 		let raw_position = ctx.mouse_position();
 		let transformed_position = transform
 			.transform_point3(raw_position.extend(0.0))
 			.truncate();
 		self.position = Some(transformed_position);
+		self.delta = self
+			.position
+			.zip(self.previous_position)
+			.map(|(position, previous)| position - previous)
+			.unwrap_or_default();
 		self.wheel_delta = ctx.mouse_wheel_delta();
 		for (button, held_state) in &mut self.held_state {
 			held_state.held_previous = held_state.held;
@@ -43,6 +53,14 @@ impl MouseInput {
 			position: self
 				.position
 				.map(|position| transform.transform_point3(position.extend(0.0)).truncate()),
+			previous_position: self.previous_position.map(|previous_position| {
+				transform
+					.transform_point3(previous_position.extend(0.0))
+					.truncate()
+			}),
+			delta: transform
+				.transform_vector3(self.delta.extend(0.0))
+				.truncate(),
 			..self.clone()
 		}
 	}
@@ -50,6 +68,9 @@ impl MouseInput {
 	pub fn translated(&self, translation: Vec2) -> Self {
 		Self {
 			position: self.position.map(|position| position + translation),
+			previous_position: self
+				.previous_position
+				.map(|previous_position| previous_position + translation),
 			..self.clone()
 		}
 	}

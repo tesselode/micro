@@ -15,20 +15,21 @@ impl WidgetMouseState {
 		Self(Rc::new(RefCell::new(WidgetMouseStateInner::new())))
 	}
 
-	/// If the mouse is inside the widget, returns the mouse position relative
-	/// to the widget's top-left corner. Otherwise, returns `None`.
-	pub fn relative_pos(&self) -> Option<Vec2> {
-		self.0.borrow().relative_pos
+	/// Returns the mouse position relative to the widget's top-left corner
+	/// (in this widget's coordinate system).
+	pub fn relative_pos(&self) -> Vec2 {
+		self.0.borrow().relative_pos.unwrap_or_default()
 	}
 
-	/// If the mouse was inside the widget this frame and the previous frame,
-	/// returns how much it moved this frame. Otherwise, returns `None`.
-	pub fn delta(&self) -> Option<Vec2> {
+	/// Returns how much the mouse moved this frame (in this widget's
+	/// coordinate system).
+	pub fn delta(&self) -> Vec2 {
 		let state = self.0.borrow();
 		state
 			.relative_pos
 			.zip(state.relative_pos_previous)
 			.map(|(current, previous)| current - previous)
+			.unwrap_or_default()
 	}
 
 	pub fn wheel_delta(&self) -> Vec2 {
@@ -80,10 +81,10 @@ impl WidgetMouseState {
 	pub(crate) fn update(&self, mouse_input: &MouseInput, size: Vec2) {
 		let mut state = self.0.borrow_mut();
 		state.relative_pos_previous = state.relative_pos;
-		state.relative_pos = mouse_input
+		state.relative_pos = mouse_input.position;
+		let hovered = mouse_input
 			.position
-			.filter(|position| Rect::new(Vec2::ZERO, size).contains_point(*position));
-		let hovered = state.relative_pos.is_some();
+			.is_some_and(|position| Rect::new(Vec2::ZERO, size).contains_point(position));
 		state.wheel_delta = if hovered {
 			mouse_input.wheel_delta
 		} else {

@@ -124,10 +124,10 @@ impl Widget for ManuallyPositioned {
 
 	fn allotted_size_for_next_child(
 		&self,
-		_allotted_size_from_parent: Vec2,
+		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 	) -> Vec2 {
-		Vec2::INFINITY
+		allotted_size_from_parent
 	}
 
 	fn layout(

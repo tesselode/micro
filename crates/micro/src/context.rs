@@ -9,7 +9,7 @@ use winit::{
 	application::ApplicationHandler,
 	dpi::{PhysicalSize, Size},
 	event::WindowEvent,
-	event_loop::{ActiveEventLoop, EventLoop},
+	event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
 	window::{Fullscreen, Window, WindowId},
 };
 
@@ -18,13 +18,14 @@ use std::{
 	ops::{Deref, DerefMut},
 	path::Path,
 	sync::Arc,
+	time::{Duration, Instant},
 };
 
 use glam::{Mat4, UVec2, Vec2, Vec3, uvec2};
 use wgpu::{Features, PresentMode, TextureFormat};
 
 use crate::{
-	App, WindowMode, build_window,
+	App, FrameTimeTracker, WindowMode, build_window,
 	context::graphics::GraphicsContext,
 	graphics::{IntoScale2d, IntoScale3d},
 	text::TextContext,
@@ -40,6 +41,7 @@ where
 	F: FnMut(&mut Context) -> anyhow::Result<A> + 'static,
 {
 	let event_loop = EventLoop::new()?;
+	event_loop.set_control_flow(ControlFlow::Poll);
 	let mut app_handler = MicroAppHandler::new(settings, Box::new(app_constructor));
 	event_loop.run_app(&mut app_handler)?;
 	Ok(())
@@ -51,6 +53,7 @@ pub struct Context {
 	window: Arc<Window>,
 	pub(crate) graphics: GraphicsContext,
 	pub(crate) text: TextContext,
+	frame_time_tracker: FrameTimeTracker,
 }
 
 impl Context {
@@ -264,6 +267,16 @@ impl Context {
 		self.push(Mat4::from_rotation_z(rotation))
 	}
 
+	/// Returns the average duration of a frame over the past 30 frames.
+	pub fn average_frame_time(&self) -> Duration {
+		self.frame_time_tracker.average()
+	}
+
+	/// Returns the current frames per second the game is running at.
+	pub fn fps(&self) -> f32 {
+		1.0 / self.average_frame_time().as_secs_f32()
+	}
+
 	pub fn load_font_file(&mut self, path: impl AsRef<Path>) -> std::io::Result<()> {
 		self.text.load_font_file(path)
 	}
@@ -279,6 +292,7 @@ impl Context {
 			window,
 			graphics,
 			text,
+			frame_time_tracker: FrameTimeTracker::new(),
 		})
 	}
 
@@ -288,6 +302,7 @@ impl Context {
 
 	fn render(&mut self) {
 		self.graphics.present();
+		self.window.request_redraw();
 	}
 }
 
@@ -442,7 +457,11 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 		let mut ctx = pollster::block_on(Context::new(&self.settings, window))
 			.expect("error creating context");
 		let app = app_constructor(&mut ctx).expect("error initializing app");
-		self.status = Status::Initialized { app, ctx };
+		self.status = Status::Initialized {
+			app,
+			ctx,
+			last_update_time: Instant::now(),
+		};
 	}
 
 	fn window_event(
@@ -451,7 +470,12 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 		_window_id: WindowId,
 		event: WindowEvent,
 	) {
-		let Status::Initialized { app, ctx } = &mut self.status else {
+		let Status::Initialized {
+			app,
+			ctx,
+			last_update_time,
+		} = &mut self.status
+		else {
 			return;
 		};
 
@@ -459,6 +483,14 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			WindowEvent::CloseRequested => event_loop.exit(),
 			WindowEvent::Resized(size) => ctx.resize(uvec2(size.width, size.height)),
 			WindowEvent::RedrawRequested => {
+				// update
+				let now = Instant::now();
+				let delta_time = now - *last_update_time;
+				*last_update_time = now;
+				ctx.frame_time_tracker.record(delta_time);
+				app.update(ctx, delta_time).expect("error while updating");
+
+				// draw
 				app.draw(ctx).expect("error while drawing");
 				ctx.render();
 			}
@@ -474,5 +506,6 @@ enum Status<A: App> {
 	Initialized {
 		app: A,
 		ctx: Context,
+		last_update_time: Instant,
 	},
 }

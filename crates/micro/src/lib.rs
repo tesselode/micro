@@ -9,9 +9,9 @@ mod app;
 pub mod color;
 mod context;
 // mod egui_integration;
-// mod event;
+mod event;
 pub mod graphics;
-// pub mod input;
+pub mod input;
 mod log;
 pub mod math;
 mod time;
@@ -20,7 +20,7 @@ mod window;
 
 pub use app::*;
 pub use context::*;
-// pub use event::*;
+pub use event::*;
 pub use time::*;
 pub use window::*;
 

@@ -8,7 +8,7 @@ pub use push::*;
 use winit::{
 	application::ApplicationHandler,
 	dpi::{PhysicalPosition, PhysicalSize, Position, Size},
-	event::WindowEvent,
+	event::{DeviceEvent, DeviceId, WindowEvent},
 	event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
 	window::{Fullscreen, Window, WindowId},
 };
@@ -25,7 +25,7 @@ use glam::{Mat4, UVec2, Vec2, Vec3, uvec2};
 use wgpu::{Features, PresentMode, TextureFormat};
 
 use crate::{
-	App, FrameTimeTracker, WindowMode, build_window,
+	App, Event, FrameTimeTracker, WindowMode, build_window,
 	context::graphics::GraphicsContext,
 	graphics::{IntoScale2d, IntoScale3d},
 	text::TextContext,
@@ -485,6 +485,21 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 		};
 	}
 
+	fn device_event(
+		&mut self,
+		_event_loop: &ActiveEventLoop,
+		_device_id: DeviceId,
+		event: DeviceEvent,
+	) {
+		let Status::Initialized { app, ctx, .. } = &mut self.status else {
+			return;
+		};
+
+		if let Some(event) = Event::from_device_event(&event) {
+			app.event(ctx, event).expect("error in event callback");
+		}
+	}
+
 	fn window_event(
 		&mut self,
 		event_loop: &ActiveEventLoop,
@@ -499,6 +514,10 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 		else {
 			return;
 		};
+
+		if let Some(event) = Event::from_window_event(&event) {
+			app.event(ctx, event).expect("error in event callback");
+		}
 
 		match event {
 			WindowEvent::CloseRequested => event_loop.exit(),
@@ -521,6 +540,15 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			}
 			_ => {}
 		}
+	}
+
+	fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+		let Status::Initialized { app, ctx, .. } = &mut self.status else {
+			return;
+		};
+
+		app.event(ctx, Event::Exited)
+			.expect("error in event callback");
 	}
 }
 

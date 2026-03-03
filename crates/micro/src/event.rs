@@ -1,6 +1,7 @@
-use glam::{Mat4, UVec2, Vec2};
+use glam::{Mat4, UVec2, Vec2, uvec2, vec2};
+use winit::{event::KeyEvent, keyboard::PhysicalKey};
 
-use crate::input::{Axis, Button, MouseButton, Scancode};
+use crate::input::{Axis, Button, MouseButton, MouseScrollDelta};
 
 /// An event sent by Micro to your [`App`](crate::App).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -10,36 +11,23 @@ pub enum Event {
 	/// A keyboard key was pressed.
 	KeyPressed {
 		/// The key that was pressed.
-		key: Scancode,
+		key: PhysicalKey,
 		/// Whether the key press event comes from key repeat from
 		/// holding down a key.
 		is_repeat: bool,
 	},
 	/// A keyboard key was released.
-	KeyReleased(Scancode),
+	KeyReleased(PhysicalKey),
+	/// The mouse cursor position changed.
+	CursorPositionChanged(Vec2),
 	/// The mouse was moved.
-	MouseMoved {
-		/// The new mouse position (in pixels).
-		position: Vec2,
-		/// How much the mouse moved (in pixels).
-		delta: Vec2,
-	},
+	MouseMoved(Vec2),
 	/// A mouse button was pressed.
-	MouseButtonPressed {
-		/// The mouse button that was pressed.
-		button: MouseButton,
-		/// The position of the mouse at the time of the button press (in pixels).
-		mouse_position: Vec2,
-	},
+	MouseButtonPressed(MouseButton),
 	/// A mouse button was released.
-	MouseButtonReleased {
-		/// The mouse button that was released.
-		button: MouseButton,
-		/// The position of the mouse at the time of the button release (in pixels).
-		mouse_position: Vec2,
-	},
+	MouseButtonReleased(MouseButton),
 	/// The mouse scroll wheel was moved.
-	MouseWheelMoved(Vec2),
+	MouseWheelMoved(MouseScrollDelta),
 	/// A gamepad axis was moved.
 	GamepadAxisMoved {
 		/// The index of the gamepad.
@@ -74,99 +62,54 @@ pub enum Event {
 impl Event {
 	pub fn transform_mouse_events(self, transform: Mat4) -> Self {
 		match self {
-			Self::MouseMoved { position, delta } => Self::MouseMoved {
-				position: transform.transform_point3(position.extend(0.0)).truncate(),
-				delta: transform.transform_vector3(delta.extend(0.0)).truncate(),
-			},
-			Self::MouseButtonPressed {
-				button,
-				mouse_position,
-			} => Self::MouseButtonPressed {
-				button,
-				mouse_position: transform
-					.transform_point3(mouse_position.extend(0.0))
-					.truncate(),
-			},
-			Self::MouseButtonReleased {
-				button,
-				mouse_position,
-			} => Self::MouseButtonReleased {
-				button,
-				mouse_position: transform
-					.transform_point3(mouse_position.extend(0.0))
-					.truncate(),
-			},
+			Self::CursorPositionChanged(position) => Self::CursorPositionChanged(
+				transform.transform_point3(position.extend(0.0)).truncate(),
+			),
+			Self::MouseMoved(delta) => Self::CursorPositionChanged(
+				transform.transform_vector3(delta.extend(0.0)).truncate(),
+			),
 			_ => self,
 		}
 	}
 
-	pub(crate) fn from_sdl3_event(sdl3_event: sdl3::event::Event) -> Option<Self> {
-		match sdl3_event {
-			sdl3::event::Event::Quit { .. } => Some(Self::Exited),
-			sdl3::event::Event::Window {
-				win_event: sdl3::event::WindowEvent::PixelSizeChanged(width, height),
+	pub(crate) fn from_window_event(event: &winit::event::WindowEvent) -> Option<Event> {
+		match event {
+			winit::event::WindowEvent::Resized(physical_size) => Some(Event::WindowSizeChanged(
+				uvec2(physical_size.width, physical_size.height),
+			)),
+			winit::event::WindowEvent::KeyboardInput {
+				event: KeyEvent {
+					physical_key,
+					state,
+					repeat,
+					..
+				},
 				..
-			} => Some(Self::WindowSizeChanged(UVec2::new(
-				width.try_into().expect("window width is negative"),
-				height.try_into().expect("window height is negative"),
-			))),
-			sdl3::event::Event::KeyDown {
-				scancode: Some(scancode),
-				repeat,
-				..
-			} => Some(Self::KeyPressed {
-				key: scancode.into(),
-				is_repeat: repeat,
+			} => Some(match state {
+				winit::event::ElementState::Pressed => Event::KeyPressed {
+					key: *physical_key,
+					is_repeat: *repeat,
+				},
+				winit::event::ElementState::Released => Event::KeyReleased(*physical_key),
 			}),
-			sdl3::event::Event::KeyUp {
-				scancode: Some(scancode),
-				..
-			} => Some(Self::KeyReleased(scancode.into())),
-			sdl3::event::Event::MouseMotion {
-				x, y, xrel, yrel, ..
-			} => Some(Self::MouseMoved {
-				position: Vec2::new(x, y),
-				delta: Vec2::new(xrel, yrel),
-			}),
-			sdl3::event::Event::MouseButtonDown {
-				mouse_btn, x, y, ..
-			} => Some(Self::MouseButtonPressed {
-				button: mouse_btn.into(),
-				mouse_position: Vec2::new(x, y),
-			}),
-			sdl3::event::Event::MouseButtonUp {
-				mouse_btn, x, y, ..
-			} => Some(Self::MouseButtonReleased {
-				button: mouse_btn.into(),
-				mouse_position: Vec2::new(x, y),
-			}),
-			sdl3::event::Event::MouseWheel { x, y, .. } => {
-				Some(Self::MouseWheelMoved(Vec2::new(x, y)))
+			winit::event::WindowEvent::CursorMoved { position, .. } => Some(
+				Event::CursorPositionChanged(vec2(position.x as f32, position.y as f32)),
+			),
+			winit::event::WindowEvent::MouseWheel { delta, .. } => {
+				Some(Event::MouseWheelMoved((*delta).into()))
 			}
-			sdl3::event::Event::ControllerAxisMotion {
-				which, axis, value, ..
-			} => Some(Self::GamepadAxisMoved {
-				gamepad_id: which,
-				axis: axis.into(),
-				value: value as f32 / i16::MAX as f32,
+			winit::event::WindowEvent::MouseInput { state, button, .. } => Some(match state {
+				winit::event::ElementState::Pressed => Event::MouseButtonPressed(*button),
+				winit::event::ElementState::Released => Event::MouseButtonReleased(*button),
 			}),
-			sdl3::event::Event::ControllerButtonDown { which, button, .. } => {
-				Some(Self::GamepadButtonPressed {
-					gamepad_id: which,
-					button: button.into(),
-				})
-			}
-			sdl3::event::Event::ControllerButtonUp { which, button, .. } => {
-				Some(Self::GamepadButtonReleased {
-					gamepad_id: which,
-					button: button.into(),
-				})
-			}
-			sdl3::event::Event::ControllerDeviceAdded { which, .. } => {
-				Some(Self::GamepadConnected(which))
-			}
-			sdl3::event::Event::ControllerDeviceRemoved { which, .. } => {
-				Some(Self::GamepadDisconnected(which))
+			_ => None,
+		}
+	}
+
+	pub(crate) fn from_device_event(event: &winit::event::DeviceEvent) -> Option<Event> {
+		match event {
+			winit::event::DeviceEvent::MouseMotion { delta } => {
+				Some(Event::MouseMoved(vec2(delta.0 as f32, delta.1 as f32)))
 			}
 			_ => None,
 		}

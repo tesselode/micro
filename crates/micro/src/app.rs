@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{Context /* event::Event */};
+use crate::{Context, Event /* event::Event */};
 
 /// The entrypoint for a Micro application.
 #[allow(unused_variables)]
@@ -27,9 +27,9 @@ pub trait App {
 	}
 
 	/// Called when various events occur.
-	/* fn event(&mut self, ctx: &mut Context, event: Event) -> anyhow::Result<()> {
+	fn event(&mut self, ctx: &mut Context, event: Event) -> anyhow::Result<()> {
 		Ok(())
-	} */
+	}
 
 	/// Called on every tick of the game loop. `delta_time` is the amount of time that's elapsed
 	/// since the last frame. Business logic should go here.

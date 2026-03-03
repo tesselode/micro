@@ -54,6 +54,7 @@ pub struct Context {
 	pub(crate) graphics: GraphicsContext,
 	pub(crate) text: TextContext,
 	frame_time_tracker: FrameTimeTracker,
+	should_quit: bool,
 }
 
 impl Context {
@@ -292,6 +293,11 @@ impl Context {
 		self.text.load_fonts_dir(path);
 	}
 
+	/// Quits the game.
+	pub fn quit(&mut self) {
+		self.should_quit = true;
+	}
+
 	async fn new(settings: &ContextSettings, window: Arc<Window>) -> anyhow::Result<Self> {
 		let graphics = GraphicsContext::new(window.clone(), settings);
 		let text = TextContext::new(&graphics);
@@ -300,6 +306,7 @@ impl Context {
 			graphics,
 			text,
 			frame_time_tracker: FrameTimeTracker::new(),
+			should_quit: false,
 		})
 	}
 
@@ -507,6 +514,10 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 				// draw
 				app.draw(ctx).expect("error while drawing");
 				ctx.render();
+
+				if ctx.should_quit {
+					event_loop.exit();
+				}
 			}
 			_ => {}
 		}

@@ -8,12 +8,14 @@ pub use push::*;
 use winit::{
 	application::ApplicationHandler,
 	dpi::{PhysicalPosition, PhysicalSize, Position, Size},
-	event::{DeviceEvent, DeviceId, WindowEvent},
+	event::{DeviceEvent, DeviceId, KeyEvent, MouseButton, WindowEvent},
 	event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+	keyboard::{KeyCode, PhysicalKey},
 	window::{Fullscreen, Window, WindowId},
 };
 
 use std::{
+	collections::HashSet,
 	fmt::Debug,
 	ops::{Deref, DerefMut},
 	path::Path,
@@ -21,7 +23,7 @@ use std::{
 	time::{Duration, Instant},
 };
 
-use glam::{Mat4, UVec2, Vec2, Vec3, uvec2};
+use glam::{Mat4, UVec2, Vec2, Vec3, uvec2, vec2};
 use wgpu::{Features, PresentMode, TextureFormat};
 
 use crate::{
@@ -53,6 +55,9 @@ pub struct Context {
 	window: Arc<Window>,
 	pub(crate) graphics: GraphicsContext,
 	pub(crate) text: TextContext,
+	held_keys: HashSet<KeyCode>,
+	held_mouse_buttons: HashSet<MouseButton>,
+	mouse_position: Option<Vec2>,
 	frame_time_tracker: FrameTimeTracker,
 	should_quit: bool,
 }
@@ -275,6 +280,22 @@ impl Context {
 		self.push(Mat4::from_rotation_z(rotation))
 	}
 
+	/// Returns `true` if the given keyboard key is currently held down.
+	pub fn is_key_down(&self, key: KeyCode) -> bool {
+		self.held_keys.contains(&key)
+	}
+
+	/// Returns `true` if the given mouse button is currently held down.
+	pub fn is_mouse_button_down(&self, mouse_button: MouseButton) -> bool {
+		self.held_mouse_buttons.contains(&mouse_button)
+	}
+
+	/// Returns the current mouse position (in pixels, relative to the top-left
+	/// corner of the window).
+	pub fn mouse_position(&self) -> Option<Vec2> {
+		self.mouse_position
+	}
+
 	/// Returns the average duration of a frame over the past 30 frames.
 	pub fn average_frame_time(&self) -> Duration {
 		self.frame_time_tracker.average()
@@ -305,6 +326,9 @@ impl Context {
 			window,
 			graphics,
 			text,
+			held_keys: HashSet::new(),
+			held_mouse_buttons: HashSet::new(),
+			mouse_position: None,
 			frame_time_tracker: FrameTimeTracker::new(),
 			should_quit: false,
 		})
@@ -521,6 +545,34 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 
 		match event {
 			WindowEvent::CloseRequested => event_loop.exit(),
+			WindowEvent::CursorMoved { position, .. } => {
+				ctx.mouse_position = Some(vec2(position.x as f32, position.y as f32))
+			}
+			WindowEvent::CursorLeft { .. } => ctx.mouse_position = None,
+			WindowEvent::KeyboardInput {
+				event:
+					KeyEvent {
+						physical_key: PhysicalKey::Code(code),
+						state,
+						..
+					},
+				..
+			} => match state {
+				winit::event::ElementState::Pressed => {
+					ctx.held_keys.insert(code);
+				}
+				winit::event::ElementState::Released => {
+					ctx.held_keys.remove(&code);
+				}
+			},
+			WindowEvent::MouseInput { state, button, .. } => match state {
+				winit::event::ElementState::Pressed => {
+					ctx.held_mouse_buttons.insert(button);
+				}
+				winit::event::ElementState::Released => {
+					ctx.held_mouse_buttons.remove(&button);
+				}
+			},
 			WindowEvent::Resized(size) => ctx.resize(uvec2(size.width, size.height)),
 			WindowEvent::RedrawRequested => {
 				// update

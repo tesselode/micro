@@ -1,5 +1,8 @@
 use glam::{Mat4, UVec2, Vec2, uvec2, vec2};
-use winit::{event::KeyEvent, keyboard::PhysicalKey};
+use winit::{
+	event::KeyEvent,
+	keyboard::{KeyCode, PhysicalKey},
+};
 
 use crate::input::{Axis, Button, MouseButton, MouseScrollDelta};
 
@@ -11,13 +14,15 @@ pub enum Event {
 	/// A keyboard key was pressed.
 	KeyPressed {
 		/// The key that was pressed.
-		key: PhysicalKey,
+		key: KeyCode,
 		/// Whether the key press event comes from key repeat from
 		/// holding down a key.
 		is_repeat: bool,
 	},
 	/// A keyboard key was released.
-	KeyReleased(PhysicalKey),
+	KeyReleased(KeyCode),
+	MouseEntered,
+	MouseExited,
 	/// The mouse cursor position changed.
 	CursorPositionChanged(Vec2),
 	/// The mouse was moved.
@@ -78,20 +83,23 @@ impl Event {
 				uvec2(physical_size.width, physical_size.height),
 			)),
 			winit::event::WindowEvent::KeyboardInput {
-				event: KeyEvent {
-					physical_key,
-					state,
-					repeat,
-					..
-				},
+				event:
+					KeyEvent {
+						physical_key: PhysicalKey::Code(code),
+						state,
+						repeat,
+						..
+					},
 				..
 			} => Some(match state {
 				winit::event::ElementState::Pressed => Event::KeyPressed {
-					key: *physical_key,
+					key: *code,
 					is_repeat: *repeat,
 				},
-				winit::event::ElementState::Released => Event::KeyReleased(*physical_key),
+				winit::event::ElementState::Released => Event::KeyReleased(*code),
 			}),
+			winit::event::WindowEvent::CursorEntered { .. } => Some(Event::MouseEntered),
+			winit::event::WindowEvent::CursorLeft { .. } => Some(Event::MouseExited),
 			winit::event::WindowEvent::CursorMoved { position, .. } => Some(
 				Event::CursorPositionChanged(vec2(position.x as f32, position.y as f32)),
 			),

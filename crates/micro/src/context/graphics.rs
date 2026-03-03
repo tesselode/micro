@@ -4,20 +4,19 @@ mod layouts;
 
 pub(crate) use default_resources::*;
 pub(crate) use layouts::*;
+use winit::{dpi::PhysicalSize, window::Window};
 
-use std::{any::TypeId, collections::HashMap};
+use std::{any::TypeId, collections::HashMap, sync::Arc};
 
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, UVec2, Vec3, uvec2};
 use palette::{LinSrgb, LinSrgba};
-use sdl3::video::Window;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Buffer, BufferUsages,
 	CompositeAlphaMode, DepthBiasState, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp,
 	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
 	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline, RequestAdapterOptions,
-	StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureUsages,
-	TextureViewDescriptor,
+	StoreOp, Surface, SurfaceConfiguration, TextureFormat, TextureUsages, TextureViewDescriptor,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -56,15 +55,11 @@ pub(crate) struct GraphicsContext {
 }
 
 impl GraphicsContext {
-	pub(crate) fn new(window: &Window, settings: &ContextSettings) -> Self {
+	pub(crate) fn new(window: Arc<Window>, settings: &ContextSettings) -> Self {
 		let instance = Instance::new(&Default::default());
-		let surface = unsafe {
-			instance.create_surface_unsafe(
-				SurfaceTargetUnsafe::from_window(window)
-					.expect("error creating surface target from window"),
-			)
-		}
-		.expect("error creating surface");
+		let surface = instance
+			.create_surface(window.clone())
+			.expect("error creating surface");
 		let adapter = pollster::block_on(instance.request_adapter(&RequestAdapterOptions {
 			power_preference: PowerPreference::HighPerformance,
 			compatible_surface: Some(&surface),
@@ -87,7 +82,7 @@ impl GraphicsContext {
 			.copied()
 			.find(|f| f.is_srgb())
 			.unwrap_or(surface_capabilities.formats[0]);
-		let (width, height) = window.size();
+		let PhysicalSize { width, height } = window.inner_size();
 		let config = SurfaceConfiguration {
 			usage: TextureUsages::RENDER_ATTACHMENT,
 			format: surface_format,

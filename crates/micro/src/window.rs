@@ -1,5 +1,11 @@
+use std::sync::Arc;
+
 use glam::UVec2;
-use sdl3::{VideoSubsystem, video::Window};
+use winit::{
+	dpi::{PhysicalSize, Size},
+	event_loop::ActiveEventLoop,
+	window::{Fullscreen, Window},
+};
 
 use crate::context::ContextSettings;
 
@@ -24,18 +30,29 @@ impl Default for WindowMode {
 	}
 }
 
-pub(crate) fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
+pub(crate) fn build_window(
+	event_loop: &ActiveEventLoop,
+	settings: &ContextSettings,
+) -> Arc<Window> {
 	let window_size = match settings.window_mode {
 		// doesn't matter because we're going to set the window to fullscreen
 		WindowMode::Fullscreen => UVec2::new(1280, 720),
 		WindowMode::Windowed { size } => size,
 	};
-	let mut window_builder = video.window(&settings.window_title, window_size.x, window_size.y);
-	if settings.window_mode == WindowMode::Fullscreen {
-		window_builder.fullscreen();
-	}
-	if settings.resizable {
-		window_builder.resizable();
-	}
-	window_builder.build().expect("error building window")
+	let window = event_loop
+		.create_window(
+			Window::default_attributes()
+				.with_inner_size(Size::Physical(PhysicalSize {
+					width: window_size.x,
+					height: window_size.y,
+				}))
+				.with_resizable(settings.resizable)
+				.with_title(&settings.window_title)
+				.with_fullscreen(
+					(settings.window_mode == WindowMode::Fullscreen)
+						.then_some(Fullscreen::Borderless(None)),
+				),
+		)
+		.expect("error creating window");
+	Arc::new(window)
 }

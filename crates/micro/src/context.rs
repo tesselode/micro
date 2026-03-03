@@ -7,7 +7,7 @@ pub use push::*;
 
 use winit::{
 	application::ApplicationHandler,
-	dpi::{PhysicalSize, Size},
+	dpi::{PhysicalPosition, PhysicalSize, Position, Size},
 	event::WindowEvent,
 	event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
 	window::{Fullscreen, Window, WindowId},
@@ -116,6 +116,13 @@ impl Context {
 				}));
 				if let Some(new_size) = new_size {
 					self.resize(uvec2(new_size.width, new_size.height));
+					if let Some(primary_monitor) = self.window.primary_monitor() {
+						self.window
+							.set_outer_position(Position::Physical(PhysicalPosition {
+								x: (primary_monitor.size().width / 2 - new_size.width / 2) as i32,
+								y: (primary_monitor.size().height / 2 - new_size.height / 2) as i32,
+							}));
+					}
 				}
 			}
 		}
@@ -298,6 +305,13 @@ impl Context {
 
 	fn resize(&mut self, size: UVec2) {
 		self.graphics.resize(size);
+		if let Some(primary_monitor) = self.window.primary_monitor() {
+			self.window
+				.set_outer_position(Position::Physical(PhysicalPosition {
+					x: (primary_monitor.size().width / 2 - size.x / 2) as i32,
+					y: (primary_monitor.size().height / 2 - size.y / 2) as i32,
+				}));
+		}
 	}
 
 	fn render(&mut self) {

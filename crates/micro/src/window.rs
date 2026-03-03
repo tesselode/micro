@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use glam::UVec2;
 use winit::{
-	dpi::{PhysicalSize, Size},
+	dpi::{PhysicalPosition, PhysicalSize, Position, Size},
 	event_loop::ActiveEventLoop,
 	window::{Fullscreen, Window},
 };
@@ -39,20 +39,25 @@ pub(crate) fn build_window(
 		WindowMode::Fullscreen => UVec2::new(1280, 720),
 		WindowMode::Windowed { size } => size,
 	};
+	let mut window_attributes = Window::default_attributes()
+		.with_inner_size(Size::Physical(PhysicalSize {
+			width: window_size.x,
+			height: window_size.y,
+		}))
+		.with_resizable(settings.resizable)
+		.with_title(&settings.window_title)
+		.with_fullscreen(
+			(settings.window_mode == WindowMode::Fullscreen)
+				.then_some(Fullscreen::Borderless(None)),
+		);
+	if let Some(primary_monitor) = event_loop.primary_monitor() {
+		window_attributes = window_attributes.with_position(Position::Physical(PhysicalPosition {
+			x: (primary_monitor.size().width / 2 - window_size.x / 2) as i32,
+			y: (primary_monitor.size().height / 2 - window_size.y / 2) as i32,
+		}));
+	}
 	let window = event_loop
-		.create_window(
-			Window::default_attributes()
-				.with_inner_size(Size::Physical(PhysicalSize {
-					width: window_size.x,
-					height: window_size.y,
-				}))
-				.with_resizable(settings.resizable)
-				.with_title(&settings.window_title)
-				.with_fullscreen(
-					(settings.window_mode == WindowMode::Fullscreen)
-						.then_some(Fullscreen::Borderless(None)),
-				),
-		)
+		.create_window(window_attributes)
 		.expect("error creating window");
 	Arc::new(window)
 }

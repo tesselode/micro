@@ -539,10 +539,6 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			return;
 		};
 
-		if let Some(event) = Event::from_window_event(&event) {
-			app.event(ctx, event).expect("error in event callback");
-		}
-
 		match event {
 			WindowEvent::CloseRequested => event_loop.exit(),
 			WindowEvent::CursorMoved { position, .. } => {
@@ -591,6 +587,12 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 				}
 			}
 			_ => {}
+		}
+
+		// dispatch the events to the state *after* handling them internally
+		// so the keyboard and mouse state in the Context is up to date
+		if let Some(event) = Event::from_window_event(&event) {
+			app.event(ctx, event).expect("error in event callback");
 		}
 	}
 

@@ -7,7 +7,7 @@ use winit::{
 use crate::input::{Axis, Button, MouseButton, MouseScrollDelta};
 
 /// An event sent by Micro to your [`App`](crate::App).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Event {
 	/// The window size change.
 	WindowSizeChanged(UVec2),
@@ -21,6 +21,7 @@ pub enum Event {
 	},
 	/// A keyboard key was released.
 	KeyReleased(KeyCode),
+	TextInput(String),
 	MouseEntered,
 	MouseExited,
 	/// The mouse cursor position changed.
@@ -28,9 +29,15 @@ pub enum Event {
 	/// The mouse was moved.
 	MouseMoved(Vec2),
 	/// A mouse button was pressed.
-	MouseButtonPressed(MouseButton),
+	MouseButtonPressed {
+		button: MouseButton,
+		position: Vec2,
+	},
 	/// A mouse button was released.
-	MouseButtonReleased(MouseButton),
+	MouseButtonReleased {
+		button: MouseButton,
+		position: Vec2,
+	},
 	/// The mouse scroll wheel was moved.
 	MouseWheelMoved(MouseScrollDelta),
 	/// A gamepad axis was moved.
@@ -77,40 +84,61 @@ impl Event {
 		}
 	}
 
-	pub(crate) fn from_window_event(event: &winit::event::WindowEvent) -> Option<Event> {
+	pub(crate) fn from_window_event(
+		event: &winit::event::WindowEvent,
+		mouse_position: Option<Vec2>,
+	) -> Vec<Event> {
 		match event {
-			winit::event::WindowEvent::Resized(physical_size) => Some(Event::WindowSizeChanged(
+			winit::event::WindowEvent::Resized(physical_size) => vec![Event::WindowSizeChanged(
 				uvec2(physical_size.width, physical_size.height),
-			)),
+			)],
 			winit::event::WindowEvent::KeyboardInput {
 				event:
 					KeyEvent {
 						physical_key: PhysicalKey::Code(code),
 						state,
 						repeat,
+						text,
 						..
 					},
 				..
-			} => Some(match state {
-				winit::event::ElementState::Pressed => Event::KeyPressed {
-					key: *code,
-					is_repeat: *repeat,
-				},
-				winit::event::ElementState::Released => Event::KeyReleased(*code),
-			}),
-			winit::event::WindowEvent::CursorEntered { .. } => Some(Event::MouseEntered),
-			winit::event::WindowEvent::CursorLeft { .. } => Some(Event::MouseExited),
-			winit::event::WindowEvent::CursorMoved { position, .. } => Some(
-				Event::CursorPositionChanged(vec2(position.x as f32, position.y as f32)),
-			),
-			winit::event::WindowEvent::MouseWheel { delta, .. } => {
-				Some(Event::MouseWheelMoved((*delta).into()))
+			} => {
+				let mut events = vec![match state {
+					winit::event::ElementState::Pressed => Event::KeyPressed {
+						key: *code,
+						is_repeat: *repeat,
+					},
+					winit::event::ElementState::Released => Event::KeyReleased(*code),
+				}];
+				if let Some(text) = text {
+					events.push(Event::TextInput(text.to_string()));
+				}
+				events
 			}
-			winit::event::WindowEvent::MouseInput { state, button, .. } => Some(match state {
-				winit::event::ElementState::Pressed => Event::MouseButtonPressed(*button),
-				winit::event::ElementState::Released => Event::MouseButtonReleased(*button),
-			}),
-			_ => None,
+			winit::event::WindowEvent::CursorEntered { .. } => vec![Event::MouseEntered],
+			winit::event::WindowEvent::CursorLeft { .. } => vec![Event::MouseExited],
+			winit::event::WindowEvent::CursorMoved { position, .. } => {
+				vec![Event::CursorPositionChanged(vec2(
+					position.x as f32,
+					position.y as f32,
+				))]
+			}
+			winit::event::WindowEvent::MouseWheel { delta, .. } => {
+				vec![Event::MouseWheelMoved((*delta).into())]
+			}
+			winit::event::WindowEvent::MouseInput { state, button, .. } => vec![match state {
+				winit::event::ElementState::Pressed => Event::MouseButtonPressed {
+					button: *button,
+					position: mouse_position
+						.expect("mouse click/release happened without a mouse position"),
+				},
+				winit::event::ElementState::Released => Event::MouseButtonReleased {
+					button: *button,
+					position: mouse_position
+						.expect("mouse click/release happened without a mouse position"),
+				},
+			}],
+			_ => vec![],
 		}
 	}
 

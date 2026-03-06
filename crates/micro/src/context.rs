@@ -505,6 +505,7 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 		self.status = Status::Initialized {
 			app,
 			ctx,
+			event_queue: vec![],
 			last_update_time: Instant::now(),
 		};
 	}
@@ -515,12 +516,12 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 		_device_id: DeviceId,
 		event: DeviceEvent,
 	) {
-		let Status::Initialized { app, ctx, .. } = &mut self.status else {
+		let Status::Initialized { event_queue, .. } = &mut self.status else {
 			return;
 		};
 
 		if let Some(event) = Event::from_device_event(&event) {
-			app.event(ctx, event).expect("error in event callback");
+			event_queue.push(event);
 		}
 	}
 
@@ -533,11 +534,14 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 		let Status::Initialized {
 			app,
 			ctx,
+			event_queue,
 			last_update_time,
 		} = &mut self.status
 		else {
 			return;
 		};
+
+		event_queue.append(&mut Event::from_window_event(&event, ctx.mouse_position));
 
 		match event {
 			WindowEvent::CloseRequested => event_loop.exit(),
@@ -571,15 +575,28 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			},
 			WindowEvent::Resized(size) => ctx.resize(uvec2(size.width, size.height)),
 			WindowEvent::RedrawRequested => {
-				// update
+				// measure and record delta time
 				let now = Instant::now();
 				let delta_time = now - *last_update_time;
 				*last_update_time = now;
 				ctx.frame_time_tracker.record(delta_time);
+
+				// dispatch events
+				let span = tracy_client::span!("dispatch events");
+				for event in event_queue.drain(..) {
+					app.event(ctx, event).expect("error in event callback");
+				}
+				drop(span);
+
+				// update
+				let span = tracy_client::span!("update");
 				app.update(ctx, delta_time).expect("error while updating");
+				drop(span);
 
 				// draw
+				let span = tracy_client::span!("draw");
 				app.draw(ctx).expect("error while drawing");
+				drop(span);
 				ctx.render();
 
 				if ctx.should_quit {
@@ -587,12 +604,6 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 				}
 			}
 			_ => {}
-		}
-
-		// dispatch the events to the state *after* handling them internally
-		// so the keyboard and mouse state in the Context is up to date
-		if let Some(event) = Event::from_window_event(&event) {
-			app.event(ctx, event).expect("error in event callback");
 		}
 	}
 
@@ -613,6 +624,7 @@ enum Status<A: App> {
 	Initialized {
 		app: A,
 		ctx: Context,
+		event_queue: Vec<Event>,
 		last_update_time: Instant,
 	},
 }

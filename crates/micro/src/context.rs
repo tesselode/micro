@@ -3,6 +3,7 @@ pub(crate) mod text;
 
 mod push;
 
+use egui::{Align, Layout, TopBottomPanel};
 pub use push::*;
 
 use winit::{
@@ -15,7 +16,7 @@ use winit::{
 };
 
 use std::{
-	collections::HashSet,
+	collections::{HashMap, HashSet},
 	fmt::Debug,
 	ops::{Deref, DerefMut},
 	path::Path,
@@ -29,7 +30,8 @@ use wgpu::{Features, PresentMode, TextureFormat};
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	context::graphics::GraphicsContext,
-	graphics::{IntoScale2d, IntoScale3d},
+	egui_integration::{draw_egui_output, egui_raw_input, egui_took_event},
+	graphics::{IntoScale2d, IntoScale3d, texture::Texture},
 	text::TextContext,
 };
 
@@ -58,7 +60,10 @@ pub struct Context {
 	held_keys: HashSet<KeyCode>,
 	held_mouse_buttons: HashSet<MouseButton>,
 	mouse_position: Option<Vec2>,
+	egui_wants_keyboard_input: bool,
+	egui_wants_mouse_input: bool,
 	frame_time_tracker: FrameTimeTracker,
+	dev_tools_state: DevToolsState,
 	should_quit: bool,
 }
 
@@ -282,12 +287,12 @@ impl Context {
 
 	/// Returns `true` if the given keyboard key is currently held down.
 	pub fn is_key_down(&self, key: KeyCode) -> bool {
-		self.held_keys.contains(&key)
+		self.held_keys.contains(&key) && !self.egui_wants_keyboard_input
 	}
 
 	/// Returns `true` if the given mouse button is currently held down.
 	pub fn is_mouse_button_down(&self, mouse_button: MouseButton) -> bool {
-		self.held_mouse_buttons.contains(&mouse_button)
+		self.held_mouse_buttons.contains(&mouse_button) && !self.egui_wants_mouse_input
 	}
 
 	/// Returns the current mouse position (in pixels, relative to the top-left
@@ -329,7 +334,10 @@ impl Context {
 			held_keys: HashSet::new(),
 			held_mouse_buttons: HashSet::new(),
 			mouse_position: None,
+			egui_wants_keyboard_input: false,
+			egui_wants_mouse_input: false,
 			frame_time_tracker: FrameTimeTracker::new(),
+			dev_tools_state: settings.dev_tools_mode.initial_state(),
 			should_quit: false,
 		})
 	}
@@ -507,6 +515,8 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			ctx,
 			event_queue: vec![],
 			last_update_time: Instant::now(),
+			egui_ctx: egui::Context::default(),
+			egui_textures: HashMap::new(),
 		};
 	}
 
@@ -536,6 +546,8 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			ctx,
 			event_queue,
 			last_update_time,
+			egui_ctx,
+			egui_textures,
 		} = &mut self.status
 		else {
 			return;
@@ -581,9 +593,58 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 				*last_update_time = now;
 				ctx.frame_time_tracker.record(delta_time);
 
+				// create egui UI
+				let span = tracy_client::span!("create egui UI");
+				let egui_input = egui_raw_input(ctx, event_queue, delta_time);
+				egui_ctx.begin_pass(egui_input);
+				if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
+					TopBottomPanel::top("main_menu")
+						.show_animated(egui_ctx, visible, |ui| -> anyhow::Result<()> {
+							egui::MenuBar::new()
+								.ui(ui, |ui| -> anyhow::Result<()> {
+									app.debug_menu(ctx, ui)?;
+									ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+										if let Some(stats) = app.debug_stats(ctx) {
+											for (i, stat) in stats.iter().enumerate() {
+												if i > 0 {
+													ui.separator();
+												}
+												ui.label(stat);
+											}
+										}
+									});
+									Ok(())
+								})
+								.inner?;
+							Ok(())
+						})
+						.map(|response| response.inner)
+						.transpose()
+						.expect("error creating debug UI");
+					if visible {
+						app.debug_ui(ctx, egui_ctx)
+							.expect("error creating debug UI");
+					}
+				}
+				let egui_output = egui_ctx.end_pass();
+				drop(span);
+				ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
+				ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
+
 				// dispatch events
 				let span = tracy_client::span!("dispatch events");
-				for event in event_queue.drain(..) {
+				for event in event_queue
+					.drain(..)
+					.filter(|event| !egui_took_event(egui_ctx, event))
+				{
+					if let Event::KeyPressed {
+						key: KeyCode::F1,
+						is_repeat: false,
+					} = &event && let DevToolsState::Enabled { visible } =
+						&mut ctx.dev_tools_state
+					{
+						*visible = !*visible;
+					}
 					app.event(ctx, event).expect("error in event callback");
 				}
 				drop(span);
@@ -597,7 +658,14 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 				let span = tracy_client::span!("draw");
 				app.draw(ctx).expect("error while drawing");
 				drop(span);
+				let span = tracy_client::span!("draw egui UI");
+				draw_egui_output(ctx, egui_ctx, egui_output, egui_textures);
+				drop(span);
 				ctx.render();
+
+				app.post_draw(ctx).expect("error in post-draw callback");
+
+				tracy_client::frame_mark();
 
 				if ctx.should_quit {
 					event_loop.exit();
@@ -626,5 +694,7 @@ enum Status<A: App> {
 		ctx: Context,
 		event_queue: Vec<Event>,
 		last_update_time: Instant,
+		egui_ctx: egui::Context,
+		egui_textures: HashMap<egui::TextureId, Texture>,
 	},
 }

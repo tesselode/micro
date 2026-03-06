@@ -8,7 +8,7 @@
 mod app;
 pub mod color;
 mod context;
-// mod egui_integration;
+mod egui_integration;
 mod event;
 pub mod graphics;
 pub mod input;

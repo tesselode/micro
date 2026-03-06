@@ -4,31 +4,26 @@ use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
 use glam::uvec2;
 use image::ImageBuffer;
 use palette::{LinSrgba, Srgba};
+use winit::{event::MouseButton, keyboard::KeyCode};
 
 use crate::{
-	Push,
+	Event, Push,
 	context::Context,
 	graphics::{
 		Vertex2d,
 		mesh::Mesh,
 		texture::{Texture, TextureSettings},
 	},
-	input::Scancode,
+	input::MouseScrollDelta,
 };
 
-const SCROLL_SPEED: f32 = 25.0;
-
-pub fn egui_raw_input(
-	ctx: &Context,
-	events: &[sdl3::event::Event],
-	delta_time: Duration,
-) -> RawInput {
+pub fn egui_raw_input(ctx: &Context, events: &[Event], delta_time: Duration) -> RawInput {
 	let modifiers = egui::Modifiers {
-		alt: ctx.is_key_down(Scancode::LAlt) || ctx.is_key_down(Scancode::RAlt),
-		ctrl: ctx.is_key_down(Scancode::LCtrl) || ctx.is_key_down(Scancode::RCtrl),
-		shift: ctx.is_key_down(Scancode::LShift) || ctx.is_key_down(Scancode::RShift),
-		mac_cmd: ctx.is_key_down(Scancode::LGui) || ctx.is_key_down(Scancode::RGui),
-		command: ctx.is_key_down(Scancode::LGui) || ctx.is_key_down(Scancode::RGui),
+		alt: ctx.is_key_down(KeyCode::AltLeft) || ctx.is_key_down(KeyCode::AltRight),
+		ctrl: ctx.is_key_down(KeyCode::ControlLeft) || ctx.is_key_down(KeyCode::ControlRight),
+		shift: ctx.is_key_down(KeyCode::ShiftLeft) || ctx.is_key_down(KeyCode::ShiftRight),
+		mac_cmd: ctx.is_key_down(KeyCode::SuperLeft) || ctx.is_key_down(KeyCode::SuperRight),
+		command: ctx.is_key_down(KeyCode::SuperLeft) || ctx.is_key_down(KeyCode::SuperRight),
 	};
 	let scaling_factor = ctx.window_scale();
 	RawInput {
@@ -48,7 +43,7 @@ pub fn egui_raw_input(
 		events: events
 			.iter()
 			.cloned()
-			.filter_map(|event| sdl3_event_to_egui_event(ctx, event, modifiers))
+			.filter_map(|event| micro_event_to_egui_event(ctx, event, modifiers))
 			.collect(),
 		predicted_dt: delta_time.as_secs_f32(),
 		..Default::default()
@@ -82,7 +77,7 @@ pub fn draw_egui_output(
 					.scaled_2d(glam::Vec2::splat(scaling_factor))
 					.draw(ctx);
 			}
-			egui::epaint::Primitive::Callback(_) => unimplemented!(),
+			egui::epaint::Primitive::Callback(..) => unimplemented!(),
 		}
 	}
 	for texture_id in output.textures_delta.free {
@@ -124,175 +119,174 @@ fn patch_textures(
 	}
 }
 
-fn sdl3_event_to_egui_event(
+fn micro_event_to_egui_event(
 	ctx: &Context,
-	event: sdl3::event::Event,
+	event: Event,
 	modifiers: egui::Modifiers,
 ) -> Option<egui::Event> {
 	let scaling_factor = ctx.window_scale();
 	match event {
-		sdl3::event::Event::KeyDown {
-			scancode, repeat, ..
-		} => Some(egui::Event::Key {
-			key: sdl3_scancode_to_egui_key(scancode?)?,
+		Event::KeyPressed { key, is_repeat, .. } => Some(egui::Event::Key {
+			key: micro_key_code_to_egui_key(key)?,
 			physical_key: None,
 			pressed: true,
 			modifiers,
-			repeat,
+			repeat: is_repeat,
 		}),
-		sdl3::event::Event::KeyUp {
-			scancode, repeat, ..
-		} => Some(egui::Event::Key {
-			key: sdl3_scancode_to_egui_key(scancode?)?,
+		Event::KeyReleased(key) => Some(egui::Event::Key {
+			key: micro_key_code_to_egui_key(key)?,
 			physical_key: None,
 			pressed: false,
 			modifiers,
-			repeat,
+			repeat: false,
 		}),
-		sdl3::event::Event::TextInput { text, .. } => Some(egui::Event::Text(text)),
-		sdl3::event::Event::MouseMotion { x, y, .. } => Some(egui::Event::PointerMoved(
-			egui::pos2(x / scaling_factor, y / scaling_factor),
-		)),
-		sdl3::event::Event::MouseButtonDown {
-			mouse_btn, x, y, ..
-		} => Some(egui::Event::PointerButton {
-			pos: egui::pos2(x / scaling_factor, y / scaling_factor),
-			button: sdl3_mouse_button_to_egui_pointer_button(mouse_btn)?,
+		Event::TextInput(text) => Some(egui::Event::Text(text)),
+		Event::CursorPositionChanged(position) => Some(egui::Event::PointerMoved(egui::pos2(
+			position.x / scaling_factor,
+			position.y / scaling_factor,
+		))),
+		Event::MouseButtonPressed { button, position } => Some(egui::Event::PointerButton {
+			pos: egui::pos2(position.x / scaling_factor, position.y / scaling_factor),
+			button: micro_mouse_button_to_egui_pointer_button(button)?,
 			pressed: true,
 			modifiers,
 		}),
-		sdl3::event::Event::MouseButtonUp {
-			mouse_btn, x, y, ..
-		} => Some(egui::Event::PointerButton {
-			pos: egui::pos2(x / scaling_factor, y / scaling_factor),
-			button: sdl3_mouse_button_to_egui_pointer_button(mouse_btn)?,
+		Event::MouseButtonReleased { button, position } => Some(egui::Event::PointerButton {
+			pos: egui::pos2(position.x / scaling_factor, position.y / scaling_factor),
+			button: micro_mouse_button_to_egui_pointer_button(button)?,
 			pressed: false,
 			modifiers,
 		}),
-		sdl3::event::Event::MouseWheel { x, y, .. } => Some(egui::Event::MouseWheel {
-			unit: egui::MouseWheelUnit::Point,
-			delta: egui::vec2(x * SCROLL_SPEED, y * SCROLL_SPEED),
+		Event::MouseWheelMoved(delta) => Some(egui::Event::MouseWheel {
+			unit: match delta {
+				MouseScrollDelta::Line(..) => egui::MouseWheelUnit::Line,
+				MouseScrollDelta::Pixel(..) => egui::MouseWheelUnit::Point,
+			},
+			delta: match delta {
+				MouseScrollDelta::Line(delta) | MouseScrollDelta::Pixel(delta) => {
+					egui::vec2(delta.x, delta.y)
+				}
+			},
 			modifiers,
 		}),
 		_ => None,
 	}
 }
 
-fn sdl3_scancode_to_egui_key(scancode: sdl3::keyboard::Scancode) -> Option<egui::Key> {
-	match scancode {
-		sdl3::keyboard::Scancode::A => Some(egui::Key::A),
-		sdl3::keyboard::Scancode::B => Some(egui::Key::B),
-		sdl3::keyboard::Scancode::C => Some(egui::Key::C),
-		sdl3::keyboard::Scancode::D => Some(egui::Key::D),
-		sdl3::keyboard::Scancode::E => Some(egui::Key::E),
-		sdl3::keyboard::Scancode::F => Some(egui::Key::F),
-		sdl3::keyboard::Scancode::G => Some(egui::Key::G),
-		sdl3::keyboard::Scancode::H => Some(egui::Key::H),
-		sdl3::keyboard::Scancode::I => Some(egui::Key::I),
-		sdl3::keyboard::Scancode::J => Some(egui::Key::J),
-		sdl3::keyboard::Scancode::K => Some(egui::Key::K),
-		sdl3::keyboard::Scancode::L => Some(egui::Key::L),
-		sdl3::keyboard::Scancode::M => Some(egui::Key::M),
-		sdl3::keyboard::Scancode::N => Some(egui::Key::N),
-		sdl3::keyboard::Scancode::O => Some(egui::Key::O),
-		sdl3::keyboard::Scancode::P => Some(egui::Key::P),
-		sdl3::keyboard::Scancode::Q => Some(egui::Key::Q),
-		sdl3::keyboard::Scancode::R => Some(egui::Key::R),
-		sdl3::keyboard::Scancode::S => Some(egui::Key::S),
-		sdl3::keyboard::Scancode::T => Some(egui::Key::T),
-		sdl3::keyboard::Scancode::U => Some(egui::Key::U),
-		sdl3::keyboard::Scancode::V => Some(egui::Key::V),
-		sdl3::keyboard::Scancode::W => Some(egui::Key::W),
-		sdl3::keyboard::Scancode::X => Some(egui::Key::X),
-		sdl3::keyboard::Scancode::Y => Some(egui::Key::Y),
-		sdl3::keyboard::Scancode::Z => Some(egui::Key::Z),
-		sdl3::keyboard::Scancode::_1 => Some(egui::Key::Num1),
-		sdl3::keyboard::Scancode::_2 => Some(egui::Key::Num2),
-		sdl3::keyboard::Scancode::_3 => Some(egui::Key::Num3),
-		sdl3::keyboard::Scancode::_4 => Some(egui::Key::Num4),
-		sdl3::keyboard::Scancode::_5 => Some(egui::Key::Num5),
-		sdl3::keyboard::Scancode::_6 => Some(egui::Key::Num6),
-		sdl3::keyboard::Scancode::_7 => Some(egui::Key::Num7),
-		sdl3::keyboard::Scancode::_8 => Some(egui::Key::Num8),
-		sdl3::keyboard::Scancode::_9 => Some(egui::Key::Num9),
-		sdl3::keyboard::Scancode::_0 => Some(egui::Key::Num0),
-		sdl3::keyboard::Scancode::Return => Some(egui::Key::Enter),
-		sdl3::keyboard::Scancode::Escape => Some(egui::Key::Escape),
-		sdl3::keyboard::Scancode::Backspace => Some(egui::Key::Backspace),
-		sdl3::keyboard::Scancode::Tab => Some(egui::Key::Tab),
-		sdl3::keyboard::Scancode::Space => Some(egui::Key::Space),
-		sdl3::keyboard::Scancode::Minus => Some(egui::Key::Minus),
-		sdl3::keyboard::Scancode::Equals => Some(egui::Key::Equals),
-		sdl3::keyboard::Scancode::F1 => Some(egui::Key::F1),
-		sdl3::keyboard::Scancode::F2 => Some(egui::Key::F2),
-		sdl3::keyboard::Scancode::F3 => Some(egui::Key::F3),
-		sdl3::keyboard::Scancode::F4 => Some(egui::Key::F4),
-		sdl3::keyboard::Scancode::F5 => Some(egui::Key::F5),
-		sdl3::keyboard::Scancode::F6 => Some(egui::Key::F6),
-		sdl3::keyboard::Scancode::F7 => Some(egui::Key::F7),
-		sdl3::keyboard::Scancode::F8 => Some(egui::Key::F8),
-		sdl3::keyboard::Scancode::F9 => Some(egui::Key::F9),
-		sdl3::keyboard::Scancode::F10 => Some(egui::Key::F10),
-		sdl3::keyboard::Scancode::F11 => Some(egui::Key::F11),
-		sdl3::keyboard::Scancode::F12 => Some(egui::Key::F12),
-		sdl3::keyboard::Scancode::Insert => Some(egui::Key::Insert),
-		sdl3::keyboard::Scancode::Home => Some(egui::Key::Home),
-		sdl3::keyboard::Scancode::PageUp => Some(egui::Key::PageUp),
-		sdl3::keyboard::Scancode::Delete => Some(egui::Key::Delete),
-		sdl3::keyboard::Scancode::End => Some(egui::Key::End),
-		sdl3::keyboard::Scancode::PageDown => Some(egui::Key::PageDown),
-		sdl3::keyboard::Scancode::Right => Some(egui::Key::ArrowRight),
-		sdl3::keyboard::Scancode::Left => Some(egui::Key::ArrowLeft),
-		sdl3::keyboard::Scancode::Down => Some(egui::Key::ArrowDown),
-		sdl3::keyboard::Scancode::Up => Some(egui::Key::ArrowUp),
-		sdl3::keyboard::Scancode::KpMinus => Some(egui::Key::Minus),
-		sdl3::keyboard::Scancode::KpPlus => Some(egui::Key::Plus),
-		sdl3::keyboard::Scancode::KpEnter => Some(egui::Key::Enter),
-		sdl3::keyboard::Scancode::Kp1 => Some(egui::Key::Num1),
-		sdl3::keyboard::Scancode::Kp2 => Some(egui::Key::Num2),
-		sdl3::keyboard::Scancode::Kp3 => Some(egui::Key::Num3),
-		sdl3::keyboard::Scancode::Kp4 => Some(egui::Key::Num4),
-		sdl3::keyboard::Scancode::Kp5 => Some(egui::Key::Num5),
-		sdl3::keyboard::Scancode::Kp6 => Some(egui::Key::Num6),
-		sdl3::keyboard::Scancode::Kp7 => Some(egui::Key::Num7),
-		sdl3::keyboard::Scancode::Kp8 => Some(egui::Key::Num8),
-		sdl3::keyboard::Scancode::Kp9 => Some(egui::Key::Num9),
-		sdl3::keyboard::Scancode::Kp0 => Some(egui::Key::Num0),
-		sdl3::keyboard::Scancode::F13 => Some(egui::Key::F13),
-		sdl3::keyboard::Scancode::F14 => Some(egui::Key::F14),
-		sdl3::keyboard::Scancode::F15 => Some(egui::Key::F15),
-		sdl3::keyboard::Scancode::F16 => Some(egui::Key::F16),
-		sdl3::keyboard::Scancode::F17 => Some(egui::Key::F17),
-		sdl3::keyboard::Scancode::F18 => Some(egui::Key::F18),
-		sdl3::keyboard::Scancode::F19 => Some(egui::Key::F19),
-		sdl3::keyboard::Scancode::F20 => Some(egui::Key::F20),
+fn micro_key_code_to_egui_key(key: KeyCode) -> Option<egui::Key> {
+	match key {
+		KeyCode::KeyA => Some(egui::Key::A),
+		KeyCode::KeyB => Some(egui::Key::B),
+		KeyCode::KeyC => Some(egui::Key::C),
+		KeyCode::KeyD => Some(egui::Key::D),
+		KeyCode::KeyE => Some(egui::Key::E),
+		KeyCode::KeyF => Some(egui::Key::F),
+		KeyCode::KeyG => Some(egui::Key::G),
+		KeyCode::KeyH => Some(egui::Key::H),
+		KeyCode::KeyI => Some(egui::Key::I),
+		KeyCode::KeyJ => Some(egui::Key::J),
+		KeyCode::KeyK => Some(egui::Key::K),
+		KeyCode::KeyL => Some(egui::Key::L),
+		KeyCode::KeyM => Some(egui::Key::M),
+		KeyCode::KeyN => Some(egui::Key::N),
+		KeyCode::KeyO => Some(egui::Key::O),
+		KeyCode::KeyP => Some(egui::Key::P),
+		KeyCode::KeyQ => Some(egui::Key::Q),
+		KeyCode::KeyR => Some(egui::Key::R),
+		KeyCode::KeyS => Some(egui::Key::S),
+		KeyCode::KeyT => Some(egui::Key::T),
+		KeyCode::KeyU => Some(egui::Key::U),
+		KeyCode::KeyV => Some(egui::Key::V),
+		KeyCode::KeyW => Some(egui::Key::W),
+		KeyCode::KeyX => Some(egui::Key::X),
+		KeyCode::KeyY => Some(egui::Key::Y),
+		KeyCode::KeyZ => Some(egui::Key::Z),
+		KeyCode::Digit1 => Some(egui::Key::Num1),
+		KeyCode::Digit2 => Some(egui::Key::Num2),
+		KeyCode::Digit3 => Some(egui::Key::Num3),
+		KeyCode::Digit4 => Some(egui::Key::Num4),
+		KeyCode::Digit5 => Some(egui::Key::Num5),
+		KeyCode::Digit6 => Some(egui::Key::Num6),
+		KeyCode::Digit7 => Some(egui::Key::Num7),
+		KeyCode::Digit8 => Some(egui::Key::Num8),
+		KeyCode::Digit9 => Some(egui::Key::Num9),
+		KeyCode::Digit0 => Some(egui::Key::Num0),
+		KeyCode::Enter => Some(egui::Key::Enter),
+		KeyCode::Escape => Some(egui::Key::Escape),
+		KeyCode::Backspace => Some(egui::Key::Backspace),
+		KeyCode::Tab => Some(egui::Key::Tab),
+		KeyCode::Space => Some(egui::Key::Space),
+		KeyCode::Minus => Some(egui::Key::Minus),
+		KeyCode::Equal => Some(egui::Key::Equals),
+		KeyCode::F1 => Some(egui::Key::F1),
+		KeyCode::F2 => Some(egui::Key::F2),
+		KeyCode::F3 => Some(egui::Key::F3),
+		KeyCode::F4 => Some(egui::Key::F4),
+		KeyCode::F5 => Some(egui::Key::F5),
+		KeyCode::F6 => Some(egui::Key::F6),
+		KeyCode::F7 => Some(egui::Key::F7),
+		KeyCode::F8 => Some(egui::Key::F8),
+		KeyCode::F9 => Some(egui::Key::F9),
+		KeyCode::F10 => Some(egui::Key::F10),
+		KeyCode::F11 => Some(egui::Key::F11),
+		KeyCode::F12 => Some(egui::Key::F12),
+		KeyCode::Insert => Some(egui::Key::Insert),
+		KeyCode::Home => Some(egui::Key::Home),
+		KeyCode::PageUp => Some(egui::Key::PageUp),
+		KeyCode::Delete => Some(egui::Key::Delete),
+		KeyCode::End => Some(egui::Key::End),
+		KeyCode::PageDown => Some(egui::Key::PageDown),
+		KeyCode::ArrowRight => Some(egui::Key::ArrowRight),
+		KeyCode::ArrowLeft => Some(egui::Key::ArrowLeft),
+		KeyCode::ArrowDown => Some(egui::Key::ArrowDown),
+		KeyCode::ArrowUp => Some(egui::Key::ArrowUp),
+		KeyCode::NumpadSubtract => Some(egui::Key::Minus),
+		KeyCode::NumpadAdd => Some(egui::Key::Plus),
+		KeyCode::NumpadEnter => Some(egui::Key::Enter),
+		KeyCode::Numpad1 => Some(egui::Key::Num1),
+		KeyCode::Numpad2 => Some(egui::Key::Num2),
+		KeyCode::Numpad3 => Some(egui::Key::Num3),
+		KeyCode::Numpad4 => Some(egui::Key::Num4),
+		KeyCode::Numpad5 => Some(egui::Key::Num5),
+		KeyCode::Numpad6 => Some(egui::Key::Num6),
+		KeyCode::Numpad7 => Some(egui::Key::Num7),
+		KeyCode::Numpad8 => Some(egui::Key::Num8),
+		KeyCode::Numpad9 => Some(egui::Key::Num9),
+		KeyCode::Numpad0 => Some(egui::Key::Num0),
+		KeyCode::F13 => Some(egui::Key::F13),
+		KeyCode::F14 => Some(egui::Key::F14),
+		KeyCode::F15 => Some(egui::Key::F15),
+		KeyCode::F16 => Some(egui::Key::F16),
+		KeyCode::F17 => Some(egui::Key::F17),
+		KeyCode::F18 => Some(egui::Key::F18),
+		KeyCode::F19 => Some(egui::Key::F19),
+		KeyCode::F20 => Some(egui::Key::F20),
 		_ => None,
 	}
 }
 
-fn sdl3_mouse_button_to_egui_pointer_button(
-	mouse_button: sdl3::mouse::MouseButton,
+fn micro_mouse_button_to_egui_pointer_button(
+	mouse_button: MouseButton,
 ) -> Option<egui::PointerButton> {
 	match mouse_button {
-		sdl3::mouse::MouseButton::Left => Some(egui::PointerButton::Primary),
-		sdl3::mouse::MouseButton::Middle => Some(egui::PointerButton::Middle),
-		sdl3::mouse::MouseButton::Right => Some(egui::PointerButton::Secondary),
-		sdl3::mouse::MouseButton::X1 => Some(egui::PointerButton::Extra1),
-		sdl3::mouse::MouseButton::X2 => Some(egui::PointerButton::Extra2),
+		MouseButton::Left => Some(egui::PointerButton::Primary),
+		MouseButton::Middle => Some(egui::PointerButton::Middle),
+		MouseButton::Right => Some(egui::PointerButton::Secondary),
+		MouseButton::Back => Some(egui::PointerButton::Extra1),
+		MouseButton::Forward => Some(egui::PointerButton::Extra2),
 		_ => None,
 	}
 }
 
-pub fn egui_took_sdl3_event(egui_ctx: &egui::Context, event: &sdl3::event::Event) -> bool {
+pub fn egui_took_event(egui_ctx: &egui::Context, event: &Event) -> bool {
 	match event {
-		sdl3::event::Event::KeyDown { .. }
-		| sdl3::event::Event::KeyUp { .. }
-		| sdl3::event::Event::TextEditing { .. }
-		| sdl3::event::Event::TextInput { .. } => egui_ctx.wants_keyboard_input(),
-		sdl3::event::Event::MouseMotion { .. }
-		| sdl3::event::Event::MouseButtonDown { .. }
-		| sdl3::event::Event::MouseButtonUp { .. }
-		| sdl3::event::Event::MouseWheel { .. } => egui_ctx.wants_pointer_input(),
+		Event::KeyPressed { .. } | Event::KeyReleased(..) | Event::TextInput(..) => {
+			egui_ctx.wants_keyboard_input()
+		}
+		Event::CursorPositionChanged(..)
+		| Event::MouseButtonPressed { .. }
+		| Event::MouseButtonReleased { .. }
+		| Event::MouseWheelMoved { .. } => egui_ctx.wants_pointer_input(),
 		_ => false,
 	}
 }

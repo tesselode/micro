@@ -114,12 +114,6 @@ impl Context {
 		UVec2::new(size.width, size.height)
 	}
 
-	/* /// Returns `true` if integer scaling is enabled. Only relevant if the
-	/// context was set up to use a main canvas.
-	pub fn integer_scaling_enabled(&self) -> bool {
-		self.integer_scaling_enabled
-	} */
-
 	/// Sets the window mode (windowed or fullscreen).
 	pub fn set_window_mode(&mut self, window_mode: WindowMode) {
 		match window_mode {

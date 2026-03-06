@@ -4,6 +4,7 @@ pub(crate) mod text;
 mod push;
 
 use egui::{Align, Layout, TopBottomPanel};
+use palette::{LinSrgb, WithAlpha};
 pub use push::*;
 
 use winit::{
@@ -29,9 +30,12 @@ use wgpu::{Features, PresentMode, TextureFormat};
 
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
+	color::ColorConstants,
 	context::graphics::GraphicsContext,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_event},
-	graphics::{IntoScale2d, IntoScale3d, texture::Texture},
+	graphics::{
+		Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings, texture::Texture,
+	},
 	text::TextContext,
 };
 
@@ -62,8 +66,11 @@ pub struct Context {
 	mouse_position: Option<Vec2>,
 	egui_wants_keyboard_input: bool,
 	egui_wants_mouse_input: bool,
+	clear_color: LinSrgb,
 	frame_time_tracker: FrameTimeTracker,
 	dev_tools_state: DevToolsState,
+	main_canvas_size: Option<UVec2>,
+	integer_scaling_enabled: bool,
 	should_quit: bool,
 }
 
@@ -141,9 +148,9 @@ impl Context {
 
 	/// Sets whether integer scaling is enabled. Only relevant if the
 	/// context was set up to use a main canvas.
-	/* pub fn set_integer_scaling_enabled(&mut self, enabled: bool) {
+	pub fn set_integer_scaling_enabled(&mut self, enabled: bool) {
 		self.integer_scaling_enabled = enabled;
-	} */
+	}
 
 	/// Returns the current [`PresentMode`].
 	pub fn present_mode(&self) -> PresentMode {
@@ -191,13 +198,13 @@ impl Context {
 
 	/// Sets the color the window surface will be cleared to at the start
 	/// of each frame.
-	/* pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
+	pub fn set_clear_color(&mut self, color: impl Into<LinSrgb>) {
 		let color = color.into();
 		self.clear_color = color;
 		if self.main_canvas_size.is_none() {
 			self.graphics.clear_color = color;
 		}
-	} */
+	}
 
 	/// Pushes a set of graphics settings that will be used for upcoming
 	/// drawing operations. Returns an object which, when dropped, will
@@ -298,7 +305,15 @@ impl Context {
 	/// Returns the current mouse position (in pixels, relative to the top-left
 	/// corner of the window).
 	pub fn mouse_position(&self) -> Option<Vec2> {
+		let transform = self
+			.main_canvas_size
+			.map(|size| {
+				main_canvas_transform(size, self.window_size(), self.integer_scaling_enabled)
+					.inverse()
+			})
+			.unwrap_or_default();
 		self.mouse_position
+			.map(|position| transform.transform_point3(position.extend(0.0)).truncate())
 	}
 
 	/// Returns the average duration of a frame over the past 30 frames.
@@ -336,6 +351,12 @@ impl Context {
 			mouse_position: None,
 			egui_wants_keyboard_input: false,
 			egui_wants_mouse_input: false,
+			clear_color: LinSrgb::BLACK,
+			main_canvas_size: settings.main_canvas.map(|settings| settings.size),
+			integer_scaling_enabled: settings
+				.main_canvas
+				.map(|settings| settings.integer_scaling_enabled)
+				.unwrap_or_default(),
 			frame_time_tracker: FrameTimeTracker::new(),
 			dev_tools_state: settings.dev_tools_mode.initial_state(),
 			should_quit: false,
@@ -475,7 +496,7 @@ impl DerefMut for OnDrop<'_> {
 	}
 }
 
-/* fn main_canvas_transform(canvas_size: UVec2, window_size: UVec2, integer_scale: bool) -> Mat4 {
+fn main_canvas_transform(canvas_size: UVec2, window_size: UVec2, integer_scale: bool) -> Mat4 {
 	let max_horizontal_scale = window_size.x as f32 / canvas_size.x as f32;
 	let max_vertical_scale = window_size.y as f32 / canvas_size.y as f32;
 	let mut scale = max_horizontal_scale.min(max_vertical_scale);
@@ -485,7 +506,7 @@ impl DerefMut for OnDrop<'_> {
 	Mat4::from_translation((window_size.as_vec2() / 2.0).extend(0.0))
 		* Mat4::from_scale(Vec3::splat(scale))
 		* Mat4::from_translation((-canvas_size.as_vec2() / 2.0).extend(0.0))
-} */
+}
 
 struct MicroAppHandler<A: App> {
 	settings: ContextSettings,
@@ -510,6 +531,10 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 		let mut ctx = pollster::block_on(Context::new(&self.settings, window))
 			.expect("error creating context");
 		let app = app_constructor(&mut ctx).expect("error initializing app");
+		let main_canvas = self
+			.settings
+			.main_canvas
+			.map(|settings| Canvas::new(&ctx, settings.size, CanvasSettings::default()));
 		self.status = Status::Initialized {
 			app,
 			ctx,
@@ -517,6 +542,7 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			last_update_time: Instant::now(),
 			egui_ctx: egui::Context::default(),
 			egui_textures: HashMap::new(),
+			main_canvas,
 		};
 	}
 
@@ -548,6 +574,7 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			last_update_time,
 			egui_ctx,
 			egui_textures,
+			main_canvas,
 		} = &mut self.status
 		else {
 			return;
@@ -587,6 +614,16 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			},
 			WindowEvent::Resized(size) => ctx.resize(uvec2(size.width, size.height)),
 			WindowEvent::RedrawRequested => {
+				// get main canvas transform, if applicable
+				// (used for events and drawing)
+				let main_canvas_transform = main_canvas.as_ref().map(|canvas| {
+					main_canvas_transform(
+						canvas.size(),
+						ctx.window_size(),
+						ctx.integer_scaling_enabled,
+					)
+				});
+
 				// measure and record delta time
 				let now = Instant::now();
 				let delta_time = now - *last_update_time;
@@ -633,6 +670,9 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 
 				// dispatch events
 				let span = tracy_client::span!("dispatch events");
+				let mouse_event_transform = main_canvas_transform
+					.map(|transform| transform.inverse())
+					.unwrap_or_default();
 				for event in event_queue
 					.drain(..)
 					.filter(|event| !egui_took_event(egui_ctx, event))
@@ -645,7 +685,8 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 					{
 						*visible = !*visible;
 					}
-					app.event(ctx, event).expect("error in event callback");
+					app.event(ctx, event.transform_mouse_events(mouse_event_transform))
+						.expect("error in event callback");
 				}
 				drop(span);
 
@@ -656,7 +697,24 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 
 				// draw
 				let span = tracy_client::span!("draw");
-				app.draw(ctx).expect("error while drawing");
+				if let Some(main_canvas) = &main_canvas {
+					{
+						let clear_color = Some(ctx.clear_color.with_alpha(1.0));
+						let ctx = &mut main_canvas.render_to(
+							ctx,
+							RenderToCanvasSettings {
+								clear_color,
+								..Default::default()
+							},
+						);
+						app.draw(ctx).expect("error while drawing");
+					}
+					main_canvas
+						.transformed(main_canvas_transform.unwrap())
+						.draw(ctx);
+				} else {
+					app.draw(ctx).expect("error while drawing");
+				}
 				drop(span);
 				let span = tracy_client::span!("draw egui UI");
 				draw_egui_output(ctx, egui_ctx, egui_output, egui_textures);
@@ -696,5 +754,6 @@ enum Status<A: App> {
 		last_update_time: Instant,
 		egui_ctx: egui::Context,
 		egui_textures: HashMap<egui::TextureId, Texture>,
+		main_canvas: Option<Canvas>,
 	},
 }

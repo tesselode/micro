@@ -74,6 +74,14 @@ pub enum Event {
 impl Event {
 	pub fn transform_mouse_events(self, transform: Mat4) -> Self {
 		match self {
+			Self::MouseButtonPressed { button, position } => Self::MouseButtonPressed {
+				button,
+				position: transform.transform_point3(position.extend(0.0)).truncate(),
+			},
+			Self::MouseButtonReleased { button, position } => Self::MouseButtonReleased {
+				button,
+				position: transform.transform_point3(position.extend(0.0)).truncate(),
+			},
 			Self::CursorPositionChanged(position) => Self::CursorPositionChanged(
 				transform.transform_point3(position.extend(0.0)).truncate(),
 			),

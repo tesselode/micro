@@ -39,20 +39,21 @@ use crate::{
 	text::TextContext,
 };
 
-type AppConstructor<A> = dyn FnMut(&mut Context) -> Result<A, anyhow::Error> + 'static;
+type AppConstructor<A> = dyn FnMut(&mut Context) -> A + 'static;
 
 /// Starts a Micro application. The app constructor should return a value of a type
 /// that implements [`App`].
-pub fn run<A, F>(settings: ContextSettings, app_constructor: F) -> anyhow::Result<()>
+pub fn run<A, F>(settings: ContextSettings, app_constructor: F)
 where
 	A: App,
-	F: FnMut(&mut Context) -> anyhow::Result<A> + 'static,
+	F: FnMut(&mut Context) -> A + 'static,
 {
-	let event_loop = EventLoop::new()?;
+	let event_loop = EventLoop::new().expect("error creating event loop");
 	event_loop.set_control_flow(ControlFlow::Poll);
 	let mut app_handler = MicroAppHandler::new(settings, Box::new(app_constructor));
-	event_loop.run_app(&mut app_handler)?;
-	Ok(())
+	event_loop
+		.run_app(&mut app_handler)
+		.expect("error starting event loop");
 }
 
 /// Allows you to interact with Micro to check for keyboard inputs,
@@ -339,10 +340,10 @@ impl Context {
 		self.should_quit = true;
 	}
 
-	async fn new(settings: &ContextSettings, window: Arc<Window>) -> anyhow::Result<Self> {
+	async fn new(settings: &ContextSettings, window: Arc<Window>) -> Self {
 		let graphics = GraphicsContext::new(window.clone(), settings);
 		let text = TextContext::new(&graphics);
-		Ok(Self {
+		Self {
 			window,
 			graphics,
 			text,
@@ -360,7 +361,7 @@ impl Context {
 			frame_time_tracker: FrameTimeTracker::new(),
 			dev_tools_state: settings.dev_tools_mode.initial_state(),
 			should_quit: false,
-		})
+		}
 	}
 
 	fn resize(&mut self, size: UVec2) {
@@ -528,9 +529,8 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			return;
 		};
 		let window = build_window(event_loop, &self.settings);
-		let mut ctx = pollster::block_on(Context::new(&self.settings, window))
-			.expect("error creating context");
-		let app = app_constructor(&mut ctx).expect("error initializing app");
+		let mut ctx = pollster::block_on(Context::new(&self.settings, window));
+		let app = app_constructor(&mut ctx);
 		let main_canvas = self
 			.settings
 			.main_canvas
@@ -635,32 +635,23 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 				let egui_input = egui_raw_input(ctx, event_queue, delta_time);
 				egui_ctx.begin_pass(egui_input);
 				if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
-					TopBottomPanel::top("main_menu")
-						.show_animated(egui_ctx, visible, |ui| -> anyhow::Result<()> {
-							egui::MenuBar::new()
-								.ui(ui, |ui| -> anyhow::Result<()> {
-									app.debug_menu(ctx, ui)?;
-									ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-										if let Some(stats) = app.debug_stats(ctx) {
-											for (i, stat) in stats.iter().enumerate() {
-												if i > 0 {
-													ui.separator();
-												}
-												ui.label(stat);
-											}
+					TopBottomPanel::top("main_menu").show_animated(egui_ctx, visible, |ui| {
+						egui::MenuBar::new().ui(ui, |ui| {
+							app.debug_menu(ctx, ui);
+							ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+								if let Some(stats) = app.debug_stats(ctx) {
+									for (i, stat) in stats.iter().enumerate() {
+										if i > 0 {
+											ui.separator();
 										}
-									});
-									Ok(())
-								})
-								.inner?;
-							Ok(())
-						})
-						.map(|response| response.inner)
-						.transpose()
-						.expect("error creating debug UI");
+										ui.label(stat);
+									}
+								}
+							});
+						});
+					});
 					if visible {
-						app.debug_ui(ctx, egui_ctx)
-							.expect("error creating debug UI");
+						app.debug_ui(ctx, egui_ctx);
 					}
 				}
 				let egui_output = egui_ctx.end_pass();
@@ -685,14 +676,13 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 					{
 						*visible = !*visible;
 					}
-					app.event(ctx, event.transform_mouse_events(mouse_event_transform))
-						.expect("error in event callback");
+					app.event(ctx, event.transform_mouse_events(mouse_event_transform));
 				}
 				drop(span);
 
 				// update
 				let span = tracy_client::span!("update");
-				app.update(ctx, delta_time).expect("error while updating");
+				app.update(ctx, delta_time);
 				drop(span);
 
 				// draw
@@ -707,13 +697,13 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 								..Default::default()
 							},
 						);
-						app.draw(ctx).expect("error while drawing");
+						app.draw(ctx);
 					}
 					main_canvas
 						.transformed(main_canvas_transform.unwrap())
 						.draw(ctx);
 				} else {
-					app.draw(ctx).expect("error while drawing");
+					app.draw(ctx);
 				}
 				drop(span);
 				let span = tracy_client::span!("draw egui UI");
@@ -721,7 +711,7 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 				drop(span);
 				ctx.render();
 
-				app.post_draw(ctx).expect("error in post-draw callback");
+				app.post_draw(ctx);
 
 				tracy_client::frame_mark();
 
@@ -738,8 +728,7 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 			return;
 		};
 
-		app.event(ctx, Event::Exited)
-			.expect("error in event callback");
+		app.event(ctx, Event::Exited);
 	}
 }
 

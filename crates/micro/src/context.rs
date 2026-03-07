@@ -4,9 +4,11 @@ pub(crate) mod text;
 mod push;
 
 use egui::{Align, Layout, TopBottomPanel};
+use gilrs::{GamepadId, Gilrs};
 use palette::{LinSrgb, WithAlpha};
 pub use push::*;
 
+use tracing::error;
 use winit::{
 	application::ApplicationHandler,
 	dpi::{PhysicalPosition, PhysicalSize, Position, Size},
@@ -36,6 +38,7 @@ use crate::{
 	graphics::{
 		Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings, texture::Texture,
 	},
+	input::{Axis, Button, GamepadIterator},
 	text::TextContext,
 };
 
@@ -67,6 +70,7 @@ pub struct Context {
 	mouse_position: Option<Vec2>,
 	egui_wants_keyboard_input: bool,
 	egui_wants_mouse_input: bool,
+	pub(crate) gilrs: Option<Gilrs>,
 	clear_color: LinSrgb,
 	frame_time_tracker: FrameTimeTracker,
 	dev_tools_state: DevToolsState,
@@ -311,6 +315,28 @@ impl Context {
 			.map(|position| transform.transform_point3(position.extend(0.0)).truncate())
 	}
 
+	pub fn gamepads(&self) -> GamepadIterator {
+		GamepadIterator {
+			inner: self.gilrs.as_ref().map(|gilrs| gilrs.gamepads()),
+		}
+	}
+
+	pub fn is_gamepad_connected(&self, id: GamepadId) -> bool {
+		self.gilrs.as_ref().unwrap().gamepad(id).is_connected()
+	}
+
+	pub fn is_gamepad_button_down(&self, id: GamepadId, button: Button) -> bool {
+		self.gilrs
+			.as_ref()
+			.unwrap()
+			.gamepad(id)
+			.is_pressed(button.into())
+	}
+
+	pub fn gamepad_axis_value(&self, id: GamepadId, axis: Axis) -> f32 {
+		self.gilrs.as_ref().unwrap().gamepad(id).value(axis.into())
+	}
+
 	/// Returns the average duration of a frame over the past 30 frames.
 	pub fn average_frame_time(&self) -> Duration {
 		self.frame_time_tracker.average()
@@ -346,6 +372,13 @@ impl Context {
 			mouse_position: None,
 			egui_wants_keyboard_input: false,
 			egui_wants_mouse_input: false,
+			gilrs: match Gilrs::new() {
+				Ok(gilrs) => Some(gilrs),
+				Err(err) => {
+					error!("Error initializing gamepad subsystem: {}", err);
+					None
+				}
+			},
 			clear_color: LinSrgb::BLACK,
 			main_canvas_size: settings.main_canvas.map(|settings| settings.size),
 			integer_scaling_enabled: settings
@@ -652,6 +685,17 @@ impl<A: App> ApplicationHandler for MicroAppHandler<A> {
 				drop(span);
 				ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
 				ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
+
+				// get gamepad events
+				let span = tracy_client::span!("get gamepad events");
+				if let Some(gilrs) = &mut ctx.gilrs {
+					while let Some(event) = gilrs.next_event() {
+						if let Some(event) = Event::from_gilrs_event(event) {
+							event_queue.push(event);
+						}
+					}
+				}
+				drop(span);
 
 				// dispatch events
 				let span = tracy_client::span!("dispatch events");

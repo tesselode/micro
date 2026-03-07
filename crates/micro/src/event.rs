@@ -1,3 +1,4 @@
+use gilrs::GamepadId;
 use glam::{Mat4, UVec2, Vec2, uvec2, vec2};
 use winit::{
 	event::KeyEvent,
@@ -43,7 +44,7 @@ pub enum Event {
 	/// A gamepad axis was moved.
 	GamepadAxisMoved {
 		/// The index of the gamepad.
-		gamepad_id: u32,
+		id: GamepadId,
 		/// Which axis was moved.
 		axis: Axis,
 		/// The new value of that axis.
@@ -52,21 +53,21 @@ pub enum Event {
 	/// A gamepad button was pressed.
 	GamepadButtonPressed {
 		/// The index of the gamepad.
-		gamepad_id: u32,
+		id: GamepadId,
 		/// The button that was pressed.
 		button: Button,
 	},
 	/// A gamepad button was released.
 	GamepadButtonReleased {
 		/// The index of the gamepad.
-		gamepad_id: u32,
+		id: GamepadId,
 		/// The button that was released.
 		button: Button,
 	},
 	/// A gamepad was connected.
-	GamepadConnected(u32),
+	GamepadConnected(GamepadId),
 	/// A gamepad was disconnected.
-	GamepadDisconnected(u32),
+	GamepadDisconnected(GamepadId),
 	/// The app was exited.
 	Exited,
 }
@@ -155,6 +156,23 @@ impl Event {
 			winit::event::DeviceEvent::MouseMotion { delta } => {
 				Some(Event::MouseMoved(vec2(delta.0 as f32, delta.1 as f32)))
 			}
+			_ => None,
+		}
+	}
+
+	pub(crate) fn from_gilrs_event(
+		gilrs::Event { id, event, .. }: gilrs::ev::Event,
+	) -> Option<Event> {
+		match event {
+			gilrs::EventType::ButtonPressed(button, ..) => Button::from_gilrs_button(button)
+				.map(|button| Event::GamepadButtonPressed { id, button }),
+			gilrs::EventType::ButtonReleased(button, ..) => Button::from_gilrs_button(button)
+				.map(|button| Event::GamepadButtonReleased { id, button }),
+			gilrs::EventType::AxisChanged(axis, value, ..) => {
+				Axis::from_gilrs_axis(axis).map(|axis| Event::GamepadAxisMoved { id, axis, value })
+			}
+			gilrs::EventType::Connected => Some(Event::GamepadConnected(id)),
+			gilrs::EventType::Disconnected => Some(Event::GamepadDisconnected(id)),
 			_ => None,
 		}
 	}

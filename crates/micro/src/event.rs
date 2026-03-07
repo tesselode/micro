@@ -1,6 +1,6 @@
 use glam::{Mat4, UVec2, Vec2};
 
-use crate::input::{Axis, Button, MouseButton, Scancode};
+use crate::input::{Axis, Button, GamepadId, MouseButton, Scancode};
 
 /// An event sent by Micro to your [`App`](crate::App).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,7 +43,7 @@ pub enum Event {
 	/// A gamepad axis was moved.
 	GamepadAxisMoved {
 		/// The index of the gamepad.
-		gamepad_id: u32,
+		gamepad_id: GamepadId,
 		/// Which axis was moved.
 		axis: Axis,
 		/// The new value of that axis.
@@ -52,21 +52,21 @@ pub enum Event {
 	/// A gamepad button was pressed.
 	GamepadButtonPressed {
 		/// The index of the gamepad.
-		gamepad_id: u32,
+		gamepad_id: GamepadId,
 		/// The button that was pressed.
 		button: Button,
 	},
 	/// A gamepad button was released.
 	GamepadButtonReleased {
 		/// The index of the gamepad.
-		gamepad_id: u32,
+		gamepad_id: GamepadId,
 		/// The button that was released.
 		button: Button,
 	},
 	/// A gamepad was connected.
-	GamepadConnected(u32),
+	GamepadConnected(GamepadId),
 	/// A gamepad was disconnected.
-	GamepadDisconnected(u32),
+	GamepadDisconnected(GamepadId),
 	/// The app was exited.
 	Exited,
 }
@@ -146,27 +146,27 @@ impl Event {
 			sdl3::event::Event::ControllerAxisMotion {
 				which, axis, value, ..
 			} => Some(Self::GamepadAxisMoved {
-				gamepad_id: which,
+				gamepad_id: GamepadId(which),
 				axis: axis.into(),
 				value: value as f32 / i16::MAX as f32,
 			}),
 			sdl3::event::Event::ControllerButtonDown { which, button, .. } => {
 				Some(Self::GamepadButtonPressed {
-					gamepad_id: which,
+					gamepad_id: GamepadId(which),
 					button: button.into(),
 				})
 			}
 			sdl3::event::Event::ControllerButtonUp { which, button, .. } => {
 				Some(Self::GamepadButtonReleased {
-					gamepad_id: which,
+					gamepad_id: GamepadId(which),
 					button: button.into(),
 				})
 			}
 			sdl3::event::Event::ControllerDeviceAdded { which, .. } => {
-				Some(Self::GamepadConnected(which))
+				Some(Self::GamepadConnected(GamepadId(which)))
 			}
 			sdl3::event::Event::ControllerDeviceRemoved { which, .. } => {
-				Some(Self::GamepadDisconnected(which))
+				Some(Self::GamepadDisconnected(GamepadId(which)))
 			}
 			_ => None,
 		}

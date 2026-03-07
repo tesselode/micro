@@ -28,7 +28,7 @@ use crate::{
 	context::graphics::GraphicsContext,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
 	graphics::{Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings},
-	input::{Gamepad, MouseButton, Scancode},
+	input::{Gamepad, GamepadId, MouseButton, Scancode},
 	text::TextContext,
 };
 
@@ -475,13 +475,21 @@ impl Context {
 		self.mouse_wheel_delta
 	}
 
-	/// Gets the currently connected gamepads.
-	pub fn gamepads(&self) -> anyhow::Result<Vec<Gamepad>> {
-		let mut gamepads = vec![];
-		for id in self.gamepad.gamepads()? {
-			gamepads.push(Gamepad(self.gamepad.get(id)?));
-		}
-		Ok(gamepads)
+	/// Gets the IDs of the currently connected gamepads.
+	pub fn connected_gamepad_ids(&self) -> Result<Vec<GamepadId>, sdl3::Error> {
+		Ok(self
+			.gamepad
+			.gamepads()?
+			.drain(..)
+			.map(|id| id.into())
+			.collect())
+	}
+
+	/// Gets the gamepad with the specified ID.
+	pub fn gamepad(&self, id: GamepadId) -> Result<Gamepad, sdl3::Error> {
+		self.gamepad
+			.open(id.into())
+			.map(|gamepad| Gamepad { id, gamepad })
 	}
 
 	/// Returns the average duration of a frame over the past 30 frames.

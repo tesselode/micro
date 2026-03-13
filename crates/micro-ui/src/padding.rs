@@ -40,7 +40,8 @@ impl Padding {
 		Self::new(padding, padding, padding, padding)
 	}
 
-	pub fn symmetric(padding: Vec2) -> Self {
+	pub fn symmetric(padding: impl Into<Vec2>) -> Self {
+		let padding = padding.into();
 		Self::new(padding.x, padding.y, padding.x, padding.y)
 	}
 

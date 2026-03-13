@@ -116,8 +116,8 @@ macro_rules! sizing_functions {
 			self
 		}
 
-		pub fn max_size(self, size: impl Into<Vec2>) -> Self {
-			let size: Vec2 = size.into();
+		pub fn max_size(self, size: impl Into<micro::math::Vec2>) -> Self {
+			let size: micro::math::Vec2 = size.into();
 			Self {
 				sizing: $crate::Sizing {
 					horizontal: $crate::AxisSizing::Max(size.x),
@@ -127,8 +127,8 @@ macro_rules! sizing_functions {
 			}
 		}
 
-		pub fn fractional_size(self, fraction: impl Into<Vec2>) -> Self {
-			let fraction: Vec2 = fraction.into();
+		pub fn fractional_size(self, fraction: impl Into<micro::math::Vec2>) -> Self {
+			let fraction: micro::math::Vec2 = fraction.into();
 			Self {
 				sizing: $crate::Sizing {
 					horizontal: $crate::AxisSizing::Fractional(fraction.x),

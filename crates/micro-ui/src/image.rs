@@ -7,14 +7,13 @@ use micro::{
 
 use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
 
-use super::{LayoutResult, Widget, WidgetMouseState};
+use super::{LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Image {
 	texture: Texture,
 	scale: Vec2,
 	color: LinSrgba,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -24,7 +23,6 @@ impl Image {
 			texture: texture.clone(),
 			scale: Vec2::ONE,
 			color: LinSrgba::WHITE,
-			mouse_state: None,
 			inspector: None,
 		}
 	}

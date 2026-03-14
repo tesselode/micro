@@ -7,7 +7,7 @@ use micro::{
 
 use crate::{WidgetInspector, child_functions, common_functions, common_widget_trait_functions};
 
-use super::{AxisSizing, LayoutResult, Widget, WidgetMouseState};
+use super::{AxisSizing, LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Stack {
@@ -16,7 +16,6 @@ pub struct Stack {
 	cross_align: f32,
 	cross_sizing: AxisSizing,
 	children: Vec<Box<dyn Widget>>,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -28,7 +27,6 @@ impl Stack {
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,
 			children: vec![],
-			mouse_state: None,
 			inspector: None,
 		}
 	}
@@ -40,7 +38,6 @@ impl Stack {
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,
 			children: vec![],
-			mouse_state: None,
 			inspector: None,
 		}
 	}

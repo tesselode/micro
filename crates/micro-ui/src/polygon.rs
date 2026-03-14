@@ -7,7 +7,7 @@ use micro::{
 
 use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
 
-use super::{LayoutResult, Widget, WidgetMouseState};
+use super::{LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Polygon {
@@ -15,7 +15,6 @@ pub struct Polygon {
 	size: Vec2,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -31,7 +30,6 @@ impl Polygon {
 			size,
 			fill: None,
 			stroke: None,
-			mouse_state: None,
 			inspector: None,
 		}
 	}

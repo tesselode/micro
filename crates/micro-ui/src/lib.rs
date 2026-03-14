@@ -17,7 +17,6 @@ mod stack;
 mod text;
 mod transform;
 mod ui;
-mod widget_mouse_state;
 
 pub use align::*;
 pub use aspect_ratio::*;
@@ -36,7 +35,6 @@ pub use stack::*;
 pub use text::*;
 pub use transform::*;
 pub use ui::*;
-pub use widget_mouse_state::*;
 
 use std::fmt::Debug;
 
@@ -58,8 +56,6 @@ pub trait Widget: Debug {
 	fn mask(&self) -> Option<&dyn Widget> {
 		None
 	}
-
-	fn mouse_state(&self) -> Option<WidgetMouseState>;
 
 	fn inspector(&self) -> Option<WidgetInspector>;
 

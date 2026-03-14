@@ -2,7 +2,7 @@ use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
 use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
 
-use super::{LayoutResult, Widget, WidgetMouseState};
+use super::{LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Polyline {
@@ -10,7 +10,6 @@ pub struct Polyline {
 	stroke_width: f32,
 	color: LinSrgba,
 	size: Vec2,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -30,7 +29,6 @@ impl Polyline {
 			stroke_width,
 			color: color.into(),
 			size,
-			mouse_state: None,
 			inspector: None,
 		}
 	}

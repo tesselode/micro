@@ -8,7 +8,7 @@ use crate::{
 	sizing_functions,
 };
 
-use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
+use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Padding {
@@ -18,7 +18,6 @@ pub struct Padding {
 	right: f32,
 	bottom: f32,
 	children: Vec<Box<dyn Widget>>,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -31,7 +30,6 @@ impl Padding {
 			right,
 			bottom,
 			children: vec![],
-			mouse_state: None,
 			inspector: None,
 		}
 	}
@@ -87,7 +85,6 @@ impl Default for Padding {
 			right: Default::default(),
 			bottom: Default::default(),
 			children: Default::default(),
-			mouse_state: None,
 			inspector: None,
 		}
 	}

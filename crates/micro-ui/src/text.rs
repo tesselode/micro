@@ -14,7 +14,7 @@ use crate::{
 	sizing_functions,
 };
 
-use super::{LayoutResult, Widget, WidgetMouseState};
+use super::{LayoutResult, Widget};
 
 #[derive(Debug, Clone)]
 pub struct TextWidget {
@@ -25,7 +25,6 @@ pub struct TextWidget {
 	shadow: Option<TextShadow>,
 	size_reporting: TextSizeReporting,
 	built: RefCell<Option<Text>>,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -39,7 +38,6 @@ impl TextWidget {
 			shadow: None,
 			size_reporting: TextSizeReporting::default(),
 			built: RefCell::new(None),
-			mouse_state: None,
 			inspector: None,
 		}
 	}

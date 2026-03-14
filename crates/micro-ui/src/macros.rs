@@ -1,16 +1,6 @@
 #[macro_export]
 macro_rules! common_functions {
 	() => {
-		pub fn mouse_state<'a>(
-			self,
-			state: impl Into<Option<&'a $crate::WidgetMouseState>>,
-		) -> Self {
-			Self {
-				mouse_state: state.into().cloned(),
-				..self
-			}
-		}
-
 		pub fn inspector<'a>(
 			self,
 			inspector: impl Into<Option<&'a $crate::WidgetInspector>>,
@@ -26,10 +16,6 @@ macro_rules! common_functions {
 #[macro_export]
 macro_rules! common_widget_trait_functions {
 	() => {
-		fn mouse_state(&self) -> Option<$crate::WidgetMouseState> {
-			self.mouse_state.clone()
-		}
-
 		fn inspector(&self) -> Option<$crate::WidgetInspector> {
 			self.inspector.clone()
 		}

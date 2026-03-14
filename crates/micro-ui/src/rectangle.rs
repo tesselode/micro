@@ -12,7 +12,7 @@ use crate::{
 	sizing_functions,
 };
 
-use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
+use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Rectangle {
@@ -20,7 +20,6 @@ pub struct Rectangle {
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
 	children: Vec<Box<dyn Widget>>,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -67,7 +66,6 @@ impl Default for Rectangle {
 			fill: Default::default(),
 			stroke: Default::default(),
 			children: Default::default(),
-			mouse_state: None,
 			inspector: None,
 		}
 	}

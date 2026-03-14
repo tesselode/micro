@@ -5,14 +5,13 @@ use crate::{
 	sizing_functions,
 };
 
-use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
+use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Mask {
 	sizing: Sizing,
 	children: Vec<Box<dyn Widget>>,
 	mask: Box<dyn Widget>,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -22,7 +21,6 @@ impl Mask {
 			sizing: Sizing::SHRINK,
 			children: vec![],
 			mask: Box::new(mask),
-			mouse_state: None,
 			inspector: None,
 		}
 	}

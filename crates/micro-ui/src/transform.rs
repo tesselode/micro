@@ -8,7 +8,7 @@ use crate::{
 	sizing_functions,
 };
 
-use super::{LayoutResult, Sizing, Widget, WidgetMouseState};
+use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Transform {
@@ -16,7 +16,6 @@ pub struct Transform {
 	origin: Vec2,
 	transform: Mat4,
 	children: Vec<Box<dyn Widget>>,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -27,7 +26,6 @@ impl Transform {
 			origin: Vec2::ZERO,
 			transform: transform.into(),
 			children: vec![],
-			mouse_state: None,
 			inspector: None,
 		}
 	}

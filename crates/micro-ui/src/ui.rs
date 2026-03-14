@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use crate::{WidgetInspector, WidgetInspectorInner, mouse_input::MouseInput};
+use crate::{WidgetInspector, mouse_input::MouseInput};
 
 use itertools::izip;
 use micro::{
@@ -130,8 +130,8 @@ impl BakedWidget {
 	fn use_mouse_input(&mut self, raw_widget: &dyn Widget, mut mouse_input: MouseInput) {
 		let _span = tracy_client::span!();
 		mouse_input = mouse_input.transformed(self.transform.inverse());
-		if let Some(mouse_state) = raw_widget.mouse_state() {
-			mouse_state.update(&mouse_input, self.layout_result.size);
+		if let Some(inspector) = raw_widget.inspector() {
+			inspector.update_mouse_state(&mouse_input, self.layout_result.size);
 		}
 		for (raw_child, baked_child, position) in izip!(
 			raw_widget.children(),
@@ -201,10 +201,9 @@ impl BakedWidget {
 			* Mat4::from_translation(my_offset.extend(0.0))
 			* self.transform;
 		if let Some(inspector) = &self.inspector {
-			*inspector.0.borrow_mut() = WidgetInspectorInner::Inspected {
-				bounds: Rect::new(my_global_top_left, self.layout_result.size),
-				transform: my_global_transform,
-			};
+			let mut inner = inspector.0.borrow_mut();
+			inner.bounds = Some(Rect::new(my_global_top_left, self.layout_result.size));
+			inner.transform = Some(my_global_transform);
 		}
 		for (baked_child, child_offset) in self
 			.children

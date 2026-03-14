@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use micro::{Context, math::Vec2};
 
 use crate::{
-	WidgetInspector, WidgetMouseState, child_functions, common_functions,
-	common_widget_trait_functions, sizing_functions,
+	WidgetInspector, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
 };
 
 use super::{LayoutResult, Sizing, Widget};
@@ -15,7 +15,6 @@ pub struct Align {
 	child_anchor: Vec2,
 	sizing: Sizing,
 	children: Vec<Box<dyn Widget>>,
-	mouse_state: Option<WidgetMouseState>,
 	inspector: Option<WidgetInspector>,
 }
 
@@ -36,7 +35,6 @@ impl Align {
 			child_anchor: child_anchor.into(),
 			sizing: Sizing::EXPAND,
 			children: vec![],
-			mouse_state: None,
 			inspector: None,
 		}
 	}

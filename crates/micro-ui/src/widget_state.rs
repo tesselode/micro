@@ -12,12 +12,12 @@ pub struct WidgetState {
 	pub(crate) used: bool,
 	pub(crate) bounds: Option<Rect>,
 	pub(crate) transform: Option<Mat4>,
-	relative_pos: Option<Vec2>,
-	delta: Vec2,
-	wheel_delta: Vec2,
-	hovered: bool,
-	hovered_previous: bool,
-	button_state: HashMap<MouseButton, ButtonState>,
+	pub(crate) relative_pos: Option<Vec2>,
+	pub(crate) delta: Vec2,
+	pub(crate) wheel_delta: Vec2,
+	pub(crate) hovered: bool,
+	pub(crate) hovered_previous: bool,
+	pub(crate) button_state: HashMap<MouseButton, ButtonState>,
 	custom: Option<Box<dyn Any>>,
 }
 
@@ -179,8 +179,8 @@ impl Default for WidgetState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-struct ButtonState {
-	held: bool,
-	held_previous: bool,
-	clicked: bool,
+pub(crate) struct ButtonState {
+	pub(crate) held: bool,
+	pub(crate) held_previous: bool,
+	pub(crate) clicked: bool,
 }

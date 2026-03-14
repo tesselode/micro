@@ -4,13 +4,14 @@ use micro::{
 };
 
 use crate::{
-	AxisSizing, LayoutResult, Widget, WidgetState, child_functions, common_functions,
-	common_widget_trait_functions,
+	AxisSizing, LayoutResult, Widget, WidgetInspector, WidgetState, child_functions,
+	common_functions, common_widget_trait_functions,
 };
 
 #[derive(Debug)]
 pub struct Distribute {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	direction: Axis,
 	cross_align: f32,
 	cross_sizing: AxisSizing,
@@ -21,6 +22,7 @@ impl Distribute {
 	pub fn horizontal() -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			direction: Axis::Horizontal,
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,
@@ -31,6 +33,7 @@ impl Distribute {
 	pub fn vertical() -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			direction: Axis::Vertical,
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,

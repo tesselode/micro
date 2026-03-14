@@ -3,6 +3,7 @@ mod aspect_ratio;
 mod distribute;
 mod ellipse;
 mod image;
+mod inspector;
 mod macros;
 mod manually_positioned;
 mod mask;
@@ -23,6 +24,7 @@ pub use aspect_ratio::*;
 pub use distribute::*;
 pub use ellipse::*;
 pub use image::*;
+pub use inspector::*;
 pub use manually_positioned::*;
 pub use mask::*;
 pub use padding::*;
@@ -48,6 +50,8 @@ pub trait Widget: Debug {
 	fn name(&self) -> &'static str;
 
 	fn custom_id(&self) -> Option<String>;
+
+	fn inspector(&self) -> Option<WidgetInspector>;
 
 	fn children(&mut self, ctx: &mut Context, state: &mut WidgetState) -> Vec<Box<dyn Widget>>;
 

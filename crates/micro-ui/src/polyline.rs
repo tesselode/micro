@@ -1,12 +1,13 @@
 use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
-use crate::{WidgetState, common_functions, common_widget_trait_functions};
+use crate::{WidgetInspector, WidgetState, common_functions, common_widget_trait_functions};
 
 use super::{LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Polyline {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	points: Vec<Vec2>,
 	stroke_width: f32,
 	color: LinSrgba,
@@ -26,6 +27,7 @@ impl Polyline {
 		let size = points.iter().copied().reduce(Vec2::max).unwrap_or_default();
 		Self {
 			id: None,
+			inspector: None,
 			points,
 			stroke_width,
 			color: color.into(),

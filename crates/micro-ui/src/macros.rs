@@ -7,6 +7,13 @@ macro_rules! common_functions {
 				..self
 			}
 		}
+
+		pub fn inspector(self, inspector: &$crate::WidgetInspector) -> Self {
+			Self {
+				inspector: Some(inspector.clone()),
+				..self
+			}
+		}
 	};
 }
 
@@ -15,6 +22,10 @@ macro_rules! common_widget_trait_functions {
 	() => {
 		fn custom_id(&self) -> Option<String> {
 			self.id.clone()
+		}
+
+		fn inspector(&self) -> Option<$crate::WidgetInspector> {
+			self.inspector.clone()
 		}
 	};
 }

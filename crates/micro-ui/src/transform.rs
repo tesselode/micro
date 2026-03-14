@@ -4,7 +4,8 @@ use micro::{
 };
 
 use crate::{
-	WidgetState, child_functions, common_functions, common_widget_trait_functions, sizing_functions,
+	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
 };
 
 use super::{LayoutResult, Sizing, Widget};
@@ -12,6 +13,7 @@ use super::{LayoutResult, Sizing, Widget};
 #[derive(Debug)]
 pub struct Transform {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	sizing: Sizing,
 	origin: Vec2,
 	transform: Mat4,
@@ -22,6 +24,7 @@ impl Transform {
 	pub fn new(transform: impl Into<Mat4>) -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			sizing: Sizing::SHRINK,
 			origin: Vec2::ZERO,
 			transform: transform.into(),

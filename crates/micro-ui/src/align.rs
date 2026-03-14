@@ -3,7 +3,8 @@ use std::fmt::Debug;
 use micro::{Context, math::Vec2};
 
 use crate::{
-	WidgetState, child_functions, common_functions, common_widget_trait_functions, sizing_functions,
+	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
 };
 
 use super::{LayoutResult, Sizing, Widget};
@@ -11,6 +12,7 @@ use super::{LayoutResult, Sizing, Widget};
 #[derive(Debug)]
 pub struct Align {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	parent_anchor: Vec2,
 	child_anchor: Vec2,
 	sizing: Sizing,
@@ -31,6 +33,7 @@ impl Align {
 	pub fn new(parent_anchor: impl Into<Vec2>, child_anchor: impl Into<Vec2>) -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			parent_anchor: parent_anchor.into(),
 			child_anchor: child_anchor.into(),
 			sizing: Sizing::EXPAND,

@@ -1,7 +1,8 @@
 use micro::{Context, math::Vec2};
 
 use crate::{
-	WidgetState, child_functions, common_functions, common_widget_trait_functions, sizing_functions,
+	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
 };
 
 use super::{LayoutResult, Sizing, Widget};
@@ -9,6 +10,7 @@ use super::{LayoutResult, Sizing, Widget};
 #[derive(Debug)]
 pub struct Mask {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	sizing: Sizing,
 	children: Vec<Box<dyn Widget>>,
 	mask: Option<Box<dyn Widget>>,
@@ -18,6 +20,7 @@ impl Mask {
 	pub fn new(mask: impl Widget + 'static) -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			sizing: Sizing::SHRINK,
 			children: vec![],
 			mask: Some(Box::new(mask)),

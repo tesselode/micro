@@ -5,13 +5,14 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{WidgetState, common_functions, common_widget_trait_functions};
+use crate::{WidgetInspector, WidgetState, common_functions, common_widget_trait_functions};
 
 use super::{LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Image {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	texture: Texture,
 	scale: Vec2,
 	color: LinSrgba,
@@ -21,6 +22,7 @@ impl Image {
 	pub fn new(texture: &Texture) -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			texture: texture.clone(),
 			scale: Vec2::ONE,
 			color: LinSrgba::WHITE,

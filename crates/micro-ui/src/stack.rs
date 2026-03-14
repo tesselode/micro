@@ -5,13 +5,16 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{WidgetState, child_functions, common_functions, common_widget_trait_functions};
+use crate::{
+	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
+};
 
 use super::{AxisSizing, LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Stack {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	direction: Axis,
 	gap: f32,
 	cross_align: f32,
@@ -23,6 +26,7 @@ impl Stack {
 	pub fn horizontal() -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			direction: Axis::Horizontal,
 			gap: 0.0,
 			cross_align: 0.0,
@@ -34,6 +38,7 @@ impl Stack {
 	pub fn vertical() -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			direction: Axis::Vertical,
 			gap: 0.0,
 			cross_align: 0.0,

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{WidgetState, mouse_input::MouseInput};
+use crate::{WidgetInspector, WidgetState, mouse_input::MouseInput};
 
 use indexmap::IndexMap;
 use itertools::izip;
@@ -114,6 +114,7 @@ pub struct RenderUiSettings {
 struct BakedWidget {
 	id: String,
 	raw: Box<dyn Widget>,
+	inspector: Option<WidgetInspector>,
 	children: Vec<BakedWidget>,
 	transform: Mat4,
 	mask: Option<Box<BakedWidget>>,
@@ -171,6 +172,7 @@ impl BakedWidget {
 			))
 		});
 
+		let inspector = raw.inspector();
 		let transform = raw.transform(
 			ctx,
 			layout_result.size,
@@ -179,6 +181,7 @@ impl BakedWidget {
 
 		Self {
 			id,
+			inspector,
 			raw,
 			children,
 			transform,
@@ -307,6 +310,9 @@ impl BakedWidget {
 				my_global_transform,
 				widget_state,
 			);
+		}
+		if let Some(inspector) = &self.inspector {
+			inspector.populate_from_state(widget_state.entry(self.id.clone()).or_default());
 		}
 	}
 }

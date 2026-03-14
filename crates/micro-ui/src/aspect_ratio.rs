@@ -4,13 +4,14 @@ use micro::{
 };
 
 use crate::{
-	LayoutResult, Widget, WidgetState, child_functions, common_functions,
+	LayoutResult, Widget, WidgetInspector, WidgetState, child_functions, common_functions,
 	common_widget_trait_functions,
 };
 
 #[derive(Debug)]
 pub struct AspectRatio {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	aspect_ratio: f32,
 	children: Vec<Box<dyn Widget>>,
 }
@@ -19,6 +20,7 @@ impl AspectRatio {
 	pub fn new(aspect_ratio: f32) -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			aspect_ratio,
 			children: vec![],
 		}

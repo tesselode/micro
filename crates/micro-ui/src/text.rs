@@ -10,8 +10,8 @@ use micro::{
 };
 
 use crate::{
-	AxisSizing, Sizing, WidgetState, common_functions, common_widget_trait_functions,
-	sizing_functions,
+	AxisSizing, Sizing, WidgetInspector, WidgetState, common_functions,
+	common_widget_trait_functions, sizing_functions,
 };
 
 use super::{LayoutResult, Widget};
@@ -19,6 +19,7 @@ use super::{LayoutResult, Widget};
 #[derive(Debug, Clone)]
 pub struct TextWidget {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	builder: TextBuilder,
 	sizing: Sizing,
 	align: TextAlign,
@@ -32,6 +33,7 @@ impl TextWidget {
 	pub fn new(font_family: impl Into<String>, text: impl Into<String>) -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			builder: TextBuilder::new(font_family, text),
 			sizing: Sizing::SHRINK,
 			align: TextAlign::Left,

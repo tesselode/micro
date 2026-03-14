@@ -4,7 +4,8 @@ use micro::{
 };
 
 use crate::{
-	WidgetState, child_functions, common_functions, common_widget_trait_functions, sizing_functions,
+	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
 };
 
 use super::{LayoutResult, Sizing, Widget};
@@ -12,6 +13,7 @@ use super::{LayoutResult, Sizing, Widget};
 #[derive(Debug)]
 pub struct Padding {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	sizing: Sizing,
 	left: f32,
 	top: f32,
@@ -24,6 +26,7 @@ impl Padding {
 	pub fn new(left: f32, top: f32, right: f32, bottom: f32) -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			sizing: Sizing::SHRINK,
 			left,
 			top,
@@ -79,6 +82,7 @@ impl Default for Padding {
 	fn default() -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			sizing: Sizing::SHRINK,
 			left: Default::default(),
 			top: Default::default(),

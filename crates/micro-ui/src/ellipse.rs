@@ -8,7 +8,8 @@ use micro::{
 };
 
 use crate::{
-	WidgetState, child_functions, common_functions, common_widget_trait_functions, sizing_functions,
+	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
+	sizing_functions,
 };
 
 use super::{LayoutResult, Sizing, Widget};
@@ -16,6 +17,7 @@ use super::{LayoutResult, Sizing, Widget};
 #[derive(Debug)]
 pub struct Ellipse {
 	id: Option<String>,
+	inspector: Option<WidgetInspector>,
 	sizing: Sizing,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
@@ -62,6 +64,7 @@ impl Default for Ellipse {
 	fn default() -> Self {
 		Self {
 			id: None,
+			inspector: None,
 			sizing: Sizing::EXPAND,
 			fill: Default::default(),
 			stroke: Default::default(),

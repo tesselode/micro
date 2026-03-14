@@ -11,6 +11,7 @@ use super::{AxisSizing, LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Stack {
+	id: Option<String>,
 	direction: Axis,
 	gap: f32,
 	cross_align: f32,
@@ -22,6 +23,7 @@ pub struct Stack {
 impl Stack {
 	pub fn horizontal() -> Self {
 		Self {
+			id: None,
 			direction: Axis::Horizontal,
 			gap: 0.0,
 			cross_align: 0.0,
@@ -33,6 +35,7 @@ impl Stack {
 
 	pub fn vertical() -> Self {
 		Self {
+			id: None,
 			direction: Axis::Vertical,
 			gap: 0.0,
 			cross_align: 0.0,

@@ -6,6 +6,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ManuallyPositioned {
+	id: Option<String>,
 	children: Vec<Box<dyn Widget>>,
 	child_positions: Vec<ChildPosition>,
 	inspector: Option<WidgetInspector>,
@@ -14,6 +15,7 @@ pub struct ManuallyPositioned {
 impl ManuallyPositioned {
 	pub fn new() -> Self {
 		Self {
+			id: None,
 			children: vec![],
 			child_positions: vec![],
 			inspector: None,

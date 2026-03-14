@@ -11,6 +11,7 @@ use super::{LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Polygon {
+	id: Option<String>,
 	points: Vec<Vec2>,
 	size: Vec2,
 	fill: Option<LinSrgba>,
@@ -26,6 +27,7 @@ impl Polygon {
 			.collect::<Vec<_>>();
 		let size = points.iter().copied().reduce(Vec2::max).unwrap_or_default();
 		Self {
+			id: None,
 			points,
 			size,
 			fill: None,

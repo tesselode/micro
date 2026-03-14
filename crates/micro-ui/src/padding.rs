@@ -12,6 +12,7 @@ use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Padding {
+	id: Option<String>,
 	sizing: Sizing,
 	left: f32,
 	top: f32,
@@ -24,6 +25,7 @@ pub struct Padding {
 impl Padding {
 	pub fn new(left: f32, top: f32, right: f32, bottom: f32) -> Self {
 		Self {
+			id: None,
 			sizing: Sizing::SHRINK,
 			left,
 			top,
@@ -79,6 +81,7 @@ impl Padding {
 impl Default for Padding {
 	fn default() -> Self {
 		Self {
+			id: None,
 			sizing: Sizing::SHRINK,
 			left: Default::default(),
 			top: Default::default(),

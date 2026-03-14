@@ -12,6 +12,7 @@ use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Transform {
+	id: Option<String>,
 	sizing: Sizing,
 	origin: Vec2,
 	transform: Mat4,
@@ -22,6 +23,7 @@ pub struct Transform {
 impl Transform {
 	pub fn new(transform: impl Into<Mat4>) -> Self {
 		Self {
+			id: None,
 			sizing: Sizing::SHRINK,
 			origin: Vec2::ZERO,
 			transform: transform.into(),

@@ -11,6 +11,7 @@ use super::{LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Image {
+	id: Option<String>,
 	texture: Texture,
 	scale: Vec2,
 	color: LinSrgba,
@@ -20,6 +21,7 @@ pub struct Image {
 impl Image {
 	pub fn new(texture: &Texture) -> Self {
 		Self {
+			id: None,
 			texture: texture.clone(),
 			scale: Vec2::ONE,
 			color: LinSrgba::WHITE,

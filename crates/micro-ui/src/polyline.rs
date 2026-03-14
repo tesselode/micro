@@ -6,6 +6,7 @@ use super::{LayoutResult, Widget};
 
 #[derive(Debug)]
 pub struct Polyline {
+	id: Option<String>,
 	points: Vec<Vec2>,
 	stroke_width: f32,
 	color: LinSrgba,
@@ -25,6 +26,7 @@ impl Polyline {
 			.collect::<Vec<_>>();
 		let size = points.iter().copied().reduce(Vec2::max).unwrap_or_default();
 		Self {
+			id: None,
 			points,
 			stroke_width,
 			color: color.into(),

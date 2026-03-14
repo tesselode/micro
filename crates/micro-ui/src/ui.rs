@@ -36,7 +36,7 @@ impl Ui {
 				show_debug_widget_info(ui, &mut highlighted_widget_path, widget, None);
 			});
 		self.draw_debug_state = Some(DrawDebugState {
-			highlighted_widget_path,
+			highlighted_widget_id: highlighted_widget_path,
 		});
 	}
 
@@ -51,7 +51,7 @@ impl Ui {
 		let default_size = ctx.window_size().as_vec2();
 		let mut baked_widget = BakedWidget::new(
 			ctx,
-			PathBuf::new(),
+			widget.custom_id().unwrap_or_else(|| "root".to_string()),
 			&widget,
 			settings.size.unwrap_or(default_size),
 		);
@@ -75,7 +75,7 @@ pub struct RenderUiSettings {
 #[derive(Debug, Clone, PartialEq)]
 struct BakedWidget {
 	name: &'static str,
-	path: PathBuf,
+	id: String,
 	children: Vec<BakedWidget>,
 	transform: Mat4,
 	mask: Option<Box<BakedWidget>>,
@@ -87,21 +87,23 @@ struct BakedWidget {
 impl BakedWidget {
 	fn new(
 		ctx: &mut Context,
-		path: PathBuf,
+		id: String,
 		raw_widget: &dyn Widget,
 		allotted_size_from_parent: Vec2,
 	) -> Self {
 		let _span = tracy_client::span!();
 		let mut children = vec![];
 		let mut child_sizes = vec![];
-		let mut unique_child_name_generator = UniqueChildNameGenerator::new();
+		let mut unique_child_id_generator = UniqueChildIdGenerator::new();
 		for child in raw_widget.children() {
 			let allotted_size_for_child =
 				raw_widget.allotted_size_for_next_child(allotted_size_from_parent, &child_sizes);
-			let unique_name = unique_child_name_generator.generate(child.name());
-			let child_path = path.join(unique_name);
+			let child_id = child.custom_id().unwrap_or_else(|| {
+				let child_id_component = unique_child_id_generator.generate(child.name());
+				format!("{}/{}", id, child_id_component)
+			});
 			let baked_child =
-				BakedWidget::new(ctx, child_path, child.as_ref(), allotted_size_for_child);
+				BakedWidget::new(ctx, child_id, child.as_ref(), allotted_size_for_child);
 			child_sizes.push(baked_child.layout_result.size);
 			children.push(baked_child);
 		}
@@ -109,7 +111,8 @@ impl BakedWidget {
 		let mask = raw_widget.mask().map(|mask| {
 			Box::new(BakedWidget::new(
 				ctx,
-				path.join("mask"),
+				mask.custom_id()
+					.unwrap_or_else(|| format!("{}/{}", id, "mask")),
 				mask,
 				layout_result.size,
 			))
@@ -117,7 +120,7 @@ impl BakedWidget {
 		let transform = raw_widget.transform(layout_result.size);
 		Self {
 			name: raw_widget.name(),
-			path,
+			id,
 			children,
 			transform,
 			mask,
@@ -174,9 +177,9 @@ impl BakedWidget {
 
 	fn draw_debug(&self, ctx: &mut Context, draw_debug_state: &DrawDebugState) {
 		if draw_debug_state
-			.highlighted_widget_path
+			.highlighted_widget_id
 			.as_ref()
-			.is_some_and(|path| *path == self.path)
+			.is_some_and(|id| *id == self.id)
 		{
 			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
 				.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25))
@@ -219,11 +222,11 @@ impl BakedWidget {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-struct UniqueChildNameGenerator {
+struct UniqueChildIdGenerator {
 	name_counts: HashMap<&'static str, usize>,
 }
 
-impl UniqueChildNameGenerator {
+impl UniqueChildIdGenerator {
 	fn new() -> Self {
 		Self::default()
 	}
@@ -238,20 +241,16 @@ impl UniqueChildNameGenerator {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct DrawDebugState {
-	highlighted_widget_path: Option<PathBuf>,
+	highlighted_widget_id: Option<String>,
 }
 
 fn show_debug_widget_info(
 	ui: &mut micro::egui::Ui,
-	highlighted_widget_path: &mut Option<PathBuf>,
+	highlighted_widget_path: &mut Option<String>,
 	widget: &BakedWidget,
 	position: Option<Vec2>,
 ) {
-	let label = widget
-		.path
-		.file_name()
-		.map(|name| name.to_str().unwrap().to_string())
-		.unwrap_or_else(|| "Root".to_string());
+	let label = &widget.id;
 	let response = ui.collapsing(label, |ui| {
 		ui.horizontal(|ui| {
 			ui.label("Allotted size from parent:");
@@ -277,6 +276,6 @@ fn show_debug_widget_info(
 		}
 	});
 	if response.header_response.contains_pointer() {
-		*highlighted_widget_path = Some(widget.path.clone());
+		*highlighted_widget_path = Some(widget.id.clone());
 	}
 }

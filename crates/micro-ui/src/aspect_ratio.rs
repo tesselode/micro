@@ -10,6 +10,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct AspectRatio {
+	id: Option<String>,
 	aspect_ratio: f32,
 	children: Vec<Box<dyn Widget>>,
 	inspector: Option<WidgetInspector>,
@@ -18,6 +19,7 @@ pub struct AspectRatio {
 impl AspectRatio {
 	pub fn new(aspect_ratio: f32) -> Self {
 		Self {
+			id: None,
 			aspect_ratio,
 			children: vec![],
 			inspector: None,

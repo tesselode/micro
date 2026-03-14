@@ -18,6 +18,7 @@ use super::{LayoutResult, Widget};
 
 #[derive(Debug, Clone)]
 pub struct TextWidget {
+	id: Option<String>,
 	builder: TextBuilder,
 	sizing: Sizing,
 	align: TextAlign,
@@ -31,6 +32,7 @@ pub struct TextWidget {
 impl TextWidget {
 	pub fn new(font_family: impl Into<String>, text: impl Into<String>) -> Self {
 		Self {
+			id: None,
 			builder: TextBuilder::new(font_family, text),
 			sizing: Sizing::SHRINK,
 			align: TextAlign::Left,

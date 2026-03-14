@@ -9,6 +9,7 @@ use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Mask {
+	id: Option<String>,
 	sizing: Sizing,
 	children: Vec<Box<dyn Widget>>,
 	mask: Box<dyn Widget>,
@@ -18,6 +19,7 @@ pub struct Mask {
 impl Mask {
 	pub fn new(mask: impl Widget + 'static) -> Self {
 		Self {
+			id: None,
 			sizing: Sizing::SHRINK,
 			children: vec![],
 			mask: Box::new(mask),

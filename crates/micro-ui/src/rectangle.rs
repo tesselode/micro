@@ -16,6 +16,7 @@ use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Rectangle {
+	id: Option<String>,
 	sizing: Sizing,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
@@ -62,6 +63,7 @@ impl Rectangle {
 impl Default for Rectangle {
 	fn default() -> Self {
 		Self {
+			id: None,
 			sizing: Sizing::EXPAND,
 			fill: Default::default(),
 			stroke: Default::default(),

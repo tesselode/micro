@@ -47,6 +47,8 @@ use micro::{
 pub trait Widget: Debug {
 	fn name(&self) -> &'static str;
 
+	fn custom_id(&self) -> Option<String>;
+
 	fn children(&self) -> &[Box<dyn Widget>];
 
 	fn transform(&self, size: Vec2) -> Mat4 {

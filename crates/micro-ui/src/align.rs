@@ -11,6 +11,7 @@ use super::{LayoutResult, Sizing, Widget};
 
 #[derive(Debug)]
 pub struct Align {
+	id: Option<String>,
 	parent_anchor: Vec2,
 	child_anchor: Vec2,
 	sizing: Sizing,
@@ -31,6 +32,7 @@ macro_rules! align_constructors {
 impl Align {
 	pub fn new(parent_anchor: impl Into<Vec2>, child_anchor: impl Into<Vec2>) -> Self {
 		Self {
+			id: None,
 			parent_anchor: parent_anchor.into(),
 			child_anchor: child_anchor.into(),
 			sizing: Sizing::EXPAND,

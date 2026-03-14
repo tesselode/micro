@@ -10,6 +10,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Distribute {
+	id: Option<String>,
 	direction: Axis,
 	cross_align: f32,
 	cross_sizing: AxisSizing,
@@ -20,6 +21,7 @@ pub struct Distribute {
 impl Distribute {
 	pub fn horizontal() -> Self {
 		Self {
+			id: None,
 			direction: Axis::Horizontal,
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,
@@ -30,6 +32,7 @@ impl Distribute {
 
 	pub fn vertical() -> Self {
 		Self {
+			id: None,
 			direction: Axis::Vertical,
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,

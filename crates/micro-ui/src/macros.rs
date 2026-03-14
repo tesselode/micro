@@ -1,6 +1,13 @@
 #[macro_export]
 macro_rules! common_functions {
 	() => {
+		pub fn id(self, id: impl Into<Option<String>>) -> Self {
+			Self {
+				id: id.into(),
+				..self
+			}
+		}
+
 		pub fn inspector<'a>(
 			self,
 			inspector: impl Into<Option<&'a $crate::WidgetInspector>>,
@@ -16,6 +23,10 @@ macro_rules! common_functions {
 #[macro_export]
 macro_rules! common_widget_trait_functions {
 	() => {
+		fn custom_id(&self) -> Option<String> {
+			self.id.clone()
+		}
+
 		fn inspector(&self) -> Option<$crate::WidgetInspector> {
 			self.inspector.clone()
 		}

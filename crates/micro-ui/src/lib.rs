@@ -49,18 +49,19 @@ pub trait Widget: Debug {
 
 	fn custom_id(&self) -> Option<String>;
 
-	fn children(&mut self, state: &mut WidgetState) -> Vec<Box<dyn Widget>>;
+	fn children(&mut self, ctx: &mut Context, state: &mut WidgetState) -> Vec<Box<dyn Widget>>;
 
-	fn transform(&mut self, size: Vec2, state: &mut WidgetState) -> Mat4 {
+	fn transform(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) -> Mat4 {
 		Mat4::IDENTITY
 	}
 
-	fn mask(&mut self, state: &mut WidgetState) -> Option<Box<dyn Widget>> {
+	fn mask(&mut self, ctx: &mut Context, state: &mut WidgetState) -> Option<Box<dyn Widget>> {
 		None
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
+		ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
 		state: &mut WidgetState,

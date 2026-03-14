@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 use micro::{
 	input::MouseButton,
@@ -7,7 +7,7 @@ use micro::{
 
 use crate::mouse_input::MouseInput;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub struct WidgetState {
 	pub(crate) used: bool,
 	pub(crate) bounds: Option<Rect>,
@@ -18,6 +18,7 @@ pub struct WidgetState {
 	hovered: bool,
 	hovered_previous: bool,
 	button_state: HashMap<MouseButton, ButtonState>,
+	custom: Option<Box<dyn Any>>,
 }
 
 impl WidgetState {
@@ -36,6 +37,7 @@ impl WidgetState {
 				.copied()
 				.map(|button| (button, ButtonState::default()))
 				.collect(),
+			custom: None,
 		}
 	}
 
@@ -102,6 +104,35 @@ impl WidgetState {
 	/// frame. A "click" means the widget was released while hovered.
 	pub fn clicked(&self, button: MouseButton) -> bool {
 		self.button_state[&button].clicked
+	}
+
+	pub fn custom<T: 'static>(&self) -> Option<&T> {
+		self.custom.as_ref().and_then(|inner| inner.downcast_ref())
+	}
+
+	pub fn custom_mut<T: 'static>(&mut self) -> Option<&mut T> {
+		self.custom.as_mut().and_then(|inner| inner.downcast_mut())
+	}
+
+	pub fn custom_or_insert<T: 'static>(&mut self, value: T) -> &mut T {
+		if self.custom_mut::<T>().is_none() {
+			self.custom = Some(Box::new(value));
+		}
+		self.custom_mut().unwrap()
+	}
+
+	pub fn custom_or_insert_with<T: 'static>(&mut self, f: impl FnOnce() -> T) -> &mut T {
+		if self.custom_mut::<T>().is_none() {
+			self.custom = Some(Box::new(f()));
+		}
+		self.custom_mut().unwrap()
+	}
+
+	pub fn custom_or_insert_default<T: Default + 'static>(&mut self) -> &mut T {
+		if self.custom_mut::<T>().is_none() {
+			self.custom = Some(Box::new(T::default()));
+		}
+		self.custom_mut().unwrap()
 	}
 
 	pub(crate) fn update_mouse_state(&mut self, mouse_input: &MouseInput, size: Vec2) {

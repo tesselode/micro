@@ -43,12 +43,13 @@ impl Widget for Polyline {
 		"polyline"
 	}
 
-	fn children(&mut self, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		vec![]
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
+		_ctx: &mut Context,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,

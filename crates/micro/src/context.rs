@@ -66,6 +66,7 @@ where
 			.main_canvas
 			.map(|settings| settings.integer_scaling_enabled)
 			.unwrap_or_default(),
+		delta_time: Duration::ZERO,
 		frame_time_tracker: FrameTimeTracker::new(),
 		graphics,
 		text,
@@ -93,6 +94,7 @@ where
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
 		last_update_time = now;
+		ctx.delta_time = delta_time;
 		ctx.frame_time_tracker.record(delta_time);
 
 		// poll for events
@@ -231,6 +233,7 @@ pub struct Context {
 	clear_color: LinSrgb,
 	main_canvas_size: Option<UVec2>,
 	integer_scaling_enabled: bool,
+	delta_time: Duration,
 	frame_time_tracker: FrameTimeTracker,
 	should_quit: bool,
 	dev_tools_state: DevToolsState,
@@ -490,6 +493,10 @@ impl Context {
 		self.gamepad
 			.open(id.into())
 			.map(|gamepad| Gamepad { id, gamepad })
+	}
+
+	pub fn delta_time(&self) -> Duration {
+		self.delta_time
 	}
 
 	/// Returns the average duration of a frame over the past 30 frames.

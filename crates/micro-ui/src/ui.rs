@@ -135,8 +135,9 @@ impl BakedWidget {
 		let mut unique_child_id_generator = UniqueChildIdGenerator::new();
 
 		// bake children
-		for child in raw.children(widget_state.entry(id.clone()).or_default()) {
+		for child in raw.children(ctx, widget_state.entry(id.clone()).or_default()) {
 			let allotted_size_for_child = raw.allotted_size_for_next_child(
+				ctx,
 				allotted_size_from_parent,
 				&child_sizes,
 				widget_state.entry(id.clone()).or_default(),
@@ -158,7 +159,7 @@ impl BakedWidget {
 		);
 
 		// bake mask
-		let raw_mask = raw.mask(widget_state.entry(id.clone()).or_default());
+		let raw_mask = raw.mask(ctx, widget_state.entry(id.clone()).or_default());
 		let mask = raw_mask.map(|mask| {
 			Box::new(BakedWidget::new(
 				ctx,
@@ -171,6 +172,7 @@ impl BakedWidget {
 		});
 
 		let transform = raw.transform(
+			ctx,
 			layout_result.size,
 			widget_state.entry(id.clone()).or_default(),
 		);

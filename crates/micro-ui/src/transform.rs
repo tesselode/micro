@@ -76,17 +76,18 @@ impl Widget for Transform {
 		"transform"
 	}
 
-	fn children(&mut self, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		self.children.drain(..).collect()
 	}
 
-	fn transform(&mut self, size: Vec2, _state: &mut WidgetState) -> Mat4 {
+	fn transform(&mut self, _ctx: &mut Context, size: Vec2, _state: &mut WidgetState) -> Mat4 {
 		let origin_transform = Mat4::from_translation((size * -self.origin).extend(0.0));
 		origin_transform.inverse() * self.transform * origin_transform
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
+		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,

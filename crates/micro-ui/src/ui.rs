@@ -66,7 +66,7 @@ impl Ui {
 		let default_size = ctx.window_size().as_vec2();
 		let mut baked_widget = BakedWidget::new(
 			ctx,
-			widget.custom_id().unwrap_or_else(|| "root".to_string()),
+			widget.id().unwrap_or_else(|| "root".to_string()),
 			Box::new(widget),
 			settings.size.unwrap_or(default_size),
 			&mut self.widget_state,
@@ -143,7 +143,7 @@ impl BakedWidget {
 				&child_sizes,
 				widget_state.entry(id.clone()).or_default(),
 			);
-			let child_id = child.custom_id().unwrap_or_else(|| {
+			let child_id = child.id().unwrap_or_else(|| {
 				let child_id_component = unique_child_id_generator.generate(child.name());
 				format!("{}/{}", id, child_id_component)
 			});
@@ -164,8 +164,7 @@ impl BakedWidget {
 		let mask = raw_mask.map(|mask| {
 			Box::new(BakedWidget::new(
 				ctx,
-				mask.custom_id()
-					.unwrap_or_else(|| format!("{}/{}", id, "mask")),
+				mask.id().unwrap_or_else(|| format!("{}/{}", id, "mask")),
 				mask,
 				layout_result.size,
 				widget_state,

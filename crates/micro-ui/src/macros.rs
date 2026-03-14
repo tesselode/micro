@@ -20,7 +20,7 @@ macro_rules! common_functions {
 #[macro_export]
 macro_rules! common_widget_trait_functions {
 	() => {
-		fn custom_id(&self) -> Option<String> {
+		fn id(&self) -> Option<String> {
 			self.id.clone()
 		}
 

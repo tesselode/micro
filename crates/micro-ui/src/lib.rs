@@ -49,7 +49,7 @@ use micro::{
 pub trait Widget: Debug {
 	fn name(&self) -> &'static str;
 
-	fn custom_id(&self) -> Option<String>;
+	fn id(&self) -> Option<String>;
 
 	fn inspector(&self) -> Option<WidgetInspector>;
 

@@ -1,15 +1,12 @@
 use micro::{Context, math::Vec2};
 
-use crate::{
-	LayoutResult, Widget, WidgetInspector, common_functions, common_widget_trait_functions,
-};
+use crate::{LayoutResult, Widget, common_functions, common_widget_trait_functions};
 
 #[derive(Debug)]
 pub struct ManuallyPositioned {
 	id: Option<String>,
 	children: Vec<Box<dyn Widget>>,
 	child_positions: Vec<ChildPosition>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl ManuallyPositioned {
@@ -18,7 +15,6 @@ impl ManuallyPositioned {
 			id: None,
 			children: vec![],
 			child_positions: vec![],
-			inspector: None,
 		}
 	}
 

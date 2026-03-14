@@ -7,10 +7,7 @@ use micro::{
 	math::Vec2,
 };
 
-use crate::{
-	WidgetInspector, child_functions, common_functions, common_widget_trait_functions,
-	sizing_functions,
-};
+use crate::{child_functions, common_functions, common_widget_trait_functions, sizing_functions};
 
 use super::{LayoutResult, Sizing, Widget};
 
@@ -21,7 +18,6 @@ pub struct Ellipse {
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
 	children: Vec<Box<dyn Widget>>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Ellipse {
@@ -68,7 +64,6 @@ impl Default for Ellipse {
 			fill: Default::default(),
 			stroke: Default::default(),
 			children: Default::default(),
-			inspector: None,
 		}
 	}
 }

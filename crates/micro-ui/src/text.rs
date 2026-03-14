@@ -10,8 +10,7 @@ use micro::{
 };
 
 use crate::{
-	AxisSizing, Sizing, WidgetInspector, common_functions, common_widget_trait_functions,
-	sizing_functions,
+	AxisSizing, Sizing, common_functions, common_widget_trait_functions, sizing_functions,
 };
 
 use super::{LayoutResult, Widget};
@@ -26,7 +25,6 @@ pub struct TextWidget {
 	shadow: Option<TextShadow>,
 	size_reporting: TextSizeReporting,
 	built: RefCell<Option<Text>>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl TextWidget {
@@ -40,7 +38,6 @@ impl TextWidget {
 			shadow: None,
 			size_reporting: TextSizeReporting::default(),
 			built: RefCell::new(None),
-			inspector: None,
 		}
 	}
 

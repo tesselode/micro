@@ -1,7 +1,8 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
-use crate::{WidgetInspector, mouse_input::MouseInput};
+use crate::{CommonWidgetState, mouse_input::MouseInput};
 
+use indexmap::IndexMap;
 use itertools::izip;
 use micro::{
 	Context,
@@ -14,6 +15,7 @@ use super::{LayoutResult, Widget};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Ui {
+	common_widget_state: IndexMap<String, CommonWidgetState>,
 	previous_baked_widget: Option<BakedWidget>,
 	mouse_input: MouseInput,
 	draw_debug_state: Option<DrawDebugState>,
@@ -33,7 +35,13 @@ impl Ui {
 			.open(open)
 			.scroll(true)
 			.show(egui_ctx, |ui| {
-				show_debug_widget_info(ui, &mut highlighted_widget_path, widget, None);
+				show_debug_widget_info(
+					ui,
+					&mut highlighted_widget_path,
+					widget,
+					None,
+					&self.common_widget_state,
+				);
 			});
 		self.draw_debug_state = Some(DrawDebugState {
 			highlighted_widget_id: highlighted_widget_path,
@@ -47,6 +55,13 @@ impl Ui {
 		widget: impl Widget + 'static,
 	) {
 		let _span = tracy_client::span!();
+
+		// mark all states as unused
+		for state in self.common_widget_state.values() {
+			state.0.borrow_mut().used = false;
+		}
+
+		// bake the root widget
 		let ctx = &mut ctx.push(settings.transform);
 		let default_size = ctx.window_size().as_vec2();
 		let mut baked_widget = BakedWidget::new(
@@ -55,14 +70,41 @@ impl Ui {
 			&widget,
 			settings.size.unwrap_or(default_size),
 		);
+
+		// mouse input
 		self.mouse_input.update(ctx, settings.transform.inverse());
-		baked_widget.use_mouse_input(&widget, self.mouse_input.clone());
+		baked_widget.use_mouse_input(
+			&widget,
+			self.mouse_input.clone(),
+			&mut self.common_widget_state,
+		);
+
+		// draw
 		baked_widget.draw(ctx, &widget);
+
+		// draw debug
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
 			baked_widget.draw_debug(ctx, &draw_debug_state);
 		}
-		baked_widget.report(Vec2::ZERO, Vec2::ZERO, Mat4::IDENTITY);
+
+		// report bounds and transforms
+		baked_widget.report(
+			Vec2::ZERO,
+			Vec2::ZERO,
+			Mat4::IDENTITY,
+			&mut self.common_widget_state,
+		);
+
+		// save baked widget for debugging
 		self.previous_baked_widget = Some(baked_widget);
+
+		// remove unused widget states
+		self.common_widget_state
+			.retain(|_, state| state.0.borrow().used);
+	}
+
+	pub fn state(&self, id: impl AsRef<str>) -> Option<&CommonWidgetState> {
+		self.common_widget_state.get(id.as_ref())
 	}
 }
 
@@ -79,7 +121,6 @@ struct BakedWidget {
 	children: Vec<BakedWidget>,
 	transform: Mat4,
 	mask: Option<Box<BakedWidget>>,
-	inspector: Option<WidgetInspector>,
 	layout_result: LayoutResult,
 	allotted_size_from_parent: Vec2,
 }
@@ -95,6 +136,8 @@ impl BakedWidget {
 		let mut children = vec![];
 		let mut child_sizes = vec![];
 		let mut unique_child_id_generator = UniqueChildIdGenerator::new();
+
+		// bake children
 		for child in raw_widget.children() {
 			let allotted_size_for_child =
 				raw_widget.allotted_size_for_next_child(allotted_size_from_parent, &child_sizes);
@@ -108,6 +151,8 @@ impl BakedWidget {
 			children.push(baked_child);
 		}
 		let layout_result = raw_widget.layout(ctx, allotted_size_from_parent, &child_sizes);
+
+		// bake mask
 		let mask = raw_widget.mask().map(|mask| {
 			Box::new(BakedWidget::new(
 				ctx,
@@ -117,31 +162,42 @@ impl BakedWidget {
 				layout_result.size,
 			))
 		});
+
 		let transform = raw_widget.transform(layout_result.size);
+
 		Self {
 			name: raw_widget.name(),
 			id,
 			children,
 			transform,
 			mask,
-			inspector: raw_widget.inspector(),
 			layout_result,
 			allotted_size_from_parent,
 		}
 	}
 
-	fn use_mouse_input(&mut self, raw_widget: &dyn Widget, mut mouse_input: MouseInput) {
+	fn use_mouse_input(
+		&mut self,
+		raw_widget: &dyn Widget,
+		mut mouse_input: MouseInput,
+		common_widget_state: &mut IndexMap<String, CommonWidgetState>,
+	) {
 		let _span = tracy_client::span!();
 		mouse_input = mouse_input.transformed(self.transform.inverse());
-		if let Some(inspector) = raw_widget.inspector() {
-			inspector.update_mouse_state(&mouse_input, self.layout_result.size);
-		}
+		common_widget_state
+			.entry(self.id.clone())
+			.or_default()
+			.update_mouse_state(&mouse_input, self.layout_result.size);
 		for (raw_child, baked_child, position) in izip!(
 			raw_widget.children(),
 			&mut self.children,
 			&self.layout_result.child_positions
 		) {
-			baked_child.use_mouse_input(raw_child.as_ref(), mouse_input.translated(-position));
+			baked_child.use_mouse_input(
+				raw_child.as_ref(),
+				mouse_input.translated(-position),
+				common_widget_state,
+			);
 		}
 	}
 
@@ -198,13 +254,21 @@ impl BakedWidget {
 		}
 	}
 
-	fn report(&self, parent_global_top_left: Vec2, my_offset: Vec2, parent_global_transform: Mat4) {
+	fn report(
+		&self,
+		parent_global_top_left: Vec2,
+		my_offset: Vec2,
+		parent_global_transform: Mat4,
+		common_widget_state: &mut IndexMap<String, CommonWidgetState>,
+	) {
 		let my_global_top_left = parent_global_top_left + my_offset;
 		let my_global_transform = parent_global_transform
 			* Mat4::from_translation(my_offset.extend(0.0))
 			* self.transform;
-		if let Some(inspector) = &self.inspector {
-			let mut inner = inspector.0.borrow_mut();
+		{
+			let my_common_widget_state = common_widget_state.entry(self.id.clone()).or_default();
+			let mut inner = my_common_widget_state.0.borrow_mut();
+			inner.used = true;
 			inner.bounds = Some(Rect::new(my_global_top_left, self.layout_result.size));
 			inner.transform = Some(my_global_transform);
 		}
@@ -213,10 +277,20 @@ impl BakedWidget {
 			.iter()
 			.zip(self.layout_result.child_positions.iter().copied())
 		{
-			baked_child.report(my_global_top_left, child_offset, my_global_transform);
+			baked_child.report(
+				my_global_top_left,
+				child_offset,
+				my_global_transform,
+				common_widget_state,
+			);
 		}
 		if let Some(mask) = &self.mask {
-			mask.report(parent_global_top_left, Vec2::ZERO, my_global_transform);
+			mask.report(
+				parent_global_top_left,
+				Vec2::ZERO,
+				my_global_transform,
+				common_widget_state,
+			);
 		}
 	}
 }
@@ -249,6 +323,7 @@ fn show_debug_widget_info(
 	highlighted_widget_path: &mut Option<String>,
 	widget: &BakedWidget,
 	position: Option<Vec2>,
+	common_widget_state: &IndexMap<String, CommonWidgetState>,
 ) {
 	let label = &widget.id;
 	let response = ui.collapsing(label, |ui| {
@@ -266,12 +341,16 @@ fn show_debug_widget_info(
 				ui.monospace(format!("{}", position));
 			});
 		}
+		ui.collapsing("State", |ui| {
+			ui.monospace(format!("{:#?}", common_widget_state[&widget.id]));
+		});
 		for (i, child) in widget.children.iter().enumerate() {
 			show_debug_widget_info(
 				ui,
 				highlighted_widget_path,
 				child,
 				Some(widget.layout_result.child_positions[i]),
+				common_widget_state,
 			);
 		}
 	});

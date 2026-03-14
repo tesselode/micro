@@ -5,7 +5,7 @@ use micro::{
 	math::Vec2,
 };
 
-use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
+use crate::{common_functions, common_widget_trait_functions};
 
 use super::{LayoutResult, Widget};
 
@@ -16,7 +16,6 @@ pub struct Polygon {
 	size: Vec2,
 	fill: Option<LinSrgba>,
 	stroke: Option<(f32, LinSrgba)>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Polygon {
@@ -32,7 +31,6 @@ impl Polygon {
 			size,
 			fill: None,
 			stroke: None,
-			inspector: None,
 		}
 	}
 

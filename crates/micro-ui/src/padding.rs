@@ -3,10 +3,7 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{
-	WidgetInspector, child_functions, common_functions, common_widget_trait_functions,
-	sizing_functions,
-};
+use crate::{child_functions, common_functions, common_widget_trait_functions, sizing_functions};
 
 use super::{LayoutResult, Sizing, Widget};
 
@@ -19,7 +16,6 @@ pub struct Padding {
 	right: f32,
 	bottom: f32,
 	children: Vec<Box<dyn Widget>>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Padding {
@@ -32,7 +28,6 @@ impl Padding {
 			right,
 			bottom,
 			children: vec![],
-			inspector: None,
 		}
 	}
 
@@ -88,7 +83,6 @@ impl Default for Padding {
 			right: Default::default(),
 			bottom: Default::default(),
 			children: Default::default(),
-			inspector: None,
 		}
 	}
 }

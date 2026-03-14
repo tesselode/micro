@@ -5,7 +5,7 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{WidgetInspector, child_functions, common_functions, common_widget_trait_functions};
+use crate::{child_functions, common_functions, common_widget_trait_functions};
 
 use super::{AxisSizing, LayoutResult, Widget};
 
@@ -17,7 +17,6 @@ pub struct Stack {
 	cross_align: f32,
 	cross_sizing: AxisSizing,
 	children: Vec<Box<dyn Widget>>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Stack {
@@ -29,7 +28,6 @@ impl Stack {
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,
 			children: vec![],
-			inspector: None,
 		}
 	}
 
@@ -41,7 +39,6 @@ impl Stack {
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,
 			children: vec![],
-			inspector: None,
 		}
 	}
 

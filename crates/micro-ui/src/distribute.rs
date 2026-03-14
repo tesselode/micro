@@ -4,7 +4,7 @@ use micro::{
 };
 
 use crate::{
-	AxisSizing, LayoutResult, Widget, WidgetInspector, child_functions, common_functions,
+	AxisSizing, LayoutResult, Widget, child_functions, common_functions,
 	common_widget_trait_functions,
 };
 
@@ -15,7 +15,6 @@ pub struct Distribute {
 	cross_align: f32,
 	cross_sizing: AxisSizing,
 	children: Vec<Box<dyn Widget>>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Distribute {
@@ -26,7 +25,6 @@ impl Distribute {
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,
 			children: vec![],
-			inspector: None,
 		}
 	}
 
@@ -37,7 +35,6 @@ impl Distribute {
 			cross_align: 0.0,
 			cross_sizing: AxisSizing::Shrink,
 			children: vec![],
-			inspector: None,
 		}
 	}
 

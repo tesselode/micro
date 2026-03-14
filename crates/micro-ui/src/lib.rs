@@ -1,9 +1,9 @@
 mod align;
 mod aspect_ratio;
+mod common_widget_state;
 mod distribute;
 mod ellipse;
 mod image;
-mod inspector;
 mod macros;
 mod manually_positioned;
 mod mask;
@@ -20,10 +20,10 @@ mod ui;
 
 pub use align::*;
 pub use aspect_ratio::*;
+pub use common_widget_state::*;
 pub use distribute::*;
 pub use ellipse::*;
 pub use image::*;
-pub use inspector::*;
 pub use manually_positioned::*;
 pub use mask::*;
 pub use padding::*;
@@ -58,8 +58,6 @@ pub trait Widget: Debug {
 	fn mask(&self) -> Option<&dyn Widget> {
 		None
 	}
-
-	fn inspector(&self) -> Option<WidgetInspector>;
 
 	fn allotted_size_for_next_child(
 		&self,

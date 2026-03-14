@@ -8,11 +8,11 @@ use micro::{
 use crate::mouse_input::MouseInput;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WidgetInspector(pub(crate) Rc<RefCell<WidgetInspectorInner>>);
+pub struct CommonWidgetState(pub(crate) Rc<RefCell<CommonWidgetStateInner>>);
 
-impl WidgetInspector {
+impl CommonWidgetState {
 	pub fn new() -> Self {
-		Self(Rc::new(RefCell::new(WidgetInspectorInner::new())))
+		Self(Rc::new(RefCell::new(CommonWidgetStateInner::new())))
 	}
 
 	pub fn bounds(&self) -> Option<Rect> {
@@ -120,14 +120,15 @@ impl WidgetInspector {
 	}
 }
 
-impl Default for WidgetInspector {
+impl Default for CommonWidgetState {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct WidgetInspectorInner {
+pub(crate) struct CommonWidgetStateInner {
+	pub(crate) used: bool,
 	pub(crate) bounds: Option<Rect>,
 	pub(crate) transform: Option<Mat4>,
 	relative_pos: Option<Vec2>,
@@ -138,9 +139,10 @@ pub(crate) struct WidgetInspectorInner {
 	button_state: HashMap<MouseButton, ButtonState>,
 }
 
-impl WidgetInspectorInner {
+impl CommonWidgetStateInner {
 	pub(crate) fn new() -> Self {
 		Self {
+			used: true,
 			bounds: None,
 			transform: None,
 			relative_pos: None,

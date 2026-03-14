@@ -5,7 +5,7 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
+use crate::{common_functions, common_widget_trait_functions};
 
 use super::{LayoutResult, Widget};
 
@@ -15,7 +15,6 @@ pub struct Image {
 	texture: Texture,
 	scale: Vec2,
 	color: LinSrgba,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Image {
@@ -25,7 +24,6 @@ impl Image {
 			texture: texture.clone(),
 			scale: Vec2::ONE,
 			color: LinSrgba::WHITE,
-			inspector: None,
 		}
 	}
 

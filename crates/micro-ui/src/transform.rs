@@ -3,10 +3,7 @@ use micro::{
 	math::{Mat4, Vec2, vec3},
 };
 
-use crate::{
-	WidgetInspector, child_functions, common_functions, common_widget_trait_functions,
-	sizing_functions,
-};
+use crate::{child_functions, common_functions, common_widget_trait_functions, sizing_functions};
 
 use super::{LayoutResult, Sizing, Widget};
 
@@ -17,7 +14,6 @@ pub struct Transform {
 	origin: Vec2,
 	transform: Mat4,
 	children: Vec<Box<dyn Widget>>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Transform {
@@ -28,7 +24,6 @@ impl Transform {
 			origin: Vec2::ZERO,
 			transform: transform.into(),
 			children: vec![],
-			inspector: None,
 		}
 	}
 

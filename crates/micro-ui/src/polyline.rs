@@ -1,6 +1,6 @@
 use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
-use crate::{WidgetInspector, common_functions, common_widget_trait_functions};
+use crate::{common_functions, common_widget_trait_functions};
 
 use super::{LayoutResult, Widget};
 
@@ -11,7 +11,6 @@ pub struct Polyline {
 	stroke_width: f32,
 	color: LinSrgba,
 	size: Vec2,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Polyline {
@@ -31,7 +30,6 @@ impl Polyline {
 			stroke_width,
 			color: color.into(),
 			size,
-			inspector: None,
 		}
 	}
 

@@ -1,9 +1,6 @@
 use micro::{Context, math::Vec2};
 
-use crate::{
-	WidgetInspector, child_functions, common_functions, common_widget_trait_functions,
-	sizing_functions,
-};
+use crate::{child_functions, common_functions, common_widget_trait_functions, sizing_functions};
 
 use super::{LayoutResult, Sizing, Widget};
 
@@ -13,7 +10,6 @@ pub struct Mask {
 	sizing: Sizing,
 	children: Vec<Box<dyn Widget>>,
 	mask: Box<dyn Widget>,
-	inspector: Option<WidgetInspector>,
 }
 
 impl Mask {
@@ -23,7 +19,6 @@ impl Mask {
 			sizing: Sizing::SHRINK,
 			children: vec![],
 			mask: Box::new(mask),
-			inspector: None,
 		}
 	}
 

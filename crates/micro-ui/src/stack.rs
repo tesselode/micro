@@ -5,7 +5,7 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{child_functions, common_functions, common_widget_trait_functions};
+use crate::{WidgetState, child_functions, common_functions, common_widget_trait_functions};
 
 use super::{AxisSizing, LayoutResult, Widget};
 
@@ -79,6 +79,7 @@ impl Widget for Stack {
 		&self,
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		let _span = tracy_client::span!();
 		let total_child_main_axis_size =
@@ -102,6 +103,7 @@ impl Widget for Stack {
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		match self.direction {

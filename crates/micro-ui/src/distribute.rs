@@ -4,7 +4,7 @@ use micro::{
 };
 
 use crate::{
-	AxisSizing, LayoutResult, Widget, child_functions, common_functions,
+	AxisSizing, LayoutResult, Widget, WidgetState, child_functions, common_functions,
 	common_widget_trait_functions,
 };
 
@@ -71,6 +71,7 @@ impl Widget for Distribute {
 		&self,
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		let _span = tracy_client::span!();
 		match self.direction {
@@ -99,6 +100,7 @@ impl Widget for Distribute {
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		match self.direction {

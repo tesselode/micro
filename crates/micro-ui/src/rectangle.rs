@@ -7,7 +7,9 @@ use micro::{
 	math::{Rect, Vec2},
 };
 
-use crate::{child_functions, common_functions, common_widget_trait_functions, sizing_functions};
+use crate::{
+	WidgetState, child_functions, common_functions, common_widget_trait_functions, sizing_functions,
+};
 
 use super::{LayoutResult, Sizing, Widget};
 
@@ -83,6 +85,7 @@ impl Widget for Rectangle {
 		&self,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		let _span = tracy_client::span!();
 		self.sizing
@@ -94,6 +97,7 @@ impl Widget for Rectangle {
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
@@ -104,7 +108,7 @@ impl Widget for Rectangle {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) {
+	fn draw_before_children(&self, ctx: &mut Context, size: Vec2, _widget_state: &WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
 			Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, size))
@@ -113,7 +117,7 @@ impl Widget for Rectangle {
 		}
 	}
 
-	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) {
+	fn draw_after_children(&self, ctx: &mut Context, size: Vec2, _widget_state: &WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
 			Mesh::outlined_rectangle(ctx, width, Rect::new(Vec2::ZERO, size))

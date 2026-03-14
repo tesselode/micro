@@ -5,7 +5,7 @@ use micro::{
 	math::Vec2,
 };
 
-use crate::{common_functions, common_widget_trait_functions};
+use crate::{WidgetState, common_functions, common_widget_trait_functions};
 
 use super::{LayoutResult, Widget};
 
@@ -78,6 +78,7 @@ impl Widget for Polygon {
 		&self,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		unreachable!()
 	}
@@ -87,6 +88,7 @@ impl Widget for Polygon {
 		_ctx: &mut Context,
 		_allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
@@ -95,7 +97,7 @@ impl Widget for Polygon {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2, _widget_state: &WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
 			Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())
@@ -104,7 +106,7 @@ impl Widget for Polygon {
 		}
 	}
 
-	fn draw_after_children(&self, ctx: &mut Context, _size: Vec2) {
+	fn draw_after_children(&self, ctx: &mut Context, _size: Vec2, _widget_state: &WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
 			Mesh::simple_polygon(ctx, ShapeStyle::Stroke(width), self.points.iter().copied())

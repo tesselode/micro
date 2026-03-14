@@ -1,6 +1,5 @@
 mod align;
 mod aspect_ratio;
-mod common_widget_state;
 mod distribute;
 mod ellipse;
 mod image;
@@ -17,10 +16,10 @@ mod stack;
 mod text;
 mod transform;
 mod ui;
+mod widget_state;
 
 pub use align::*;
 pub use aspect_ratio::*;
-pub use common_widget_state::*;
 pub use distribute::*;
 pub use ellipse::*;
 pub use image::*;
@@ -35,6 +34,7 @@ pub use stack::*;
 pub use text::*;
 pub use transform::*;
 pub use ui::*;
+pub use widget_state::*;
 
 use std::fmt::Debug;
 
@@ -51,11 +51,11 @@ pub trait Widget: Debug {
 
 	fn children(&self) -> &[Box<dyn Widget>];
 
-	fn transform(&self, size: Vec2) -> Mat4 {
+	fn transform(&self, size: Vec2, state: &WidgetState) -> Mat4 {
 		Mat4::IDENTITY
 	}
 
-	fn mask(&self) -> Option<&dyn Widget> {
+	fn mask(&self, state: &WidgetState) -> Option<&dyn Widget> {
 		None
 	}
 
@@ -63,6 +63,7 @@ pub trait Widget: Debug {
 		&self,
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
+		state: &WidgetState,
 	) -> Vec2;
 
 	fn layout(
@@ -70,11 +71,12 @@ pub trait Widget: Debug {
 		ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
+		state: &WidgetState,
 	) -> LayoutResult;
 
-	fn draw_before_children(&self, ctx: &mut Context, size: Vec2) {}
+	fn draw_before_children(&self, ctx: &mut Context, size: Vec2, state: &WidgetState) {}
 
-	fn draw_after_children(&self, ctx: &mut Context, size: Vec2) {}
+	fn draw_after_children(&self, ctx: &mut Context, size: Vec2, state: &WidgetState) {}
 }
 
 #[derive(Debug, Clone, PartialEq)]

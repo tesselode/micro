@@ -10,7 +10,8 @@ use micro::{
 };
 
 use crate::{
-	AxisSizing, Sizing, common_functions, common_widget_trait_functions, sizing_functions,
+	AxisSizing, Sizing, WidgetState, common_functions, common_widget_trait_functions,
+	sizing_functions,
 };
 
 use super::{LayoutResult, Widget};
@@ -141,6 +142,7 @@ impl Widget for TextWidget {
 		&self,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		unreachable!()
 	}
@@ -150,6 +152,7 @@ impl Widget for TextWidget {
 		ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		let builder = self
@@ -175,7 +178,7 @@ impl Widget for TextWidget {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2, _widget_state: &WidgetState) {
 		let _span = tracy_client::span!();
 		let borrow = self.built.borrow();
 		let built = borrow.as_ref().unwrap();

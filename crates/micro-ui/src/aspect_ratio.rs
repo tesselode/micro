@@ -4,7 +4,8 @@ use micro::{
 };
 
 use crate::{
-	LayoutResult, Widget, child_functions, common_functions, common_widget_trait_functions,
+	LayoutResult, Widget, WidgetState, child_functions, common_functions,
+	common_widget_trait_functions,
 };
 
 #[derive(Debug)]
@@ -54,6 +55,7 @@ impl Widget for AspectRatio {
 		&self,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		self.size(allotted_size_from_parent)
 	}
@@ -63,6 +65,7 @@ impl Widget for AspectRatio {
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {

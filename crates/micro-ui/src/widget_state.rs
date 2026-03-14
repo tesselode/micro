@@ -8,11 +8,11 @@ use micro::{
 use crate::mouse_input::MouseInput;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct CommonWidgetState(pub(crate) Rc<RefCell<CommonWidgetStateInner>>);
+pub struct WidgetState(pub(crate) Rc<RefCell<WidgetStateInner>>);
 
-impl CommonWidgetState {
+impl WidgetState {
 	pub fn new() -> Self {
-		Self(Rc::new(RefCell::new(CommonWidgetStateInner::new())))
+		Self(Rc::new(RefCell::new(WidgetStateInner::new())))
 	}
 
 	pub fn bounds(&self) -> Option<Rect> {
@@ -120,14 +120,14 @@ impl CommonWidgetState {
 	}
 }
 
-impl Default for CommonWidgetState {
+impl Default for WidgetState {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct CommonWidgetStateInner {
+pub(crate) struct WidgetStateInner {
 	pub(crate) used: bool,
 	pub(crate) bounds: Option<Rect>,
 	pub(crate) transform: Option<Mat4>,
@@ -139,7 +139,7 @@ pub(crate) struct CommonWidgetStateInner {
 	button_state: HashMap<MouseButton, ButtonState>,
 }
 
-impl CommonWidgetStateInner {
+impl WidgetStateInner {
 	pub(crate) fn new() -> Self {
 		Self {
 			used: true,

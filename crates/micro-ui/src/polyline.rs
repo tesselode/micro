@@ -1,6 +1,6 @@
 use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
 
-use crate::{common_functions, common_widget_trait_functions};
+use crate::{WidgetState, common_functions, common_widget_trait_functions};
 
 use super::{LayoutResult, Widget};
 
@@ -51,6 +51,7 @@ impl Widget for Polyline {
 		&self,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		unreachable!()
 	}
@@ -60,6 +61,7 @@ impl Widget for Polyline {
 		_ctx: &mut Context,
 		_allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
@@ -68,7 +70,7 @@ impl Widget for Polyline {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2, _widget_state: &WidgetState) {
 		let _span = tracy_client::span!();
 		Mesh::simple_polyline(ctx, self.stroke_width, self.points.iter().copied())
 			.color(self.color)

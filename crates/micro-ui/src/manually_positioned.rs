@@ -1,6 +1,6 @@
 use micro::{Context, math::Vec2};
 
-use crate::{LayoutResult, Widget, common_functions, common_widget_trait_functions};
+use crate::{LayoutResult, Widget, WidgetState, common_functions, common_widget_trait_functions};
 
 #[derive(Debug)]
 pub struct ManuallyPositioned {
@@ -121,6 +121,7 @@ impl Widget for ManuallyPositioned {
 		&self,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		allotted_size_from_parent
 	}
@@ -130,6 +131,7 @@ impl Widget for ManuallyPositioned {
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		LayoutResult {
 			size: allotted_size_from_parent,

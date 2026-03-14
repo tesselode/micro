@@ -5,7 +5,7 @@ use micro::{
 	math::{Vec2, vec2},
 };
 
-use crate::{common_functions, common_widget_trait_functions};
+use crate::{WidgetState, common_functions, common_widget_trait_functions};
 
 use super::{LayoutResult, Widget};
 
@@ -80,6 +80,7 @@ impl Widget for Image {
 		&self,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> Vec2 {
 		unreachable!()
 	}
@@ -89,6 +90,7 @@ impl Widget for Image {
 		_ctx: &mut Context,
 		_allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
+		_widget_state: &WidgetState,
 	) -> LayoutResult {
 		LayoutResult {
 			size: self.texture.size().as_vec2() * self.scale,
@@ -96,7 +98,7 @@ impl Widget for Image {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2) {
+	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2, _widget_state: &WidgetState) {
 		let _span = tracy_client::span!();
 		self.texture
 			.color(self.color)

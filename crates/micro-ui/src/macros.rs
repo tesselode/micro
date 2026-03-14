@@ -1,9 +1,9 @@
 #[macro_export]
 macro_rules! common_functions {
 	() => {
-		pub fn id(self, id: impl Into<Option<String>>) -> Self {
+		pub fn id(self, id: impl Into<String>) -> Self {
 			Self {
-				id: id.into(),
+				id: Some(id.into()),
 				..self
 			}
 		}

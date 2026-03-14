@@ -49,34 +49,34 @@ pub trait Widget: Debug {
 
 	fn custom_id(&self) -> Option<String>;
 
-	fn children(&self) -> &[Box<dyn Widget>];
+	fn children(&mut self, state: &mut WidgetState) -> Vec<Box<dyn Widget>>;
 
-	fn transform(&self, size: Vec2, state: &WidgetState) -> Mat4 {
+	fn transform(&mut self, size: Vec2, state: &mut WidgetState) -> Mat4 {
 		Mat4::IDENTITY
 	}
 
-	fn mask(&self, state: &WidgetState) -> Option<&dyn Widget> {
+	fn mask(&mut self, state: &mut WidgetState) -> Option<Box<dyn Widget>> {
 		None
 	}
 
 	fn allotted_size_for_next_child(
-		&self,
+		&mut self,
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
-		state: &WidgetState,
+		state: &mut WidgetState,
 	) -> Vec2;
 
 	fn layout(
-		&self,
+		&mut self,
 		ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
-		state: &WidgetState,
+		state: &mut WidgetState,
 	) -> LayoutResult;
 
-	fn draw_before_children(&self, ctx: &mut Context, size: Vec2, state: &WidgetState) {}
+	fn draw_before_children(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) {}
 
-	fn draw_after_children(&self, ctx: &mut Context, size: Vec2, state: &WidgetState) {}
+	fn draw_after_children(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) {}
 }
 
 #[derive(Debug, Clone, PartialEq)]

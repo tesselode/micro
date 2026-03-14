@@ -134,25 +134,25 @@ impl Widget for TextWidget {
 		"text"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget>] {
-		&[]
+	fn children(&mut self, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+		vec![]
 	}
 
 	fn allotted_size_for_next_child(
-		&self,
+		&mut self,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
-		_widget_state: &WidgetState,
+		_state: &mut WidgetState,
 	) -> Vec2 {
 		unreachable!()
 	}
 
 	fn layout(
-		&self,
+		&mut self,
 		ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
-		_widget_state: &WidgetState,
+		_state: &mut WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		let builder = self
@@ -178,7 +178,7 @@ impl Widget for TextWidget {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2, _widget_state: &WidgetState) {
+	fn draw_before_children(&mut self, ctx: &mut Context, _size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		let borrow = self.built.borrow();
 		let built = borrow.as_ref().unwrap();

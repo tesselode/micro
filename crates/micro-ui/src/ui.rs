@@ -13,7 +13,7 @@ use micro::{
 
 use super::{LayoutResult, Widget};
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Default)]
 pub struct Ui {
 	widget_state: IndexMap<String, WidgetState>,
 	previous_baked_widget: Option<BakedWidget>,
@@ -67,17 +67,17 @@ impl Ui {
 		let mut baked_widget = BakedWidget::new(
 			ctx,
 			widget.custom_id().unwrap_or_else(|| "root".to_string()),
-			&widget,
+			Box::new(widget),
 			settings.size.unwrap_or(default_size),
 			&mut self.widget_state,
 		);
 
 		// mouse input
 		self.mouse_input.update(ctx, settings.transform.inverse());
-		baked_widget.use_mouse_input(&widget, self.mouse_input.clone(), &mut self.widget_state);
+		baked_widget.use_mouse_input(self.mouse_input.clone(), &mut self.widget_state);
 
 		// draw
-		baked_widget.draw(ctx, &widget, &mut self.widget_state);
+		baked_widget.draw(ctx, &mut self.widget_state);
 
 		// draw debug
 		if let Some(draw_debug_state) = self.draw_debug_state.take() {
@@ -110,10 +110,10 @@ pub struct RenderUiSettings {
 	pub transform: Mat4,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 struct BakedWidget {
-	name: &'static str,
 	id: String,
+	raw: Box<dyn Widget>,
 	children: Vec<BakedWidget>,
 	transform: Mat4,
 	mask: Option<Box<BakedWidget>>,
@@ -125,7 +125,7 @@ impl BakedWidget {
 	fn new(
 		ctx: &mut Context,
 		id: String,
-		raw_widget: &dyn Widget,
+		mut raw: Box<dyn Widget>,
 		allotted_size_from_parent: Vec2,
 		widget_state: &mut IndexMap<String, WidgetState>,
 	) -> Self {
@@ -135,8 +135,8 @@ impl BakedWidget {
 		let mut unique_child_id_generator = UniqueChildIdGenerator::new();
 
 		// bake children
-		for child in raw_widget.children() {
-			let allotted_size_for_child = raw_widget.allotted_size_for_next_child(
+		for child in raw.children(widget_state.entry(id.clone()).or_default()) {
+			let allotted_size_for_child = raw.allotted_size_for_next_child(
 				allotted_size_from_parent,
 				&child_sizes,
 				widget_state.entry(id.clone()).or_default(),
@@ -145,17 +145,12 @@ impl BakedWidget {
 				let child_id_component = unique_child_id_generator.generate(child.name());
 				format!("{}/{}", id, child_id_component)
 			});
-			let baked_child = BakedWidget::new(
-				ctx,
-				child_id,
-				child.as_ref(),
-				allotted_size_for_child,
-				widget_state,
-			);
+			let baked_child =
+				BakedWidget::new(ctx, child_id, child, allotted_size_for_child, widget_state);
 			child_sizes.push(baked_child.layout_result.size);
 			children.push(baked_child);
 		}
-		let layout_result = raw_widget.layout(
+		let layout_result = raw.layout(
 			ctx,
 			allotted_size_from_parent,
 			&child_sizes,
@@ -163,27 +158,26 @@ impl BakedWidget {
 		);
 
 		// bake mask
-		let mask = raw_widget
-			.mask(widget_state.entry(id.clone()).or_default())
-			.map(|mask| {
-				Box::new(BakedWidget::new(
-					ctx,
-					mask.custom_id()
-						.unwrap_or_else(|| format!("{}/{}", id, "mask")),
-					mask,
-					layout_result.size,
-					widget_state,
-				))
-			});
+		let raw_mask = raw.mask(widget_state.entry(id.clone()).or_default());
+		let mask = raw_mask.map(|mask| {
+			Box::new(BakedWidget::new(
+				ctx,
+				mask.custom_id()
+					.unwrap_or_else(|| format!("{}/{}", id, "mask")),
+				mask,
+				layout_result.size,
+				widget_state,
+			))
+		});
 
-		let transform = raw_widget.transform(
+		let transform = raw.transform(
 			layout_result.size,
 			widget_state.entry(id.clone()).or_default(),
 		);
 
 		Self {
-			name: raw_widget.name(),
 			id,
+			raw,
 			children,
 			transform,
 			mask,
@@ -194,7 +188,6 @@ impl BakedWidget {
 
 	fn use_mouse_input(
 		&mut self,
-		raw_widget: &dyn Widget,
 		mut mouse_input: MouseInput,
 		widget_state: &mut IndexMap<String, WidgetState>,
 	) {
@@ -204,64 +197,49 @@ impl BakedWidget {
 			.entry(self.id.clone())
 			.or_default()
 			.update_mouse_state(&mouse_input, self.layout_result.size);
-		for (raw_child, baked_child, position) in izip!(
-			raw_widget.children(),
-			&mut self.children,
-			&self.layout_result.child_positions
-		) {
-			baked_child.use_mouse_input(
-				raw_child.as_ref(),
-				mouse_input.translated(-position),
-				widget_state,
-			);
+		for (baked_child, position) in
+			izip!(&mut self.children, &self.layout_result.child_positions)
+		{
+			baked_child.use_mouse_input(mouse_input.translated(-position), widget_state);
 		}
 	}
 
-	fn draw(
-		&self,
-		ctx: &mut Context,
-		raw_widget: &dyn Widget,
-		widget_state: &mut IndexMap<String, WidgetState>,
-	) {
+	fn draw(&mut self, ctx: &mut Context, widget_state: &mut IndexMap<String, WidgetState>) {
 		let _span = tracy_client::span!();
 		let ctx = &mut ctx.push(self.transform);
-		if let Some((raw_mask, baked_mask)) = raw_widget
-			.mask(widget_state.entry(self.id.clone()).or_default())
-			.zip(self.mask.as_ref())
-		{
+		if let Some(baked_mask) = &mut self.mask {
 			{
 				let ctx = &mut ctx.push(StencilState::write(StencilOperation::Replace, 1));
-				baked_mask.draw(ctx, raw_mask, widget_state);
+				baked_mask.draw(ctx, widget_state);
 			}
 			{
 				let ctx = &mut ctx.push(StencilState::read(CompareFunction::Equal, 1));
-				self.draw_non_mask_contents(ctx, raw_widget, widget_state);
+				self.draw_non_mask_contents(ctx, widget_state);
 			}
 		} else {
-			self.draw_non_mask_contents(ctx, raw_widget, widget_state);
+			self.draw_non_mask_contents(ctx, widget_state);
 		}
 	}
 
 	fn draw_non_mask_contents(
-		&self,
+		&mut self,
 		ctx: &mut Context,
-		raw_widget: &dyn Widget,
 		widget_state: &mut IndexMap<String, WidgetState>,
 	) {
-		raw_widget.draw_before_children(
+		self.raw.draw_before_children(
 			ctx,
 			self.layout_result.size,
 			widget_state.entry(self.id.clone()).or_default(),
 		);
-		for (raw_child, baked_child, position) in izip!(
-			raw_widget.children(),
-			&self.children,
-			self.layout_result.child_positions.iter().copied()
-		) {
+		for (child, position) in self
+			.children
+			.iter_mut()
+			.zip(self.layout_result.child_positions.iter().copied())
+		{
 			let ctx = &mut ctx.push_translation_2d(position);
-			baked_child.draw(ctx, raw_child.as_ref(), widget_state);
+			child.draw(ctx, widget_state);
 		}
-		raw_widget.draw_after_children(
+		self.raw.draw_after_children(
 			ctx,
 			self.layout_result.size,
 			widget_state.entry(self.id.clone()).or_default(),

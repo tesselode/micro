@@ -70,25 +70,25 @@ impl Widget for Polygon {
 		"polygon"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget>] {
-		&[]
+	fn children(&mut self, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+		vec![]
 	}
 
 	fn allotted_size_for_next_child(
-		&self,
+		&mut self,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
-		_widget_state: &WidgetState,
+		_state: &mut WidgetState,
 	) -> Vec2 {
 		unreachable!()
 	}
 
 	fn layout(
-		&self,
+		&mut self,
 		_ctx: &mut Context,
 		_allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
-		_widget_state: &WidgetState,
+		_state: &mut WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
@@ -97,7 +97,7 @@ impl Widget for Polygon {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, _size: Vec2, _widget_state: &WidgetState) {
+	fn draw_before_children(&mut self, ctx: &mut Context, _size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
 			Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())
@@ -106,7 +106,7 @@ impl Widget for Polygon {
 		}
 	}
 
-	fn draw_after_children(&self, ctx: &mut Context, _size: Vec2, _widget_state: &WidgetState) {
+	fn draw_after_children(&mut self, ctx: &mut Context, _size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
 			Mesh::simple_polygon(ctx, ShapeStyle::Stroke(width), self.points.iter().copied())

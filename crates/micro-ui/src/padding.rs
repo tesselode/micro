@@ -96,15 +96,15 @@ impl Widget for Padding {
 		"padding"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget>] {
-		&self.children
+	fn children(&mut self, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+		self.children.drain(..).collect()
 	}
 
 	fn allotted_size_for_next_child(
-		&self,
+		&mut self,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
-		_widget_state: &WidgetState,
+		_state: &mut WidgetState,
 	) -> Vec2 {
 		let _span = tracy_client::span!();
 		self.sizing
@@ -113,11 +113,11 @@ impl Widget for Padding {
 	}
 
 	fn layout(
-		&self,
+		&mut self,
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
-		_widget_state: &WidgetState,
+		_state: &mut WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {

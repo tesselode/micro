@@ -77,15 +77,15 @@ impl Widget for Ellipse {
 		"ellipse"
 	}
 
-	fn children(&self) -> &[Box<dyn Widget>] {
-		&self.children
+	fn children(&mut self, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+		self.children.drain(..).collect()
 	}
 
 	fn allotted_size_for_next_child(
-		&self,
+		&mut self,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
-		_widget_state: &WidgetState,
+		_state: &mut WidgetState,
 	) -> Vec2 {
 		let _span = tracy_client::span!();
 		self.sizing
@@ -93,11 +93,11 @@ impl Widget for Ellipse {
 	}
 
 	fn layout(
-		&self,
+		&mut self,
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
-		_widget_state: &WidgetState,
+		_state: &mut WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
 		LayoutResult {
@@ -108,7 +108,7 @@ impl Widget for Ellipse {
 		}
 	}
 
-	fn draw_before_children(&self, ctx: &mut Context, size: Vec2, _widget_state: &WidgetState) {
+	fn draw_before_children(&mut self, ctx: &mut Context, size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
 			Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)
@@ -117,7 +117,7 @@ impl Widget for Ellipse {
 		}
 	}
 
-	fn draw_after_children(&self, ctx: &mut Context, size: Vec2, _widget_state: &WidgetState) {
+	fn draw_after_children(&mut self, ctx: &mut Context, size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
 			Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)

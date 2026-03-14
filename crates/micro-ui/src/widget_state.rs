@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use micro::{
 	input::MouseButton,
@@ -8,94 +8,115 @@ use micro::{
 use crate::mouse_input::MouseInput;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WidgetState(pub(crate) Rc<RefCell<WidgetStateInner>>);
+pub struct WidgetState {
+	pub(crate) used: bool,
+	pub(crate) bounds: Option<Rect>,
+	pub(crate) transform: Option<Mat4>,
+	relative_pos: Option<Vec2>,
+	delta: Vec2,
+	wheel_delta: Vec2,
+	hovered: bool,
+	hovered_previous: bool,
+	button_state: HashMap<MouseButton, ButtonState>,
+}
 
 impl WidgetState {
-	pub fn new() -> Self {
-		Self(Rc::new(RefCell::new(WidgetStateInner::new())))
+	pub(crate) fn new() -> Self {
+		Self {
+			used: true,
+			bounds: None,
+			transform: None,
+			relative_pos: None,
+			delta: Vec2::ZERO,
+			wheel_delta: Vec2::ZERO,
+			hovered: false,
+			hovered_previous: false,
+			button_state: MouseButton::KNOWN
+				.iter()
+				.copied()
+				.map(|button| (button, ButtonState::default()))
+				.collect(),
+		}
 	}
 
 	pub fn bounds(&self) -> Option<Rect> {
-		self.0.borrow().bounds
+		self.bounds
 	}
 
 	pub fn transform(&self) -> Option<Mat4> {
-		self.0.borrow().transform
+		self.transform
 	}
 
 	/// Returns the mouse position relative to the widget's top-left corner
 	/// (in this widget's coordinate system). Returns `None` if the widget
 	/// hasn't been rendered yet.
 	pub fn relative_pos(&self) -> Option<Vec2> {
-		self.0.borrow().relative_pos
+		self.relative_pos
 	}
 
 	/// Returns how much the mouse moved this frame (in this widget's
 	/// coordinate system).
 	pub fn delta(&self) -> Vec2 {
-		self.0.borrow().delta
+		self.delta
 	}
 
 	pub fn wheel_delta(&self) -> Vec2 {
-		self.0.borrow().wheel_delta
+		self.wheel_delta
 	}
 
 	/// Returns `true` if the mouse is inside the widget.
 	pub fn hovered(&self) -> bool {
-		self.0.borrow().hovered
+		self.hovered
 	}
 
 	/// Returns `true` if the mouse just started hovering the widget this frame.
 	pub fn entered(&self) -> bool {
-		let inner = self.0.borrow();
-		inner.hovered && !inner.hovered_previous
+		self.hovered && !self.hovered_previous
 	}
 
 	/// Returns `true` if the mouse just stopped hovering the widget this frame.
 	pub fn exited(&self) -> bool {
-		let inner = self.0.borrow();
-		!inner.hovered && inner.hovered_previous
+		!self.hovered && self.hovered_previous
 	}
 
 	/// Returns `true` if the widget is being held down by the specified mouse button.
 	pub fn held(&self, button: MouseButton) -> bool {
-		self.0.borrow().button_state[&button].held
+		self.button_state[&button].held
 	}
 
 	/// Returns `true` if the widget just started being held by the specified mouse
 	/// button this frame.
 	pub fn pressed(&self, button: MouseButton) -> bool {
-		let button_state = self.0.borrow().button_state[&button];
+		let button_state = self.button_state[&button];
 		button_state.held && !button_state.held_previous
 	}
 
 	/// Returns `true` if the widget just stopped being held by the specified mouse
 	/// button this frame.
 	pub fn released(&self, button: MouseButton) -> bool {
-		let button_state = self.0.borrow().button_state[&button];
+		let button_state = self.button_state[&button];
 		!button_state.held && button_state.held_previous
 	}
 
 	/// Returns `true` if the widget was clicked by the specified mouse button this
 	/// frame. A "click" means the widget was released while hovered.
 	pub fn clicked(&self, button: MouseButton) -> bool {
-		self.0.borrow().button_state[&button].clicked
+		self.button_state[&button].clicked
 	}
 
-	pub(crate) fn update_mouse_state(&self, mouse_input: &MouseInput, size: Vec2) {
-		let mut inner = self.0.borrow_mut();
-		inner.relative_pos = mouse_input.position;
-		inner.delta = mouse_input.delta;
+	pub(crate) fn update_mouse_state(&mut self, mouse_input: &MouseInput, size: Vec2) {
+		self.relative_pos = mouse_input.position;
+		self.delta = mouse_input.delta;
 		let hovered = mouse_input
 			.position
 			.is_some_and(|position| Rect::new(Vec2::ZERO, size).contains_point(position));
-		inner.wheel_delta = if hovered {
+		self.wheel_delta = if hovered {
 			mouse_input.wheel_delta
 		} else {
 			Vec2::ZERO
 		};
-		inner.hovered_previous = inner.hovered;
-		inner.hovered = hovered;
+		self.hovered_previous = self.hovered;
+		self.hovered = hovered;
 		for (
 			button,
 			ButtonState {
@@ -103,7 +124,7 @@ impl WidgetState {
 				held_previous,
 				clicked,
 			},
-		) in &mut inner.button_state
+		) in &mut self.button_state
 		{
 			*clicked = false;
 			*held_previous = *held;
@@ -123,39 +144,6 @@ impl WidgetState {
 impl Default for WidgetState {
 	fn default() -> Self {
 		Self::new()
-	}
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct WidgetStateInner {
-	pub(crate) used: bool,
-	pub(crate) bounds: Option<Rect>,
-	pub(crate) transform: Option<Mat4>,
-	relative_pos: Option<Vec2>,
-	delta: Vec2,
-	wheel_delta: Vec2,
-	hovered: bool,
-	hovered_previous: bool,
-	button_state: HashMap<MouseButton, ButtonState>,
-}
-
-impl WidgetStateInner {
-	pub(crate) fn new() -> Self {
-		Self {
-			used: true,
-			bounds: None,
-			transform: None,
-			relative_pos: None,
-			delta: Vec2::ZERO,
-			wheel_delta: Vec2::ZERO,
-			hovered: false,
-			hovered_previous: false,
-			button_state: MouseButton::KNOWN
-				.iter()
-				.copied()
-				.map(|button| (button, ButtonState::default()))
-				.collect(),
-		}
 	}
 }
 

@@ -57,8 +57,8 @@ impl Ui {
 		let _span = tracy_client::span!();
 
 		// mark all states as unused
-		for state in self.widget_state.values() {
-			state.0.borrow_mut().used = false;
+		for state in self.widget_state.values_mut() {
+			state.used = false;
 		}
 
 		// bake the root widget
@@ -96,7 +96,7 @@ impl Ui {
 		self.previous_baked_widget = Some(baked_widget);
 
 		// remove unused widget states
-		self.widget_state.retain(|_, state| state.0.borrow().used);
+		self.widget_state.retain(|_, state| state.used);
 	}
 
 	pub fn state(&self, id: impl AsRef<str>) -> Option<&WidgetState> {
@@ -282,10 +282,9 @@ impl BakedWidget {
 			* self.transform;
 		{
 			let my_widget_state = widget_state.entry(self.id.clone()).or_default();
-			let mut inner = my_widget_state.0.borrow_mut();
-			inner.used = true;
-			inner.bounds = Some(Rect::new(my_global_top_left, self.layout_result.size));
-			inner.transform = Some(my_global_transform);
+			my_widget_state.used = true;
+			my_widget_state.bounds = Some(Rect::new(my_global_top_left, self.layout_result.size));
+			my_widget_state.transform = Some(my_global_transform);
 		}
 		for (baked_child, child_offset) in self
 			.children

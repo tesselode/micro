@@ -33,14 +33,14 @@ macro_rules! common_widget_trait_functions {
 #[macro_export]
 macro_rules! child_functions {
 	() => {
-		pub fn child(mut self, child: impl Widget + 'static) -> Self {
+		pub fn child(mut self, child: impl $crate::Widget + 'static) -> Self {
 			self.children.push(Box::new(child));
 			self
 		}
 
 		pub fn children(
 			mut self,
-			children: impl IntoIterator<Item = impl Widget + 'static>,
+			children: impl IntoIterator<Item = impl $crate::Widget + 'static>,
 		) -> Self {
 			for child in children {
 				self.children.push(Box::new(child));
@@ -48,7 +48,7 @@ macro_rules! child_functions {
 			self
 		}
 
-		pub fn child_if<W: Widget + 'static>(
+		pub fn child_if<W: $crate::Widget + 'static>(
 			mut self,
 			condition: bool,
 			child: impl FnOnce() -> W,
@@ -62,7 +62,7 @@ macro_rules! child_functions {
 		pub fn children_if(
 			mut self,
 			condition: bool,
-			children: impl IntoIterator<Item = impl Widget + 'static>,
+			children: impl IntoIterator<Item = impl $crate::Widget + 'static>,
 		) -> Self {
 			if !condition {
 				return self;
@@ -73,7 +73,7 @@ macro_rules! child_functions {
 			self
 		}
 
-		pub fn child_if_some<T, W: Widget + 'static>(
+		pub fn child_if_some<T, W: $crate::Widget + 'static>(
 			mut self,
 			value: &Option<T>,
 			child: impl FnOnce(&T) -> W,
@@ -84,7 +84,7 @@ macro_rules! child_functions {
 			self
 		}
 
-		pub fn children_if_some<T, W: IntoIterator<Item = impl Widget + 'static>>(
+		pub fn children_if_some<T, W: IntoIterator<Item = impl $crate::Widget + 'static>>(
 			mut self,
 			value: &Option<T>,
 			children: impl FnOnce(&T) -> W,
@@ -95,6 +95,10 @@ macro_rules! child_functions {
 				}
 			}
 			self
+		}
+
+		pub fn children_raw(self, children: Vec<Box<dyn $crate::Widget>>) -> Self {
+			Self { children, ..self }
 		}
 	};
 }

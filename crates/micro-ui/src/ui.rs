@@ -251,6 +251,7 @@ impl BakedWidget {
 	}
 
 	fn draw_debug(&self, ctx: &mut Context, draw_debug_state: &DrawDebugState) {
+		let ctx = &mut ctx.push(self.transform);
 		if draw_debug_state
 			.highlighted_widget_id
 			.as_ref()
@@ -346,7 +347,7 @@ fn show_debug_widget_info(
 	position: Option<Vec2>,
 	widget_state: &IndexMap<String, WidgetState>,
 ) {
-	let label = &widget.id;
+	let label = widget.id.split("/").last().unwrap();
 	let response = ui.collapsing(label, |ui| {
 		ui.horizontal(|ui| {
 			ui.label("Allotted size from parent:");

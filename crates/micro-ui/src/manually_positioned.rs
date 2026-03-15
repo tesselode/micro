@@ -1,14 +1,15 @@
 use micro::{Context, math::Vec2};
 
 use crate::{
-	LayoutResult, Widget, WidgetInspector, WidgetState, common_functions,
-	common_widget_trait_functions,
+	LayoutResult, Sizing, Widget, WidgetInspector, WidgetState, common_functions,
+	common_widget_trait_functions, sizing_functions,
 };
 
 #[derive(Debug)]
 pub struct ManuallyPositioned {
 	id: Option<String>,
 	inspector: Option<WidgetInspector>,
+	sizing: Sizing,
 	constrain_children: bool,
 	children: Vec<Box<dyn Widget>>,
 	child_positions: Vec<ChildPosition>,
@@ -19,6 +20,7 @@ impl ManuallyPositioned {
 		Self {
 			id: None,
 			inspector: None,
+			sizing: Sizing::SHRINK,
 			constrain_children: true,
 			children: vec![],
 			child_positions: vec![],
@@ -112,6 +114,7 @@ impl ManuallyPositioned {
 	}
 
 	common_functions!();
+	sizing_functions!();
 }
 
 impl Default for ManuallyPositioned {
@@ -139,7 +142,8 @@ impl Widget for ManuallyPositioned {
 		_state: &mut WidgetState,
 	) -> Vec2 {
 		if self.constrain_children {
-			allotted_size_from_parent
+			self.sizing
+				.allotted_size_for_children(allotted_size_from_parent)
 		} else {
 			Vec2::MAX
 		}
@@ -149,16 +153,23 @@ impl Widget for ManuallyPositioned {
 		&mut self,
 		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
-		_child_sizes: &[Vec2],
+		child_sizes: &[Vec2],
 		_state: &mut WidgetState,
 	) -> LayoutResult {
+		let child_positions: Vec<_> = self
+			.child_positions
+			.iter()
+			.map(|child_position| child_position.get(allotted_size_from_parent))
+			.collect();
 		LayoutResult {
-			size: allotted_size_from_parent,
-			child_positions: self
-				.child_positions
-				.iter()
-				.map(|child_position| child_position.get(allotted_size_from_parent))
-				.collect(),
+			size: self.sizing.final_parent_size(
+				allotted_size_from_parent,
+				child_positions
+					.iter()
+					.zip(child_sizes)
+					.map(|(position, size)| position + size),
+			),
+			child_positions,
 		}
 	}
 }

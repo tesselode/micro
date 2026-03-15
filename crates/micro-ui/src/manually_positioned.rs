@@ -9,6 +9,7 @@ use crate::{
 pub struct ManuallyPositioned {
 	id: Option<String>,
 	inspector: Option<WidgetInspector>,
+	constrain_children: bool,
 	children: Vec<Box<dyn Widget>>,
 	child_positions: Vec<ChildPosition>,
 }
@@ -18,8 +19,16 @@ impl ManuallyPositioned {
 		Self {
 			id: None,
 			inspector: None,
+			constrain_children: true,
 			children: vec![],
 			child_positions: vec![],
+		}
+	}
+
+	pub fn constrain_children(self, constrain_children: bool) -> Self {
+		Self {
+			constrain_children,
+			..self
 		}
 	}
 
@@ -129,7 +138,11 @@ impl Widget for ManuallyPositioned {
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
 	) -> Vec2 {
-		allotted_size_from_parent
+		if self.constrain_children {
+			allotted_size_from_parent
+		} else {
+			Vec2::MAX
+		}
 	}
 
 	fn layout(

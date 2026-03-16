@@ -1,6 +1,7 @@
 use micro::{
 	Context,
 	color::LinSrgba,
+	egui::{self, color_preview},
 	graphics::mesh::{Mesh, ShapeStyle},
 	math::Vec2,
 };
@@ -116,5 +117,30 @@ impl Widget for Polygon {
 				.color(color)
 				.draw(ctx);
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		egui_ui.horizontal(|ui| {
+			ui.label("Fill:");
+			if let Some(fill) = self.fill {
+				color_preview(ui, fill);
+			} else {
+				ui.monospace("None");
+			}
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Stroke:");
+			if let Some((width, color)) = self.stroke {
+				ui.monospace(format!("{}", width));
+				color_preview(ui, color);
+			} else {
+				ui.monospace("None");
+			}
+		});
+		egui_ui.collapsing("Points", |ui| {
+			for point in &self.points {
+				ui.monospace(format!("{}", point));
+			}
+		});
 	}
 }

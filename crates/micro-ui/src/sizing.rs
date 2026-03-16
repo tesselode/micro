@@ -1,4 +1,7 @@
-use micro::math::{Vec2, vec2};
+use micro::{
+	egui,
+	math::{Vec2, vec2},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Sizing {
@@ -64,6 +67,19 @@ impl Sizing {
 				AxisSizing::Fractional(fraction) => fraction * allotted_size_from_parent.y,
 			},
 		)
+	}
+
+	pub fn debug_info(&self, egui_ui: &mut egui::Ui) {
+		egui_ui.collapsing("Sizing", |ui| {
+			ui.horizontal(|ui| {
+				ui.label("Horizontal:");
+				ui.monospace(format!("{:?}", self.horizontal));
+			});
+			ui.horizontal(|ui| {
+				ui.label("Vertical:");
+				ui.monospace(format!("{:?}", self.vertical));
+			});
+		});
 	}
 }
 

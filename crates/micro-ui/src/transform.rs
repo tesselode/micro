@@ -1,5 +1,5 @@
 use micro::{
-	Context,
+	Context, egui,
 	math::{Mat4, Vec2, vec3},
 };
 
@@ -114,5 +114,13 @@ impl Widget for Transform {
 				.final_parent_size(allotted_size_from_parent, child_sizes.iter().copied()),
 			child_positions: std::iter::repeat_n(Vec2::ZERO, child_sizes.len()).collect(),
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		self.sizing.debug_info(egui_ui);
+		egui_ui.horizontal(|ui| {
+			ui.label("Origin:");
+			ui.monospace(format!("{}", self.origin));
+		});
 	}
 }

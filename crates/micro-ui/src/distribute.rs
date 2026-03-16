@@ -1,5 +1,5 @@
 use micro::{
-	Context,
+	Context, egui,
 	math::{Vec2, vec2},
 };
 
@@ -159,6 +159,21 @@ impl Widget for Distribute {
 				}
 			}
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		egui_ui.horizontal(|ui| {
+			ui.label("Direction:");
+			ui.monospace(format!("{:?}", self.direction));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Cross align:");
+			ui.monospace(format!("{:?}", self.cross_align));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Cross sizing:");
+			ui.monospace(format!("{:?}", self.cross_sizing));
+		});
 	}
 }
 

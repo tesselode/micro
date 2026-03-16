@@ -1,5 +1,5 @@
 use micro::{
-	Context,
+	Context, egui,
 	math::{Vec2, vec2},
 };
 
@@ -133,5 +133,25 @@ impl Widget for Padding {
 			child_positions: std::iter::repeat_n(vec2(self.left, self.top), child_sizes.len())
 				.collect(),
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		self.sizing.debug_info(egui_ui);
+		egui_ui.horizontal(|ui| {
+			ui.label("Left:");
+			ui.monospace(format!("{}", self.left));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Top:");
+			ui.monospace(format!("{}", self.top));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Right:");
+			ui.monospace(format!("{}", self.right));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Bottom:");
+			ui.monospace(format!("{}", self.bottom));
+		});
 	}
 }

@@ -1,4 +1,10 @@
-use micro::{Context, color::LinSrgba, graphics::mesh::Mesh, math::Vec2};
+use micro::{
+	Context,
+	color::LinSrgba,
+	egui::{self, color_preview},
+	graphics::mesh::Mesh,
+	math::Vec2,
+};
 
 use crate::{WidgetInspector, WidgetState, common_functions, common_widget_trait_functions};
 
@@ -78,5 +84,18 @@ impl Widget for Polyline {
 		Mesh::simple_polyline(ctx, self.stroke_width, self.points.iter().copied())
 			.color(self.color)
 			.draw(ctx);
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		egui_ui.horizontal(|ui| {
+			ui.label("Stroke:");
+			ui.monospace(format!("{}", self.stroke_width));
+			color_preview(ui, self.color);
+		});
+		egui_ui.collapsing("Points", |ui| {
+			for point in &self.points {
+				ui.monospace(format!("{}", point));
+			}
+		});
 	}
 }

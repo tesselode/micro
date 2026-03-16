@@ -8,6 +8,7 @@
 mod app;
 pub mod color;
 mod context;
+pub mod egui;
 mod egui_integration;
 mod event;
 pub mod graphics;
@@ -24,5 +25,4 @@ pub use event::*;
 pub use time::*;
 pub use window::*;
 
-pub use egui;
 pub use image;

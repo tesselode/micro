@@ -1,4 +1,4 @@
-use micro::{Context, math::Vec2};
+use micro::{Context, egui, math::Vec2};
 
 use crate::{
 	LayoutResult, Sizing, Widget, WidgetInspector, WidgetState, common_functions,
@@ -171,6 +171,14 @@ impl Widget for ManuallyPositioned {
 			),
 			child_positions,
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		self.sizing.debug_info(egui_ui);
+		egui_ui.horizontal(|ui| {
+			ui.label("Constrain children:");
+			ui.monospace(format!("{:?}", self.constrain_children));
+		});
 	}
 }
 

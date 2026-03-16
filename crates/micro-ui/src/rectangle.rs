@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use micro::{
 	Context,
 	color::LinSrgba,
+	egui::{self, color_preview},
 	graphics::mesh::Mesh,
 	math::{Rect, Vec2},
 };
@@ -128,5 +129,26 @@ impl Widget for Rectangle {
 				.color(color)
 				.draw(ctx);
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		self.sizing.debug_info(egui_ui);
+		egui_ui.horizontal(|ui| {
+			ui.label("Fill:");
+			if let Some(fill) = self.fill {
+				color_preview(ui, fill);
+			} else {
+				ui.monospace("None");
+			}
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Stroke:");
+			if let Some((width, color)) = self.stroke {
+				ui.monospace(format!("{}", width));
+				color_preview(ui, color);
+			} else {
+				ui.monospace("None");
+			}
+		});
 	}
 }

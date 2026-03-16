@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use micro::{Context, math::Vec2};
+use micro::{Context, egui, math::Vec2};
 
 use crate::{
 	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
@@ -106,5 +106,17 @@ impl Widget for Align {
 			size: parent_size,
 			child_positions,
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		self.sizing.debug_info(egui_ui);
+		egui_ui.horizontal(|ui| {
+			ui.label("Parent anchor:");
+			ui.monospace(format!("{}", self.parent_anchor));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Child anchor:");
+			ui.monospace(format!("{}", self.child_anchor));
+		});
 	}
 }

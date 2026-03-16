@@ -8,6 +8,7 @@ use micro::{
 	Context,
 	color::{LinSrgb, LinSrgba},
 	graphics::{CompareFunction, StencilOperation, StencilState, mesh::Mesh},
+	input::MouseButton,
 	math::{Mat4, Rect, Vec2},
 };
 
@@ -347,7 +348,12 @@ fn show_debug_widget_info(
 	position: Option<Vec2>,
 	widget_state: &IndexMap<String, WidgetState>,
 ) {
-	let label = widget.id.split("/").last().unwrap();
+	let label = format!(
+		"{} ({})",
+		widget.id.split("/").last().unwrap(),
+		widget.raw.name()
+	);
+	let state = &widget_state[&widget.id];
 	let response = ui.collapsing(label, |ui| {
 		ui.horizontal(|ui| {
 			ui.label("Allotted size from parent:");
@@ -363,8 +369,28 @@ fn show_debug_widget_info(
 				ui.monospace(format!("{}", position));
 			});
 		}
-		ui.collapsing("State", |ui| {
-			ui.monospace(format!("{:#?}", widget_state[&widget.id]));
+		widget.raw.debug_info(ui, state);
+		ui.horizontal(|ui| {
+			ui.label("Hovered:");
+			ui.monospace(format!("{}", state.hovered()));
+		});
+		ui.horizontal(|ui| {
+			ui.label("Held:");
+			for mouse_button in MouseButton::KNOWN {
+				let short_label = match mouse_button {
+					MouseButton::Left => "L",
+					MouseButton::Middle => "M",
+					MouseButton::Right => "R",
+					MouseButton::X1 => "X1",
+					MouseButton::X2 => "X2",
+					MouseButton::Unknown => unreachable!(),
+				};
+				if state.held(mouse_button) {
+					ui.strong(short_label);
+				} else {
+					ui.label(short_label);
+				}
+			}
 		});
 		for (i, child) in widget.children.iter().enumerate() {
 			show_debug_widget_info(

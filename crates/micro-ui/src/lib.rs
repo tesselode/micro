@@ -41,7 +41,7 @@ pub use widget_state::*;
 use std::fmt::Debug;
 
 use micro::{
-	Context,
+	Context, egui,
 	math::{Mat4, Vec2},
 };
 
@@ -82,6 +82,8 @@ pub trait Widget: Debug {
 	fn draw_before_children(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) {}
 
 	fn draw_after_children(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) {}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, state: &WidgetState) {}
 }
 
 #[derive(Debug, Clone, PartialEq)]

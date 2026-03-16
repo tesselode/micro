@@ -1,4 +1,4 @@
-use micro::{Context, math::Vec2};
+use micro::{Context, egui, math::Vec2};
 
 use crate::{
 	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
@@ -72,5 +72,9 @@ impl Widget for Mask {
 				.final_parent_size(allotted_size_from_parent, child_sizes.iter().copied()),
 			child_positions: std::iter::repeat_n(Vec2::ZERO, child_sizes.len()).collect(),
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		self.sizing.debug_info(egui_ui);
 	}
 }

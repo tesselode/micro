@@ -3,6 +3,7 @@ use std::{cell::RefCell, fmt::Debug};
 use micro::{
 	Context,
 	color::{ColorConstants, LinSrgba},
+	egui::{self, color_preview},
 	graphics::text::{
 		Text, TextAlign, TextBuilder, TextHorizontalSizing, TextStretch, TextStyle, TextWeight,
 	},
@@ -206,6 +207,61 @@ impl Widget for TextWidget {
 			.translated_2d(position)
 			.color(self.color)
 			.draw(ctx);
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		self.sizing.debug_info(egui_ui);
+		egui_ui.horizontal(|ui| {
+			ui.label("Align:");
+			ui.monospace(format!("{:?}", self.align));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Font family:");
+			ui.monospace(self.builder.font_family.clone());
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Text:");
+			ui.monospace(self.builder.text.clone());
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Font size:");
+			ui.monospace(format!("{}", self.builder.font_size));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Line height:");
+			ui.monospace(format!("{}", self.builder.line_height));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Stretch:");
+			ui.monospace(format!("{:?}", self.builder.stretch));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Style:");
+			ui.monospace(format!("{:?}", self.builder.style));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Weight:");
+			ui.monospace(format!("{:?}", self.builder.weight));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Letter spacing:");
+			ui.monospace(format!("{:?}", self.builder.letter_spacing));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Color:");
+			color_preview(ui, self.color);
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Shadow:");
+			if let Some(shadow) = self.shadow {
+				ui.monospace(format!("{}", shadow.offset));
+				color_preview(ui, shadow.color);
+			}
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Size reporting:");
+			ui.monospace(format!("{:?}", self.size_reporting));
+		});
 	}
 }
 

@@ -1,6 +1,7 @@
 use micro::{
 	Context,
 	color::{ColorConstants, LinSrgba},
+	egui::{self, color_preview},
 	graphics::texture::Texture,
 	math::{Vec2, vec2},
 };
@@ -107,5 +108,16 @@ impl Widget for Image {
 			.color(self.color)
 			.scaled_2d(self.scale)
 			.draw(ctx);
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		egui_ui.horizontal(|ui| {
+			ui.label("Scale:");
+			ui.monospace(format!("{:?}", self.scale));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Color:");
+			color_preview(ui, self.color);
+		});
 	}
 }

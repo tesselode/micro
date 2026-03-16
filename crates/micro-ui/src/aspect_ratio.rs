@@ -1,5 +1,5 @@
 use micro::{
-	Context,
+	Context, egui,
 	math::{Vec2, vec2},
 };
 
@@ -75,5 +75,12 @@ impl Widget for AspectRatio {
 			size: self.size(allotted_size_from_parent),
 			child_positions: std::iter::repeat_n(Vec2::ZERO, child_sizes.len()).collect(),
 		}
+	}
+
+	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
+		egui_ui.horizontal(|ui| {
+			ui.label("Aspect ratio:");
+			ui.monospace(format!("{}", self.aspect_ratio));
+		});
 	}
 }

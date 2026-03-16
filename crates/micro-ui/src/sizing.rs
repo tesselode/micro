@@ -70,15 +70,11 @@ impl Sizing {
 	}
 
 	pub fn debug_info(&self, egui_ui: &mut egui::Ui) {
-		egui_ui.collapsing("Sizing", |ui| {
-			ui.horizontal(|ui| {
-				ui.label("Horizontal:");
-				ui.monospace(format!("{:?}", self.horizontal));
-			});
-			ui.horizontal(|ui| {
-				ui.label("Vertical:");
-				ui.monospace(format!("{:?}", self.vertical));
-			});
+		egui_ui.horizontal(|ui| {
+			ui.label("Sizing:");
+			ui.monospace(format!("{:?}", self.horizontal));
+			ui.label("/");
+			ui.monospace(format!("{:?}", self.vertical));
 		});
 	}
 }

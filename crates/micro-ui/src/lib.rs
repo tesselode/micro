@@ -83,6 +83,8 @@ pub trait Widget: Debug {
 
 	fn draw_after_children(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) {}
 
+	fn on_finish(&mut self, ctx: &mut Context, state: &mut WidgetState) {}
+
 	fn debug_info(&self, egui_ui: &mut egui::Ui, state: &WidgetState) {}
 }
 

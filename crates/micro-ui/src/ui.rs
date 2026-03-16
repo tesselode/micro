@@ -93,6 +93,9 @@ impl Ui {
 			&mut self.widget_state,
 		);
 
+		// on finish
+		baked_widget.on_finish(ctx, &mut self.widget_state);
+
 		// save baked widget for debugging
 		self.previous_baked_widget = Some(baked_widget);
 
@@ -314,6 +317,18 @@ impl BakedWidget {
 		}
 		if let Some(inspector) = &self.inspector {
 			inspector.populate_from_state(widget_state.entry(self.id.clone()).or_default());
+		}
+	}
+
+	fn on_finish(&mut self, ctx: &mut Context, widget_state: &mut IndexMap<String, WidgetState>) {
+		let _span = tracy_client::span!();
+		self.raw
+			.on_finish(ctx, widget_state.entry(self.id.clone()).or_default());
+		for child in &mut self.children {
+			child.on_finish(ctx, widget_state);
+		}
+		if let Some(mask) = &mut self.mask {
+			mask.on_finish(ctx, widget_state);
 		}
 	}
 }

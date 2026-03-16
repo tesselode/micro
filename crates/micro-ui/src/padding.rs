@@ -4,8 +4,8 @@ use micro::{
 };
 
 use crate::{
-	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
-	sizing_functions,
+	AxisSizing, WidgetInspector, WidgetState, child_functions, common_functions,
+	common_widget_trait_functions, sizing_functions,
 };
 
 use super::{LayoutResult, Sizing, Widget};
@@ -125,11 +125,18 @@ impl Widget for Padding {
 		_state: &mut WidgetState,
 	) -> LayoutResult {
 		let _span = tracy_client::span!();
+		let total_padding = self.total_padding();
+		let mut final_parent_size = self
+			.sizing
+			.final_parent_size(allotted_size_from_parent, child_sizes.iter().copied());
+		if self.sizing.horizontal == AxisSizing::Shrink {
+			final_parent_size.x += total_padding.x;
+		}
+		if self.sizing.vertical == AxisSizing::Shrink {
+			final_parent_size.y += total_padding.y;
+		}
 		LayoutResult {
-			size: self
-				.sizing
-				.final_parent_size(allotted_size_from_parent, child_sizes.iter().copied())
-				+ self.total_padding(),
+			size: final_parent_size,
 			child_positions: std::iter::repeat_n(vec2(self.left, self.top), child_sizes.len())
 				.collect(),
 		}

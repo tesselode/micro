@@ -118,6 +118,19 @@ impl Widget for Transform {
 
 	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {
 		self.sizing.debug_info(egui_ui);
+		let (scale, rotation, translation) = self.transform.to_scale_rotation_translation();
+		egui_ui.horizontal(|ui| {
+			ui.label("Scale");
+			ui.monospace(format!("{}", scale));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Rotation");
+			ui.monospace(format!("{}", rotation));
+		});
+		egui_ui.horizontal(|ui| {
+			ui.label("Translation");
+			ui.monospace(format!("{}", translation));
+		});
 		egui_ui.horizontal(|ui| {
 			ui.label("Origin:");
 			ui.monospace(format!("{}", self.origin));

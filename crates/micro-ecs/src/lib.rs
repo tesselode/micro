@@ -39,8 +39,8 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		&mut self,
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
-		ecs_ctx: &mut EcsContext,
 		globals: &mut Globals,
+		ecs_ctx: &mut EcsContext,
 	) -> anyhow::Result<()> {
 		self.systems.debug_ui(
 			ctx,

@@ -152,7 +152,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		self.0.push(SystemWrapper::new(system));
 	}
 
-	pub fn init(
+	pub(crate) fn init(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -167,7 +167,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn debug_ui(
+	pub(crate) fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
@@ -183,7 +183,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn event(
+	pub(crate) fn event(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -199,7 +199,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn ecs_event(
+	pub(crate) fn ecs_event(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -215,7 +215,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn update(
+	pub(crate) fn update(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -231,7 +231,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn update_cosmetic(
+	pub(crate) fn update_cosmetic(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -247,7 +247,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn pause(
+	pub(crate) fn pause(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -262,7 +262,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn resume(
+	pub(crate) fn resume(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -277,7 +277,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn leave(
+	pub(crate) fn leave(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -292,7 +292,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn draw(
+	pub(crate) fn draw(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -307,7 +307,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn post_draw(
+	pub(crate) fn post_draw(
 		&mut self,
 		ctx: &mut Context,
 		globals: &mut Globals,
@@ -322,7 +322,7 @@ impl<Globals, EcsContext, EcsEvent> Systems<Globals, EcsContext, EcsEvent> {
 		Ok(())
 	}
 
-	pub fn show_systems_window(
+	pub(crate) fn show_systems_window(
 		&mut self,
 		open: &mut bool,
 		egui_ctx: &micro::egui::Context,

@@ -4,6 +4,7 @@ members = [
 	"crates/micro-aseprite",
 	"crates/micro-asset",
 	"crates/micro-ecs",
+	"crates/micro-ecs-2",
 	"crates/micro-kira-loaders",
 	"crates/micro-scene-manager",
 	"crates/micro-starter",

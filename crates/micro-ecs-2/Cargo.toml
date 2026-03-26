@@ -1,0 +1,14 @@
+[package]
+name = "micro-ecs-2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hecs = "0.11.0"
+indexmap = "2.13.0"
+micro = { path = "../micro" }
+
+[features]
+column-serialize = ["hecs/column-serialize"]
+macros = ["hecs/macros"]
+row-serialize = ["hecs/row-serialize"]

@@ -123,10 +123,10 @@ fn create_render_pipeline(
 	let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
 		label: Some("Render Pipeline Layout"),
 		bind_group_layouts: &[
-			&layouts.mesh_bind_group_layout(settings.texture_view_dimension, device),
-			&layouts.shader_params_bind_group_layout,
-			&storage_buffers_bind_group_layout,
-			&shader_textures_bind_group_layout,
+			Some(&layouts.mesh_bind_group_layout(settings.texture_view_dimension, device)),
+			Some(&layouts.shader_params_bind_group_layout),
+			Some(&storage_buffers_bind_group_layout),
+			Some(&shader_textures_bind_group_layout),
 		],
 		immediate_size: 0,
 	});
@@ -146,12 +146,12 @@ fn create_render_pipeline(
 		primitive: PrimitiveState::default(),
 		depth_stencil: Some(DepthStencilState {
 			format: TextureFormat::Depth24PlusStencil8,
-			depth_write_enabled: settings.enable_depth_testing,
-			depth_compare: if settings.enable_depth_testing {
+			depth_write_enabled: Some(settings.enable_depth_testing),
+			depth_compare: Some(if settings.enable_depth_testing {
 				CompareFunction::Less
 			} else {
 				CompareFunction::Always
-			},
+			}),
 			stencil: settings.wgpu_stencil_state.clone(),
 			bias: settings.depth_bias_state,
 		}),

@@ -13,11 +13,12 @@ use palette::{LinSrgb, LinSrgba};
 use sdl3::video::Window;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Buffer, BufferUsages,
-	CompositeAlphaMode, DepthBiasState, Device, DeviceDescriptor, IndexFormat, Instance, LoadOp,
-	Operations, PowerPreference, PresentMode, Queue, RenderPassColorAttachment,
-	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline, RequestAdapterOptions,
-	StoreOp, Surface, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureUsages,
-	TextureViewDescriptor,
+	CompositeAlphaMode, CurrentSurfaceTexture, DepthBiasState, Device, DeviceDescriptor,
+	IndexFormat, Instance, InstanceDescriptor, LoadOp, Operations, PowerPreference, PresentMode,
+	Queue, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
+	RenderPipeline, RequestAdapterOptions, StoreOp, Surface, SurfaceConfiguration,
+	SurfaceTargetUnsafe, TextureFormat, TextureUsages, TextureViewDescriptor,
+	rwh::HasDisplayHandle,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -57,11 +58,11 @@ pub(crate) struct GraphicsContext {
 
 impl GraphicsContext {
 	pub(crate) fn new(window: &Window, settings: &ContextSettings) -> Self {
-		let instance = Instance::new(&Default::default());
+		let instance = Instance::new(InstanceDescriptor::new_without_display_handle());
 		let surface = unsafe {
 			instance.create_surface_unsafe(
-				SurfaceTargetUnsafe::from_window(window)
-					.expect("error creating surface target from window"),
+				SurfaceTargetUnsafe::from_display_and_window(window, window)
+					.expect("error creating surface target"),
 			)
 		}
 		.expect("error creating surface");
@@ -355,10 +356,14 @@ impl GraphicsContext {
 		}
 
 		// run main surface render pass
-		let frame = self
-			.surface
-			.get_current_texture()
-			.expect("error getting surface texture");
+		let frame = match self.surface.get_current_texture() {
+			CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
+			CurrentSurfaceTexture::Suboptimal(surface_texture) => {
+				self.surface.configure(&self.device, &self.config);
+				surface_texture
+			}
+			error => panic!("error getting surface texture: {:?}", error),
+		};
 		let output = frame.texture.create_view(&TextureViewDescriptor::default());
 		{
 			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {

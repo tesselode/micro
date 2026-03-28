@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use egui::{FullOutput, RawInput, ViewportId, ViewportInfo};
+use egui::{FullOutput, RawInput, TouchPhase, ViewportId, ViewportInfo};
 use glam::uvec2;
 use image::ImageBuffer;
 use palette::{LinSrgba, Srgba};
@@ -172,6 +172,7 @@ fn sdl3_event_to_egui_event(
 		sdl3::event::Event::MouseWheel { x, y, .. } => Some(egui::Event::MouseWheel {
 			unit: egui::MouseWheelUnit::Point,
 			delta: egui::vec2(x * SCROLL_SPEED, y * SCROLL_SPEED),
+			phase: TouchPhase::Move,
 			modifiers,
 		}),
 		_ => None,

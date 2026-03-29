@@ -157,9 +157,7 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		ecs_ctx: &mut EcsContext,
 	) -> anyhow::Result<()> {
 		self.systems
-			.draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)?;
-		self.queues.flush_world_queue(&mut self.world);
-		Ok(())
+			.draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
 
 	pub fn post_draw(

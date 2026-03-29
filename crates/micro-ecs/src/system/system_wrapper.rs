@@ -193,7 +193,8 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		if !self.enabled {
 			return Ok(());
 		}
-		self.system.draw(ctx, globals, ecs_ctx, world, queues)?;
+		self.system
+			.post_draw(ctx, globals, ecs_ctx, world, queues)?;
 		Ok(())
 	}
 }

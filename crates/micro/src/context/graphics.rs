@@ -1,6 +1,7 @@
 mod cached_resources;
 mod default_resources;
 mod layouts;
+mod render_pass;
 
 pub(crate) use default_resources::*;
 pub(crate) use layouts::*;
@@ -26,7 +27,10 @@ use crate::{
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	context::{
 		Push,
-		graphics::cached_resources::{CachedResources, RenderPipelineSettings},
+		graphics::{
+			cached_resources::{CachedResources, RenderPipelineSettings},
+			render_pass::{CanvasRenderPass, RenderPass, RenderPassKind},
+		},
 	},
 	graphics::{
 		BlendMode, Canvas, CompiledShader, RenderToCanvasSettings, Shader, StencilState,
@@ -512,52 +516,6 @@ struct DrawParams {
 	local_transform: Mat4,
 	color: LinSrgba,
 	normal_transform: Mat4,
-}
-
-#[derive(Clone, PartialEq)]
-struct RenderPass {
-	kind: RenderPassKind,
-	draw_commands: Vec<DrawCommand>,
-}
-
-impl Debug for RenderPass {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.debug_struct("RenderPass")
-			.field("kind", &self.kind)
-			.field(
-				"draw_commands",
-				&format!("draw commands: [{}]", self.draw_commands.len()),
-			)
-			.finish()
-	}
-}
-
-#[derive(Clone, PartialEq)]
-enum RenderPassKind {
-	MainSurface,
-	Canvas {
-		canvas: Canvas,
-		settings: RenderToCanvasSettings,
-	},
-}
-
-impl Debug for RenderPassKind {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		match self {
-			Self::MainSurface => write!(f, "MainSurface"),
-			Self::Canvas { canvas, settings } => f
-				.debug_struct("Canvas")
-				.field("canvas", &format!("Canvas ('{}')", &canvas.label))
-				.field("settings", settings)
-				.finish(),
-		}
-	}
-}
-
-struct CanvasRenderPass {
-	canvas: Canvas,
-	settings: RenderToCanvasSettings,
-	draw_commands: Vec<DrawCommand>,
 }
 
 impl From<CanvasRenderPass> for RenderPass {

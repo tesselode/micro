@@ -5,7 +5,7 @@ mod layouts;
 pub(crate) use default_resources::*;
 pub(crate) use layouts::*;
 
-use std::{any::TypeId, collections::HashMap};
+use std::{any::TypeId, collections::HashMap, fmt::Debug};
 
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, UVec2, Vec3, uvec2};
@@ -528,12 +528,25 @@ struct DrawParams {
 	normal_transform: Mat4,
 }
 
+#[derive(Clone, PartialEq)]
 struct RenderPass {
 	kind: RenderPassKind,
 	draw_commands: Vec<DrawCommand>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl Debug for RenderPass {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("RenderPass")
+			.field("kind", &self.kind)
+			.field(
+				"draw_commands",
+				&format!("draw commands: [{}]", self.draw_commands.len()),
+			)
+			.finish()
+	}
+}
+
+#[derive(Clone, PartialEq)]
 enum RenderPassKind {
 	MainSurface,
 	Canvas {
@@ -541,6 +554,24 @@ enum RenderPassKind {
 		settings: RenderToCanvasSettings,
 		ended: bool,
 	},
+}
+
+impl Debug for RenderPassKind {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::MainSurface => write!(f, "MainSurface"),
+			Self::Canvas {
+				canvas,
+				settings,
+				ended,
+			} => f
+				.debug_struct("Canvas")
+				.field("canvas", &format!("Canvas ('{}')", &canvas.label))
+				.field("settings", settings)
+				.field("ended", ended)
+				.finish(),
+		}
+	}
 }
 
 #[derive(Debug, Clone, PartialEq)]

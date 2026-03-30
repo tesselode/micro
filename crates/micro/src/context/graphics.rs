@@ -51,6 +51,7 @@ pub(crate) struct GraphicsContext {
 	cached_resources: CachedResources,
 	pub(crate) compiled_shaders: HashMap<String, CompiledShader>,
 	render_passes: Vec<RenderPass>,
+	canvas_render_pass_stack: Vec<CanvasRenderPass>,
 }
 
 impl GraphicsContext {
@@ -127,6 +128,7 @@ impl GraphicsContext {
 			cached_resources: CachedResources::new(),
 			compiled_shaders,
 			render_passes: vec![],
+			canvas_render_pass_stack: vec![],
 		};
 		ctx.graphics_state_stack.push(ctx.default_graphics_state());
 		ctx
@@ -155,42 +157,50 @@ impl GraphicsContext {
 		canvas: Canvas,
 		settings: RenderToCanvasSettings,
 	) {
-		self.render_passes.push(RenderPass {
-			kind: RenderPassKind::Canvas {
-				canvas,
-				settings,
-				ended: false,
-			},
+		self.canvas_render_pass_stack.push(CanvasRenderPass {
+			canvas,
+			settings,
 			draw_commands: vec![],
 		});
 	}
 
 	pub(crate) fn finish_canvas_render_pass(&mut self) {
-		let current_render_pass = self
-			.render_passes
-			.last_mut()
-			.expect("no current render pass");
-		let RenderPassKind::Canvas { ended, .. } = &mut current_render_pass.kind else {
-			panic!("current render pass is not a canvas render pass");
-		};
-		*ended = true;
+		let canvas_render_pass = self
+			.canvas_render_pass_stack
+			.pop()
+			.expect("no current canvas render pass");
+		self.render_passes.push(canvas_render_pass.into());
 	}
 
 	pub(crate) fn queue_draw_command<V: Vertex>(&mut self, settings: QueueDrawCommandSettings) {
 		let coordinate_system_transform = self.coordinate_system_transform();
-
-		// start a new main surface render pass if this is the first draw command or if
-		// a canvas render pass was just finished
-		let should_start_new_render_pass = self.render_passes.last().is_none_or(|render_pass| {
-			matches!(render_pass.kind, RenderPassKind::Canvas { ended: true, .. })
-		});
-		if should_start_new_render_pass {
-			self.render_passes.push(RenderPass {
-				kind: RenderPassKind::MainSurface,
-				draw_commands: vec![],
+		let sample_count = self
+			.canvas_render_pass_stack
+			.last()
+			.map(|canvas_render_pass| canvas_render_pass.canvas.sample_count())
+			.unwrap_or(1);
+		let texture_format = self
+			.canvas_render_pass_stack
+			.last()
+			.map(|canvas_render_pass| canvas_render_pass.canvas.format())
+			.unwrap_or(self.config.format);
+		let draw_commands = self
+			.canvas_render_pass_stack
+			.last_mut()
+			.map(|canvas_render_pass| &mut canvas_render_pass.draw_commands)
+			.unwrap_or_else(|| {
+				if self
+					.render_passes
+					.last()
+					.is_none_or(|render_pass| render_pass.kind != RenderPassKind::MainSurface)
+				{
+					self.render_passes.push(RenderPass {
+						kind: RenderPassKind::MainSurface,
+						draw_commands: vec![],
+					});
+				}
+				&mut self.render_passes.last_mut().unwrap().draw_commands
 			});
-		}
-		let current_render_pass = self.render_passes.last_mut().unwrap();
 
 		let vertex_type = TypeId::of::<V>();
 		self.cached_resources.cache_vertex_info::<V>();
@@ -198,18 +208,6 @@ impl GraphicsContext {
 			.graphics_state_stack
 			.last()
 			.expect("no graphics state on stack");
-		let sample_count = if let RenderPassKind::Canvas { canvas, .. } = &current_render_pass.kind
-		{
-			canvas.sample_count()
-		} else {
-			1
-		};
-		let texture_format =
-			if let RenderPassKind::Canvas { canvas, .. } = &current_render_pass.kind {
-				canvas.format()
-			} else {
-				self.config.format
-			};
 		let texture_view_dimension = settings.texture.view_dimension();
 		let draw_command = DrawCommand {
 			vertex_buffer: settings.vertex_buffer,
@@ -251,7 +249,7 @@ impl GraphicsContext {
 				num_shader_textures: graphics_state.shader.textures.len(),
 			},
 		};
-		current_render_pass.draw_commands.push(draw_command);
+		draw_commands.push(draw_command);
 	}
 
 	pub(crate) fn push_graphics_state(&mut self, new: Push) {
@@ -281,19 +279,7 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn current_render_target_size(&self) -> UVec2 {
-		let current_canvas = self.render_passes.last().and_then(|render_pass| {
-			if let RenderPassKind::Canvas {
-				canvas,
-				ended: false,
-				..
-			} = &render_pass.kind
-			{
-				Some(canvas)
-			} else {
-				None
-			}
-		});
-		if let Some(canvas) = current_canvas {
+		if let Some(CanvasRenderPass { canvas, .. }) = self.canvas_render_pass_stack.last() {
 			canvas.size()
 		} else {
 			uvec2(self.config.width, self.config.height)
@@ -552,7 +538,6 @@ enum RenderPassKind {
 	Canvas {
 		canvas: Canvas,
 		settings: RenderToCanvasSettings,
-		ended: bool,
 	},
 }
 
@@ -560,16 +545,32 @@ impl Debug for RenderPassKind {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Self::MainSurface => write!(f, "MainSurface"),
-			Self::Canvas {
-				canvas,
-				settings,
-				ended,
-			} => f
+			Self::Canvas { canvas, settings } => f
 				.debug_struct("Canvas")
 				.field("canvas", &format!("Canvas ('{}')", &canvas.label))
 				.field("settings", settings)
-				.field("ended", ended)
 				.finish(),
+		}
+	}
+}
+
+struct CanvasRenderPass {
+	canvas: Canvas,
+	settings: RenderToCanvasSettings,
+	draw_commands: Vec<DrawCommand>,
+}
+
+impl From<CanvasRenderPass> for RenderPass {
+	fn from(
+		CanvasRenderPass {
+			canvas,
+			settings,
+			draw_commands,
+		}: CanvasRenderPass,
+	) -> Self {
+		Self {
+			kind: RenderPassKind::Canvas { canvas, settings },
+			draw_commands,
 		}
 	}
 }

@@ -18,7 +18,6 @@ use wgpu::{
 	Queue, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
 	RenderPipeline, RequestAdapterOptions, StoreOp, Surface, SurfaceConfiguration,
 	SurfaceTargetUnsafe, TextureFormat, TextureUsages, TextureViewDescriptor,
-	rwh::HasDisplayHandle,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -51,9 +50,7 @@ pub(crate) struct GraphicsContext {
 	graphics_state_stack: Vec<GraphicsState>,
 	cached_resources: CachedResources,
 	pub(crate) compiled_shaders: HashMap<String, CompiledShader>,
-	main_surface_draw_commands: Vec<DrawCommand>,
-	canvas_render_pass_stack: Vec<CanvasRenderPass>,
-	finished_canvas_render_passes: Vec<CanvasRenderPass>,
+	render_passes: Vec<RenderPass>,
 }
 
 impl GraphicsContext {
@@ -129,9 +126,7 @@ impl GraphicsContext {
 			graphics_state_stack: vec![],
 			cached_resources: CachedResources::new(),
 			compiled_shaders,
-			main_surface_draw_commands: vec![],
-			canvas_render_pass_stack: vec![],
-			finished_canvas_render_passes: vec![],
+			render_passes: vec![],
 		};
 		ctx.graphics_state_stack.push(ctx.default_graphics_state());
 		ctx
@@ -160,36 +155,57 @@ impl GraphicsContext {
 		canvas: Canvas,
 		settings: RenderToCanvasSettings,
 	) {
-		self.canvas_render_pass_stack.push(CanvasRenderPass {
-			canvas,
-			settings,
+		self.render_passes.push(RenderPass {
+			kind: RenderPassKind::Canvas {
+				canvas,
+				settings,
+				ended: false,
+			},
 			draw_commands: vec![],
 		});
 	}
 
 	pub(crate) fn finish_canvas_render_pass(&mut self) {
-		let canvas_render_pass = self
-			.canvas_render_pass_stack
-			.pop()
-			.expect("no current canvas render pass");
-		self.finished_canvas_render_passes.push(canvas_render_pass);
+		let current_render_pass = self
+			.render_passes
+			.last_mut()
+			.expect("no current render pass");
+		let RenderPassKind::Canvas { ended, .. } = &mut current_render_pass.kind else {
+			panic!("current render pass is not a canvas render pass");
+		};
+		*ended = true;
 	}
 
 	pub(crate) fn queue_draw_command<V: Vertex>(&mut self, settings: QueueDrawCommandSettings) {
+		let coordinate_system_transform = self.coordinate_system_transform();
+
+		// start a new main surface render pass if this is the first draw command or if
+		// a canvas render pass was just finished
+		let should_start_new_render_pass = self.render_passes.last().is_none_or(|render_pass| {
+			matches!(render_pass.kind, RenderPassKind::Canvas { ended: true, .. })
+		});
+		if should_start_new_render_pass {
+			self.render_passes.push(RenderPass {
+				kind: RenderPassKind::MainSurface,
+				draw_commands: vec![],
+			});
+		}
+		let current_render_pass = self.render_passes.last_mut().unwrap();
+
 		let vertex_type = TypeId::of::<V>();
 		self.cached_resources.cache_vertex_info::<V>();
 		let graphics_state = self
 			.graphics_state_stack
 			.last()
 			.expect("no graphics state on stack");
-		let sample_count =
-			if let Some(CanvasRenderPass { canvas, .. }) = self.canvas_render_pass_stack.last() {
-				canvas.sample_count()
-			} else {
-				1
-			};
+		let sample_count = if let RenderPassKind::Canvas { canvas, .. } = &current_render_pass.kind
+		{
+			canvas.sample_count()
+		} else {
+			1
+		};
 		let texture_format =
-			if let Some(CanvasRenderPass { canvas, .. }) = self.canvas_render_pass_stack.last() {
+			if let RenderPassKind::Canvas { canvas, .. } = &current_render_pass.kind {
 				canvas.format()
 			} else {
 				self.config.format
@@ -202,7 +218,7 @@ impl GraphicsContext {
 			instances: settings.instances,
 			texture: settings.texture,
 			draw_params: DrawParams {
-				global_transform: self.coordinate_system_transform()
+				global_transform: coordinate_system_transform
 					* graphics_state.transform
 					* settings.transform,
 				local_transform: settings.transform,
@@ -235,13 +251,7 @@ impl GraphicsContext {
 				num_shader_textures: graphics_state.shader.textures.len(),
 			},
 		};
-		if let Some(CanvasRenderPass { draw_commands, .. }) =
-			self.canvas_render_pass_stack.last_mut()
-		{
-			draw_commands.push(draw_command);
-		} else {
-			self.main_surface_draw_commands.push(draw_command);
-		}
+		current_render_pass.draw_commands.push(draw_command);
 	}
 
 	pub(crate) fn push_graphics_state(&mut self, new: Push) {
@@ -271,7 +281,19 @@ impl GraphicsContext {
 	}
 
 	pub(crate) fn current_render_target_size(&self) -> UVec2 {
-		if let Some(CanvasRenderPass { canvas, .. }) = self.canvas_render_pass_stack.last() {
+		let current_canvas = self.render_passes.last().and_then(|render_pass| {
+			if let RenderPassKind::Canvas {
+				canvas,
+				ended: false,
+				..
+			} = &render_pass.kind
+			{
+				Some(canvas)
+			} else {
+				None
+			}
+		});
+		if let Some(canvas) = current_canvas {
 			canvas.size()
 		} else {
 			uvec2(self.config.width, self.config.height)
@@ -292,70 +314,6 @@ impl GraphicsContext {
 		self.create_render_pipelines();
 
 		let mut encoder = self.device.create_command_encoder(&Default::default());
-
-		// run canvas render passes
-		for CanvasRenderPass {
-			canvas,
-			settings,
-			mut draw_commands,
-		} in self.finished_canvas_render_passes.drain(..)
-		{
-			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-				label: Some(&settings.render_pass_label),
-				color_attachments: &[Some(RenderPassColorAttachment {
-					view: match &canvas.kind {
-						CanvasKind::Normal { texture }
-						| CanvasKind::Multisampled { texture, .. } => &texture.view,
-					},
-					resolve_target: match &canvas.kind {
-						CanvasKind::Normal { .. } => None,
-						CanvasKind::Multisampled {
-							resolve_texture, ..
-						} => Some(&resolve_texture.view),
-					},
-					ops: Operations {
-						load: match settings.clear_color {
-							Some(clear_color) => {
-								LoadOp::Clear(lin_srgba_to_wgpu_color(clear_color))
-							}
-							None => LoadOp::Load,
-						},
-						store: StoreOp::Store,
-					},
-					depth_slice: None,
-				})],
-				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-					view: &canvas.depth_stencil_texture.view,
-					depth_ops: Some(Operations {
-						load: match settings.clear_depth_buffer {
-							true => LoadOp::Clear(1.0),
-							false => LoadOp::Load,
-						},
-						store: StoreOp::Store,
-					}),
-					stencil_ops: Some(Operations {
-						load: match settings.clear_stencil_value {
-							true => LoadOp::Clear(0),
-							false => LoadOp::Load,
-						},
-						store: StoreOp::Store,
-					}),
-				}),
-				timestamp_writes: None,
-				occlusion_query_set: None,
-				multiview_mask: None,
-			});
-			run_draw_commands(
-				&self.device,
-				&mut self.layouts,
-				&self.cached_resources.render_pipelines,
-				&mut draw_commands,
-				render_pass,
-				URect::new(UVec2::ZERO, canvas.size()),
-			);
-		}
-
-		// run main surface render pass
 		let frame = match self.surface.get_current_texture() {
 			CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
 			CurrentSurfaceTexture::Suboptimal(surface_texture) => {
@@ -365,8 +323,10 @@ impl GraphicsContext {
 			error => panic!("error getting surface texture: {:?}", error),
 		};
 		let output = frame.texture.create_view(&TextureViewDescriptor::default());
+
+		// clear the main surface to the specified clear color
 		{
-			let render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+			let _render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
 				label: Some("Main Surface Render Pass"),
 				color_attachments: &[Some(RenderPassColorAttachment {
 					view: &output,
@@ -392,13 +352,101 @@ impl GraphicsContext {
 				occlusion_query_set: None,
 				multiview_mask: None,
 			});
+		}
+
+		// run render passes
+		for RenderPass {
+			kind,
+			mut draw_commands,
+		} in self.render_passes.drain(..)
+		{
+			let render_pass_descriptor = match &kind {
+				RenderPassKind::MainSurface => RenderPassDescriptor {
+					label: Some("Main Surface Render Pass"),
+					color_attachments: &[Some(RenderPassColorAttachment {
+						view: &output,
+						resolve_target: None,
+						ops: Operations {
+							load: LoadOp::Load,
+							store: StoreOp::Store,
+						},
+						depth_slice: None,
+					})],
+					depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+						view: &self.main_surface_depth_stencil_texture.view,
+						depth_ops: Some(Operations {
+							load: LoadOp::Clear(1.0),
+							store: StoreOp::Store,
+						}),
+						stencil_ops: Some(Operations {
+							load: LoadOp::Clear(0),
+							store: StoreOp::Store,
+						}),
+					}),
+					timestamp_writes: None,
+					occlusion_query_set: None,
+					multiview_mask: None,
+				},
+				RenderPassKind::Canvas {
+					canvas, settings, ..
+				} => RenderPassDescriptor {
+					label: Some(&settings.render_pass_label),
+					color_attachments: &[Some(RenderPassColorAttachment {
+						view: match &canvas.kind {
+							CanvasKind::Normal { texture }
+							| CanvasKind::Multisampled { texture, .. } => &texture.view,
+						},
+						resolve_target: match &canvas.kind {
+							CanvasKind::Normal { .. } => None,
+							CanvasKind::Multisampled {
+								resolve_texture, ..
+							} => Some(&resolve_texture.view),
+						},
+						ops: Operations {
+							load: match settings.clear_color {
+								Some(clear_color) => {
+									LoadOp::Clear(lin_srgba_to_wgpu_color(clear_color))
+								}
+								None => LoadOp::Load,
+							},
+							store: StoreOp::Store,
+						},
+						depth_slice: None,
+					})],
+					depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+						view: &canvas.depth_stencil_texture.view,
+						depth_ops: Some(Operations {
+							load: match settings.clear_depth_buffer {
+								true => LoadOp::Clear(1.0),
+								false => LoadOp::Load,
+							},
+							store: StoreOp::Store,
+						}),
+						stencil_ops: Some(Operations {
+							load: match settings.clear_stencil_value {
+								true => LoadOp::Clear(0),
+								false => LoadOp::Load,
+							},
+							store: StoreOp::Store,
+						}),
+					}),
+					timestamp_writes: None,
+					occlusion_query_set: None,
+					multiview_mask: None,
+				},
+			};
+			let default_scissor_size = match &kind {
+				RenderPassKind::MainSurface => uvec2(self.config.width, self.config.height),
+				RenderPassKind::Canvas { canvas, .. } => canvas.size(),
+			};
+			let render_pass = encoder.begin_render_pass(&render_pass_descriptor);
 			run_draw_commands(
 				&self.device,
 				&mut self.layouts,
 				&self.cached_resources.render_pipelines,
-				&mut self.main_surface_draw_commands,
+				&mut draw_commands,
 				render_pass,
-				URect::new(UVec2::ZERO, uvec2(self.config.width, self.config.height)),
+				URect::new(UVec2::ZERO, default_scissor_size),
 			);
 		}
 
@@ -433,18 +481,12 @@ impl GraphicsContext {
 
 	fn create_render_pipelines(&mut self) {
 		let _span = tracy_client::span!();
-		self.cached_resources.create_render_pipelines(
-			&self.device,
-			&mut self.layouts,
-			&self.compiled_shaders,
-			&self.main_surface_draw_commands,
-		);
-		for CanvasRenderPass { draw_commands, .. } in &self.finished_canvas_render_passes {
+		for render_pass in &self.render_passes {
 			self.cached_resources.create_render_pipelines(
 				&self.device,
 				&mut self.layouts,
 				&self.compiled_shaders,
-				draw_commands,
+				&render_pass.draw_commands,
 			);
 		}
 	}
@@ -486,10 +528,19 @@ struct DrawParams {
 	normal_transform: Mat4,
 }
 
-struct CanvasRenderPass {
-	canvas: Canvas,
-	settings: RenderToCanvasSettings,
+struct RenderPass {
+	kind: RenderPassKind,
 	draw_commands: Vec<DrawCommand>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum RenderPassKind {
+	MainSurface,
+	Canvas {
+		canvas: Canvas,
+		settings: RenderToCanvasSettings,
+		ended: bool,
+	},
 }
 
 #[derive(Debug, Clone, PartialEq)]

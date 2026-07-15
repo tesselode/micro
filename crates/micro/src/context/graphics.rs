@@ -17,8 +17,8 @@ use wgpu::{
 	CompositeAlphaMode, CurrentSurfaceTexture, DepthBiasState, Device, DeviceDescriptor,
 	IndexFormat, Instance, InstanceDescriptor, LoadOp, Operations, PowerPreference, PresentMode,
 	Queue, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
-	RenderPipeline, RequestAdapterOptions, StoreOp, Surface, SurfaceConfiguration,
-	SurfaceTargetUnsafe, TextureFormat, TextureUsages, TextureViewDescriptor,
+	RenderPipeline, RequestAdapterOptions, StoreOp, Surface, SurfaceColorSpace,
+	SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureUsages, TextureViewDescriptor,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -100,6 +100,7 @@ impl GraphicsContext {
 			desired_maximum_frame_latency: settings.desired_maximum_frame_latency,
 			alpha_mode: CompositeAlphaMode::Auto,
 			view_formats: vec![],
+			color_space: SurfaceColorSpace::default(),
 		};
 		surface.configure(&device, &config);
 		let layouts = Layouts::new(&device);
@@ -441,7 +442,7 @@ impl GraphicsContext {
 		}
 
 		self.queue.submit([encoder.finish()]);
-		frame.present();
+		self.queue.present(frame);
 
 		self.graphics_state_stack.clear();
 		self.graphics_state_stack

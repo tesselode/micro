@@ -128,7 +128,7 @@ impl Canvas {
 				timeout: None,
 			})
 			.unwrap();
-		let view = buffer.get_mapped_range(..);
+		let view = buffer.get_mapped_range(..).expect("error mapping range");
 		let slice: &[u8] = &view;
 		let result = f(slice);
 		drop(view);

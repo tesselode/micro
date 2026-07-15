@@ -137,11 +137,11 @@ fn create_render_pipeline(
 			module: &compiled_shaders[&settings.shader_source].vertex,
 			entry_point: Some("main"),
 			compilation_options: PipelineCompilationOptions::default(),
-			buffers: &[VertexBufferLayout {
+			buffers: &[Some(VertexBufferLayout {
 				array_stride: vertex_info.size as u64,
 				step_mode: VertexStepMode::Vertex,
 				attributes: &vertex_info.attributes,
-			}],
+			})],
 		},
 		primitive: PrimitiveState::default(),
 		depth_stencil: Some(DepthStencilState {

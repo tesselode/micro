@@ -53,7 +53,6 @@ impl Text {
 			TextHorizontalSizing::Fixed { width, align } => (Some(width), Some(align)),
 		};
 		buffer.set_text(
-			&mut ctx.text.font_system,
 			&builder.text,
 			&Attrs {
 				family: Family::Name(&builder.font_family),
@@ -66,7 +65,7 @@ impl Text {
 			Shaping::Advanced,
 			align,
 		);
-		buffer.set_size(&mut ctx.text.font_system, width, None);
+		buffer.set_size(width, None);
 		buffer.shape_until_scroll(&mut ctx.text.font_system, true);
 		let mut sprites: Vec<(IRect, Vec2)> = vec![];
 		let mut glyph_bounds: Option<Rect> = None;

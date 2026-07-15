@@ -36,6 +36,7 @@ pub enum Button {
 	Misc3,
 	Misc4,
 	Misc5,
+	Misc6,
 }
 
 impl From<sdl3Button> for Button {
@@ -66,6 +67,7 @@ impl From<sdl3Button> for Button {
 			sdl3Button::Misc3 => Button::Misc3,
 			sdl3Button::Misc4 => Button::Misc4,
 			sdl3Button::Misc5 => Button::Misc5,
+			sdl3Button::Misc6 => Button::Misc6,
 		}
 	}
 }
@@ -98,6 +100,7 @@ impl From<Button> for sdl3Button {
 			Button::Misc3 => sdl3Button::Misc3,
 			Button::Misc4 => sdl3Button::Misc4,
 			Button::Misc5 => sdl3Button::Misc5,
+			Button::Misc6 => sdl3Button::Misc6,
 		}
 	}
 }

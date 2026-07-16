@@ -8,7 +8,7 @@ anyhow = "1.0.100"
 bytemuck = { version = "1.21.0", features = ["derive"] }
 cosmic-text = "0.19.0"
 derive_more = { version = "2.0.1", features = ["display", "error", "from"] }
-egui = "0.34.1"
+egui = "0.35.0"
 etagere = "0.3.0"
 exhaust = { version = "0.2.1", optional = true }
 generational-arena = "0.2.9"

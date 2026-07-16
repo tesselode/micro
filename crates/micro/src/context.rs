@@ -13,7 +13,7 @@ use std::{
 	time::{Duration, Instant},
 };
 
-use egui::{Align, Layout, TopBottomPanel};
+use egui::{Align, Layout, Panel};
 use glam::{Mat4, UVec2, Vec2, Vec3, vec2};
 use palette::{LinSrgb, WithAlpha};
 use sdl3::{
@@ -26,7 +26,7 @@ use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	color::ColorConstants,
 	context::graphics::GraphicsContext,
-	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
+	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event, try_run_ui},
 	graphics::{Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings},
 	input::{Gamepad, GamepadId, MouseButton, Scancode},
 	text::TextContext,
@@ -112,38 +112,38 @@ where
 		// create egui UI
 		let span = tracy_client::span!("create egui UI");
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
-		egui_ctx.begin_pass(egui_input);
-		if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
-			TopBottomPanel::top("main_menu")
-				.show_animated(&egui_ctx, visible, |ui| -> anyhow::Result<()> {
-					egui::MenuBar::new()
-						.ui(ui, |ui| -> anyhow::Result<()> {
-							app.debug_menu(&mut ctx, ui)?;
-							ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-								if let Some(stats) = app.debug_stats(&mut ctx) {
-									for (i, stat) in stats.iter().enumerate() {
-										if i > 0 {
-											ui.separator();
+		let egui_output = try_run_ui(&egui_ctx, egui_input, |ui| {
+			if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
+				Panel::top("main_menu")
+					.show(ui, |ui| -> anyhow::Result<()> {
+						egui::MenuBar::new()
+							.ui(ui, |ui| -> anyhow::Result<()> {
+								app.debug_menu(&mut ctx, ui)?;
+								ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+									if let Some(stats) = app.debug_stats(&mut ctx) {
+										for (i, stat) in stats.iter().enumerate() {
+											if i > 0 {
+												ui.separator();
+											}
+											ui.label(stat);
 										}
-										ui.label(stat);
 									}
-								}
-							});
-							Ok(())
-						})
-						.inner?;
-					Ok(())
-				})
-				.map(|response| response.inner)
-				.transpose()?;
-			if visible {
-				app.debug_ui(&mut ctx, &egui_ctx)?;
+								});
+								Ok(())
+							})
+							.inner?;
+						Ok(())
+					})
+					.inner?;
+				if visible {
+					app.debug_ui(&mut ctx, &egui_ctx)?;
+				}
 			}
-		}
-		let egui_output = egui_ctx.end_pass();
+			Ok(())
+		})?;
 		drop(span);
-		ctx.egui_wants_keyboard_input = egui_ctx.wants_keyboard_input();
-		ctx.egui_wants_mouse_input = egui_ctx.wants_pointer_input();
+		ctx.egui_wants_keyboard_input = egui_ctx.egui_wants_keyboard_input();
+		ctx.egui_wants_mouse_input = egui_ctx.egui_wants_pointer_input();
 
 		// dispatch events to state
 		let span = tracy_client::span!("dispatch events");

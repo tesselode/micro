@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use egui::{FullOutput, RawInput, TouchPhase, ViewportId, ViewportInfo};
+use egui::{FullOutput, RawInput, TouchPhase, Ui, ViewportId, ViewportInfo};
 use glam::uvec2;
 use image::ImageBuffer;
 use palette::{LinSrgba, Srgba};
@@ -88,6 +88,43 @@ pub fn draw_egui_output(
 	for texture_id in output.textures_delta.free {
 		textures.remove(&texture_id);
 	}
+}
+
+pub fn egui_took_sdl3_event(egui_ctx: &egui::Context, event: &sdl3::event::Event) -> bool {
+	match event {
+		sdl3::event::Event::KeyDown { .. }
+		| sdl3::event::Event::KeyUp { .. }
+		| sdl3::event::Event::TextEditing { .. }
+		| sdl3::event::Event::TextInput { .. } => egui_ctx.egui_wants_keyboard_input(),
+		sdl3::event::Event::MouseMotion { .. }
+		| sdl3::event::Event::MouseButtonDown { .. }
+		| sdl3::event::Event::MouseButtonUp { .. }
+		| sdl3::event::Event::MouseWheel { .. } => egui_ctx.egui_wants_pointer_input(),
+		_ => false,
+	}
+}
+
+/**
+ * A wrapper around [`egui::Context::run_ui`] to make it return a [`Result`].
+ */
+pub fn try_run_ui(
+	egui_ctx: &egui::Context,
+	new_input: RawInput,
+	mut run_ui: impl FnMut(&mut Ui) -> anyhow::Result<()>,
+) -> anyhow::Result<FullOutput> {
+	// create an anyhow::Result<()> initialized to Ok(()) because we have to initialize
+	// it to something. ultimately we want an anyhow::Result<FullOutput>, but we don't
+	// have the FullOutput yet.
+	let mut result = Ok(());
+	let output = egui_ctx.run_ui(new_input, |ui| {
+		// the closure passed to egui_ctx.run_ui does normal UI stuff, but also returns
+		// an anyhow::Result<()>. we can't return a result from here because egui_ctx.run_ui
+		// doesn't expect that, so we assign the result to the variable outside the closure.
+		result = run_ui(ui);
+	});
+	// convert the result from anyhow::Result<()> to anyhow::Result<FullOutput> using the
+	// output returned by egui_ctx.run_ui
+	result.map(|_| output)
 }
 
 fn patch_textures(
@@ -281,20 +318,6 @@ fn sdl3_mouse_button_to_egui_pointer_button(
 		sdl3::mouse::MouseButton::X1 => Some(egui::PointerButton::Extra1),
 		sdl3::mouse::MouseButton::X2 => Some(egui::PointerButton::Extra2),
 		_ => None,
-	}
-}
-
-pub fn egui_took_sdl3_event(egui_ctx: &egui::Context, event: &sdl3::event::Event) -> bool {
-	match event {
-		sdl3::event::Event::KeyDown { .. }
-		| sdl3::event::Event::KeyUp { .. }
-		| sdl3::event::Event::TextEditing { .. }
-		| sdl3::event::Event::TextInput { .. } => egui_ctx.wants_keyboard_input(),
-		sdl3::event::Event::MouseMotion { .. }
-		| sdl3::event::Event::MouseButtonDown { .. }
-		| sdl3::event::Event::MouseButtonUp { .. }
-		| sdl3::event::Event::MouseWheel { .. } => egui_ctx.wants_pointer_input(),
-		_ => false,
 	}
 }
 

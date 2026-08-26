@@ -44,7 +44,6 @@ pub fn egui_raw_input(
 			Default::default(),
 			glam_vec2_to_egui_vec2(ctx.window_size().as_vec2()) / scaling_factor,
 		)),
-		modifiers,
 		events: events
 			.iter()
 			.cloned()
@@ -58,10 +57,10 @@ pub fn egui_raw_input(
 pub fn draw_egui_output(
 	ctx: &mut Context,
 	egui_ctx: &egui::Context,
-	output: FullOutput,
+	mut output: FullOutput,
 	textures: &mut HashMap<egui::TextureId, Texture>,
 ) {
-	patch_textures(ctx, &output, textures);
+	patch_textures(ctx, &mut output, textures);
 	let scaling_factor = ctx.window_scale();
 	for clipped_primitive in egui_ctx.tessellate(output.shapes, scaling_factor) {
 		match clipped_primitive.primitive {
@@ -85,7 +84,7 @@ pub fn draw_egui_output(
 			egui::epaint::Primitive::Callback(_) => unimplemented!(),
 		}
 	}
-	for texture_id in output.textures_delta.free {
+	for texture_id in output.textures_delta.free.drain() {
 		textures.remove(&texture_id);
 	}
 }
@@ -129,31 +128,34 @@ pub fn try_run_ui(
 
 fn patch_textures(
 	ctx: &mut Context,
-	output: &FullOutput,
+	output: &mut FullOutput,
 	textures: &mut HashMap<egui::TextureId, Texture>,
 ) {
-	for (texture_id, delta) in &output.textures_delta.set {
-		if let Some(texture) = textures.get_mut(texture_id) {
-			let top_left = delta
+	for (texture_id, delta) in output.textures_delta.set.drain() {
+		if let Some(texture) = textures.get_mut(&texture_id) {
+			let top_left = delta[0]
 				.pos
 				.map(|[x, y]| uvec2(x as u32, y as u32))
 				.unwrap_or_default();
-			let bottom_right =
-				top_left + uvec2(delta.image.size()[0] as u32, delta.image.size()[1] as u32);
+			let bottom_right = top_left
+				+ uvec2(
+					delta[0].image.size()[0] as u32,
+					delta[0].image.size()[1] as u32,
+				);
 			if bottom_right.x >= texture.size().x || bottom_right.y >= texture.size().y {
 				*texture = texture.resized(ctx, bottom_right);
 			}
 			texture.replace(
 				ctx,
 				top_left,
-				&egui_image_data_to_image_buffer(&delta.image),
+				&egui_image_data_to_image_buffer(&delta[0].image),
 			);
 		} else {
 			textures.insert(
-				*texture_id,
+				texture_id,
 				Texture::from_image(
 					ctx,
-					&egui_image_data_to_image_buffer(&delta.image),
+					&egui_image_data_to_image_buffer(&delta[0].image),
 					TextureSettings::default(),
 				),
 			);

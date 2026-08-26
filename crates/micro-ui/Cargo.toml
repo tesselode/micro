@@ -5,9 +5,9 @@ edition = "2024"
 
 [dependencies]
 indexmap = "2.6.0"
-itertools = "0.14.0"
+itertools = "0.15.0"
 micro = { path = "../micro" }
-tracy-client = { version = "0.18.0", default-features = false, features = [
+tracy-client = { version = "0.19.0", default-features = false, features = [
 	"broadcast",
 	"callstack-inlines",
 	"code-transfer",

@@ -34,13 +34,27 @@ impl ManuallyPositioned {
 		}
 	}
 
+	pub fn add_child(&mut self, position: impl Into<ChildPosition>, child: impl Widget + 'static) {
+		self.children.push(Box::new(child));
+		self.child_positions.push(position.into());
+	}
+
+	pub fn add_children(
+		&mut self,
+		children: impl IntoIterator<Item = (impl Into<ChildPosition>, impl Widget + 'static)>,
+	) {
+		for (position, child) in children {
+			self.children.push(Box::new(child));
+			self.child_positions.push(position.into());
+		}
+	}
+
 	pub fn child(
 		mut self,
 		position: impl Into<ChildPosition>,
 		child: impl Widget + 'static,
 	) -> Self {
-		self.children.push(Box::new(child));
-		self.child_positions.push(position.into());
+		self.add_child(position, child);
 		self
 	}
 
@@ -48,10 +62,7 @@ impl ManuallyPositioned {
 		mut self,
 		children: impl IntoIterator<Item = (impl Into<ChildPosition>, impl Widget + 'static)>,
 	) -> Self {
-		for (position, child) in children {
-			self.children.push(Box::new(child));
-			self.child_positions.push(position.into());
-		}
+		self.add_children(children);
 		self
 	}
 

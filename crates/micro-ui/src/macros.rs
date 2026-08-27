@@ -33,8 +33,21 @@ macro_rules! common_widget_trait_functions {
 #[macro_export]
 macro_rules! child_functions {
 	() => {
-		pub fn child(mut self, child: impl $crate::Widget + 'static) -> Self {
+		pub fn add_child(&mut self, child: impl $crate::Widget + 'static) {
 			self.children.push(Box::new(child));
+		}
+
+		pub fn add_children(
+			&mut self,
+			children: impl IntoIterator<Item = impl $crate::Widget + 'static>,
+		) {
+			for child in children {
+				self.children.push(Box::new(child));
+			}
+		}
+
+		pub fn child(mut self, child: impl $crate::Widget + 'static) -> Self {
+			self.add_child(child);
 			self
 		}
 
@@ -42,9 +55,7 @@ macro_rules! child_functions {
 			mut self,
 			children: impl IntoIterator<Item = impl $crate::Widget + 'static>,
 		) -> Self {
-			for child in children {
-				self.children.push(Box::new(child));
-			}
+			self.add_children(children);
 			self
 		}
 

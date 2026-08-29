@@ -1,4 +1,7 @@
-use std::{any::Any, collections::HashMap};
+use std::{
+	any::{Any, TypeId},
+	collections::HashMap,
+};
 
 use micro::{
 	input::MouseButton,
@@ -18,7 +21,7 @@ pub struct WidgetState {
 	pub(crate) hovered: bool,
 	pub(crate) hovered_previous: bool,
 	pub(crate) button_state: HashMap<MouseButton, ButtonState>,
-	custom: Option<Box<dyn Any>>,
+	custom: HashMap<TypeId, Box<dyn Any>>,
 }
 
 impl WidgetState {
@@ -37,7 +40,7 @@ impl WidgetState {
 				.copied()
 				.map(|button| (button, ButtonState::default()))
 				.collect(),
-			custom: None,
+			custom: HashMap::new(),
 		}
 	}
 
@@ -107,30 +110,35 @@ impl WidgetState {
 	}
 
 	pub fn custom<T: 'static>(&self) -> Option<&T> {
-		self.custom.as_ref().and_then(|inner| inner.downcast_ref())
+		self.custom
+			.get(&TypeId::of::<T>())
+			.and_then(|inner| inner.downcast_ref())
 	}
 
 	pub fn custom_mut<T: 'static>(&mut self) -> Option<&mut T> {
-		self.custom.as_mut().and_then(|inner| inner.downcast_mut())
+		self.custom
+			.get_mut(&TypeId::of::<T>())
+			.and_then(|inner| inner.downcast_mut())
 	}
 
 	pub fn custom_or_insert<T: 'static>(&mut self, value: T) -> &mut T {
 		if self.custom_mut::<T>().is_none() {
-			self.custom = Some(Box::new(value));
+			self.custom.insert(TypeId::of::<T>(), Box::new(value));
 		}
 		self.custom_mut().unwrap()
 	}
 
 	pub fn custom_or_insert_with<T: 'static>(&mut self, f: impl FnOnce() -> T) -> &mut T {
 		if self.custom_mut::<T>().is_none() {
-			self.custom = Some(Box::new(f()));
+			self.custom.insert(TypeId::of::<T>(), Box::new(f()));
 		}
 		self.custom_mut().unwrap()
 	}
 
 	pub fn custom_or_insert_default<T: Default + 'static>(&mut self) -> &mut T {
 		if self.custom_mut::<T>().is_none() {
-			self.custom = Some(Box::new(T::default()));
+			self.custom
+				.insert(TypeId::of::<T>(), Box::new(T::default()));
 		}
 		self.custom_mut().unwrap()
 	}

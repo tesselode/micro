@@ -40,7 +40,7 @@ impl Widget for Mask {
 	}
 
 	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
-		self.children.drain(..).collect()
+		std::mem::take(&mut self.children)
 	}
 
 	fn mask(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Option<Box<dyn Widget>> {

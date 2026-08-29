@@ -80,7 +80,7 @@ impl Widget for Transform {
 	}
 
 	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
-		self.children.drain(..).collect()
+		std::mem::take(&mut self.children)
 	}
 
 	fn transform(&mut self, _ctx: &mut Context, size: Vec2, _state: &mut WidgetState) -> Mat4 {

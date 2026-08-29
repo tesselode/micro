@@ -49,11 +49,17 @@ use micro::{
 pub trait Widget: Debug {
 	fn name(&self) -> &'static str;
 
-	fn id(&self) -> Option<String>;
+	fn id(&self) -> Option<String> {
+		None
+	}
 
-	fn inspector(&self) -> Option<WidgetInspector>;
+	fn inspector(&self) -> Option<WidgetInspector> {
+		None
+	}
 
-	fn children(&mut self, ctx: &mut Context, state: &mut WidgetState) -> Vec<Box<dyn Widget>>;
+	fn children(&mut self, ctx: &mut Context, state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+		vec![]
+	}
 
 	fn transform(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) -> Mat4 {
 		Mat4::IDENTITY
@@ -69,7 +75,9 @@ pub trait Widget: Debug {
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
 		state: &mut WidgetState,
-	) -> Vec2;
+	) -> Vec2 {
+		Sizing::SHRINK.allotted_size_for_children(allotted_size_from_parent)
+	}
 
 	fn layout(
 		&mut self,
@@ -77,7 +85,13 @@ pub trait Widget: Debug {
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 		state: &mut WidgetState,
-	) -> LayoutResult;
+	) -> LayoutResult {
+		LayoutResult {
+			size: Sizing::SHRINK
+				.final_parent_size(allotted_size_from_parent, child_sizes.iter().copied()),
+			child_positions: std::iter::repeat_n(Vec2::ZERO, child_sizes.len()).collect(),
+		}
+	}
 
 	fn draw_before_children(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) {}
 

@@ -1,7 +1,9 @@
 //! Types related to animating things from one value to another.
 
+mod transition_player;
 mod tween_sequence;
 
+pub use transition_player::*;
 pub use tween_sequence::*;
 
 use std::f32::consts::PI;

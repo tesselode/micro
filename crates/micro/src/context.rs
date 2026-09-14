@@ -53,29 +53,27 @@ where
 		Canvas::new_from_graphics_ctx(&graphics, settings.size, CanvasSettings::default())
 	});
 
-	CONTEXT.with(|once_cell| {
-		once_cell
-			.set(RefCell::new(Context {
-				window,
-				gamepad: controller,
-				event_pump,
-				mouse_wheel_delta: Vec2::ZERO,
-				egui_wants_keyboard_input: false,
-				egui_wants_mouse_input: false,
-				clear_color: LinSrgb::BLACK,
-				main_canvas_size: settings.main_canvas.map(|settings| settings.size),
-				integer_scaling_enabled: settings
-					.main_canvas
-					.map(|settings| settings.integer_scaling_enabled)
-					.unwrap_or_default(),
-				delta_time: Duration::ZERO,
-				frame_time_tracker: FrameTimeTracker::new(),
-				graphics,
-				text,
-				dev_tools_state: settings.dev_tools_mode.initial_state(),
-				should_quit: false,
-			}))
-			.unwrap_or_else(|_| panic!("context already initialized"))
+	CONTEXT.with(|ctx| {
+		*ctx.borrow_mut() = Some(Context {
+			window,
+			gamepad: controller,
+			event_pump,
+			mouse_wheel_delta: Vec2::ZERO,
+			egui_wants_keyboard_input: false,
+			egui_wants_mouse_input: false,
+			clear_color: LinSrgb::BLACK,
+			main_canvas_size: settings.main_canvas.map(|settings| settings.size),
+			integer_scaling_enabled: settings
+				.main_canvas
+				.map(|settings| settings.integer_scaling_enabled)
+				.unwrap_or_default(),
+			delta_time: Duration::ZERO,
+			frame_time_tracker: FrameTimeTracker::new(),
+			graphics,
+			text,
+			dev_tools_state: settings.dev_tools_mode.initial_state(),
+			should_quit: false,
+		})
 	});
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
@@ -214,6 +212,16 @@ where
 			break;
 		}
 	}
+
+	/*
+	Manually drop the `Context` by taking it out of the `Option`.
+
+	I don't know why this is necessary. All I know is if I don't have this,
+	then if I close a Micro application within a few seconds of launching it,
+	it'll freeze for a couple seconds before exiting with a code of 2170
+	or 2173. Maybe some kind of undefined behavior caused by a weird drop order?
+	*/
+	Context::uninit();
 }
 
 /// Allows you to interact with Micro to check for keyboard inputs,
@@ -239,16 +247,20 @@ pub(crate) struct Context {
 }
 
 thread_local! {
-	pub(crate) static CONTEXT: OnceCell<RefCell<Context>> = const { OnceCell::new() };
+	pub(crate) static CONTEXT: RefCell<Option<Context>> = const { RefCell::new(None) };
 }
 
 impl Context {
 	pub fn with<T>(f: impl FnOnce(&Context) -> T) -> T {
-		CONTEXT.with(|ctx| f(&ctx.get().unwrap().borrow()))
+		CONTEXT.with(|ctx| f(ctx.borrow().as_ref().unwrap()))
 	}
 
 	pub fn with_mut<T>(f: impl FnOnce(&mut Context) -> T) -> T {
-		CONTEXT.with(|ctx| f(&mut ctx.get().unwrap().borrow_mut()))
+		CONTEXT.with(|ctx| f(ctx.borrow_mut().as_mut().unwrap()))
+	}
+
+	fn uninit() {
+		CONTEXT.with(|ctx| ctx.borrow_mut().take());
 	}
 }
 

@@ -43,10 +43,12 @@ pub struct VisRunner {
 }
 
 impl VisRunner {
-	pub fn new(ctx: &mut Context, visualizer: Box<dyn Visualizer>) -> anyhow::Result<Self> {
+	pub fn new(ctx: &mut Context, visualizer: Box<dyn Visualizer>) -> Self {
 		dotenvy::dotenv().ok();
-		let audio_manager = AudioManager::new(AudioManagerSettings::default())?;
-		let sound_data = StreamingSoundData::from_file(visualizer.audio_path())?;
+		let audio_manager =
+			AudioManager::new(AudioManagerSettings::default()).expect("error initializing audio");
+		let sound_data = StreamingSoundData::from_file(visualizer.audio_path())
+			.expect("error loading audio file");
 		let num_frames =
 			seconds_to_frames(sound_data.duration().as_secs_f64(), visualizer.frame_rate());
 		let canvas = Canvas::new(ctx, visualizer.video_resolution(), main_canvas_settings());
@@ -58,7 +60,7 @@ impl VisRunner {
 		} else {
 			RenderingSettings::default()
 		};
-		Ok(VisRunner {
+		VisRunner {
 			visualizer,
 			audio_manager,
 			mode: Mode::Stopped {
@@ -73,7 +75,7 @@ impl VisRunner {
 			rendering_settings,
 			show_rendering_window: false,
 			volume: Decibels::IDENTITY,
-		})
+		}
 	}
 
 	fn playing(&self) -> bool {
@@ -97,7 +99,7 @@ impl VisRunner {
 		}
 	}
 
-	fn play_or_resume(&mut self) -> anyhow::Result<()> {
+	fn play_or_resume(&mut self) {
 		match &mut self.mode {
 			Mode::Stopped { data, start_frame } => {
 				let mut data = data.take().unwrap();
@@ -108,7 +110,8 @@ impl VisRunner {
 				self.mode = Mode::PlayingOrPaused {
 					sound: self
 						.audio_manager
-						.play(data.loop_region(self.audio_loop_region()))?,
+						.play(data.loop_region(self.audio_loop_region()))
+						.expect("error playing sound"),
 					in_progress_seek: None,
 				};
 			}
@@ -117,26 +120,23 @@ impl VisRunner {
 			}
 			Mode::Rendering { .. } => unreachable!("not supported in rendering mode"),
 		}
-		Ok(())
 	}
 
-	fn pause(&mut self) -> anyhow::Result<()> {
+	fn pause(&mut self) {
 		if let Mode::PlayingOrPaused { sound, .. } = &mut self.mode {
 			sound.pause(Tween::default());
 		}
-		Ok(())
 	}
 
-	fn toggle_playback(&mut self) -> anyhow::Result<()> {
+	fn toggle_playback(&mut self) {
 		if self.playing() {
-			self.pause()?;
+			self.pause();
 		} else {
-			self.play_or_resume()?;
+			self.play_or_resume();
 		}
-		Ok(())
 	}
 
-	fn seek(&mut self, frame: u64) -> anyhow::Result<()> {
+	fn seek(&mut self, frame: u64) {
 		match &mut self.mode {
 			Mode::Stopped { start_frame, .. } => {
 				*start_frame = frame;
@@ -150,15 +150,14 @@ impl VisRunner {
 			}
 			Mode::Rendering { .. } => unreachable!("not supported in rendering mode"),
 		}
-		Ok(())
 	}
 
-	fn seek_by(&mut self, delta: i64) -> anyhow::Result<()> {
+	fn seek_by(&mut self, delta: i64) {
 		let frame = (self.current_frame() as i64 + delta).clamp(0, self.num_frames as i64);
 		self.seek(frame as u64)
 	}
 
-	fn seek_by_seconds(&mut self, delta: f64) -> anyhow::Result<()> {
+	fn seek_by_seconds(&mut self, delta: f64) {
 		let delta_frames = seconds_to_frames_i64(delta, self.visualizer.frame_rate());
 		self.seek_by(delta_frames)
 	}
@@ -235,38 +234,31 @@ impl App for VisRunner {
 		Some(vec![format!("{:.0} FPS", ctx.fps())])
 	}
 
-	fn debug_menu(&mut self, ctx: &mut Context, ui: &mut micro::egui::Ui) -> anyhow::Result<()> {
+	fn debug_menu(&mut self, ctx: &mut Context, ui: &mut micro::egui::Ui) {
 		self.render_main_menu_contents(ctx, ui)
 	}
 
-	fn debug_ui(
-		&mut self,
-		ctx: &mut Context,
-		egui_ctx: &micro::egui::Context,
-	) -> Result<(), anyhow::Error> {
-		self.render_rendering_window(ctx, egui_ctx)?;
-		self.visualizer.ui(ctx, egui_ctx, self.vis_info())?;
-		Ok(())
+	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
+		self.render_rendering_window(ctx, egui_ctx);
+		self.visualizer.ui(ctx, egui_ctx, self.vis_info());
 	}
 
-	fn event(&mut self, ctx: &mut Context, event: Event) -> Result<(), anyhow::Error> {
+	fn event(&mut self, ctx: &mut Context, event: Event) {
 		if let Event::KeyPressed { key, .. } = event {
 			match key {
-				Scancode::Space => self.toggle_playback()?,
-				Scancode::Left => self.seek_by_seconds(-10.0)?,
-				Scancode::Right => self.seek_by_seconds(10.0)?,
-				Scancode::Comma => self.go_to_previous_chapter()?,
-				Scancode::Period => self.go_to_next_chapter()?,
+				Scancode::Space => self.toggle_playback(),
+				Scancode::Left => self.seek_by_seconds(-10.0),
+				Scancode::Right => self.seek_by_seconds(10.0),
+				Scancode::Comma => self.go_to_previous_chapter(),
+				Scancode::Period => self.go_to_next_chapter(),
 				_ => {}
 			}
 		}
 
-		self.visualizer.event(ctx, self.vis_info(), event)?;
-
-		Ok(())
+		self.visualizer.event(ctx, self.vis_info(), event);
 	}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) -> Result<(), anyhow::Error> {
+	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {
 		let loop_region = self.audio_loop_region();
 
 		if self.canvas.size() != self.current_resolution() {
@@ -295,21 +287,22 @@ impl App for VisRunner {
 			}
 			if sound.state() == PlaybackState::Stopped {
 				self.mode = Mode::Stopped {
-					data: Some(StreamingSoundData::from_file(self.visualizer.audio_path())?),
+					data: Some(
+						StreamingSoundData::from_file(self.visualizer.audio_path())
+							.expect("error loading audio file"),
+					),
 					start_frame: 0,
 				};
 			}
 		}
 
-		self.visualizer.update(ctx, self.vis_info(), delta_time)?;
-
-		Ok(())
+		self.visualizer.update(ctx, self.vis_info(), delta_time);
 	}
 
-	fn draw(&mut self, ctx: &mut Context) -> Result<(), anyhow::Error> {
+	fn draw(&mut self, ctx: &mut Context) {
 		let current_frame = self.current_frame();
 		if current_frame != self.previous_frame {
-			self.visualizer.draw(ctx, self.vis_info(), &self.canvas)?;
+			self.visualizer.draw(ctx, self.vis_info(), &self.canvas);
 			self.previous_frame = current_frame;
 		}
 		let max_horizontal_scale = ctx.window_size().x as f32 / self.canvas.size().x as f32;
@@ -320,10 +313,9 @@ impl App for VisRunner {
 			.scaled_2d(Vec2::splat(scale))
 			.translated_2d(ctx.window_size().as_vec2() / 2.0)
 			.draw(ctx);
-		Ok(())
 	}
 
-	fn post_draw(&mut self, ctx: &mut Context) -> anyhow::Result<()> {
+	fn post_draw(&mut self, ctx: &mut Context) {
 		if let Mode::Rendering {
 			end_frame,
 			current_frame,
@@ -331,7 +323,7 @@ impl App for VisRunner {
 		} = &mut self.mode
 		{
 			let mut should_stop_rendering = false;
-			self.canvas.read(ctx, |data| -> anyhow::Result<()> {
+			self.canvas.read(ctx, |data| {
 				let ffmpeg_stdin = ffmpeg_process.stdin.as_mut().unwrap();
 				let write_result = ffmpeg_stdin.write_all(data);
 				if write_result.is_err() {
@@ -342,13 +334,11 @@ impl App for VisRunner {
 						should_stop_rendering = true;
 					}
 				}
-				Ok(())
-			})?;
+			});
 			if should_stop_rendering {
-				self.on_rendering_finished(ctx)?;
+				self.on_rendering_finished(ctx);
 			}
 		}
-		Ok(())
 	}
 }
 

@@ -29,12 +29,11 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
-		self.system.init(ctx, globals, ecs_ctx, world, queues)?;
-		Ok(())
+		self.system.init(ctx, globals, ecs_ctx, world, queues);
 	}
 
 	pub fn debug_ui(
@@ -45,13 +44,12 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
 		self.system
-			.debug_ui(ctx, egui_ctx, globals, ecs_ctx, world, queues)?;
-		Ok(())
+			.debug_ui(ctx, egui_ctx, globals, ecs_ctx, world, queues);
 	}
 
 	pub fn event(
@@ -62,13 +60,12 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &Event,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
 		self.system
-			.event(ctx, globals, ecs_ctx, world, queues, event)?;
-		Ok(())
+			.event(ctx, globals, ecs_ctx, world, queues, event);
 	}
 
 	pub fn ecs_event(
@@ -79,13 +76,12 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &EcsEvent,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
 		self.system
-			.ecs_event(ctx, globals, ecs_ctx, world, queues, event)?;
-		Ok(())
+			.ecs_event(ctx, globals, ecs_ctx, world, queues, event);
 	}
 
 	pub fn update(
@@ -96,13 +92,12 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
 		self.system
-			.update(ctx, globals, ecs_ctx, world, queues, delta_time)?;
-		Ok(())
+			.update(ctx, globals, ecs_ctx, world, queues, delta_time);
 	}
 
 	pub fn update_cosmetic(
@@ -113,13 +108,12 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
 		self.system
-			.update_cosmetic(ctx, globals, ecs_ctx, world, queues, delta_time)?;
-		Ok(())
+			.update_cosmetic(ctx, globals, ecs_ctx, world, queues, delta_time);
 	}
 
 	pub fn pause(
@@ -129,12 +123,11 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
-		self.system.pause(ctx, globals, ecs_ctx, world, queues)?;
-		Ok(())
+		self.system.pause(ctx, globals, ecs_ctx, world, queues);
 	}
 
 	pub fn resume(
@@ -144,12 +137,11 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
-		self.system.resume(ctx, globals, ecs_ctx, world, queues)?;
-		Ok(())
+		self.system.resume(ctx, globals, ecs_ctx, world, queues);
 	}
 
 	pub fn leave(
@@ -159,12 +151,11 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
-		self.system.leave(ctx, globals, ecs_ctx, world, queues)?;
-		Ok(())
+		self.system.leave(ctx, globals, ecs_ctx, world, queues);
 	}
 
 	pub fn draw(
@@ -174,12 +165,11 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
-		self.system.draw(ctx, globals, ecs_ctx, world, queues)?;
-		Ok(())
+		self.system.draw(ctx, globals, ecs_ctx, world, queues);
 	}
 
 	pub fn post_draw(
@@ -189,12 +179,10 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		ecs_ctx: &mut EcsContext,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
-	) -> anyhow::Result<()> {
+	) {
 		if !self.enabled {
-			return Ok(());
+			return;
 		}
-		self.system
-			.post_draw(ctx, globals, ecs_ctx, world, queues)?;
-		Ok(())
+		self.system.post_draw(ctx, globals, ecs_ctx, world, queues);
 	}
 }

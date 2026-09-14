@@ -18,61 +18,29 @@ pub trait Scene<Globals> {
 		None
 	}
 
-	fn debug_menu(
-		&mut self,
-		ctx: &mut Context,
-		ui: &mut micro::egui::Ui,
-		globals: &mut Globals,
-	) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn debug_menu(&mut self, ctx: &mut Context, ui: &mut micro::egui::Ui, globals: &mut Globals) {}
 
 	fn debug_ui(
 		&mut self,
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-	) -> anyhow::Result<()> {
-		Ok(())
+	) {
 	}
 
-	fn event(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		event: &Event,
-	) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn event(&mut self, ctx: &mut Context, globals: &mut Globals, event: &Event) {}
 
-	fn update(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		delta_time: Duration,
-	) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn update(&mut self, ctx: &mut Context, globals: &mut Globals, delta_time: Duration) {}
 
-	fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) {}
 
-	fn post_draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn post_draw(&mut self, ctx: &mut Context, globals: &mut Globals) {}
 
-	fn pause(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn pause(&mut self, ctx: &mut Context, globals: &mut Globals) {}
 
-	fn resume(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn resume(&mut self, ctx: &mut Context, globals: &mut Globals) {}
 
-	fn leave(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn leave(&mut self, ctx: &mut Context, globals: &mut Globals) {}
 }
 
 pub struct SceneManager<Globals> {
@@ -95,7 +63,7 @@ impl<Globals> SceneManager<Globals> {
 		ctx: &mut Context,
 		ui: &mut micro::egui::Ui,
 		globals: &mut Globals,
-	) -> anyhow::Result<()> {
+	) {
 		self.current_scene().debug_menu(ctx, ui, globals)
 	}
 
@@ -104,44 +72,33 @@ impl<Globals> SceneManager<Globals> {
 		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-	) -> anyhow::Result<()> {
+	) {
 		self.current_scene().debug_ui(ctx, egui_ctx, globals)
 	}
 
-	pub fn event(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		event: Event,
-	) -> anyhow::Result<()> {
+	pub fn event(&mut self, ctx: &mut Context, globals: &mut Globals, event: Event) {
 		self.current_scene().event(ctx, globals, &event)
 	}
 
-	pub fn update(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		delta_time: Duration,
-	) -> anyhow::Result<()> {
+	pub fn update(&mut self, ctx: &mut Context, globals: &mut Globals, delta_time: Duration) {
 		self.current_scene().update(ctx, globals, delta_time)
 	}
 
-	pub fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+	pub fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) {
 		let mut first_scene_to_draw_index = self.scenes.len() - 1;
 		while first_scene_to_draw_index > 0 && self.scenes[first_scene_to_draw_index].transparent()
 		{
 			first_scene_to_draw_index -= 1;
 		}
 		for i in first_scene_to_draw_index..self.scenes.len() {
-			self.scenes[i].draw(ctx, globals)?;
+			self.scenes[i].draw(ctx, globals);
 		}
 		if let Some(scene_change) = self.current_scene().scene_change() {
-			self.apply_scene_change(ctx, scene_change, globals)?;
+			self.apply_scene_change(ctx, scene_change, globals);
 		}
-		Ok(())
 	}
 
-	pub fn post_draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+	pub fn post_draw(&mut self, ctx: &mut Context, globals: &mut Globals) {
 		self.current_scene().post_draw(ctx, globals)
 	}
 
@@ -154,48 +111,47 @@ impl<Globals> SceneManager<Globals> {
 		ctx: &mut Context,
 		scene_change: SceneChange<Globals>,
 		globals: &mut Globals,
-	) -> anyhow::Result<()> {
+	) {
 		match scene_change {
 			SceneChange::Switch(scene) => {
 				tracy_client::Client::running()
 					.unwrap()
 					.message(&format!("Switching to scene: {}", scene.name()), 0);
-				self.current_scene().leave(ctx, globals)?;
+				self.current_scene().leave(ctx, globals);
 				*self.current_scene() = scene;
 			}
 			SceneChange::Push(scene) => {
 				tracy_client::Client::running()
 					.unwrap()
 					.message(&format!("Pushing scene: {}", scene.name()), 0);
-				self.current_scene().pause(ctx, globals)?;
+				self.current_scene().pause(ctx, globals);
 				self.scenes.push(scene);
 			}
 			SceneChange::Pop => {
 				tracy_client::Client::running()
 					.unwrap()
 					.message("Popping scene", 0);
-				self.current_scene().leave(ctx, globals)?;
+				self.current_scene().leave(ctx, globals);
 				self.scenes.pop();
 				if self.scenes.is_empty() {
 					panic!("cannot pop the last scene");
 				}
-				self.current_scene().resume(ctx, globals)?;
+				self.current_scene().resume(ctx, globals);
 			}
 			SceneChange::PopAndSwitch(scene) => {
 				tracy_client::Client::running().unwrap().message(
 					&format!("Popping scene and switching to: {}", scene.name()),
 					0,
 				);
-				self.current_scene().leave(ctx, globals)?;
+				self.current_scene().leave(ctx, globals);
 				self.scenes.pop();
 				if self.scenes.is_empty() {
 					panic!("cannot pop the last scene");
 				}
-				self.current_scene().leave(ctx, globals)?;
+				self.current_scene().leave(ctx, globals);
 				*self.current_scene() = scene;
 			}
 		}
-		Ok(())
 	}
 }
 

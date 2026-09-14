@@ -11,9 +11,7 @@ use std::{path::PathBuf, time::Duration};
 use micro::{egui::Ui, graphics::Canvas, math::UVec2};
 use vis_runner::VisRunner;
 
-pub fn run<T: Visualizer>(
-	mut visualizer_constructor: impl FnMut(&mut Context) -> anyhow::Result<T>,
-) -> Result<(), anyhow::Error> {
+pub fn run<T: Visualizer>(mut visualizer_constructor: impl FnMut(&mut Context) -> T) {
 	micro::run(
 		ContextSettings {
 			window_title: "Micro Visualizer".into(),
@@ -24,7 +22,7 @@ pub fn run<T: Visualizer>(
 			..Default::default()
 		},
 		|ctx| {
-			let visualizer = Box::new(visualizer_constructor(ctx)?);
+			let visualizer = Box::new(visualizer_constructor(ctx));
 			VisRunner::new(ctx, visualizer)
 		},
 	)
@@ -46,48 +44,16 @@ pub trait Visualizer: 'static {
 		None
 	}
 
-	fn ui(
-		&mut self,
-		ctx: &mut Context,
-		egui_ctx: &micro::egui::Context,
-		vis_info: VisualizerInfo,
-	) -> Result<(), anyhow::Error> {
-		Ok(())
+	fn ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context, vis_info: VisualizerInfo) {
 	}
 
-	fn menu(
-		&mut self,
-		ctx: &mut Context,
-		ui: &mut Ui,
-		vis_info: VisualizerInfo,
-	) -> Result<(), anyhow::Error> {
-		Ok(())
-	}
+	fn menu(&mut self, ctx: &mut Context, ui: &mut Ui, vis_info: VisualizerInfo) {}
 
-	fn event(
-		&mut self,
-		ctx: &mut Context,
-		vis_info: VisualizerInfo,
-		event: Event,
-	) -> Result<(), anyhow::Error> {
-		Ok(())
-	}
+	fn event(&mut self, ctx: &mut Context, vis_info: VisualizerInfo, event: Event) {}
 
-	fn update(
-		&mut self,
-		ctx: &mut Context,
-		vis_info: VisualizerInfo,
-		delta_time: Duration,
-	) -> anyhow::Result<()> {
-		Ok(())
-	}
+	fn update(&mut self, ctx: &mut Context, vis_info: VisualizerInfo, delta_time: Duration) {}
 
-	fn draw(
-		&mut self,
-		ctx: &mut Context,
-		vis_info: VisualizerInfo,
-		main_canvas: &Canvas,
-	) -> anyhow::Result<()>;
+	fn draw(&mut self, ctx: &mut Context, vis_info: VisualizerInfo, main_canvas: &Canvas);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

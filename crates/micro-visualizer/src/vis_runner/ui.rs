@@ -9,15 +9,11 @@ use crate::conversions::frame_to_seconds;
 use super::{LiveResolution, Mode, VisRunner};
 
 impl VisRunner {
-	pub fn render_main_menu_contents(
-		&mut self,
-		ctx: &mut Context,
-		ui: &mut Ui,
-	) -> Result<(), anyhow::Error> {
-		self.render_play_pause_button(ui)?;
-		self.render_seekbar(ui)?;
+	pub fn render_main_menu_contents(&mut self, ctx: &mut Context, ui: &mut Ui) {
+		self.render_play_pause_button(ui);
+		self.render_seekbar(ui);
 		ui.separator();
-		self.render_chapter_switcher(ui)?;
+		self.render_chapter_switcher(ui);
 		ui.label("Volume");
 		ui.add(
 			Slider::new(
@@ -40,15 +36,10 @@ impl VisRunner {
 		if ui.button("Render").clicked() {
 			self.show_rendering_window = true;
 		}
-		self.visualizer.menu(ctx, ui, self.vis_info())?;
-		Ok(())
+		self.visualizer.menu(ctx, ui, self.vis_info());
 	}
 
-	pub fn render_rendering_window(
-		&mut self,
-		ctx: &mut Context,
-		egui_ctx: &micro::egui::Context,
-	) -> anyhow::Result<()> {
+	pub fn render_rendering_window(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
 		let response = micro::egui::Window::new("Rendering")
 			.open(&mut self.show_rendering_window)
 			.show(egui_ctx, |ui| {
@@ -83,27 +74,25 @@ impl VisRunner {
 		{
 			if let Mode::Rendering { ffmpeg_process, .. } = &mut self.mode {
 				log_if_err!(ffmpeg_process.kill());
-				self.on_rendering_finished(ctx)?;
+				self.on_rendering_finished(ctx);
 			} else {
-				self.render(ctx)?;
+				self.render(ctx);
 			}
 		}
-		Ok(())
 	}
 
-	fn render_play_pause_button(&mut self, ui: &mut Ui) -> Result<(), anyhow::Error> {
+	fn render_play_pause_button(&mut self, ui: &mut Ui) {
 		if matches!(self.mode, Mode::Rendering { .. }) {
-			return Ok(());
+			return;
 		}
 		let play_pause_button_text = if self.playing() { "Pause" } else { "Play" };
 		if ui.button(play_pause_button_text).clicked() {
-			self.toggle_playback()?;
+			self.toggle_playback();
 		};
 		ui.checkbox(&mut self.repeat_chapter, "Loop");
-		Ok(())
 	}
 
-	fn render_seekbar(&mut self, ui: &mut Ui) -> Result<(), anyhow::Error> {
+	fn render_seekbar(&mut self, ui: &mut Ui) {
 		let mut frame = self.current_frame();
 		let (start_frame, end_frame) = if let Some(chapters) = self.visualizer.chapters() {
 			let current_chapter_index = chapters
@@ -131,14 +120,13 @@ impl VisRunner {
 			}),
 		);
 		if slider_response.drag_stopped() && !matches!(self.mode, Mode::Rendering { .. }) {
-			self.seek(frame)?;
+			self.seek(frame);
 		};
-		Ok(())
 	}
 
-	fn render_chapter_switcher(&mut self, ui: &mut Ui) -> anyhow::Result<()> {
+	fn render_chapter_switcher(&mut self, ui: &mut Ui) {
 		let Some(chapters) = self.visualizer.chapters() else {
-			return Ok(());
+			return;
 		};
 		let current_frame = self.current_frame();
 		let current_chapter_index = chapters
@@ -152,17 +140,16 @@ impl VisRunner {
 				ComboBox::new("chapter", "")
 					.show_index(ui, &mut selected, chapters.len(), |i| &chapters[i].name);
 			if response.changed() {
-				self.go_to_chapter(selected)?;
+				self.go_to_chapter(selected);
 			}
 		}
 		if ui.button("<<").clicked() {
-			self.go_to_previous_chapter()?;
+			self.go_to_previous_chapter();
 		}
 		if ui.button(">>").clicked() {
-			self.go_to_next_chapter()?;
+			self.go_to_next_chapter();
 		}
 		ui.separator();
-		Ok(())
 	}
 }
 

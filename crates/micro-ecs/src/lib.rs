@@ -41,7 +41,7 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> anyhow::Result<()> {
+	) {
 		self.systems.debug_ui(
 			ctx,
 			egui_ctx,
@@ -58,7 +58,7 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		event: &Event,
-	) -> anyhow::Result<()> {
+	) {
 		self.systems.event(
 			ctx,
 			globals,
@@ -75,7 +75,7 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		event: &EcsEvent,
-	) -> anyhow::Result<()> {
+	) {
 		self.systems.ecs_event(
 			ctx,
 			globals,
@@ -92,7 +92,7 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		delta_time: Duration,
-	) -> anyhow::Result<()> {
+	) {
 		self.systems.update(
 			ctx,
 			globals,
@@ -109,7 +109,7 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		delta_time: Duration,
-	) -> anyhow::Result<()> {
+	) {
 		self.systems.update_cosmetic(
 			ctx,
 			globals,
@@ -120,42 +120,22 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		)
 	}
 
-	pub fn pause(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-	) -> anyhow::Result<()> {
+	pub fn pause(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
 			.pause(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
 
-	pub fn resume(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-	) -> anyhow::Result<()> {
+	pub fn resume(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
 			.resume(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
 
-	pub fn leave(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-	) -> anyhow::Result<()> {
+	pub fn leave(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
 			.leave(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
 
-	pub fn draw(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-	) -> anyhow::Result<()> {
+	pub fn draw(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
 			.draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
@@ -165,11 +145,10 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> anyhow::Result<()> {
+	) {
 		self.systems
-			.post_draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)?;
+			.post_draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues);
 		self.queues.flush_world_queue(&mut self.world);
-		Ok(())
 	}
 
 	pub fn show_systems_window(
@@ -181,16 +160,10 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		self.systems.show_systems_window(open, egui_ctx, presets);
 	}
 
-	fn init(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-	) -> anyhow::Result<()> {
+	fn init(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
-			.init(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)?;
+			.init(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues);
 		self.queues.flush_world_queue(&mut self.world);
-		Ok(())
 	}
 }
 
@@ -215,14 +188,14 @@ impl<Globals, EcsContext, EcsEvent> EcsBuilder<Globals, EcsContext, EcsEvent> {
 		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
-	) -> anyhow::Result<Ecs<Globals, EcsContext, EcsEvent>> {
+	) -> Ecs<Globals, EcsContext, EcsEvent> {
 		let mut ecs = Ecs {
 			world: World::new(),
 			queues: Queues::new(),
 			systems: self.systems,
 		};
-		ecs.init(ctx, globals, ecs_ctx)?;
-		Ok(ecs)
+		ecs.init(ctx, globals, ecs_ctx);
+		ecs
 	}
 }
 

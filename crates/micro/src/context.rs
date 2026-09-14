@@ -26,7 +26,7 @@ use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	color::ColorConstants,
 	context::graphics::GraphicsContext,
-	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event, try_run_ui},
+	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
 	graphics::{Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings},
 	input::{Gamepad, GamepadId, MouseButton, Scancode},
 	text::TextContext,
@@ -34,10 +34,10 @@ use crate::{
 
 /// Starts a Micro application. The app constructor should return a value of a type
 /// that implements [`App`].
-pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F) -> anyhow::Result<()>
+pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F)
 where
 	A: App,
-	F: FnMut(&mut Context) -> anyhow::Result<A>,
+	F: FnMut(&mut Context) -> A,
 {
 	let sdl = sdl3::init().expect("error initializing SDL");
 	let video = sdl.video().expect("error initializing video subsystem");
@@ -75,7 +75,7 @@ where
 	};
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
-	let mut app = app_constructor(&mut ctx)?;
+	let mut app = app_constructor(&mut ctx);
 
 	let mut last_update_time = Instant::now();
 
@@ -112,35 +112,28 @@ where
 		// create egui UI
 		let span = tracy_client::span!("create egui UI");
 		let egui_input = egui_raw_input(&ctx, &events, delta_time);
-		let egui_output = try_run_ui(&egui_ctx, egui_input, |ui| {
+		let egui_output = egui_ctx.run_ui(egui_input, |ui| {
 			if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
-				Panel::top("main_menu")
-					.show(ui, |ui| -> anyhow::Result<()> {
-						egui::MenuBar::new()
-							.ui(ui, |ui| -> anyhow::Result<()> {
-								app.debug_menu(&mut ctx, ui)?;
-								ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-									if let Some(stats) = app.debug_stats(&mut ctx) {
-										for (i, stat) in stats.iter().enumerate() {
-											if i > 0 {
-												ui.separator();
-											}
-											ui.label(stat);
-										}
+				Panel::top("main_menu").show(ui, |ui| {
+					egui::MenuBar::new().ui(ui, |ui| {
+						app.debug_menu(&mut ctx, ui);
+						ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+							if let Some(stats) = app.debug_stats(&mut ctx) {
+								for (i, stat) in stats.iter().enumerate() {
+									if i > 0 {
+										ui.separator();
 									}
-								});
-								Ok(())
-							})
-							.inner?;
-						Ok(())
-					})
-					.inner?;
+									ui.label(stat);
+								}
+							}
+						});
+					});
+				});
 				if visible {
-					app.debug_ui(&mut ctx, &egui_ctx)?;
+					app.debug_ui(&mut ctx, &egui_ctx);
 				}
 			}
-			Ok(())
-		})?;
+		});
 		drop(span);
 		ctx.egui_wants_keyboard_input = egui_ctx.egui_wants_keyboard_input();
 		ctx.egui_wants_mouse_input = egui_ctx.egui_wants_pointer_input();
@@ -170,13 +163,13 @@ where
 			app.event(
 				&mut ctx,
 				event.transform_mouse_events(mouse_event_transform),
-			)?;
+			);
 		}
 		drop(span);
 
 		// update state
 		let span = tracy_client::span!("update");
-		app.update(&mut ctx, delta_time)?;
+		app.update(&mut ctx, delta_time);
 		drop(span);
 
 		// draw state and egui UI
@@ -191,13 +184,13 @@ where
 						..Default::default()
 					},
 				);
-				app.draw(ctx)?;
+				app.draw(ctx);
 			}
 			main_canvas
 				.transformed(main_canvas_transform.unwrap())
 				.draw(&mut ctx);
 		} else {
-			app.draw(&mut ctx)?;
+			app.draw(&mut ctx);
 		}
 		drop(span);
 		let span = tracy_client::span!("draw egui UI");
@@ -205,7 +198,7 @@ where
 		drop(span);
 		ctx.graphics.present();
 
-		app.post_draw(&mut ctx)?;
+		app.post_draw(&mut ctx);
 
 		tracy_client::frame_mark();
 
@@ -213,8 +206,6 @@ where
 			break;
 		}
 	}
-
-	Ok(())
 }
 
 /// Allows you to interact with Micro to check for keyboard inputs,

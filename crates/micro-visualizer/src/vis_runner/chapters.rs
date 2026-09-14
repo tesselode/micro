@@ -7,31 +7,29 @@ use super::VisRunner;
 const BEGINNING_OF_CHAPTER_THRESHOLD: Duration = Duration::from_secs(2);
 
 impl VisRunner {
-	pub fn go_to_chapter(&mut self, chapter_index: usize) -> anyhow::Result<()> {
+	pub fn go_to_chapter(&mut self, chapter_index: usize) {
 		let Some(chapters) = self.visualizer.chapters() else {
-			return Ok(());
+			return;
 		};
-		self.seek(chapters[chapter_index].start_frame)?;
-		Ok(())
+		self.seek(chapters[chapter_index].start_frame);
 	}
 
-	pub fn go_to_next_chapter(&mut self) -> anyhow::Result<()> {
+	pub fn go_to_next_chapter(&mut self) {
 		let Some(chapters) = self.visualizer.chapters() else {
-			return Ok(());
+			return;
 		};
 		let current_chapter_index = chapters
 			.index_at_frame(self.current_frame())
 			.expect("no current chapter");
 		if current_chapter_index >= chapters.len() - 1 {
-			return Ok(());
+			return;
 		}
-		self.go_to_chapter(current_chapter_index + 1)?;
-		Ok(())
+		self.go_to_chapter(current_chapter_index + 1);
 	}
 
-	pub fn go_to_previous_chapter(&mut self) -> anyhow::Result<()> {
+	pub fn go_to_previous_chapter(&mut self) {
 		let Some(chapters) = self.visualizer.chapters() else {
-			return Ok(());
+			return;
 		};
 		let current_chapter_index = chapters
 			.index_at_frame(self.current_frame())
@@ -45,10 +43,9 @@ impl VisRunner {
 		if current_chapter_index == 0
 			|| time_since_start_of_chapter > BEGINNING_OF_CHAPTER_THRESHOLD
 		{
-			self.seek(current_chapter.start_frame)?;
+			self.seek(current_chapter.start_frame);
 		} else {
-			self.go_to_chapter(current_chapter_index - 1)?;
+			self.go_to_chapter(current_chapter_index - 1);
 		}
-		Ok(())
 	}
 }

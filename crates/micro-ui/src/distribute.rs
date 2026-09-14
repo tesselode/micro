@@ -1,5 +1,5 @@
 use micro::{
-	Context, egui,
+	egui,
 	math::{Vec2, vec2},
 };
 
@@ -66,13 +66,12 @@ impl Widget for Distribute {
 		"stack"
 	}
 
-	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		std::mem::take(&mut self.children)
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -101,7 +100,6 @@ impl Widget for Distribute {
 
 	fn layout(
 		&mut self,
-		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 		_state: &mut WidgetState,

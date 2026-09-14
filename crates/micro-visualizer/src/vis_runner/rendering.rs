@@ -1,7 +1,7 @@
 use std::process::{Command, Stdio};
 
 use kira::sound::streaming::StreamingSoundData;
-use micro::{graphics::PresentMode, Context};
+use micro::{graphics::PresentMode, set_present_mode};
 use rfd::FileDialog;
 
 use crate::conversions::frame_to_seconds;
@@ -9,7 +9,7 @@ use crate::conversions::frame_to_seconds;
 use super::{Mode, VisRunner};
 
 impl VisRunner {
-	pub fn render(&mut self, ctx: &mut Context) {
+	pub fn render(&mut self) {
 		let Some(video_path) = FileDialog::new()
 			.set_directory(std::env::current_exe().unwrap())
 			.add_filter("mp4 video", &["mp4"])
@@ -65,10 +65,10 @@ impl VisRunner {
 			current_frame: start_frame,
 			ffmpeg_process,
 		};
-		ctx.set_present_mode(PresentMode::AutoNoVsync);
+		set_present_mode(PresentMode::AutoNoVsync);
 	}
 
-	pub fn on_rendering_finished(&mut self, ctx: &mut Context) {
+	pub fn on_rendering_finished(&mut self) {
 		self.mode = Mode::Stopped {
 			data: Some(
 				StreamingSoundData::from_file(self.visualizer.audio_path())
@@ -76,6 +76,6 @@ impl VisRunner {
 			),
 			start_frame: 0,
 		};
-		ctx.set_present_mode(PresentMode::AutoVsync);
+		set_present_mode(PresentMode::AutoVsync);
 	}
 }

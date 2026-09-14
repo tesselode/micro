@@ -1,5 +1,4 @@
 use micro::{
-	Context,
 	color::{Srgba, rgb::channels::Rgba},
 	graphics::texture::{LoadTextureError, Texture, TextureSettings},
 	image::ImageBuffer,
@@ -21,47 +20,35 @@ impl AssetLoader for TextureLoader {
 
 	type Settings = TextureSettings;
 
-	type Context = Context;
-
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["png"];
 
 	fn load(
 		&mut self,
-		ctx: &mut Context,
 		path: &std::path::Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error> {
-		Texture::from_file(
-			ctx,
-			path,
-			settings.unwrap_or(&self.default_settings).clone(),
-		)
+		Texture::from_file(path, settings.unwrap_or(&self.default_settings).clone())
 	}
 
 	fn reload(
 		&mut self,
-		ctx: &mut Context,
 		asset: &mut Self::Asset,
 		path: &std::path::Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
-		asset.replace(ctx, UVec2::ZERO, &image);
+		asset.replace(UVec2::ZERO, &image);
 		Ok(())
 	}
 
-	fn placeholder(&mut self, ctx: &mut Context) -> Option<Self::Asset> {
+	fn placeholder(&mut self) -> Option<Self::Asset> {
 		let color = Srgba::from_u32::<Rgba>(0xe93cfcff);
 		let image = ImageBuffer::from_pixel(
 			self.placeholder_texture_size.x,
 			self.placeholder_texture_size.y,
 			image::Rgba(color.into()),
 		);
-		Some(Texture::from_image(
-			ctx,
-			&image,
-			self.default_settings.clone(),
-		))
+		Some(Texture::from_image(&image, self.default_settings.clone()))
 	}
 }
 

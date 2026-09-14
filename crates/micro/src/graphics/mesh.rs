@@ -59,24 +59,26 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 
 impl<V: Vertex> Mesh<V> {
 	/// Creates a new mesh with the specified vertices and indices.
-	pub fn new(ctx: &Context, vertices: &[V], indices: &[u32]) -> Self {
+	pub fn new(vertices: &[V], indices: &[u32]) -> Self {
 		let _span = tracy_client::span!();
-		let vertex_buffer = ctx
-			.graphics
-			.device
-			.create_buffer_init(&BufferInitDescriptor {
-				label: Some("Mesh Vertex Buffer"),
-				contents: bytemuck::cast_slice(vertices),
-				usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-			});
-		let index_buffer = ctx
-			.graphics
-			.device
-			.create_buffer_init(&BufferInitDescriptor {
-				label: Some("Mesh Index Buffer"),
-				contents: bytemuck::cast_slice(indices),
-				usage: BufferUsages::INDEX,
-			});
+		let vertex_buffer = Context::with(|ctx| {
+			ctx.graphics
+				.device
+				.create_buffer_init(&BufferInitDescriptor {
+					label: Some("Mesh Vertex Buffer"),
+					contents: bytemuck::cast_slice(vertices),
+					usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+				})
+		});
+		let index_buffer = Context::with(|ctx| {
+			ctx.graphics
+				.device
+				.create_buffer_init(&BufferInitDescriptor {
+					label: Some("Mesh Index Buffer"),
+					contents: bytemuck::cast_slice(indices),
+					usage: BufferUsages::INDEX,
+				})
+		});
 		let num_indices = indices.len() as u32;
 		Self {
 			vertex_buffer,
@@ -125,53 +127,53 @@ impl<V: Vertex> Mesh<V> {
 	/// Overwrites vertex data starting at the specified `index`.
 	///
 	/// This will modify all clones of this [`Mesh`] as well.
-	pub fn set_vertices(&self, ctx: &Context, index: usize, vertices: &[V]) {
+	pub fn set_vertices(&self, index: usize, vertices: &[V]) {
 		let _span = tracy_client::span!();
-		ctx.graphics.queue.write_buffer(
-			&self.vertex_buffer,
-			(index * std::mem::size_of::<V>()) as u64,
-			bytemuck::cast_slice(vertices),
-		);
+		Context::with_mut(|ctx| {
+			ctx.graphics.queue.write_buffer(
+				&self.vertex_buffer,
+				(index * std::mem::size_of::<V>()) as u64,
+				bytemuck::cast_slice(vertices),
+			)
+		});
 	}
 
 	/// Draws the mesh.
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self) {
 		let _span = tracy_client::span!();
 		if self.num_indices == 0 {
 			return;
 		}
-		ctx.graphics
-			.queue_draw_command::<V>(QueueDrawCommandSettings {
-				vertex_buffer: self.vertex_buffer.clone(),
-				index_buffer: self.index_buffer.clone(),
-				range: self.range.unwrap_or((0, self.num_indices)),
-				instances: self.instances,
-				texture: self
-					.texture
-					.as_ref()
-					.unwrap_or(&ctx.graphics.default_resources.default_texture)
-					.clone(),
-				transform: self.transform,
-				color: self.color,
-				blend_mode: self.blend_mode,
-			});
+		Context::with_mut(|ctx| {
+			ctx.graphics
+				.queue_draw_command::<V>(QueueDrawCommandSettings {
+					vertex_buffer: self.vertex_buffer.clone(),
+					index_buffer: self.index_buffer.clone(),
+					range: self.range.unwrap_or((0, self.num_indices)),
+					instances: self.instances,
+					texture: self
+						.texture
+						.as_ref()
+						.unwrap_or(&ctx.graphics.default_resources.default_texture)
+						.clone(),
+					transform: self.transform,
+					color: self.color,
+					blend_mode: self.blend_mode,
+				});
+		})
 	}
 }
 
 impl Mesh<Vertex2d> {
 	/// Creates a new filled rectangle mesh.
-	pub fn rectangle(ctx: &Context, rect: Rect) -> Self {
-		Self::rectangle_with_texture_region(ctx, rect, Rect::new((0.0, 0.0), (1.0, 1.0)))
+	pub fn rectangle(rect: Rect) -> Self {
+		Self::rectangle_with_texture_region(rect, Rect::new((0.0, 0.0), (1.0, 1.0)))
 	}
 
 	/// Creates a new filled rectangle mesh with the specified texture region.
 	///
 	/// Useful for drawing parts of a texture. Used internally by [`Texture::draw`].
-	pub fn rectangle_with_texture_region(
-		ctx: &Context,
-		display_rect: Rect,
-		texture_region: Rect,
-	) -> Self {
+	pub fn rectangle_with_texture_region(display_rect: Rect, texture_region: Rect) -> Self {
 		let _span = tracy_client::span!();
 		let vertices = display_rect
 			.corners()
@@ -184,38 +186,32 @@ impl Mesh<Vertex2d> {
 				color: LinSrgba::WHITE,
 			})
 			.collect::<Vec<_>>();
-		Self::new(ctx, &vertices, &[0, 1, 3, 1, 2, 3])
+		Self::new(&vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
 	/// Creates a new outlined rectangle mesh.
-	pub fn outlined_rectangle(ctx: &Context, stroke_width: f32, rect: Rect) -> Self {
+	pub fn outlined_rectangle(stroke_width: f32, rect: Rect) -> Self {
 		MeshBuilder::new()
 			.with_rectangle(ShapeStyle::Stroke(stroke_width), rect, LinSrgba::WHITE)
-			.build(ctx)
+			.build()
 	}
 
 	/// Creates a new rounded rectangle mesh.
-	pub fn rounded_rectangle(
-		ctx: &Context,
-		style: ShapeStyle,
-		rect: Rect,
-		radii: BorderRadii,
-	) -> Self {
+	pub fn rounded_rectangle(style: ShapeStyle, rect: Rect, radii: BorderRadii) -> Self {
 		MeshBuilder::new()
 			.with_rounded_rectangle(style, rect, radii, LinSrgba::WHITE)
-			.build(ctx)
+			.build()
 	}
 
 	/// Creates a new circle mesh.
-	pub fn circle(ctx: &Context, style: ShapeStyle, circle: Circle) -> Self {
+	pub fn circle(style: ShapeStyle, circle: Circle) -> Self {
 		MeshBuilder::new()
 			.with_circle(style, circle, LinSrgba::WHITE)
-			.build(ctx)
+			.build()
 	}
 
 	/// Creates a new ellipse mesh.
 	pub fn ellipse(
-		ctx: &Context,
 		style: ShapeStyle,
 		center: impl Into<Vec2>,
 		radii: impl Into<Vec2>,
@@ -223,47 +219,41 @@ impl Mesh<Vertex2d> {
 	) -> Self {
 		MeshBuilder::new()
 			.with_ellipse(style, center, radii, rotation, LinSrgba::WHITE)
-			.build(ctx)
+			.build()
 	}
 
 	/// Creates a new filled polygon mesh.
-	pub fn filled_polygon(
-		ctx: &Context,
-		points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>,
-	) -> Self {
-		MeshBuilder::new().with_filled_polygon(points).build(ctx)
+	pub fn filled_polygon(points: impl IntoIterator<Item = impl Into<FilledPolygonPoint>>) -> Self {
+		MeshBuilder::new().with_filled_polygon(points).build()
 	}
 
 	/// Creates a new polyline mesh.
 	pub fn polyline(
-		ctx: &Context,
 		points: impl IntoIterator<Item = impl Into<StrokePoint>>,
 		closed: bool,
 	) -> Self {
-		MeshBuilder::new().with_polyline(points, closed).build(ctx)
+		MeshBuilder::new().with_polyline(points, closed).build()
 	}
 
 	/// Creates a new polygon mesh where all of the vertices have
 	/// the same color and stroke width (if applicable).
 	pub fn simple_polygon(
-		ctx: &Context,
 		style: ShapeStyle,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Self {
 		MeshBuilder::new()
 			.with_simple_polygon(style, points, LinSrgba::WHITE)
-			.build(ctx)
+			.build()
 	}
 
 	/// Creates a new polyline mesh where all of the vertices have
 	/// the same color and stroke width.
 	pub fn simple_polyline(
-		ctx: &Context,
 		stroke_width: f32,
 		points: impl IntoIterator<Item = impl Into<Vec2>>,
 	) -> Self {
 		MeshBuilder::new()
 			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)
-			.build(ctx)
+			.build()
 	}
 }

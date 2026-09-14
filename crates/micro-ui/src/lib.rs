@@ -41,7 +41,7 @@ pub use widget_state::*;
 use std::fmt::Debug;
 
 use micro::{
-	Context, egui,
+	egui,
 	math::{Mat4, Vec2},
 };
 
@@ -57,21 +57,20 @@ pub trait Widget: Debug {
 		None
 	}
 
-	fn children(&mut self, ctx: &mut Context, state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		vec![]
 	}
 
-	fn transform(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) -> Mat4 {
+	fn transform(&mut self, size: Vec2, state: &mut WidgetState) -> Mat4 {
 		Mat4::IDENTITY
 	}
 
-	fn mask(&mut self, ctx: &mut Context, state: &mut WidgetState) -> Option<Box<dyn Widget>> {
+	fn mask(&mut self, state: &mut WidgetState) -> Option<Box<dyn Widget>> {
 		None
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		previous_child_sizes: &[Vec2],
 		state: &mut WidgetState,
@@ -81,7 +80,6 @@ pub trait Widget: Debug {
 
 	fn layout(
 		&mut self,
-		ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 		state: &mut WidgetState,
@@ -93,11 +91,11 @@ pub trait Widget: Debug {
 		}
 	}
 
-	fn draw_before_children(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) {}
+	fn draw_before_children(&mut self, size: Vec2, state: &mut WidgetState) {}
 
-	fn draw_after_children(&mut self, ctx: &mut Context, size: Vec2, state: &mut WidgetState) {}
+	fn draw_after_children(&mut self, size: Vec2, state: &mut WidgetState) {}
 
-	fn on_finish(&mut self, ctx: &mut Context, state: &mut WidgetState) {}
+	fn on_finish(&mut self, state: &mut WidgetState) {}
 
 	fn debug_info(&self, egui_ui: &mut egui::Ui, state: &WidgetState) {}
 }

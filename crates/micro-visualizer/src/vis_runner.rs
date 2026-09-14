@@ -12,13 +12,14 @@ use kira::{
 	AudioManager, AudioManagerSettings, Decibels, Tween,
 };
 use micro::{
+	fps,
 	graphics::{
 		texture::{FilterMode, TextureSettings},
 		Canvas, CanvasSettings,
 	},
 	input::Scancode,
 	math::{UVec2, Vec2},
-	App, Context, Event,
+	window_size, App, Event,
 };
 
 use crate::{
@@ -43,7 +44,7 @@ pub struct VisRunner {
 }
 
 impl VisRunner {
-	pub fn new(ctx: &mut Context, visualizer: Box<dyn Visualizer>) -> Self {
+	pub fn new(visualizer: Box<dyn Visualizer>) -> Self {
 		dotenvy::dotenv().ok();
 		let audio_manager =
 			AudioManager::new(AudioManagerSettings::default()).expect("error initializing audio");
@@ -51,7 +52,7 @@ impl VisRunner {
 			.expect("error loading audio file");
 		let num_frames =
 			seconds_to_frames(sound_data.duration().as_secs_f64(), visualizer.frame_rate());
-		let canvas = Canvas::new(ctx, visualizer.video_resolution(), main_canvas_settings());
+		let canvas = Canvas::new(visualizer.video_resolution(), main_canvas_settings());
 		let rendering_settings = if let Some(chapters) = visualizer.chapters() {
 			RenderingSettings {
 				start_chapter_index: 0,
@@ -230,20 +231,20 @@ impl VisRunner {
 }
 
 impl App for VisRunner {
-	fn debug_stats(&mut self, ctx: &mut Context) -> Option<Vec<String>> {
-		Some(vec![format!("{:.0} FPS", ctx.fps())])
+	fn debug_stats(&mut self) -> Option<Vec<String>> {
+		Some(vec![format!("{:.0} FPS", fps())])
 	}
 
-	fn debug_menu(&mut self, ctx: &mut Context, ui: &mut micro::egui::Ui) {
-		self.render_main_menu_contents(ctx, ui)
+	fn debug_menu(&mut self, ui: &mut micro::egui::Ui) {
+		self.render_main_menu_contents(ui)
 	}
 
-	fn debug_ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
-		self.render_rendering_window(ctx, egui_ctx);
-		self.visualizer.ui(ctx, egui_ctx, self.vis_info());
+	fn debug_ui(&mut self, egui_ctx: &micro::egui::Context) {
+		self.render_rendering_window(egui_ctx);
+		self.visualizer.ui(egui_ctx, self.vis_info());
 	}
 
-	fn event(&mut self, ctx: &mut Context, event: Event) {
+	fn event(&mut self, event: Event) {
 		if let Event::KeyPressed { key, .. } = event {
 			match key {
 				Scancode::Space => self.toggle_playback(),
@@ -255,14 +256,14 @@ impl App for VisRunner {
 			}
 		}
 
-		self.visualizer.event(ctx, self.vis_info(), event);
+		self.visualizer.event(self.vis_info(), event);
 	}
 
-	fn update(&mut self, ctx: &mut Context, delta_time: Duration) {
+	fn update(&mut self, delta_time: Duration) {
 		let loop_region = self.audio_loop_region();
 
 		if self.canvas.size() != self.current_resolution() {
-			self.canvas = Canvas::new(ctx, self.current_resolution(), main_canvas_settings());
+			self.canvas = Canvas::new(self.current_resolution(), main_canvas_settings());
 		}
 
 		if let Mode::PlayingOrPaused {
@@ -296,26 +297,26 @@ impl App for VisRunner {
 			}
 		}
 
-		self.visualizer.update(ctx, self.vis_info(), delta_time);
+		self.visualizer.update(self.vis_info(), delta_time);
 	}
 
-	fn draw(&mut self, ctx: &mut Context) {
+	fn draw(&mut self) {
 		let current_frame = self.current_frame();
 		if current_frame != self.previous_frame {
-			self.visualizer.draw(ctx, self.vis_info(), &self.canvas);
+			self.visualizer.draw(self.vis_info(), &self.canvas);
 			self.previous_frame = current_frame;
 		}
-		let max_horizontal_scale = ctx.window_size().x as f32 / self.canvas.size().x as f32;
-		let max_vertical_scale = ctx.window_size().y as f32 / self.canvas.size().y as f32;
+		let max_horizontal_scale = window_size().x as f32 / self.canvas.size().x as f32;
+		let max_vertical_scale = window_size().y as f32 / self.canvas.size().y as f32;
 		let scale = max_horizontal_scale.min(max_vertical_scale);
 		self.canvas
 			.translated_2d(-self.canvas.size().as_vec2() / 2.0)
 			.scaled_2d(Vec2::splat(scale))
-			.translated_2d(ctx.window_size().as_vec2() / 2.0)
-			.draw(ctx);
+			.translated_2d(window_size().as_vec2() / 2.0)
+			.draw();
 	}
 
-	fn post_draw(&mut self, ctx: &mut Context) {
+	fn post_draw(&mut self) {
 		if let Mode::Rendering {
 			end_frame,
 			current_frame,
@@ -323,7 +324,7 @@ impl App for VisRunner {
 		} = &mut self.mode
 		{
 			let mut should_stop_rendering = false;
-			self.canvas.read(ctx, |data| {
+			self.canvas.read(|data| {
 				let ffmpeg_stdin = ffmpeg_process.stdin.as_mut().unwrap();
 				let write_result = ffmpeg_stdin.write_all(data);
 				if write_result.is_err() {
@@ -336,7 +337,7 @@ impl App for VisRunner {
 				}
 			});
 			if should_stop_rendering {
-				self.on_rendering_finished(ctx);
+				self.on_rendering_finished();
 			}
 		}
 	}

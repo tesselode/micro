@@ -15,15 +15,16 @@ impl StorageBuffer {
 	/// Creates a new [`StorageBuffer`].
 	///
 	/// The label is visible in graphics debugging programs, like RenderDoc.
-	pub fn new<T: NoUninit>(ctx: &Context, label: &str, data: &[T]) -> Self {
-		Self(
+	pub fn new<T: NoUninit>(label: &str, data: &[T]) -> Self {
+		let buffer = Context::with(|ctx| {
 			ctx.graphics
 				.device
 				.create_buffer_init(&BufferInitDescriptor {
 					label: Some(label),
 					contents: bytemuck::cast_slice(data),
 					usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
-				}),
-		)
+				})
+		});
+		Self(buffer)
 	}
 }

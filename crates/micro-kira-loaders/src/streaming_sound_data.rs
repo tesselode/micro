@@ -15,13 +15,10 @@ impl AssetLoader for StreamingSoundDataLoader {
 
 	type Settings = ();
 
-	type Context = ();
-
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["mp3", "ogg", "flac", "wav"];
 
 	fn load(
 		&mut self,
-		_ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error> {

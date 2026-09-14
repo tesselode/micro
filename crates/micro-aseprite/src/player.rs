@@ -4,7 +4,6 @@ use std::{
 };
 
 use micro::{
-	Context,
 	color::{ColorConstants, LinSrgba},
 	graphics::{BlendMode, texture::Texture},
 	math::Mat4,
@@ -104,7 +103,7 @@ impl AnimationPlayer {
 		}
 	}
 
-	pub fn draw(&self, ctx: &mut Context, texture: &Texture) {
+	pub fn draw(&self, texture: &Texture) {
 		texture
 			.region(
 				self.inner.try_lock().unwrap().animation_data.frames
@@ -114,7 +113,7 @@ impl AnimationPlayer {
 			.transformed(self.transform)
 			.color(self.color)
 			.blend_mode(self.blend_mode)
-			.draw(ctx);
+			.draw();
 	}
 }
 

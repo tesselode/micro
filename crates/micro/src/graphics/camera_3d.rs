@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use glam::{Mat4, Vec3};
 
-use crate::{Context, Push, context::OnDrop, math::Rect};
+use crate::{Context, Push, context::OnDrop, current_render_target_size, math::Rect, push};
 
 /// Settings for a 3D camera.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -151,22 +151,22 @@ impl Camera3d {
 
 	/// Returns a transformation that can be passed to [`Context::push`] to use
 	/// this camera for drawing operations.
-	pub fn transform(self, ctx: &Context) -> Mat4 {
+	pub fn transform(self) -> Mat4 {
 		let _span = tracy_client::span!();
-		Self::undo_2d_coordinate_system_transform(ctx) * self.projection() * self.view()
+		Self::undo_2d_coordinate_system_transform() * self.projection() * self.view()
 	}
 
 	/// Pushes this camera's transformation to the graphics stack.
-	pub fn push(self, ctx: &'_ mut Context) -> OnDrop<'_> {
-		ctx.push(Push {
-			transform: Some(self.transform(ctx)),
+	pub fn push(self, ctx: &'_ mut Context) -> OnDrop {
+		push(Push {
+			transform: Some(self.transform()),
 			enable_depth_testing: Some(true),
 			..Default::default()
 		})
 	}
 
-	fn undo_2d_coordinate_system_transform(ctx: &Context) -> Mat4 {
-		let current_render_target_size = ctx.current_render_target_size();
+	fn undo_2d_coordinate_system_transform() -> Mat4 {
+		let current_render_target_size = current_render_target_size();
 		(Mat4::from_translation(Vec3::new(-1.0, 1.0, 0.0))
 			* Mat4::from_scale(Vec3::new(
 				2.0 / current_render_target_size.x as f32,

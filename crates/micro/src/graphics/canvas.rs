@@ -1,7 +1,5 @@
 //! Types for drawing to off-screen render targets.
 
-use std::ops::{Deref, DerefMut};
-
 use glam::{Mat4, UVec2, Vec2};
 use palette::LinSrgba;
 use wgpu::{
@@ -43,8 +41,8 @@ pub struct Canvas {
 
 impl Canvas {
 	/// Creates a new [`Canvas`] with the specified `size` in pixels.
-	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
-		Self::new_from_graphics_ctx(&ctx.graphics, size, settings)
+	pub fn new(size: UVec2, settings: CanvasSettings) -> Self {
+		Context::with(|ctx| Self::new_from_graphics_ctx(&ctx.graphics, size, settings))
 	}
 
 	standard_draw_param_methods!();
@@ -80,7 +78,7 @@ impl Canvas {
 		}
 	}
 
-	pub fn read<T>(&self, ctx: &Context, f: impl FnOnce(&[u8]) -> T) -> T {
+	pub fn read<T>(&self, f: impl FnOnce(&[u8]) -> T) -> T {
 		let bytes_per_pixel = self
 			.format
 			.block_copy_size(None)
@@ -89,12 +87,13 @@ impl Canvas {
 			.read_buffer
 			.clone()
 			.expect("cannot read from a canvas not set as readable");
-		let mut encoder = ctx
-			.graphics
-			.device
-			.create_command_encoder(&CommandEncoderDescriptor {
-				label: Some("Read Canvas Command Encoder"),
-			});
+		let mut encoder = Context::with_mut(|ctx| {
+			ctx.graphics
+				.device
+				.create_command_encoder(&CommandEncoderDescriptor {
+					label: Some("Read Canvas Command Encoder"),
+				})
+		});
 		let source = match &self.kind {
 			CanvasKind::Normal { texture } => texture,
 			CanvasKind::Multisampled {
@@ -120,14 +119,16 @@ impl Canvas {
 		encoder.map_buffer_on_submit(&buffer, MapMode::Read, .., |result| {
 			result.expect("error mapping buffer");
 		});
-		let submission = ctx.graphics.queue.submit([encoder.finish()]);
-		ctx.graphics
-			.device
-			.poll(PollType::Wait {
-				submission_index: Some(submission),
-				timeout: None,
-			})
-			.unwrap();
+		Context::with_mut(|ctx| {
+			let submission = ctx.graphics.queue.submit([encoder.finish()]);
+			ctx.graphics
+				.device
+				.poll(PollType::Wait {
+					submission_index: Some(submission),
+					timeout: None,
+				})
+				.unwrap();
+		});
 		let view = buffer.get_mapped_range(..).expect("error mapping range");
 		let slice: &[u8] = &view;
 		let result = f(slice);
@@ -139,25 +140,23 @@ impl Canvas {
 	/// Sets future drawing operations to happen on this canvas instead of the
 	/// window. Returns an object which, when dropped, sets the render
 	/// target back to the window.
-	pub fn render_to<'a>(
-		&self,
-		ctx: &'a mut Context,
-		settings: RenderToCanvasSettings,
-	) -> OnDrop<'a> {
+	pub fn render_to(&self, settings: RenderToCanvasSettings) -> OnDrop {
 		let _span = tracy_client::span!();
-		ctx.graphics
-			.start_canvas_render_pass(self.clone(), settings);
-		OnDrop { ctx }
+		Context::with_mut(|ctx| {
+			ctx.graphics
+				.start_canvas_render_pass(self.clone(), settings);
+		});
+		OnDrop
 	}
 
 	/// Draws the canvas.
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self) {
 		self.drawable_texture()
 			.region(self.region)
 			.transformed(self.transform)
 			.color(self.color)
 			.blend_mode(self.blend_mode)
-			.draw(ctx)
+			.draw()
 	}
 
 	pub(crate) fn new_from_graphics_ctx(
@@ -320,27 +319,13 @@ impl Default for RenderToCanvasSettings {
 
 /// Sets the render target back to the window surface when dropped.
 #[must_use]
-pub struct OnDrop<'a> {
-	pub(crate) ctx: &'a mut Context,
-}
+pub struct OnDrop;
 
-impl Drop for OnDrop<'_> {
+impl Drop for OnDrop {
 	fn drop(&mut self) {
-		self.ctx.graphics.finish_canvas_render_pass();
-	}
-}
-
-impl Deref for OnDrop<'_> {
-	type Target = Context;
-
-	fn deref(&self) -> &Self::Target {
-		self.ctx
-	}
-}
-
-impl DerefMut for OnDrop<'_> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		self.ctx
+		Context::with_mut(|ctx| {
+			ctx.graphics.finish_canvas_render_pass();
+		})
 	}
 }
 

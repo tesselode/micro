@@ -1,7 +1,7 @@
 use kira::Decibels;
 use micro::{
 	egui::{ComboBox, InnerResponse, Slider, Ui},
-	log_if_err, Context,
+	log_if_err,
 };
 
 use crate::conversions::frame_to_seconds;
@@ -9,7 +9,7 @@ use crate::conversions::frame_to_seconds;
 use super::{LiveResolution, Mode, VisRunner};
 
 impl VisRunner {
-	pub fn render_main_menu_contents(&mut self, ctx: &mut Context, ui: &mut Ui) {
+	pub fn render_main_menu_contents(&mut self, ui: &mut Ui) {
 		self.render_play_pause_button(ui);
 		self.render_seekbar(ui);
 		ui.separator();
@@ -36,10 +36,10 @@ impl VisRunner {
 		if ui.button("Render").clicked() {
 			self.show_rendering_window = true;
 		}
-		self.visualizer.menu(ctx, ui, self.vis_info());
+		self.visualizer.menu(ui, self.vis_info());
 	}
 
-	pub fn render_rendering_window(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context) {
+	pub fn render_rendering_window(&mut self, egui_ctx: &micro::egui::Context) {
 		let response = micro::egui::Window::new("Rendering")
 			.open(&mut self.show_rendering_window)
 			.show(egui_ctx, |ui| {
@@ -74,9 +74,9 @@ impl VisRunner {
 		{
 			if let Mode::Rendering { ffmpeg_process, .. } = &mut self.mode {
 				log_if_err!(ffmpeg_process.kill());
-				self.on_rendering_finished(ctx);
+				self.on_rendering_finished();
 			} else {
-				self.render(ctx);
+				self.render();
 			}
 		}
 	}

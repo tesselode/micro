@@ -42,12 +42,14 @@ pub struct Text {
 
 impl Text {
 	/// Creates a new [`Text`].
-	pub fn new(ctx: &mut Context, builder: TextBuilder) -> Self {
+	pub fn new(builder: TextBuilder) -> Self {
 		let _span = tracy_client::span!();
-		let mut buffer = cosmic_text::Buffer::new(
-			&mut ctx.text.font_system,
-			Metrics::relative(builder.font_size, builder.line_height),
-		);
+		let mut buffer = Context::with_mut(|ctx| {
+			cosmic_text::Buffer::new(
+				&mut ctx.text.font_system,
+				Metrics::relative(builder.font_size, builder.line_height),
+			)
+		});
 		let (width, align) = match builder.horizontal_sizing {
 			TextHorizontalSizing::Min => (None, None),
 			TextHorizontalSizing::Fixed { width, align } => (Some(width), Some(align)),
@@ -66,7 +68,9 @@ impl Text {
 			align,
 		);
 		buffer.set_size(width, None);
-		buffer.shape_until_scroll(&mut ctx.text.font_system, true);
+		Context::with_mut(|ctx| {
+			buffer.shape_until_scroll(&mut ctx.text.font_system, true);
+		});
 		let mut sprites: Vec<(IRect, Vec2)> = vec![];
 		let mut glyph_bounds: Option<Rect> = None;
 		let mut line_bounds: Option<Rect> = None;
@@ -76,11 +80,13 @@ impl Text {
 				let Some(GlyphInfo {
 					texture_rect,
 					offset,
-				}) = ctx.text.glyph_rect(
-					&ctx.graphics.device,
-					&ctx.graphics.queue,
-					physical_glyph.cache_key,
-				)
+				}) = Context::with_mut(|ctx| {
+					ctx.text.glyph_rect(
+						&ctx.graphics.device,
+						&ctx.graphics.queue,
+						physical_glyph.cache_key,
+					)
+				})
 				else {
 					continue;
 				};
@@ -108,10 +114,11 @@ impl Text {
 				}
 			}
 		}
-		let mut sprite_batch = SpriteBatch::new(ctx, &ctx.text.texture, sprites.len());
+		let mut sprite_batch =
+			Context::with(|ctx| SpriteBatch::new(&ctx.text.texture, sprites.len()));
 		for (texture_region, position) in &sprites {
 			sprite_batch
-				.add_region(ctx, texture_region.as_rect(), *position)
+				.add_region(texture_region.as_rect(), *position)
 				.expect("sprite batch is full");
 		}
 		Self {
@@ -161,7 +168,7 @@ impl Text {
 	}
 
 	/// Draws the text.
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self) {
 		let _span = tracy_client::span!();
 		self.inner
 			.sprite_batch
@@ -169,7 +176,7 @@ impl Text {
 			.color(self.color)
 			.blend_mode(self.blend_mode)
 			.range(self.range)
-			.draw(ctx);
+			.draw();
 	}
 }
 
@@ -260,8 +267,8 @@ impl TextBuilder {
 		}
 	}
 
-	pub fn build(self, ctx: &mut Context) -> Text {
-		Text::new(ctx, self)
+	pub fn build(self) -> Text {
+		Text::new(self)
 	}
 }
 

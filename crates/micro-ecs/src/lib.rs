@@ -10,7 +10,7 @@ pub use hecs::*;
 use std::time::Duration;
 
 use indexmap::IndexMap;
-use micro::{Context, Event};
+use micro::Event;
 
 pub struct Ecs<Globals, EcsContext, EcsEvent> {
 	world: World,
@@ -37,13 +37,11 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 
 	pub fn debug_ui(
 		&mut self,
-		ctx: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 	) {
 		self.systems.debug_ui(
-			ctx,
 			egui_ctx,
 			globals,
 			ecs_ctx,
@@ -52,49 +50,28 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		)
 	}
 
-	pub fn event(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-		event: &Event,
-	) {
-		self.systems.event(
-			ctx,
-			globals,
-			ecs_ctx,
-			&mut self.world,
-			&mut self.queues,
-			event,
-		)
+	pub fn event(&mut self, globals: &mut Globals, ecs_ctx: &mut EcsContext, event: &Event) {
+		self.systems
+			.event(globals, ecs_ctx, &mut self.world, &mut self.queues, event)
 	}
 
 	pub fn dispatch_ecs_event(
 		&mut self,
-		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		event: &EcsEvent,
 	) {
-		self.systems.ecs_event(
-			ctx,
-			globals,
-			ecs_ctx,
-			&mut self.world,
-			&mut self.queues,
-			event,
-		)
+		self.systems
+			.ecs_event(globals, ecs_ctx, &mut self.world, &mut self.queues, event)
 	}
 
 	pub fn update(
 		&mut self,
-		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		delta_time: Duration,
 	) {
 		self.systems.update(
-			ctx,
 			globals,
 			ecs_ctx,
 			&mut self.world,
@@ -105,13 +82,11 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 
 	pub fn update_cosmetic(
 		&mut self,
-		ctx: &mut Context,
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 		delta_time: Duration,
 	) {
 		self.systems.update_cosmetic(
-			ctx,
 			globals,
 			ecs_ctx,
 			&mut self.world,
@@ -120,34 +95,29 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		)
 	}
 
-	pub fn pause(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
+	pub fn pause(&mut self, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
-			.pause(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
+			.pause(globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
 
-	pub fn resume(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
+	pub fn resume(&mut self, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
-			.resume(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
+			.resume(globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
 
-	pub fn leave(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
+	pub fn leave(&mut self, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
-			.leave(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
+			.leave(globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
 
-	pub fn draw(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
+	pub fn draw(&mut self, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
-			.draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues)
+			.draw(globals, ecs_ctx, &mut self.world, &mut self.queues)
 	}
 
-	pub fn post_draw(
-		&mut self,
-		ctx: &mut Context,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-	) {
+	pub fn post_draw(&mut self, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
-			.post_draw(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues);
+			.post_draw(globals, ecs_ctx, &mut self.world, &mut self.queues);
 		self.queues.flush_world_queue(&mut self.world);
 	}
 
@@ -160,9 +130,9 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		self.systems.show_systems_window(open, egui_ctx, presets);
 	}
 
-	fn init(&mut self, ctx: &mut Context, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
+	fn init(&mut self, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
 		self.systems
-			.init(ctx, globals, ecs_ctx, &mut self.world, &mut self.queues);
+			.init(globals, ecs_ctx, &mut self.world, &mut self.queues);
 		self.queues.flush_world_queue(&mut self.world);
 	}
 }
@@ -185,7 +155,7 @@ impl<Globals, EcsContext, EcsEvent> EcsBuilder<Globals, EcsContext, EcsEvent> {
 
 	pub fn build(
 		self,
-		ctx: &mut Context,
+
 		globals: &mut Globals,
 		ecs_ctx: &mut EcsContext,
 	) -> Ecs<Globals, EcsContext, EcsEvent> {
@@ -194,7 +164,7 @@ impl<Globals, EcsContext, EcsEvent> EcsBuilder<Globals, EcsContext, EcsEvent> {
 			queues: Queues::new(),
 			systems: self.systems,
 		};
-		ecs.init(ctx, globals, ecs_ctx);
+		ecs.init(globals, ecs_ctx);
 		ecs
 	}
 }

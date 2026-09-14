@@ -28,34 +28,37 @@ pub struct Shader {
 impl Shader {
 	/// Loads a shader from a file.
 	pub fn from_file(
-		ctx: &mut Context,
 		name: impl Into<String>,
 		path: impl AsRef<Path>,
 	) -> Result<Shader, LoadShaderError> {
 		let source = std::fs::read_to_string(path.as_ref())?;
-		Ok(Self::from_string(ctx, name, &source)?)
+		Ok(Self::from_string(name, &source)?)
 	}
 
 	/// Loads a shader from a string.
 	pub fn from_string(
-		ctx: &mut Context,
 		name: impl Into<String>,
 		source: impl Into<String>,
 	) -> Result<Self, wgpu::Error> {
-		Self::new(
-			name,
-			source,
-			&ctx.graphics.device,
-			&mut ctx.graphics.compiled_shaders,
-		)
+		Context::with_mut(|ctx| {
+			Self::new(
+				name,
+				source,
+				&ctx.graphics.device,
+				&mut ctx.graphics.compiled_shaders,
+			)
+		})
 	}
 
 	/// Returns a clone of this shader with the specified source code.
-	pub fn with_source(&mut self, ctx: &mut Context, source: String) -> Result<Self, wgpu::Error> {
-		let compiled = CompiledShader::new(&ctx.graphics.device, &self.name, &source)?;
-		ctx.graphics
-			.compiled_shaders
-			.insert(source.clone(), compiled);
+	pub fn with_source(&mut self, source: String) -> Result<Self, wgpu::Error> {
+		Context::with_mut(|ctx| {
+			let compiled = CompiledShader::new(&ctx.graphics.device, &self.name, &source)?;
+			ctx.graphics
+				.compiled_shaders
+				.insert(source.clone(), compiled);
+			Ok(())
+		})?;
 		Ok(Self {
 			source,
 			..self.clone()
@@ -63,22 +66,24 @@ impl Shader {
 	}
 
 	/// Returns a clone of this shader with the specified set of uniform values.
-	pub fn with_params(&self, ctx: &Context, params: impl Pod) -> Self {
-		let buffer = ctx
-			.graphics
-			.device
-			.create_buffer_init(&BufferInitDescriptor {
-				label: Some(&format!("{} - Shader Params Buffer", &self.name)),
-				contents: bytemuck::cast_slice(&[params]),
-				usage: BufferUsages::UNIFORM,
-			});
-		let params_bind_group = ctx.graphics.device.create_bind_group(&BindGroupDescriptor {
-			label: Some(&format!("{} - Shader Params Bind Group", &self.name)),
-			layout: &ctx.graphics.layouts.shader_params_bind_group_layout,
-			entries: &[BindGroupEntry {
-				binding: 0,
-				resource: buffer.as_entire_binding(),
-			}],
+	pub fn with_params(&self, params: impl Pod) -> Self {
+		let params_bind_group = Context::with(|ctx| {
+			let buffer = ctx
+				.graphics
+				.device
+				.create_buffer_init(&BufferInitDescriptor {
+					label: Some(&format!("{} - Shader Params Buffer", &self.name)),
+					contents: bytemuck::cast_slice(&[params]),
+					usage: BufferUsages::UNIFORM,
+				});
+			ctx.graphics.device.create_bind_group(&BindGroupDescriptor {
+				label: Some(&format!("{} - Shader Params Bind Group", &self.name)),
+				layout: &ctx.graphics.layouts.shader_params_bind_group_layout,
+				entries: &[BindGroupEntry {
+					binding: 0,
+					resource: buffer.as_entire_binding(),
+				}],
+			})
 		});
 		Self {
 			params_bind_group: Some(params_bind_group),
@@ -87,8 +92,8 @@ impl Shader {
 	}
 
 	/// Sets the uniforms to be used with this shader.
-	pub fn set_params(&mut self, ctx: &Context, params: impl Pod) {
-		*self = self.with_params(ctx, params);
+	pub fn set_params(&mut self, params: impl Pod) {
+		*self = self.with_params(params);
 	}
 
 	/// Returns a clone of this shader with the specified set of storage buffers.

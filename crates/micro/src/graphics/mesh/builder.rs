@@ -366,9 +366,9 @@ impl MeshBuilder {
 	}
 
 	/// Consumes the [`MeshBuilder`] and returns a [`Mesh`].
-	pub fn build(self, ctx: &Context) -> Mesh {
+	pub fn build(self) -> Mesh {
 		let _span = tracy_client::span!();
-		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
+		Mesh::new(&self.buffers.vertices, &self.buffers.indices)
 	}
 
 	fn add_rectangle_inner(&mut self, style: ShapeStyle, rect: Rect, color: LinSrgba) {

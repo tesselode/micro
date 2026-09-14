@@ -20,7 +20,7 @@ impl AssetLoader for AnimationDataLoader {
 
 	fn load(
 		&mut self,
-		_ctx: &mut (),
+		ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error> {
@@ -44,7 +44,7 @@ impl AssetLoader for MultipleAnimationDataLoader {
 
 	fn load(
 		&mut self,
-		_ctx: &mut (),
+		ctx: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error> {

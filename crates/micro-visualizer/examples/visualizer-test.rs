@@ -4,14 +4,13 @@ use micro::{
 	egui::Ui,
 	graphics::{mesh::Mesh, Canvas, RenderToCanvasSettings},
 	math::Rect,
-	Context,
 };
 use micro_visualizer::{Visualizer, VisualizerInfo};
 
 struct TestVisualizer;
 
 impl TestVisualizer {
-	pub fn new(_ctx: &mut Context) -> Self {
+	pub fn new() -> Self {
 		Self
 	}
 }
@@ -21,17 +20,17 @@ impl Visualizer for TestVisualizer {
 		"test.flac".into()
 	}
 
-	fn menu(&mut self, _ctx: &mut Context, ui: &mut Ui, _vis_info: VisualizerInfo) {
+	fn menu(&mut self, ui: &mut Ui, _vis_info: VisualizerInfo) {
 		ui.label("hello!");
 	}
 
-	fn draw(&mut self, ctx: &mut Context, vis_info: VisualizerInfo, main_canvas: &Canvas) {
-		let ctx = &mut main_canvas.render_to(ctx, RenderToCanvasSettings::default());
-		Mesh::rectangle(
-			ctx,
-			Rect::new((50.0 + vis_info.current_frame as f32, 50.0), (100.0, 150.0)),
-		)
-		.draw(ctx);
+	fn draw(&mut self, vis_info: VisualizerInfo, main_canvas: &Canvas) {
+		let _on_drop = main_canvas.render_to(RenderToCanvasSettings::default());
+		Mesh::rectangle(Rect::new(
+			(50.0 + vis_info.current_frame as f32, 50.0),
+			(100.0, 150.0),
+		))
+		.draw();
 	}
 }
 

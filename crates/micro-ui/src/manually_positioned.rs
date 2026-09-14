@@ -1,4 +1,4 @@
-use micro::{Context, egui, math::Vec2};
+use micro::{egui, math::Vec2};
 
 use crate::{
 	LayoutResult, Sizing, Widget, WidgetInspector, WidgetState, common_functions,
@@ -141,13 +141,12 @@ impl Widget for ManuallyPositioned {
 		"manually positioned"
 	}
 
-	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		std::mem::take(&mut self.children)
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -162,7 +161,6 @@ impl Widget for ManuallyPositioned {
 
 	fn layout(
 		&mut self,
-		_ctx: &mut Context,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 		_state: &mut WidgetState,

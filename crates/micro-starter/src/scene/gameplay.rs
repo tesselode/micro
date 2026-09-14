@@ -21,7 +21,7 @@ pub struct Gameplay {
 }
 
 impl Gameplay {
-	pub fn new(ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<Self> {
+	pub fn new( globals: &mut Globals) -> anyhow::Result<Self> {
 		let gameplay_ctx = GameplayContext::new();
 		macro_rules! systems {
 			($($system:expr),*$(,)?) => {
@@ -44,13 +44,12 @@ impl Gameplay {
 				&mut gameplay.world,
 			)?;
 		}
-		gameplay.dispatch_gameplay_events(ctx, globals)?;
+		gameplay.dispatch_gameplay_events( globals)?;
 		Ok(gameplay)
 	}
 
 	fn dispatch_gameplay_events(
-		&mut self,
-		ctx: &mut Context,
+		&mut self,		
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		while let Some(event) = self.gameplay_ctx.event_queue.pop_front() {
@@ -73,11 +72,11 @@ impl Scene<Globals> for Gameplay {
 		"Gameplay"
 	}
 
-	fn debug_stats(&mut self, ctx: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
+	fn debug_stats(&mut self,  globals: &mut Globals) -> Option<Vec<String>> {
 		let mut stats = vec![format!("Number of entities: {}", self.world.len())];
 		for system in &mut self.systems {
 			if let Some(mut system_stats) =
-				system.debug_stats(ctx, globals, &mut self.gameplay_ctx, &mut self.world)
+				system.debug_stats( globals, &mut self.gameplay_ctx, &mut self.world)
 			{
 				stats.append(&mut system_stats);
 			}
@@ -86,20 +85,18 @@ impl Scene<Globals> for Gameplay {
 	}
 
 	fn debug_menu(
-		&mut self,
-		ctx: &mut Context,
+		&mut self,		
 		ui: &mut micro::egui::Ui,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
 		for system in &mut self.systems {
-			system.debug_menu(ctx, ui, globals, &mut self.gameplay_ctx, &mut self.world)?;
+			system.debug_menu( ui, globals, &mut self.gameplay_ctx, &mut self.world)?;
 		}
-		self.dispatch_gameplay_events(ctx, globals)
+		self.dispatch_gameplay_events( globals)
 	}
 
 	fn debug_ui(
-		&mut self,
-		ctx: &mut Context,
+		&mut self,		
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
 	) -> anyhow::Result<()> {
@@ -112,24 +109,22 @@ impl Scene<Globals> for Gameplay {
 				&mut self.world,
 			)?;
 		}
-		self.dispatch_gameplay_events(ctx, globals)
+		self.dispatch_gameplay_events( globals)
 	}
 
 	fn event(
-		&mut self,
-		ctx: &mut Context,
+		&mut self,		
 		globals: &mut Globals,
 		event: &Event,
 	) -> anyhow::Result<()> {
 		for system in &mut self.systems {
-			system.event(ctx, globals, &mut self.gameplay_ctx, &mut self.world, event)?;
+			system.event( globals, &mut self.gameplay_ctx, &mut self.world, event)?;
 		}
-		self.dispatch_gameplay_events(ctx, globals)
+		self.dispatch_gameplay_events( globals)
 	}
 
 	fn update(
-		&mut self,
-		ctx: &mut Context,
+		&mut self,		
 		globals: &mut Globals,
 		delta_time: Duration,
 	) -> anyhow::Result<()> {
@@ -142,12 +137,12 @@ impl Scene<Globals> for Gameplay {
 				delta_time,
 			)?;
 		}
-		self.dispatch_gameplay_events(ctx, globals)
+		self.dispatch_gameplay_events( globals)
 	}
 
-	fn draw(&mut self, ctx: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
+	fn draw(&mut self,  globals: &mut Globals) -> anyhow::Result<()> {
 		for system in &mut self.systems {
-			system.draw(ctx, globals, &mut self.gameplay_ctx, &mut self.world)?;
+			system.draw( globals, &mut self.gameplay_ctx, &mut self.world)?;
 		}
 		self.gameplay_ctx
 			.world_command_buffer

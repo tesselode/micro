@@ -12,7 +12,7 @@ pub struct Globals {
 }
 
 impl Globals {
-	pub fn new(ctx: &mut Context) -> Self {
+	pub fn new() -> Self {
 		Self {
 			input: Input::new(
 				default_input_config(),
@@ -21,7 +21,7 @@ impl Globals {
 					.drain(..)
 					.next(),
 			),
-			textures: Assets::autoloaded(ctx, "texture", TextureLoader::default()),
+			textures: Assets::autoloaded( "texture", TextureLoader::default()),
 		}
 	}
 }

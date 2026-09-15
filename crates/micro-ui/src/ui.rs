@@ -58,7 +58,6 @@ impl Ui {
 		}
 
 		// bake the root widget
-		let _on_drop = push(settings.transform);
 		let default_size = window_size().as_vec2();
 		let mut baked_widget = BakedWidget::new(
 			widget.id().unwrap_or_else(|| "root".to_string()),
@@ -71,13 +70,15 @@ impl Ui {
 		self.mouse_input.update(settings.transform.inverse());
 		baked_widget.use_mouse_input(self.mouse_input.clone(), &mut self.widget_state);
 
-		// draw
-		baked_widget.draw(&mut self.widget_state);
+		push(settings.transform, || {
+			// draw
+			baked_widget.draw(&mut self.widget_state);
 
-		// draw debug
-		if let Some(draw_debug_state) = self.draw_debug_state.take() {
-			baked_widget.draw_debug(&draw_debug_state);
-		}
+			// draw debug
+			if let Some(draw_debug_state) = self.draw_debug_state.take() {
+				baked_widget.draw_debug(&draw_debug_state);
+			}
+		});
 
 		// report bounds and transforms
 		baked_widget.report(
@@ -203,19 +204,22 @@ impl BakedWidget {
 
 	fn draw(&mut self, widget_state: &mut IndexMap<String, WidgetState>) {
 		let _span = tracy_client::span!();
-		let _on_drop = push(self.transform);
-		if let Some(baked_mask) = &mut self.mask {
-			{
-				let _on_drop = push(StencilState::write(StencilOperation::Replace, 1));
-				baked_mask.draw(widget_state);
-			}
-			{
-				let _on_drop = push(StencilState::read(CompareFunction::Equal, 1));
+		push(self.transform, || {
+			if let Some(baked_mask) = &mut self.mask {
+				{
+					push(StencilState::write(StencilOperation::Replace, 1), || {
+						baked_mask.draw(widget_state)
+					});
+				}
+				{
+					push(StencilState::read(CompareFunction::Equal, 1), || {
+						self.draw_non_mask_contents(widget_state)
+					});
+				}
+			} else {
 				self.draw_non_mask_contents(widget_state);
 			}
-		} else {
-			self.draw_non_mask_contents(widget_state);
-		}
+		});
 	}
 
 	fn draw_non_mask_contents(&mut self, widget_state: &mut IndexMap<String, WidgetState>) {
@@ -228,8 +232,7 @@ impl BakedWidget {
 			.iter_mut()
 			.zip(self.layout_result.child_positions.iter().copied())
 		{
-			let _on_drop = push_translation_2d(position);
-			child.draw(widget_state);
+			push_translation_2d(position, || child.draw(widget_state));
 		}
 		self.raw.draw_after_children(
 			self.layout_result.size,
@@ -238,27 +241,29 @@ impl BakedWidget {
 	}
 
 	fn draw_debug(&self, draw_debug_state: &DrawDebugState) {
-		let _on_drop = push(self.transform);
-		if draw_debug_state
-			.highlighted_widget_id
-			.as_ref()
-			.is_some_and(|id| *id == self.id)
-		{
-			Mesh::rectangle(Rect::new(Vec2::ZERO, self.layout_result.size))
-				.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25))
+		push(self.transform, || {
+			if draw_debug_state
+				.highlighted_widget_id
+				.as_ref()
+				.is_some_and(|id| *id == self.id)
+			{
+				Mesh::rectangle(Rect::new(Vec2::ZERO, self.layout_result.size))
+					.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25))
+					.draw();
+			}
+			Mesh::outlined_rectangle(2.0, Rect::new(Vec2::ZERO, self.layout_result.size))
+				.color(LinSrgb::new(1.0, 0.0, 1.0))
 				.draw();
-		}
-		Mesh::outlined_rectangle(2.0, Rect::new(Vec2::ZERO, self.layout_result.size))
-			.color(LinSrgb::new(1.0, 0.0, 1.0))
-			.draw();
-		for (baked_child, position) in self
-			.children
-			.iter()
-			.zip(self.layout_result.child_positions.iter().copied())
-		{
-			let _on_drop = push_translation_2d(position.round());
-			baked_child.draw_debug(draw_debug_state);
-		}
+			for (baked_child, position) in self
+				.children
+				.iter()
+				.zip(self.layout_result.child_positions.iter().copied())
+			{
+				push_translation_2d(position.round(), || {
+					baked_child.draw_debug(draw_debug_state)
+				});
+			}
+		});
 	}
 
 	fn report(

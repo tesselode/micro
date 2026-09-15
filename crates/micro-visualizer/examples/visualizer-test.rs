@@ -25,12 +25,13 @@ impl Visualizer for TestVisualizer {
 	}
 
 	fn draw(&mut self, vis_info: VisualizerInfo, main_canvas: &Canvas) {
-		let _on_drop = main_canvas.render_to(RenderToCanvasSettings::default());
-		Mesh::rectangle(Rect::new(
-			(50.0 + vis_info.current_frame as f32, 50.0),
-			(100.0, 150.0),
-		))
-		.draw();
+		main_canvas.render_to(RenderToCanvasSettings::default(), || {
+			Mesh::rectangle(Rect::new(
+				(50.0 + vis_info.current_frame as f32, 50.0),
+				(100.0, 150.0),
+			))
+			.draw();
+		});
 	}
 }
 

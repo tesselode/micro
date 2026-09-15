@@ -138,15 +138,18 @@ impl Canvas {
 	}
 
 	/// Sets future drawing operations to happen on this canvas instead of the
-	/// window. Returns an object which, when dropped, sets the render
-	/// target back to the window.
-	pub fn render_to(&self, settings: RenderToCanvasSettings) -> OnDrop {
+	/// window.
+	pub fn render_to<T>(&self, settings: RenderToCanvasSettings, f: impl FnOnce() -> T) -> T {
 		let _span = tracy_client::span!();
 		Context::with_mut(|ctx| {
 			ctx.graphics
 				.start_canvas_render_pass(self.clone(), settings);
 		});
-		OnDrop
+		let returned = f();
+		Context::with_mut(|ctx| {
+			ctx.graphics.finish_canvas_render_pass();
+		});
+		returned
 	}
 
 	/// Draws the canvas.
@@ -314,18 +317,6 @@ impl Default for RenderToCanvasSettings {
 			clear_stencil_value: true,
 			render_pass_label: "Canvas Render Pass".into(),
 		}
-	}
-}
-
-/// Sets the render target back to the window surface when dropped.
-#[must_use]
-pub struct OnDrop;
-
-impl Drop for OnDrop {
-	fn drop(&mut self) {
-		Context::with_mut(|ctx| {
-			ctx.graphics.finish_canvas_render_pass();
-		})
 	}
 }
 

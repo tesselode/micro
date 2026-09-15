@@ -6,7 +6,7 @@ mod push;
 pub use push::*;
 
 use std::{
-	cell::{OnceCell, RefCell},
+	cell::RefCell,
 	collections::HashMap,
 	fmt::Debug,
 	path::Path,
@@ -184,11 +184,13 @@ where
 		if let Some(main_canvas) = &main_canvas {
 			{
 				let clear_color = Some(Context::with(|ctx| ctx.clear_color.with_alpha(1.0)));
-				let _on_drop = main_canvas.render_to(RenderToCanvasSettings {
-					clear_color,
-					..Default::default()
-				});
-				app.draw();
+				main_canvas.render_to(
+					RenderToCanvasSettings {
+						clear_color,
+						..Default::default()
+					},
+					|| app.draw(),
+				);
 			}
 			main_canvas
 				.transformed(main_canvas_transform.unwrap())
@@ -384,87 +386,89 @@ pub fn set_clear_color(color: impl Into<LinSrgb>) {
 /// Pushes a set of graphics settings that will be used for upcoming
 /// drawing operations. Returns an object which, when dropped, will
 /// restore the previous set of graphics settings.
-pub fn push(push: impl Into<Push>) -> OnDrop {
+pub fn push<T>(push: impl Into<Push>, f: impl FnOnce() -> T) -> T {
 	Context::with_mut(|ctx| ctx.graphics.push_graphics_state(push.into()));
-	OnDrop
+	let returned = f();
+	Context::with_mut(|ctx| ctx.graphics.pop_graphics_state());
+	returned
 }
 
 /// Pushes a transformation that translates all drawing operations by the
 /// specified amount along the X and Y axes.
-pub fn push_translation_2d(translation: impl Into<Vec2>) -> OnDrop {
-	push(Mat4::from_translation(translation.into().extend(0.0)))
+pub fn push_translation_2d<T>(translation: impl Into<Vec2>, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_translation(translation.into().extend(0.0)), f)
 }
 
 /// Pushes a transformation that translates all drawing operations by the
 /// specified amount along the X, Y, and Z axes.
-pub fn push_translation_3d(translation: impl Into<Vec3>) -> OnDrop {
-	push(Mat4::from_translation(translation.into()))
+pub fn push_translation_3d<T>(translation: impl Into<Vec3>, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_translation(translation.into()), f)
 }
 
 /// Pushes a transformation that translates all drawing operations by the
 /// specified amount along the X axis.
-pub fn push_translation_x(translation: f32) -> OnDrop {
-	push(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)))
+pub fn push_translation_x<T>(translation: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)), f)
 }
 
 /// Pushes a transformation that translates all drawing operations by the
 /// specified amount along the Y axis.
-pub fn push_translation_y(translation: f32) -> OnDrop {
-	push(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)))
+pub fn push_translation_y<T>(translation: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)), f)
 }
 
 /// Pushes a transformation that translates all drawing operations by the
 /// specified amount along the Z axis.
-pub fn push_translation_z(translation: f32) -> OnDrop {
-	push(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)))
+pub fn push_translation_z<T>(translation: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)), f)
 }
 
 /// Pushes a transformation that scales all drawing operations by the
 /// specified amount along the X and Y axes.
-pub fn push_scale_2d(scale: impl IntoScale2d) -> OnDrop {
-	push(Mat4::from_scale(scale.into_scale_2d().extend(0.0)))
+pub fn push_scale_2d<T>(scale: impl IntoScale2d, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_scale(scale.into_scale_2d().extend(0.0)), f)
 }
 
 /// Pushes a transformation that scales all drawing operations by the
 /// specified amount along the X, Y, and Z axes.
-pub fn push_scale_3d(scale: impl IntoScale3d) -> OnDrop {
-	push(Mat4::from_scale(scale.into_scale_3d()))
+pub fn push_scale_3d<T>(scale: impl IntoScale3d, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_scale(scale.into_scale_3d()), f)
 }
 
 /// Pushes a transformation that scales all drawing operations by the
 /// specified amount along the X axis.
-pub fn push_scale_x(scale: f32) -> OnDrop {
-	push(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)))
+pub fn push_scale_x<T>(scale: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)), f)
 }
 
 /// Pushes a transformation that scales all drawing operations by the
 /// specified amount along the Y axis.
-pub fn push_scale_y(scale: f32) -> OnDrop {
-	push(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)))
+pub fn push_scale_y<T>(scale: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)), f)
 }
 
 /// Pushes a transformation that scales all drawing operations by the
 /// specified amount along the Z axis.
-pub fn push_scale_z(scale: f32) -> OnDrop {
-	push(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)))
+pub fn push_scale_z<T>(scale: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)), f)
 }
 
 /// Pushes a transformation that rotates all drawing operations by the
 /// specified amount around the X axis.
-pub fn push_rotation_x(rotation: f32) -> OnDrop {
-	push(Mat4::from_rotation_x(rotation))
+pub fn push_rotation_x<T>(rotation: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_rotation_x(rotation), f)
 }
 
 /// Pushes a transformation that rotates all drawing operations by the
 /// specified amount around the Y axis.
-pub fn push_rotation_y(rotation: f32) -> OnDrop {
-	push(Mat4::from_rotation_y(rotation))
+pub fn push_rotation_y<T>(rotation: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_rotation_y(rotation), f)
 }
 
 /// Pushes a transformation that rotates all drawing operations by the
 /// specified amount around the Z axis.
-pub fn push_rotation_z(rotation: f32) -> OnDrop {
-	push(Mat4::from_rotation_z(rotation))
+pub fn push_rotation_z<T>(rotation: f32, f: impl FnOnce() -> T) -> T {
+	push(Mat4::from_rotation_z(rotation), f)
 }
 
 /// Returns `true` if the given keyboard key is currently held down.
@@ -651,17 +655,6 @@ pub enum DevToolsState {
 		/// Whether the dev tools UI is visible or not.
 		visible: bool,
 	},
-}
-
-/// Restores the previous graphics settings when dropped. Returned by
-/// the `Context::push_*` functions.
-#[must_use]
-pub struct OnDrop;
-
-impl Drop for OnDrop {
-	fn drop(&mut self) {
-		Context::with_mut(|ctx| ctx.graphics.pop_graphics_state())
-	}
 }
 
 fn main_canvas_transform(canvas_size: UVec2, window_size: UVec2, integer_scale: bool) -> Mat4 {

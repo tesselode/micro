@@ -23,7 +23,7 @@ use wgpu::{
 };
 
 use crate::{
-	ContextSettings,
+	AppSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
 	context::{
 		Push,
@@ -59,7 +59,7 @@ pub(crate) struct GraphicsContext {
 }
 
 impl GraphicsContext {
-	pub(crate) fn new(window: &Window, settings: &ContextSettings) -> Self {
+	pub(crate) fn new(window: &Window, settings: &AppSettings) -> Self {
 		let instance = Instance::new(InstanceDescriptor::new_without_display_handle());
 		let surface = unsafe {
 			instance.create_surface_unsafe(

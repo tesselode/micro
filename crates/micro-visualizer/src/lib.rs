@@ -13,7 +13,7 @@ use vis_runner::VisRunner;
 
 pub fn run<T: Visualizer>(mut visualizer_constructor: impl FnMut() -> T) {
 	micro::run(
-		ContextSettings {
+		AppSettings {
 			window_title: "Micro Visualizer".into(),
 			window_mode: WindowMode::Windowed {
 				size: UVec2::new(1920, 1080),

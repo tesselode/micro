@@ -34,7 +34,7 @@ use crate::{
 
 /// Starts a Micro application. The app constructor should return a value of a type
 /// that implements [`App`].
-pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F)
+pub fn run<A, F>(settings: AppSettings, mut app_constructor: F)
 where
 	A: App,
 	F: FnMut() -> A,
@@ -566,7 +566,7 @@ pub fn quit() {
 
 /// Settings for starting an application.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ContextSettings {
+pub struct AppSettings {
 	/// The title of the application window.
 	pub window_title: String,
 	/// The size and fullscreen state of the window.
@@ -586,7 +586,7 @@ pub struct ContextSettings {
 	pub dev_tools_mode: DevToolsMode,
 }
 
-impl Default for ContextSettings {
+impl Default for AppSettings {
 	fn default() -> Self {
 		Self {
 			window_title: "Game".into(),

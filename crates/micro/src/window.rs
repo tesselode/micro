@@ -1,7 +1,7 @@
 use glam::UVec2;
 use sdl3::{VideoSubsystem, video::Window};
 
-use crate::context::ContextSettings;
+use crate::context::AppSettings;
 
 /// The size and type of a window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,7 +24,7 @@ impl Default for WindowMode {
 	}
 }
 
-pub(crate) fn build_window(video: &VideoSubsystem, settings: &ContextSettings) -> Window {
+pub(crate) fn build_window(video: &VideoSubsystem, settings: &AppSettings) -> Window {
 	let window_size = match settings.window_mode {
 		// doesn't matter because we're going to set the window to fullscreen
 		WindowMode::Fullscreen => UVec2::new(1280, 720),

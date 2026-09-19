@@ -56,3 +56,7 @@ As for the `Context` itself, I can put it into a thread local static and take al
 that were on `Context` and make them free-floating functions. I've successfully done that before.
 Last time I tried to make `Globals` a static in AetherBeats, I started getting deadlocks from mutexes.
 I probably made a silly mistake somewhere.
+
+All that being said, it is nice to know which functions actually interact with Micro. If `Context`
+is global, any function could theoretically draw something, or change the window mode, or check
+for inputs.

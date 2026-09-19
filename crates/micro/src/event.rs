@@ -143,30 +143,28 @@ impl Event {
 			sdl3::event::Event::MouseWheel { x, y, .. } => {
 				Some(Self::MouseWheelMoved(Vec2::new(x, y)))
 			}
-			sdl3::event::Event::ControllerAxisMotion {
+			sdl3::event::Event::GamepadAxisMotion {
 				which, axis, value, ..
 			} => Some(Self::GamepadAxisMoved {
-				gamepad_id: GamepadId(which),
+				gamepad_id: which,
 				axis: axis.into(),
 				value: value as f32 / i16::MAX as f32,
 			}),
-			sdl3::event::Event::ControllerButtonDown { which, button, .. } => {
+			sdl3::event::Event::GamepadButtonDown { which, button, .. } => {
 				Some(Self::GamepadButtonPressed {
-					gamepad_id: GamepadId(which),
+					gamepad_id: which,
 					button: button.into(),
 				})
 			}
-			sdl3::event::Event::ControllerButtonUp { which, button, .. } => {
+			sdl3::event::Event::GamepadButtonUp { which, button, .. } => {
 				Some(Self::GamepadButtonReleased {
-					gamepad_id: GamepadId(which),
+					gamepad_id: which,
 					button: button.into(),
 				})
 			}
-			sdl3::event::Event::ControllerDeviceAdded { which, .. } => {
-				Some(Self::GamepadConnected(GamepadId(which)))
-			}
-			sdl3::event::Event::ControllerDeviceRemoved { which, .. } => {
-				Some(Self::GamepadDisconnected(GamepadId(which)))
+			sdl3::event::Event::GamepadAdded { which, .. } => Some(Self::GamepadConnected(which)),
+			sdl3::event::Event::GamepadRemoved { which, .. } => {
+				Some(Self::GamepadDisconnected(which))
 			}
 			_ => None,
 		}

@@ -2,6 +2,8 @@ use std::{fmt::Debug, time::Duration};
 
 use crate::input::{Axis, Button};
 
+pub use sdl3::joystick::JoystickId as GamepadId;
+
 /// A game controller.
 pub struct Gamepad {
 	pub(crate) id: GamepadId,
@@ -59,20 +61,5 @@ impl Gamepad {
 impl Debug for Gamepad {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Gamepad").field("id", &self.id).finish()
-	}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GamepadId(pub(crate) u32);
-
-impl From<sdl3::sys::joystick::SDL_JoystickID> for GamepadId {
-	fn from(value: sdl3::sys::joystick::SDL_JoystickID) -> Self {
-		Self(value.0)
-	}
-}
-
-impl From<GamepadId> for sdl3::sys::joystick::SDL_JoystickID {
-	fn from(value: GamepadId) -> Self {
-		sdl3::sys::joystick::SDL_JoystickID(value.0)
 	}
 }

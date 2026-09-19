@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-hecs = "0.11.0"
+hecs = { git = "https://github.com/Ralith/hecs/", rev = "27c32ef" }
 indexmap = "2.11.4"
 micro = { version = "0.1.0", path = "../micro" }
 

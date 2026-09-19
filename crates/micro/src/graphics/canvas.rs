@@ -1,7 +1,5 @@
 //! Types for drawing to off-screen render targets.
 
-use std::ops::{Deref, DerefMut};
-
 use glam::{Mat4, UVec2, Vec2};
 use palette::LinSrgba;
 use wgpu::{
@@ -139,15 +137,18 @@ impl Canvas {
 	/// Sets future drawing operations to happen on this canvas instead of the
 	/// window. Returns an object which, when dropped, sets the render
 	/// target back to the window.
-	pub fn render_to<'a>(
+	pub fn render_to<T>(
 		&self,
-		ctx: &'a mut Context,
+		ctx: &mut Context,
 		settings: RenderToCanvasSettings,
-	) -> OnDrop<'a> {
+		f: impl FnOnce(&mut Context) -> T,
+	) -> T {
 		let _span = tracy_client::span!();
 		ctx.graphics
 			.start_canvas_render_pass(self.clone(), settings);
-		OnDrop { ctx }
+		let returned = f(ctx);
+		ctx.graphics.finish_canvas_render_pass();
+		returned
 	}
 
 	/// Draws the canvas.
@@ -315,32 +316,6 @@ impl Default for RenderToCanvasSettings {
 			clear_stencil_value: true,
 			render_pass_label: "Canvas Render Pass".into(),
 		}
-	}
-}
-
-/// Sets the render target back to the window surface when dropped.
-#[must_use]
-pub struct OnDrop<'a> {
-	pub(crate) ctx: &'a mut Context,
-}
-
-impl Drop for OnDrop<'_> {
-	fn drop(&mut self) {
-		self.ctx.graphics.finish_canvas_render_pass();
-	}
-}
-
-impl Deref for OnDrop<'_> {
-	type Target = Context;
-
-	fn deref(&self) -> &Self::Target {
-		self.ctx
-	}
-}
-
-impl DerefMut for OnDrop<'_> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		self.ctx
 	}
 }
 

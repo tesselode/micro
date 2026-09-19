@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use glam::{Mat4, Vec3};
 
-use crate::{Context, Push, context::OnDrop, math::Rect};
+use crate::{Context, Push, math::Rect};
 
 /// Settings for a 3D camera.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -157,12 +157,15 @@ impl Camera3d {
 	}
 
 	/// Pushes this camera's transformation to the graphics stack.
-	pub fn push(self, ctx: &'_ mut Context) -> OnDrop<'_> {
-		ctx.push(Push {
-			transform: Some(self.transform(ctx)),
-			enable_depth_testing: Some(true),
-			..Default::default()
-		})
+	pub fn push<T>(self, ctx: &'_ mut Context, f: impl FnOnce(&mut Context) -> T) -> T {
+		ctx.push(
+			Push {
+				transform: Some(self.transform(ctx)),
+				enable_depth_testing: Some(true),
+				..Default::default()
+			},
+			f,
+		)
 	}
 
 	fn undo_2d_coordinate_system_transform(ctx: &Context) -> Mat4 {

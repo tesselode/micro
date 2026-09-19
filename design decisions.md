@@ -60,3 +60,25 @@ I probably made a silly mistake somewhere.
 All that being said, it is nice to know which functions actually interact with Micro. If `Context`
 is global, any function could theoretically draw something, or change the window mode, or check
 for inputs.
+
+## `push` returning `OnDrop` vs. taking a callback
+
+`push_*` functions can look one of two ways:
+
+```rs
+pub fn push(push: impl Into<Push>) -> OnDrop<'_>
+```
+
+```rs
+pub fn push<T>(push: impl Into<Push>, f: impl FnOnce() -> T) -> T
+```
+
+The latter is more ergonomic unless you have to return a `Result` from the inner function, because
+then you have to annotate the closure, write `Ok(())` inside it, and write a `?` after the
+`push` call. And if you're nesting multiple `push` calls, you gotta keep doing that and it sucks.
+
+The former is a little annoying because you have to keep an `_on_drop` binding around so the
+push stays in scope.
+
+I'm going with the latter right now because I'm trying to avoid having a lot of error handling
+throughout the code, so it should win out on ergonomics more often than not.

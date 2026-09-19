@@ -72,14 +72,18 @@ pub fn draw_egui_output(
 					clip_rect_points.bottom_right() * scaling_factor,
 				)
 				.as_urect();
-				let ctx = &mut ctx.push(Push {
-					scissor_rect: Some(Some(clip_rect_pixels)),
-					..Default::default()
-				});
-				egui_mesh_to_micro_mesh(ctx, mesh)
-					.texture(textures.get(&texture_id).expect("missing egui texture"))
-					.scaled_2d(glam::Vec2::splat(scaling_factor))
-					.draw(ctx);
+				ctx.push(
+					Push {
+						scissor_rect: Some(Some(clip_rect_pixels)),
+						..Default::default()
+					},
+					|ctx| {
+						egui_mesh_to_micro_mesh(ctx, mesh)
+							.texture(textures.get(&texture_id).expect("missing egui texture"))
+							.scaled_2d(glam::Vec2::splat(scaling_factor))
+							.draw(ctx);
+					},
+				);
 			}
 			egui::epaint::Primitive::Callback(_) => unimplemented!(),
 		}

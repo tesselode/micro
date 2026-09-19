@@ -26,12 +26,13 @@ impl Visualizer for TestVisualizer {
 	}
 
 	fn draw(&mut self, ctx: &mut Context, vis_info: VisualizerInfo, main_canvas: &Canvas) {
-		let ctx = &mut main_canvas.render_to(ctx, RenderToCanvasSettings::default());
-		Mesh::rectangle(
-			ctx,
-			Rect::new((50.0 + vis_info.current_frame as f32, 50.0), (100.0, 150.0)),
-		)
-		.draw(ctx);
+		main_canvas.render_to(ctx, RenderToCanvasSettings::default(), |ctx| {
+			Mesh::rectangle(
+				ctx,
+				Rect::new((50.0 + vis_info.current_frame as f32, 50.0), (100.0, 150.0)),
+			)
+			.draw(ctx);
+		});
 	}
 }
 

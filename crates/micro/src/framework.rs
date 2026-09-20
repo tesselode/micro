@@ -500,19 +500,12 @@ impl Micro {
 
 	/// Gets the IDs of the currently connected gamepads.
 	pub fn connected_gamepad_ids(&self) -> Result<Vec<GamepadId>, sdl3::Error> {
-		Ok(self
-			.gamepad
-			.gamepads()?
-			.drain(..)
-			.map(|id| id.into())
-			.collect())
+		Ok(std::mem::take(&mut self.gamepad.gamepads()?))
 	}
 
 	/// Gets the gamepad with the specified ID.
 	pub fn gamepad(&self, id: GamepadId) -> Result<Gamepad, sdl3::Error> {
-		self.gamepad
-			.open(id.into())
-			.map(|gamepad| Gamepad { id, gamepad })
+		self.gamepad.open(id).map(|gamepad| Gamepad { id, gamepad })
 	}
 
 	pub fn delta_time(&self) -> Duration {

@@ -37,7 +37,7 @@ impl Debug for RenderPassKind {
 			Self::MainSurface => write!(f, "MainSurface"),
 			Self::Canvas { canvas, settings } => f
 				.debug_struct("Canvas")
-				.field("canvas", &format!("Canvas ('{}')", &canvas.label))
+				.field("canvas", &format!("Canvas ('{}')", canvas.label))
 				.field("settings", settings)
 				.finish(),
 		}

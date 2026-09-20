@@ -300,12 +300,12 @@ impl Texture {
 			);
 		}
 		let view = texture.create_view(&TextureViewDescriptor {
-			label: Some(&format!("{} - view", &settings.label)),
+			label: Some(&format!("{} - view", settings.label)),
 			dimension: Some(settings.view_dimension),
 			..Default::default()
 		});
 		let sampler = device.create_sampler(&SamplerDescriptor {
-			label: Some(&format!("{} - sampler", &settings.label)),
+			label: Some(&format!("{} - sampler", settings.label)),
 			address_mode_u: settings.address_mode_x,
 			address_mode_v: settings.address_mode_y,
 			address_mode_w: settings.address_mode_z,

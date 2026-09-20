@@ -69,7 +69,7 @@ impl Shader {
 			.graphics
 			.device
 			.create_buffer_init(&BufferInitDescriptor {
-				label: Some(&format!("{} - Shader Params Buffer", &self.name)),
+				label: Some(&format!("{} - Shader Params Buffer", self.name)),
 				contents: bytemuck::cast_slice(&[params]),
 				usage: BufferUsages::UNIFORM,
 			});
@@ -77,7 +77,7 @@ impl Shader {
 			.graphics
 			.device
 			.create_bind_group(&BindGroupDescriptor {
-				label: Some(&format!("{} - Shader Params Bind Group", &self.name)),
+				label: Some(&format!("{} - Shader Params Bind Group", self.name)),
 				layout: &micro.graphics.layouts.shader_params_bind_group_layout,
 				entries: &[BindGroupEntry {
 					binding: 0,
@@ -158,7 +158,7 @@ impl CompiledShader {
 		span.emit_text(name);
 		let error_scope = device.push_error_scope(ErrorFilter::Validation);
 		let vertex = device.create_shader_module(ShaderModuleDescriptor {
-			label: Some(&format!("{} - Vertex Shader", &name)),
+			label: Some(&format!("{} - Vertex Shader", name)),
 			source: ShaderSource::Glsl {
 				shader: Cow::Borrowed(source),
 				stage: ShaderStage::Vertex,
@@ -166,7 +166,7 @@ impl CompiledShader {
 			},
 		});
 		let fragment = device.create_shader_module(ShaderModuleDescriptor {
-			label: Some(&format!("{} - Fragment Shader", &name)),
+			label: Some(&format!("{} - Fragment Shader", name)),
 			source: ShaderSource::Glsl {
 				shader: Cow::Borrowed(source),
 				stage: ShaderStage::Fragment,

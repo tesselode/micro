@@ -47,7 +47,7 @@ fn frames_grouped_by_filename(
 	let sorted_frames = frames
 		.drain()
 		.map(|(name, mut frames)| {
-			frames.sort_by(|(index_a, _), (index_b, _)| index_a.cmp(index_b));
+			frames.sort_by_key(|(index_a, _)| *index_a);
 			let frames = frames.drain(..).map(|(_, frame)| frame).collect::<Vec<_>>();
 			(name, frames)
 		})

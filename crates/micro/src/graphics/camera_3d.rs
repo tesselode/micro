@@ -131,22 +131,29 @@ impl Camera3d {
 				field_of_view,
 				aspect_ratio,
 				..
-			} => Mat4::perspective_rh(field_of_view, aspect_ratio, self.z_near, self.z_far),
-			Camera3dKind::Orthographic { xy_bounds } => Mat4::orthographic_rh(
-				xy_bounds.left(),
-				xy_bounds.right(),
-				xy_bounds.bottom(),
-				xy_bounds.top(),
+			} => glam::camera::rh::proj::directx::perspective(
+				field_of_view,
+				aspect_ratio,
 				self.z_near,
 				self.z_far,
 			),
+			Camera3dKind::Orthographic { xy_bounds } => {
+				glam::camera::rh::proj::directx::orthographic(
+					xy_bounds.left(),
+					xy_bounds.right(),
+					xy_bounds.bottom(),
+					xy_bounds.top(),
+					self.z_near,
+					self.z_far,
+				)
+			}
 		}
 	}
 
 	/// Returns the view matrix.
 	pub fn view(self) -> Mat4 {
 		let up_y = self.up_y();
-		Mat4::look_at_rh(self.position, self.look_at, Vec3::new(0.0, up_y, 0.0))
+		glam::camera::rh::view::look_at_mat4(self.position, self.look_at, Vec3::new(0.0, up_y, 0.0))
 	}
 
 	/// Returns a transformation that can be passed to [`Context::push`] to use

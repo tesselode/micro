@@ -2,7 +2,7 @@
 //! applications.
 
 #![allow(clippy::large_enum_variant)]
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 #![allow(clippy::tabs_in_doc_comments)]
 
 mod app;

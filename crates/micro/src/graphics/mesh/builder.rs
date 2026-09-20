@@ -16,7 +16,7 @@ use lyon_tessellation::{
 use palette::LinSrgba;
 
 use crate::{
-	Context,
+	Micro,
 	graphics::Vertex2d,
 	math::{Circle, Rect},
 };
@@ -366,9 +366,9 @@ impl MeshBuilder {
 	}
 
 	/// Consumes the [`MeshBuilder`] and returns a [`Mesh`].
-	pub fn build(self, ctx: &Context) -> Mesh {
+	pub fn build(self, micro: &Micro) -> Mesh {
 		let _span = tracy_client::span!();
-		Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
+		Mesh::new(micro, &self.buffers.vertices, &self.buffers.indices)
 	}
 
 	fn add_rectangle_inner(&mut self, style: ShapeStyle, rect: Rect, color: LinSrgba) {

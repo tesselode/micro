@@ -1,5 +1,5 @@
 use micro::{
-	Context, egui,
+	Micro, egui,
 	math::{Vec2, vec2},
 };
 
@@ -100,13 +100,13 @@ impl Widget for Padding {
 		"padding"
 	}
 
-	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _micro: &mut Micro, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		std::mem::take(&mut self.children)
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -119,7 +119,7 @@ impl Widget for Padding {
 
 	fn layout(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 		_state: &mut WidgetState,

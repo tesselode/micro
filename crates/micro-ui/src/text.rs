@@ -1,7 +1,7 @@
 use std::{cell::RefCell, fmt::Debug};
 
 use micro::{
-	Context,
+	Micro,
 	color::{ColorConstants, LinSrgba},
 	egui::{self, color_preview},
 	graphics::text::{
@@ -137,13 +137,13 @@ impl Widget for TextWidget {
 		"text"
 	}
 
-	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _micro: &mut Micro, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		vec![]
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -153,7 +153,7 @@ impl Widget for TextWidget {
 
 	fn layout(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Micro,
 		allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -169,7 +169,7 @@ impl Widget for TextWidget {
 					align: self.align,
 				},
 			});
-		let built = builder.build(ctx);
+		let built = builder.build(micro);
 		let bounds = match self.size_reporting {
 			TextSizeReporting::Line => built.line_bounds(),
 			TextSizeReporting::Glyph => built.glyph_bounds(),
@@ -182,7 +182,7 @@ impl Widget for TextWidget {
 		}
 	}
 
-	fn draw_before_children(&mut self, ctx: &mut Context, _size: Vec2, _state: &mut WidgetState) {
+	fn draw_before_children(&mut self, micro: &mut Micro, _size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		let borrow = self.built.borrow();
 		let built = borrow.as_ref().unwrap();
@@ -198,7 +198,7 @@ impl Widget for TextWidget {
 				.unwrap()
 				.translated_2d(position + offset)
 				.color(color)
-				.draw(ctx);
+				.draw(micro);
 		}
 		self.built
 			.borrow()
@@ -206,7 +206,7 @@ impl Widget for TextWidget {
 			.unwrap()
 			.translated_2d(position)
 			.color(self.color)
-			.draw(ctx);
+			.draw(micro);
 	}
 
 	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {

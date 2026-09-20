@@ -12,16 +12,16 @@ pub struct Globals {
 }
 
 impl Globals {
-	pub fn new(ctx: &mut Context) -> Self {
+	pub fn new(micro: &mut Context) -> Self {
 		Self {
 			input: Input::new(
 				default_input_config(),
-				ctx.gamepads()
+				micro.gamepads()
 					.expect("could not get gamepads")
 					.drain(..)
 					.next(),
 			),
-			textures: Assets::autoloaded(ctx, "texture", TextureLoader::default()),
+			textures: Assets::autoloaded(micro, "texture", TextureLoader::default()),
 		}
 	}
 }

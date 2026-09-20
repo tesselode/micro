@@ -24,8 +24,8 @@ use wgpu::{Features, PresentMode, TextureFormat};
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	color::ColorConstants,
-	context::graphics::GraphicsContext,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
+	framework::graphics::GraphicsContext,
 	graphics::{Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings},
 	input::{Gamepad, GamepadId, MouseButton, Scancode},
 	text::TextContext,
@@ -33,10 +33,10 @@ use crate::{
 
 /// Starts a Micro application. The app constructor should return a value of a type
 /// that implements [`App`].
-pub fn run<A, F>(settings: ContextSettings, mut app_constructor: F)
+pub fn run<A, F>(settings: MicroSettings, mut app_constructor: F)
 where
 	A: App,
-	F: FnMut(&mut Context) -> A,
+	F: FnMut(&mut Micro) -> A,
 {
 	let sdl = sdl3::init().expect("error initializing SDL");
 	let video = sdl.video().expect("error initializing video subsystem");
@@ -49,10 +49,10 @@ where
 	let graphics = GraphicsContext::new(&window, &settings);
 	let text = TextContext::new(&graphics);
 	let main_canvas = settings.main_canvas.map(|settings| {
-		Canvas::new_from_graphics_ctx(&graphics, settings.size, CanvasSettings::default())
+		Canvas::new_from_graphics_micro(&graphics, settings.size, CanvasSettings::default())
 	});
 
-	let mut ctx = Context {
+	let mut micro = Micro {
 		window,
 		gamepad: controller,
 		event_pump,
@@ -74,7 +74,7 @@ where
 	};
 	let egui_ctx = egui::Context::default();
 	let mut egui_textures = HashMap::new();
-	let mut app = app_constructor(&mut ctx);
+	let mut app = app_constructor(&mut micro);
 
 	let mut last_update_time = Instant::now();
 
@@ -84,8 +84,8 @@ where
 		let main_canvas_transform = main_canvas.as_ref().map(|canvas| {
 			main_canvas_transform(
 				canvas.size(),
-				ctx.window_size(),
-				ctx.integer_scaling_enabled,
+				micro.window_size(),
+				micro.integer_scaling_enabled,
 			)
 		});
 
@@ -93,13 +93,13 @@ where
 		let now = Instant::now();
 		let delta_time = now - last_update_time;
 		last_update_time = now;
-		ctx.delta_time = delta_time;
-		ctx.frame_time_tracker.record(delta_time);
+		micro.delta_time = delta_time;
+		micro.frame_time_tracker.record(delta_time);
 
 		// poll for events
 		let span = tracy_client::span!("poll events");
-		let mut events = ctx.event_pump.poll_iter().collect::<Vec<_>>();
-		ctx.mouse_wheel_delta = events.iter().fold(Vec2::ZERO, |delta, event| {
+		let mut events = micro.event_pump.poll_iter().collect::<Vec<_>>();
+		micro.mouse_wheel_delta = events.iter().fold(Vec2::ZERO, |delta, event| {
 			if let sdl3::event::Event::MouseWheel { x, y, .. } = event {
 				delta + Vec2::new(*x, *y)
 			} else {
@@ -110,14 +110,14 @@ where
 
 		// create egui UI
 		let span = tracy_client::span!("create egui UI");
-		let egui_input = egui_raw_input(&ctx, &events, delta_time);
+		let egui_input = egui_raw_input(&micro, &events, delta_time);
 		let egui_output = egui_ctx.run_ui(egui_input, |ui| {
-			if let DevToolsState::Enabled { visible } = ctx.dev_tools_state {
+			if let DevToolsState::Enabled { visible } = micro.dev_tools_state {
 				Panel::top("main_menu").show(ui, |ui| {
 					egui::MenuBar::new().ui(ui, |ui| {
-						app.debug_menu(&mut ctx, ui);
+						app.debug_menu(&mut micro, ui);
 						ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-							if let Some(stats) = app.debug_stats(&mut ctx) {
+							if let Some(stats) = app.debug_stats(&mut micro) {
 								for (i, stat) in stats.iter().enumerate() {
 									if i > 0 {
 										ui.separator();
@@ -129,13 +129,13 @@ where
 					});
 				});
 				if visible {
-					app.debug_ui(&mut ctx, &egui_ctx);
+					app.debug_ui(&mut micro, &egui_ctx);
 				}
 			}
 		});
 		drop(span);
-		ctx.egui_wants_keyboard_input = egui_ctx.egui_wants_keyboard_input();
-		ctx.egui_wants_mouse_input = egui_ctx.egui_wants_pointer_input();
+		micro.egui_wants_keyboard_input = egui_ctx.egui_wants_keyboard_input();
+		micro.egui_wants_mouse_input = egui_ctx.egui_wants_pointer_input();
 
 		// dispatch events to state
 		let span = tracy_client::span!("dispatch events");
@@ -148,19 +148,19 @@ where
 			.filter_map(Event::from_sdl3_event)
 		{
 			match event {
-				Event::WindowSizeChanged(size) => ctx.graphics.resize(size),
-				Event::Exited => ctx.should_quit = true,
+				Event::WindowSizeChanged(size) => micro.graphics.resize(size),
+				Event::Exited => micro.should_quit = true,
 				Event::KeyPressed {
 					key: Scancode::F1, ..
 				} => {
-					if let DevToolsState::Enabled { visible } = &mut ctx.dev_tools_state {
+					if let DevToolsState::Enabled { visible } = &mut micro.dev_tools_state {
 						*visible = !*visible;
 					}
 				}
 				_ => {}
 			}
 			app.event(
-				&mut ctx,
+				&mut micro,
 				event.transform_mouse_events(mouse_event_transform),
 			);
 		}
@@ -168,40 +168,40 @@ where
 
 		// update state
 		let span = tracy_client::span!("update");
-		app.update(&mut ctx, delta_time);
+		app.update(&mut micro, delta_time);
 		drop(span);
 
 		// draw state and egui UI
 		let span = tracy_client::span!("draw");
 		if let Some(main_canvas) = &main_canvas {
 			{
-				let clear_color = Some(ctx.clear_color.with_alpha(1.0));
+				let clear_color = Some(micro.clear_color.with_alpha(1.0));
 				main_canvas.render_to(
-					&mut ctx,
+					&mut micro,
 					RenderToCanvasSettings {
 						clear_color,
 						..Default::default()
 					},
-					|ctx| app.draw(ctx),
+					|micro| app.draw(micro),
 				);
 			}
 			main_canvas
 				.transformed(main_canvas_transform.unwrap())
-				.draw(&mut ctx);
+				.draw(&mut micro);
 		} else {
-			app.draw(&mut ctx);
+			app.draw(&mut micro);
 		}
 		drop(span);
 		let span = tracy_client::span!("draw egui UI");
-		draw_egui_output(&mut ctx, &egui_ctx, egui_output, &mut egui_textures);
+		draw_egui_output(&mut micro, &egui_ctx, egui_output, &mut egui_textures);
 		drop(span);
-		ctx.graphics.present();
+		micro.graphics.present();
 
-		app.post_draw(&mut ctx);
+		app.post_draw(&mut micro);
 
 		tracy_client::frame_mark();
 
-		if ctx.should_quit {
+		if micro.should_quit {
 			break;
 		}
 	}
@@ -209,7 +209,7 @@ where
 
 /// Allows you to interact with Micro to check for keyboard inputs,
 /// draw graphics, change window settings, etc.
-pub struct Context {
+pub struct Micro {
 	gamepad: GamepadSubsystem,
 	event_pump: EventPump,
 	mouse_wheel_delta: Vec2,
@@ -229,7 +229,7 @@ pub struct Context {
 	dev_tools_state: DevToolsState,
 }
 
-impl Context {
+impl Micro {
 	/// Gets the drawable size of the window (in pixels).
 	pub fn window_size(&self) -> UVec2 {
 		let (width, height) = self.window.size();
@@ -348,7 +348,7 @@ impl Context {
 	/// Pushes a set of graphics settings that will be used for upcoming
 	/// drawing operations. Returns an object which, when dropped, will
 	/// restore the previous set of graphics settings.
-	pub fn push<T>(&mut self, push: impl Into<Push>, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn push<T>(&mut self, push: impl Into<Push>, f: impl FnOnce(&mut Micro) -> T) -> T {
 		self.graphics.push_graphics_state(push.into());
 		let returned = f(self);
 		self.graphics.pop_graphics_state();
@@ -360,7 +360,7 @@ impl Context {
 	pub fn push_translation_2d<T>(
 		&mut self,
 		translation: impl Into<Vec2>,
-		f: impl FnOnce(&mut Context) -> T,
+		f: impl FnOnce(&mut Micro) -> T,
 	) -> T {
 		self.push(Mat4::from_translation(translation.into().extend(0.0)), f)
 	}
@@ -370,7 +370,7 @@ impl Context {
 	pub fn push_translation_3d<T>(
 		&mut self,
 		translation: impl Into<Vec3>,
-		f: impl FnOnce(&mut Context) -> T,
+		f: impl FnOnce(&mut Micro) -> T,
 	) -> T {
 		self.push(Mat4::from_translation(translation.into()), f)
 	}
@@ -380,7 +380,7 @@ impl Context {
 	pub fn push_translation_x<T>(
 		&mut self,
 		translation: f32,
-		f: impl FnOnce(&mut Context) -> T,
+		f: impl FnOnce(&mut Micro) -> T,
 	) -> T {
 		self.push(Mat4::from_translation(Vec3::new(translation, 0.0, 0.0)), f)
 	}
@@ -390,7 +390,7 @@ impl Context {
 	pub fn push_translation_y<T>(
 		&mut self,
 		translation: f32,
-		f: impl FnOnce(&mut Context) -> T,
+		f: impl FnOnce(&mut Micro) -> T,
 	) -> T {
 		self.push(Mat4::from_translation(Vec3::new(0.0, translation, 0.0)), f)
 	}
@@ -400,7 +400,7 @@ impl Context {
 	pub fn push_translation_z<T>(
 		&mut self,
 		translation: f32,
-		f: impl FnOnce(&mut Context) -> T,
+		f: impl FnOnce(&mut Micro) -> T,
 	) -> T {
 		self.push(Mat4::from_translation(Vec3::new(0.0, 0.0, translation)), f)
 	}
@@ -410,7 +410,7 @@ impl Context {
 	pub fn push_scale_2d<T>(
 		&mut self,
 		scale: impl IntoScale2d,
-		f: impl FnOnce(&mut Context) -> T,
+		f: impl FnOnce(&mut Micro) -> T,
 	) -> T {
 		self.push(Mat4::from_scale(scale.into_scale_2d().extend(0.0)), f)
 	}
@@ -420,44 +420,44 @@ impl Context {
 	pub fn push_scale_3d<T>(
 		&mut self,
 		scale: impl IntoScale3d,
-		f: impl FnOnce(&mut Context) -> T,
+		f: impl FnOnce(&mut Micro) -> T,
 	) -> T {
 		self.push(Mat4::from_scale(scale.into_scale_3d()), f)
 	}
 
 	/// Pushes a transformation that scales all drawing operations by the
 	/// specified amount along the X axis.
-	pub fn push_scale_x<T>(&mut self, scale: f32, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn push_scale_x<T>(&mut self, scale: f32, f: impl FnOnce(&mut Micro) -> T) -> T {
 		self.push(Mat4::from_scale(Vec3::new(scale, 1.0, 1.0)), f)
 	}
 
 	/// Pushes a transformation that scales all drawing operations by the
 	/// specified amount along the Y axis.
-	pub fn push_scale_y<T>(&mut self, scale: f32, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn push_scale_y<T>(&mut self, scale: f32, f: impl FnOnce(&mut Micro) -> T) -> T {
 		self.push(Mat4::from_scale(Vec3::new(1.0, scale, 1.0)), f)
 	}
 
 	/// Pushes a transformation that scales all drawing operations by the
 	/// specified amount along the Z axis.
-	pub fn push_scale_z<T>(&mut self, scale: f32, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn push_scale_z<T>(&mut self, scale: f32, f: impl FnOnce(&mut Micro) -> T) -> T {
 		self.push(Mat4::from_scale(Vec3::new(1.0, 1.0, scale)), f)
 	}
 
 	/// Pushes a transformation that rotates all drawing operations by the
 	/// specified amount around the X axis.
-	pub fn push_rotation_x<T>(&mut self, rotation: f32, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn push_rotation_x<T>(&mut self, rotation: f32, f: impl FnOnce(&mut Micro) -> T) -> T {
 		self.push(Mat4::from_rotation_x(rotation), f)
 	}
 
 	/// Pushes a transformation that rotates all drawing operations by the
 	/// specified amount around the Y axis.
-	pub fn push_rotation_y<T>(&mut self, rotation: f32, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn push_rotation_y<T>(&mut self, rotation: f32, f: impl FnOnce(&mut Micro) -> T) -> T {
 		self.push(Mat4::from_rotation_y(rotation), f)
 	}
 
 	/// Pushes a transformation that rotates all drawing operations by the
 	/// specified amount around the Z axis.
-	pub fn push_rotation_z<T>(&mut self, rotation: f32, f: impl FnOnce(&mut Context) -> T) -> T {
+	pub fn push_rotation_z<T>(&mut self, rotation: f32, f: impl FnOnce(&mut Micro) -> T) -> T {
 		self.push(Mat4::from_rotation_z(rotation), f)
 	}
 
@@ -550,7 +550,7 @@ impl Context {
 
 /// Settings for starting an application.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ContextSettings {
+pub struct MicroSettings {
 	/// The title of the application window.
 	pub window_title: String,
 	/// The size and fullscreen state of the window.
@@ -570,7 +570,7 @@ pub struct ContextSettings {
 	pub dev_tools_mode: DevToolsMode,
 }
 
-impl Default for ContextSettings {
+impl Default for MicroSettings {
 	fn default() -> Self {
 		Self {
 			window_title: "Game".into(),

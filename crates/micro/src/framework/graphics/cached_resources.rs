@@ -10,7 +10,7 @@ use wgpu::{
 };
 
 use crate::{
-	context::graphics::{DrawCommand, Layouts},
+	framework::graphics::{DrawCommand, Layouts},
 	graphics::{BlendMode, CompiledShader, Vertex},
 };
 

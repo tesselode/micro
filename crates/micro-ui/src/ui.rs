@@ -5,7 +5,7 @@ use crate::{WidgetInspector, WidgetState, mouse_input::MouseInput};
 use indexmap::IndexMap;
 use itertools::izip;
 use micro::{
-	Context,
+	Micro,
 	color::{LinSrgb, LinSrgba},
 	graphics::{CompareFunction, StencilOperation, StencilState, mesh::Mesh},
 	input::MouseButton,
@@ -51,7 +51,7 @@ impl Ui {
 
 	pub fn render(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Micro,
 		settings: RenderUiSettings,
 		widget: impl Widget + 'static,
 	) {
@@ -63,9 +63,9 @@ impl Ui {
 		}
 
 		// bake the root widget
-		let default_size = ctx.window_size().as_vec2();
+		let default_size = micro.window_size().as_vec2();
 		let mut baked_widget = BakedWidget::new(
-			ctx,
+			micro,
 			widget.id().unwrap_or_else(|| "root".to_string()),
 			Box::new(widget),
 			settings.size.unwrap_or(default_size),
@@ -73,16 +73,16 @@ impl Ui {
 		);
 
 		// mouse input
-		self.mouse_input.update(ctx, settings.transform.inverse());
+		self.mouse_input.update(micro, settings.transform.inverse());
 		baked_widget.use_mouse_input(self.mouse_input.clone(), &mut self.widget_state);
 
-		ctx.push(settings.transform, |ctx| {
+		micro.push(settings.transform, |micro| {
 			// draw
-			baked_widget.draw(ctx, &mut self.widget_state);
+			baked_widget.draw(micro, &mut self.widget_state);
 
 			// draw debug
 			if let Some(draw_debug_state) = self.draw_debug_state.take() {
-				baked_widget.draw_debug(ctx, &draw_debug_state);
+				baked_widget.draw_debug(micro, &draw_debug_state);
 			}
 		});
 
@@ -95,7 +95,7 @@ impl Ui {
 		);
 
 		// on finish
-		baked_widget.on_finish(ctx, &mut self.widget_state);
+		baked_widget.on_finish(micro, &mut self.widget_state);
 
 		// save baked widget for debugging
 		self.previous_baked_widget = Some(baked_widget);
@@ -129,7 +129,7 @@ struct BakedWidget {
 
 impl BakedWidget {
 	fn new(
-		ctx: &mut Context,
+		micro: &mut Micro,
 		id: String,
 		mut raw: Box<dyn Widget>,
 		allotted_size_from_parent: Vec2,
@@ -141,9 +141,9 @@ impl BakedWidget {
 		let mut unique_child_id_generator = UniqueChildIdGenerator::new();
 
 		// bake children
-		for child in raw.children(ctx, widget_state.entry(id.clone()).or_default()) {
+		for child in raw.children(micro, widget_state.entry(id.clone()).or_default()) {
 			let allotted_size_for_child = raw.allotted_size_for_next_child(
-				ctx,
+				micro,
 				allotted_size_from_parent,
 				&child_sizes,
 				widget_state.entry(id.clone()).or_default(),
@@ -153,22 +153,22 @@ impl BakedWidget {
 				format!("{}/{}", id, child_id_component)
 			});
 			let baked_child =
-				BakedWidget::new(ctx, child_id, child, allotted_size_for_child, widget_state);
+				BakedWidget::new(micro, child_id, child, allotted_size_for_child, widget_state);
 			child_sizes.push(baked_child.layout_result.size);
 			children.push(baked_child);
 		}
 		let layout_result = raw.layout(
-			ctx,
+			micro,
 			allotted_size_from_parent,
 			&child_sizes,
 			widget_state.entry(id.clone()).or_default(),
 		);
 
 		// bake mask
-		let raw_mask = raw.mask(ctx, widget_state.entry(id.clone()).or_default());
+		let raw_mask = raw.mask(micro, widget_state.entry(id.clone()).or_default());
 		let mask = raw_mask.map(|mask| {
 			Box::new(BakedWidget::new(
-				ctx,
+				micro,
 				mask.id().unwrap_or_else(|| format!("{}/{}", id, "mask")),
 				mask,
 				layout_result.size,
@@ -178,7 +178,7 @@ impl BakedWidget {
 
 		let inspector = raw.inspector();
 		let transform = raw.transform(
-			ctx,
+			micro,
 			layout_result.size,
 			widget_state.entry(id.clone()).or_default(),
 		);
@@ -213,29 +213,29 @@ impl BakedWidget {
 		}
 	}
 
-	fn draw(&mut self, ctx: &mut Context, widget_state: &mut IndexMap<String, WidgetState>) {
+	fn draw(&mut self, micro: &mut Micro, widget_state: &mut IndexMap<String, WidgetState>) {
 		let _span = tracy_client::span!();
-		ctx.push(self.transform, |ctx| {
+		micro.push(self.transform, |micro| {
 			if let Some(baked_mask) = &mut self.mask {
-				ctx.push(StencilState::write(StencilOperation::Replace, 1), |ctx| {
-					baked_mask.draw(ctx, widget_state)
+				micro.push(StencilState::write(StencilOperation::Replace, 1), |micro| {
+					baked_mask.draw(micro, widget_state)
 				});
-				ctx.push(StencilState::read(CompareFunction::Equal, 1), |ctx| {
-					self.draw_non_mask_contents(ctx, widget_state);
+				micro.push(StencilState::read(CompareFunction::Equal, 1), |micro| {
+					self.draw_non_mask_contents(micro, widget_state);
 				});
 			} else {
-				self.draw_non_mask_contents(ctx, widget_state);
+				self.draw_non_mask_contents(micro, widget_state);
 			}
 		});
 	}
 
 	fn draw_non_mask_contents(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Micro,
 		widget_state: &mut IndexMap<String, WidgetState>,
 	) {
 		self.raw.draw_before_children(
-			ctx,
+			micro,
 			self.layout_result.size,
 			widget_state.entry(self.id.clone()).or_default(),
 		);
@@ -244,36 +244,36 @@ impl BakedWidget {
 			.iter_mut()
 			.zip(self.layout_result.child_positions.iter().copied())
 		{
-			ctx.push_translation_2d(position, |ctx| child.draw(ctx, widget_state));
+			micro.push_translation_2d(position, |micro| child.draw(micro, widget_state));
 		}
 		self.raw.draw_after_children(
-			ctx,
+			micro,
 			self.layout_result.size,
 			widget_state.entry(self.id.clone()).or_default(),
 		);
 	}
 
-	fn draw_debug(&self, ctx: &mut Context, draw_debug_state: &DrawDebugState) {
-		ctx.push(self.transform, |ctx| {
+	fn draw_debug(&self, micro: &mut Micro, draw_debug_state: &DrawDebugState) {
+		micro.push(self.transform, |micro| {
 			if draw_debug_state
 				.highlighted_widget_id
 				.as_ref()
 				.is_some_and(|id| *id == self.id)
 			{
-				Mesh::rectangle(ctx, Rect::new(Vec2::ZERO, self.layout_result.size))
+				Mesh::rectangle(micro, Rect::new(Vec2::ZERO, self.layout_result.size))
 					.color(LinSrgba::new(1.0, 1.0, 0.0, 0.25))
-					.draw(ctx);
+					.draw(micro);
 			}
-			Mesh::outlined_rectangle(ctx, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))
+			Mesh::outlined_rectangle(micro, 2.0, Rect::new(Vec2::ZERO, self.layout_result.size))
 				.color(LinSrgb::new(1.0, 0.0, 1.0))
-				.draw(ctx);
+				.draw(micro);
 			for (baked_child, position) in self
 				.children
 				.iter()
 				.zip(self.layout_result.child_positions.iter().copied())
 			{
-				ctx.push_translation_2d(position.round(), |ctx| {
-					baked_child.draw_debug(ctx, draw_debug_state)
+				micro.push_translation_2d(position.round(), |micro| {
+					baked_child.draw_debug(micro, draw_debug_state)
 				});
 			}
 		});
@@ -321,15 +321,15 @@ impl BakedWidget {
 		}
 	}
 
-	fn on_finish(&mut self, ctx: &mut Context, widget_state: &mut IndexMap<String, WidgetState>) {
+	fn on_finish(&mut self, micro: &mut Micro, widget_state: &mut IndexMap<String, WidgetState>) {
 		let _span = tracy_client::span!();
 		self.raw
-			.on_finish(ctx, widget_state.entry(self.id.clone()).or_default());
+			.on_finish(micro, widget_state.entry(self.id.clone()).or_default());
 		for child in &mut self.children {
-			child.on_finish(ctx, widget_state);
+			child.on_finish(micro, widget_state);
 		}
 		if let Some(mask) = &mut self.mask {
-			mask.on_finish(ctx, widget_state);
+			mask.on_finish(micro, widget_state);
 		}
 	}
 }

@@ -13,7 +13,7 @@ use super::{context::GameplayContext, event::GameplayEvent};
 pub trait System {
 	fn init(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -23,7 +23,7 @@ pub trait System {
 
 	fn debug_stats(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -33,7 +33,7 @@ pub trait System {
 
 	fn debug_menu(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Context,
 		ui: &mut micro::egui::Ui,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
@@ -44,7 +44,7 @@ pub trait System {
 
 	fn debug_ui(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Context,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
@@ -55,7 +55,7 @@ pub trait System {
 
 	fn event(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -66,7 +66,7 @@ pub trait System {
 
 	fn gameplay_event(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -77,7 +77,7 @@ pub trait System {
 
 	fn update(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,
@@ -88,7 +88,7 @@ pub trait System {
 
 	fn draw(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Context,
 		globals: &mut Globals,
 		gameplay_ctx: &mut GameplayContext,
 		world: &mut World,

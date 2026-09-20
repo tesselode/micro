@@ -15,7 +15,7 @@ use wgpu::{
 };
 
 use crate::{
-	Context, color::ColorConstants, graphics::BlendMode, math::Rect, standard_draw_param_methods,
+	Micro, color::ColorConstants, graphics::BlendMode, math::Rect, standard_draw_param_methods,
 };
 
 use super::mesh::Mesh;
@@ -47,11 +47,11 @@ pub struct Texture {
 
 impl Texture {
 	/// Creates a new texture where all the pixels are transparent black.
-	pub fn empty(ctx: &Context, size: UVec2, settings: TextureSettings) -> Self {
+	pub fn empty(micro: &Micro, size: UVec2, settings: TextureSettings) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
-			&ctx.graphics.device,
-			&ctx.graphics.queue,
+			&micro.graphics.device,
+			&micro.graphics.queue,
 			size,
 			1,
 			None,
@@ -62,14 +62,14 @@ impl Texture {
 
 	/// Creates a new texture from an image loaded by the [`image`] crate.
 	pub fn from_image(
-		ctx: &Context,
+		micro: &Micro,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 		settings: TextureSettings,
 	) -> Self {
 		let _span = tracy_client::span!();
 		Self::new(
-			&ctx.graphics.device,
-			&ctx.graphics.queue,
+			&micro.graphics.device,
+			&micro.graphics.queue,
 			UVec2::new(image.width(), image.height()),
 			1,
 			[image.as_raw().as_slice()],
@@ -80,18 +80,18 @@ impl Texture {
 
 	/// Creates a new texture from an image file.
 	pub fn from_file(
-		ctx: &Context,
+		micro: &Micro,
 		path: impl AsRef<Path>,
 		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
 		let _span = tracy_client::span!();
 		let image = image::ImageReader::open(path)?.decode()?.to_rgba8();
-		Ok(Self::from_image(ctx, &image, settings))
+		Ok(Self::from_image(micro, &image, settings))
 	}
 
 	/// Creates a new multi-layer texture from images loaded by the [`image`] crate.
 	pub fn layered_from_images(
-		ctx: &Context,
+		micro: &Micro,
 		images: &[&ImageBuffer<image::Rgba<u8>, Vec<u8>>],
 		settings: TextureSettings,
 	) -> Self {
@@ -111,8 +111,8 @@ impl Texture {
 		let height = heights.iter().next().copied().unwrap();
 		let pixels = images.iter().map(|image| image.as_raw().as_slice());
 		Self::new(
-			&ctx.graphics.device,
-			&ctx.graphics.queue,
+			&micro.graphics.device,
+			&micro.graphics.queue,
 			UVec2::new(width, height),
 			images.len() as u32,
 			pixels,
@@ -123,7 +123,7 @@ impl Texture {
 
 	/// Creates a new multi-layer texture from image files.
 	pub fn layered_from_files(
-		ctx: &Context,
+		micro: &Micro,
 		paths: &[impl AsRef<Path>],
 		settings: TextureSettings,
 	) -> Result<Self, LoadTextureError> {
@@ -137,17 +137,17 @@ impl Texture {
 			})
 			.collect::<Result<Vec<_>, _>>()?;
 		let image_refs = images.iter().collect::<Vec<_>>();
-		Ok(Self::layered_from_images(ctx, &image_refs, settings))
+		Ok(Self::layered_from_images(micro, &image_refs, settings))
 	}
 
 	/// Creates a new cubemap texture from images loaded by the [`image`] crate.
 	pub fn cubemap_from_images(
-		ctx: &Context,
+		micro: &Micro,
 		images: Cubemap<&ImageBuffer<image::Rgba<u8>, Vec<u8>>>,
 		settings: CubemapSettings,
 	) -> Self {
 		Self::layered_from_images(
-			ctx,
+			micro,
 			&[
 				images.right,
 				images.left,
@@ -162,12 +162,12 @@ impl Texture {
 
 	/// Creates a new cubemap texture from image files.
 	pub fn cubemap_from_files(
-		ctx: &Context,
+		micro: &Micro,
 		paths: Cubemap<impl AsRef<Path>>,
 		settings: CubemapSettings,
 	) -> Result<Self, LoadTextureError> {
 		Self::layered_from_files(
-			ctx,
+			micro,
 			&[
 				paths.right,
 				paths.left,
@@ -182,8 +182,8 @@ impl Texture {
 
 	/// Returns a new texture with the specified `size` and with data copied
 	/// over from the previous texture.
-	pub fn resized(&self, ctx: &Context, size: UVec2) -> Self {
-		self.resized_inner(&ctx.graphics.device, &ctx.graphics.queue, size)
+	pub fn resized(&self, micro: &Micro, size: UVec2) -> Self {
+		self.resized_inner(&micro.graphics.device, &micro.graphics.queue, size)
 	}
 
 	/// Sets the portion of the texture to draw.
@@ -225,18 +225,18 @@ impl Texture {
 	/// This will modify all clones of this [`Texture`] as well.
 	pub fn replace(
 		&self,
-		ctx: &Context,
+		micro: &Micro,
 		top_left: UVec2,
 		image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
 	) {
-		self.replace_inner(&ctx.graphics.queue, top_left, image);
+		self.replace_inner(&micro.graphics.queue, top_left, image);
 	}
 
 	/// Draws the texture.
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self, micro: &mut Micro) {
 		let _span = tracy_client::span!();
 		Mesh::rectangle_with_texture_region(
-			ctx,
+			micro,
 			Rect::new(Vec2::ZERO, self.region.size),
 			self.relative_rect(self.region),
 		)
@@ -244,7 +244,7 @@ impl Texture {
 		.transformed(self.transform)
 		.color(self.color)
 		.blend_mode(self.blend_mode)
-		.draw(ctx)
+		.draw(micro)
 	}
 
 	pub(crate) fn new<'a>(

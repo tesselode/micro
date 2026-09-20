@@ -28,8 +28,8 @@ pub struct Assets<L: AssetLoader> {
 }
 
 impl<L: AssetLoader> Assets<L> {
-	pub fn new(ctx: &mut L::Context, base_dir: impl AsRef<Path>, mut loader: L) -> Self {
-		let placeholder = loader.placeholder(ctx);
+	pub fn new(micro: &mut L::Context, base_dir: impl AsRef<Path>, mut loader: L) -> Self {
+		let placeholder = loader.placeholder(micro);
 		Self {
 			base_dir: base_assets_path().join(base_dir.as_ref()),
 			loader,
@@ -40,18 +40,18 @@ impl<L: AssetLoader> Assets<L> {
 		}
 	}
 
-	pub fn autoloaded(ctx: &mut L::Context, base_dir: impl AsRef<Path>, loader: L) -> Self {
-		let mut assets = Self::new(ctx, base_dir, loader);
-		assets.load_all(ctx);
+	pub fn autoloaded(micro: &mut L::Context, base_dir: impl AsRef<Path>, loader: L) -> Self {
+		let mut assets = Self::new(micro, base_dir, loader);
+		assets.load_all(micro);
 		assets
 	}
 
-	pub fn load(&mut self, ctx: &mut L::Context, path: impl AsRef<Path>) {
-		self.load_inner(ctx, path.as_ref())
+	pub fn load(&mut self, micro: &mut L::Context, path: impl AsRef<Path>) {
+		self.load_inner(micro, path.as_ref())
 	}
 
-	pub fn load_all(&mut self, ctx: &mut L::Context) {
-		self.load(ctx, "")
+	pub fn load_all(&mut self, micro: &mut L::Context) {
+		self.load(micro, "")
 	}
 
 	pub fn unload(&mut self, dir: impl AsRef<Path>) {
@@ -106,18 +106,18 @@ impl<L: AssetLoader> Assets<L> {
 	}
 
 	#[cfg(debug_assertions)]
-	pub fn update_hot_reload(&mut self, ctx: &mut L::Context, delta_time: Duration) {
+	pub fn update_hot_reload(&mut self, micro: &mut L::Context, delta_time: Duration) {
 		self.hot_reload_timer += delta_time;
 		if self.hot_reload_timer >= HOT_RELOAD_INTERVAL {
-			self.hot_reload(ctx);
+			self.hot_reload(micro);
 			self.hot_reload_timer = Duration::ZERO;
 		}
 	}
 
 	#[cfg(not(debug_assertions))]
-	pub fn update_hot_reload(&mut self, _ctx: &mut L::Context, _delta_time: Duration) {}
+	pub fn update_hot_reload(&mut self, _micro: &mut L::Context, _delta_time: Duration) {}
 
-	fn load_inner(&mut self, ctx: &mut L::Context, path: &Path) {
+	fn load_inner(&mut self, micro: &mut L::Context, path: &Path) {
 		let full_asset_path = self.base_dir.join(path);
 		if full_asset_path.is_dir() {
 			let asset_paths = match self.assets_in_dir(&full_asset_path) {
@@ -132,10 +132,10 @@ impl<L: AssetLoader> Assets<L> {
 				}
 			};
 			for asset_path in asset_paths {
-				self.load_inner(ctx, &asset_path);
+				self.load_inner(micro, &asset_path);
 			}
 		} else {
-			let asset = match AssetWithMetadata::load(ctx, &full_asset_path, &mut self.loader) {
+			let asset = match AssetWithMetadata::load(micro, &full_asset_path, &mut self.loader) {
 				Ok(Some(asset)) => asset,
 				Ok(None) => return,
 				Err(err) => {
@@ -166,9 +166,9 @@ impl<L: AssetLoader> Assets<L> {
 		Ok(asset_paths)
 	}
 
-	fn hot_reload(&mut self, ctx: &mut L::Context) {
+	fn hot_reload(&mut self, micro: &mut L::Context) {
 		for (path, asset) in &mut self.assets {
-			let reloaded = asset.reload(ctx, &mut self.loader);
+			let reloaded = asset.reload(micro, &mut self.loader);
 			if reloaded {
 				self.missing_asset_logger.on_reloaded(path);
 			}

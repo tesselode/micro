@@ -9,7 +9,7 @@ use wgpu::{
 };
 
 use crate::{
-	Context, color::ColorConstants, context::graphics::GraphicsContext, graphics::BlendMode,
+	Micro, color::ColorConstants, framework::graphics::GraphicsContext, graphics::BlendMode,
 	math::Rect, standard_draw_param_methods,
 };
 
@@ -41,8 +41,8 @@ pub struct Canvas {
 
 impl Canvas {
 	/// Creates a new [`Canvas`] with the specified `size` in pixels.
-	pub fn new(ctx: &Context, size: UVec2, settings: CanvasSettings) -> Self {
-		Self::new_from_graphics_ctx(&ctx.graphics, size, settings)
+	pub fn new(micro: &Micro, size: UVec2, settings: CanvasSettings) -> Self {
+		Self::new_from_graphics_micro(&micro.graphics, size, settings)
 	}
 
 	standard_draw_param_methods!();
@@ -78,7 +78,7 @@ impl Canvas {
 		}
 	}
 
-	pub fn read<T>(&self, ctx: &Context, f: impl FnOnce(&[u8]) -> T) -> T {
+	pub fn read<T>(&self, micro: &Micro, f: impl FnOnce(&[u8]) -> T) -> T {
 		let bytes_per_pixel = self
 			.format
 			.block_copy_size(None)
@@ -87,7 +87,7 @@ impl Canvas {
 			.read_buffer
 			.clone()
 			.expect("cannot read from a canvas not set as readable");
-		let mut encoder = ctx
+		let mut encoder = micro
 			.graphics
 			.device
 			.create_command_encoder(&CommandEncoderDescriptor {
@@ -118,8 +118,9 @@ impl Canvas {
 		encoder.map_buffer_on_submit(&buffer, MapMode::Read, .., |result| {
 			result.expect("error mapping buffer");
 		});
-		let submission = ctx.graphics.queue.submit([encoder.finish()]);
-		ctx.graphics
+		let submission = micro.graphics.queue.submit([encoder.finish()]);
+		micro
+			.graphics
 			.device
 			.poll(PollType::Wait {
 				submission_index: Some(submission),
@@ -139,29 +140,30 @@ impl Canvas {
 	/// target back to the window.
 	pub fn render_to<T>(
 		&self,
-		ctx: &mut Context,
+		micro: &mut Micro,
 		settings: RenderToCanvasSettings,
-		f: impl FnOnce(&mut Context) -> T,
+		f: impl FnOnce(&mut Micro) -> T,
 	) -> T {
 		let _span = tracy_client::span!();
-		ctx.graphics
+		micro
+			.graphics
 			.start_canvas_render_pass(self.clone(), settings);
-		let returned = f(ctx);
-		ctx.graphics.finish_canvas_render_pass();
+		let returned = f(micro);
+		micro.graphics.finish_canvas_render_pass();
 		returned
 	}
 
 	/// Draws the canvas.
-	pub fn draw(&self, ctx: &mut Context) {
+	pub fn draw(&self, micro: &mut Micro) {
 		self.drawable_texture()
 			.region(self.region)
 			.transformed(self.transform)
 			.color(self.color)
 			.blend_mode(self.blend_mode)
-			.draw(ctx)
+			.draw(micro)
 	}
 
-	pub(crate) fn new_from_graphics_ctx(
+	pub(crate) fn new_from_graphics_micro(
 		graphics: &GraphicsContext,
 		size: UVec2,
 		settings: CanvasSettings,

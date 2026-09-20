@@ -23,9 +23,9 @@ use wgpu::{
 };
 
 use crate::{
-	ContextSettings,
+	MicroSettings,
 	color::{ColorConstants, lin_srgb_to_wgpu_color, lin_srgba_to_wgpu_color},
-	context::{
+	framework::{
 		Push,
 		graphics::{
 			cached_resources::{CachedResources, RenderPipelineSettings},
@@ -59,7 +59,7 @@ pub(crate) struct GraphicsContext {
 }
 
 impl GraphicsContext {
-	pub(crate) fn new(window: &Window, settings: &ContextSettings) -> Self {
+	pub(crate) fn new(window: &Window, settings: &MicroSettings) -> Self {
 		let instance = Instance::new(InstanceDescriptor::new_without_display_handle());
 		let surface = unsafe {
 			instance.create_surface_unsafe(
@@ -119,7 +119,7 @@ impl GraphicsContext {
 				sample_count: 1,
 			},
 		);
-		let mut ctx = Self {
+		let mut micro = Self {
 			device,
 			queue,
 			supported_sample_counts,
@@ -135,8 +135,10 @@ impl GraphicsContext {
 			render_passes: vec![],
 			canvas_render_pass_stack: vec![],
 		};
-		ctx.graphics_state_stack.push(ctx.default_graphics_state());
-		ctx
+		micro
+			.graphics_state_stack
+			.push(micro.default_graphics_state());
+		micro
 	}
 
 	pub(crate) fn resize(&mut self, size: UVec2) {

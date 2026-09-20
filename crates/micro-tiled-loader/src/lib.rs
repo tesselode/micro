@@ -16,7 +16,7 @@ impl AssetLoader for TiledMapLoader {
 
 	fn load(
 		&mut self,
-		_ctx: &mut (),
+		_micro: &mut (),
 		path: &std::path::Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error> {

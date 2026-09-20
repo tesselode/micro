@@ -21,7 +21,7 @@ impl AssetLoader for StreamingSoundDataLoader {
 
 	fn load(
 		&mut self,
-		_ctx: &mut (),
+		_micro: &mut (),
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error> {

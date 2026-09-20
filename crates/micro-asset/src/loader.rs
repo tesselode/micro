@@ -22,23 +22,23 @@ pub trait AssetLoader {
 
 	fn load(
 		&mut self,
-		ctx: &mut Self::Context,
+		micro: &mut Self::Context,
 		path: &Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error>;
 
 	fn reload(
 		&mut self,
-		ctx: &mut Self::Context,
+		micro: &mut Self::Context,
 		asset: &mut Self::Asset,
 		path: &Path,
 		settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
-		*asset = self.load(ctx, path, settings)?;
+		*asset = self.load(micro, path, settings)?;
 		Ok(())
 	}
 
-	fn placeholder(&mut self, ctx: &mut Self::Context) -> Option<Self::Asset> {
+	fn placeholder(&mut self, micro: &mut Self::Context) -> Option<Self::Asset> {
 		None
 	}
 

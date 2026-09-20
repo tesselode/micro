@@ -18,7 +18,7 @@ pub(super) struct AssetWithMetadata<L: AssetLoader> {
 
 impl<L: AssetLoader> AssetWithMetadata<L> {
 	pub fn load(
-		ctx: &mut L::Context,
+		micro: &mut L::Context,
 		full_asset_path: &Path,
 		loader: &mut L,
 	) -> Result<Option<Self>, L::Error> {
@@ -41,7 +41,7 @@ impl<L: AssetLoader> AssetWithMetadata<L> {
 				None
 			}
 		};
-		let asset = loader.load(ctx, &file_path, settings.as_ref())?;
+		let asset = loader.load(micro, &file_path, settings.as_ref())?;
 		let modified_time = match file_modified_time(&file_path) {
 			Ok(modified) => Some(modified),
 			Err(err) => {
@@ -77,7 +77,7 @@ impl<L: AssetLoader> AssetWithMetadata<L> {
 		}))
 	}
 
-	pub fn reload(&mut self, ctx: &mut L::Context, loader: &mut L) -> Reloaded {
+	pub fn reload(&mut self, micro: &mut L::Context, loader: &mut L) -> Reloaded {
 		if !self.check_for_updates() {
 			return false;
 		}
@@ -94,7 +94,7 @@ impl<L: AssetLoader> AssetWithMetadata<L> {
 			}
 		}
 		if let Err(err) = loader.reload(
-			ctx,
+			micro,
 			&mut self.asset,
 			&self.file_path,
 			self.settings.as_ref(),

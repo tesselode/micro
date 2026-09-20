@@ -8,7 +8,7 @@ use tracing::warn;
 use wgpu::{Device, FilterMode, Queue, TextureFormat};
 
 use crate::{
-	context::graphics::GraphicsContext,
+	framework::graphics::GraphicsContext,
 	graphics::texture::{InternalTextureSettings, Texture, TextureSettings},
 	math::IRect,
 };

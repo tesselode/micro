@@ -4,7 +4,7 @@ use wgpu::{
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
-use crate::Context;
+use crate::Micro;
 
 /// A buffer of arbitrary data that can be used in a
 /// [`Shader`](crate::graphics::Shader).
@@ -15,9 +15,10 @@ impl StorageBuffer {
 	/// Creates a new [`StorageBuffer`].
 	///
 	/// The label is visible in graphics debugging programs, like RenderDoc.
-	pub fn new<T: NoUninit>(ctx: &Context, label: &str, data: &[T]) -> Self {
+	pub fn new<T: NoUninit>(micro: &Micro, label: &str, data: &[T]) -> Self {
 		Self(
-			ctx.graphics
+			micro
+				.graphics
 				.device
 				.create_buffer_init(&BufferInitDescriptor {
 					label: Some(label),

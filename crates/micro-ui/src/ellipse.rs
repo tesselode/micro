@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use micro::{
-	Context,
+	Micro,
 	color::LinSrgba,
 	egui::{self, color_preview},
 	graphics::mesh::{Mesh, ShapeStyle},
@@ -81,13 +81,13 @@ impl Widget for Ellipse {
 		"ellipse"
 	}
 
-	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _micro: &mut Micro, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		std::mem::take(&mut self.children)
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -99,7 +99,7 @@ impl Widget for Ellipse {
 
 	fn layout(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -113,21 +113,21 @@ impl Widget for Ellipse {
 		}
 	}
 
-	fn draw_before_children(&mut self, ctx: &mut Context, size: Vec2, _state: &mut WidgetState) {
+	fn draw_before_children(&mut self, micro: &mut Micro, size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			Mesh::ellipse(ctx, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)
+			Mesh::ellipse(micro, ShapeStyle::Fill, size / 2.0, size / 2.0, 0.0)
 				.color(fill)
-				.draw(ctx);
+				.draw(micro);
 		}
 	}
 
-	fn draw_after_children(&mut self, ctx: &mut Context, size: Vec2, _state: &mut WidgetState) {
+	fn draw_after_children(&mut self, micro: &mut Micro, size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			Mesh::ellipse(ctx, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)
+			Mesh::ellipse(micro, ShapeStyle::Stroke(width), size / 2.0, size / 2.0, 0.0)
 				.color(color)
-				.draw(ctx);
+				.draw(micro);
 		}
 	}
 

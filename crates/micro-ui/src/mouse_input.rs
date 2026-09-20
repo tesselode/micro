@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use micro::{
-	Context,
+	Micro,
 	input::MouseButton,
 	math::{Mat4, Vec2},
 };
@@ -29,9 +29,9 @@ impl MouseInput {
 		}
 	}
 
-	pub fn update(&mut self, ctx: &Context, transform: Mat4) {
+	pub fn update(&mut self, micro: &Micro, transform: Mat4) {
 		self.previous_position = self.position;
-		let raw_position = ctx.mouse_position();
+		let raw_position = micro.mouse_position();
 		let transformed_position = transform
 			.transform_point3(raw_position.extend(0.0))
 			.truncate();
@@ -41,10 +41,10 @@ impl MouseInput {
 			.zip(self.previous_position)
 			.map(|(position, previous)| position - previous)
 			.unwrap_or_default();
-		self.wheel_delta = ctx.mouse_wheel_delta();
+		self.wheel_delta = micro.mouse_wheel_delta();
 		for (button, held_state) in &mut self.held_state {
 			held_state.held_previous = held_state.held;
-			held_state.held = ctx.is_mouse_button_down(*button);
+			held_state.held = micro.is_mouse_button_down(*button);
 		}
 	}
 

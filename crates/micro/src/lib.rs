@@ -7,10 +7,10 @@
 
 mod app;
 pub mod color;
-mod context;
 pub mod egui;
 mod egui_integration;
 mod event;
+mod framework;
 pub mod graphics;
 pub mod input;
 mod log;
@@ -20,8 +20,8 @@ pub mod tween;
 mod window;
 
 pub use app::*;
-pub use context::*;
 pub use event::*;
+pub use framework::*;
 pub use time::*;
 pub use window::*;
 

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use micro::{
-	Context,
+	Micro,
 	graphics::{LoadShaderError, Shader},
 };
 
@@ -17,28 +17,28 @@ impl AssetLoader for ShaderLoader {
 
 	type Settings = ();
 
-	type Context = Context;
+	type Context = Micro;
 
 	const SUPPORTED_FILE_EXTENSIONS: &'static [&'static str] = &["glsl"];
 
 	fn load(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Micro,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<Self::Asset, Self::Error> {
-		Shader::from_file(ctx, path.file_stem().unwrap().to_string_lossy(), path)
+		Shader::from_file(micro, path.file_stem().unwrap().to_string_lossy(), path)
 	}
 
 	fn reload(
 		&mut self,
-		ctx: &mut Context,
+		micro: &mut Micro,
 		asset: &mut Self::Asset,
 		path: &Path,
 		_settings: Option<&Self::Settings>,
 	) -> Result<(), Self::Error> {
 		let source = std::fs::read_to_string(path)?;
-		*asset = asset.with_source(ctx, source)?;
+		*asset = asset.with_source(micro, source)?;
 		Ok(())
 	}
 }

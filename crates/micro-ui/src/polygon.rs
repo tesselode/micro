@@ -1,5 +1,5 @@
 use micro::{
-	Context,
+	Micro,
 	color::LinSrgba,
 	egui::{self, color_preview},
 	graphics::mesh::{Mesh, ShapeStyle},
@@ -73,13 +73,13 @@ impl Widget for Polygon {
 		"polygon"
 	}
 
-	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _micro: &mut Micro, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		vec![]
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -89,7 +89,7 @@ impl Widget for Polygon {
 
 	fn layout(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		_allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -101,21 +101,21 @@ impl Widget for Polygon {
 		}
 	}
 
-	fn draw_before_children(&mut self, ctx: &mut Context, _size: Vec2, _state: &mut WidgetState) {
+	fn draw_before_children(&mut self, micro: &mut Micro, _size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some(fill) = self.fill {
-			Mesh::simple_polygon(ctx, ShapeStyle::Fill, self.points.iter().copied())
+			Mesh::simple_polygon(micro, ShapeStyle::Fill, self.points.iter().copied())
 				.color(fill)
-				.draw(ctx);
+				.draw(micro);
 		}
 	}
 
-	fn draw_after_children(&mut self, ctx: &mut Context, _size: Vec2, _state: &mut WidgetState) {
+	fn draw_after_children(&mut self, micro: &mut Micro, _size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		if let Some((width, color)) = self.stroke {
-			Mesh::simple_polygon(ctx, ShapeStyle::Stroke(width), self.points.iter().copied())
+			Mesh::simple_polygon(micro, ShapeStyle::Stroke(width), self.points.iter().copied())
 				.color(color)
-				.draw(ctx);
+				.draw(micro);
 		}
 	}
 

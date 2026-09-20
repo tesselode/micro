@@ -1,5 +1,5 @@
 use micro::{
-	Context,
+	Micro,
 	color::{ColorConstants, LinSrgba},
 	egui::{self, color_preview},
 	graphics::texture::Texture,
@@ -75,13 +75,13 @@ impl Widget for Image {
 		"image"
 	}
 
-	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _micro: &mut Micro, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		vec![]
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		_allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -91,7 +91,7 @@ impl Widget for Image {
 
 	fn layout(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		_allotted_size_from_parent: Vec2,
 		_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -102,12 +102,12 @@ impl Widget for Image {
 		}
 	}
 
-	fn draw_before_children(&mut self, ctx: &mut Context, _size: Vec2, _state: &mut WidgetState) {
+	fn draw_before_children(&mut self, micro: &mut Micro, _size: Vec2, _state: &mut WidgetState) {
 		let _span = tracy_client::span!();
 		self.texture
 			.color(self.color)
 			.scaled_2d(self.scale)
-			.draw(ctx);
+			.draw(micro);
 	}
 
 	fn debug_info(&self, egui_ui: &mut egui::Ui, _state: &WidgetState) {

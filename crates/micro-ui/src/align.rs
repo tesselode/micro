@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use micro::{Context, egui, math::Vec2};
+use micro::{Micro, egui, math::Vec2};
 
 use crate::{
 	WidgetInspector, WidgetState, child_functions, common_functions, common_widget_trait_functions,
@@ -70,13 +70,13 @@ impl Widget for Align {
 		"align"
 	}
 
-	fn children(&mut self, _ctx: &mut Context, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
+	fn children(&mut self, _micro: &mut Micro, _state: &mut WidgetState) -> Vec<Box<dyn Widget>> {
 		std::mem::take(&mut self.children)
 	}
 
 	fn allotted_size_for_next_child(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		allotted_size_from_parent: Vec2,
 		_previous_child_sizes: &[Vec2],
 		_state: &mut WidgetState,
@@ -88,7 +88,7 @@ impl Widget for Align {
 
 	fn layout(
 		&mut self,
-		_ctx: &mut Context,
+		_micro: &mut Micro,
 		allotted_size_from_parent: Vec2,
 		child_sizes: &[Vec2],
 		_state: &mut WidgetState,

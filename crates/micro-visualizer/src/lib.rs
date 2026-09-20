@@ -11,9 +11,9 @@ use std::{path::PathBuf, time::Duration};
 use micro::{egui::Ui, graphics::Canvas, math::UVec2};
 use vis_runner::VisRunner;
 
-pub fn run<T: Visualizer>(mut visualizer_constructor: impl FnMut(&mut Context) -> T) {
+pub fn run<T: Visualizer>(mut visualizer_constructor: impl FnMut(&mut Micro) -> T) {
 	micro::run(
-		ContextSettings {
+		MicroSettings {
 			window_title: "Micro Visualizer".into(),
 			window_mode: WindowMode::Windowed {
 				size: UVec2::new(1920, 1080),
@@ -21,9 +21,9 @@ pub fn run<T: Visualizer>(mut visualizer_constructor: impl FnMut(&mut Context) -
 			resizable: true,
 			..Default::default()
 		},
-		|ctx| {
-			let visualizer = Box::new(visualizer_constructor(ctx));
-			VisRunner::new(ctx, visualizer)
+		|micro| {
+			let visualizer = Box::new(visualizer_constructor(micro));
+			VisRunner::new(micro, visualizer)
 		},
 	)
 }
@@ -44,16 +44,16 @@ pub trait Visualizer: 'static {
 		None
 	}
 
-	fn ui(&mut self, ctx: &mut Context, egui_ctx: &micro::egui::Context, vis_info: VisualizerInfo) {
+	fn ui(&mut self, micro: &mut Micro, egui_ctx: &micro::egui::Context, vis_info: VisualizerInfo) {
 	}
 
-	fn menu(&mut self, ctx: &mut Context, ui: &mut Ui, vis_info: VisualizerInfo) {}
+	fn menu(&mut self, micro: &mut Micro, ui: &mut Ui, vis_info: VisualizerInfo) {}
 
-	fn event(&mut self, ctx: &mut Context, vis_info: VisualizerInfo, event: Event) {}
+	fn event(&mut self, micro: &mut Micro, vis_info: VisualizerInfo, event: Event) {}
 
-	fn update(&mut self, ctx: &mut Context, vis_info: VisualizerInfo, delta_time: Duration) {}
+	fn update(&mut self, micro: &mut Micro, vis_info: VisualizerInfo, delta_time: Duration) {}
 
-	fn draw(&mut self, ctx: &mut Context, vis_info: VisualizerInfo, main_canvas: &Canvas);
+	fn draw(&mut self, micro: &mut Micro, vis_info: VisualizerInfo, main_canvas: &Canvas);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

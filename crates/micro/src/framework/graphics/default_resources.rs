@@ -7,7 +7,7 @@ use wgpu::{
 };
 
 use crate::{
-	context::graphics::{CompiledShader, Layouts},
+	framework::graphics::{CompiledShader, Layouts},
 	graphics::{
 		Shader,
 		texture::{InternalTextureSettings, Texture, TextureSettings},

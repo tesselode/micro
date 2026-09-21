@@ -1,9 +1,9 @@
 use std::{any::TypeId, collections::HashMap};
 
-use hecs::World;
+use hecs::{Component, World};
 use micro::Micro;
 
-use crate::{Queues, event_dispatcher::EventDispatcherTrait, systems::Systems};
+use crate::{HasResources, Queues, event_dispatcher::EventDispatcherTrait, systems::Systems};
 
 pub struct Ecs<Globals> {
 	pub world: World,
@@ -31,6 +31,11 @@ impl<Globals> Ecs<Globals> {
 		Event: 'static,
 	{
 		self.systems.for_event().push(Box::new(system));
+		self
+	}
+
+	pub fn resource<R: Component>(mut self, resource: R) -> Self {
+		self.world.insert_resource(resource);
 		self
 	}
 

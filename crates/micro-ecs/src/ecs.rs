@@ -3,7 +3,7 @@ use std::{any::TypeId, collections::HashMap};
 use hecs::World;
 use micro::Micro;
 
-use crate::{Queues, System, event_dispatcher::EventDispatcherTrait, systems::Systems};
+use crate::{Queues, event_dispatcher::EventDispatcherTrait, systems::Systems};
 
 pub struct Ecs<Globals> {
 	pub world: World,
@@ -22,12 +22,15 @@ impl<Globals> Ecs<Globals> {
 		}
 	}
 
-	pub fn system<Event>(mut self, system: System<Globals, Event>) -> Self
+	pub fn system<Event>(
+		mut self,
+		system: impl FnMut(&mut Micro, &mut Globals, &mut World, &mut Queues<Globals>, &Event) + 'static,
+	) -> Self
 	where
 		Globals: 'static,
 		Event: 'static,
 	{
-		self.systems.for_event().push(system);
+		self.systems.for_event().push(Box::new(system));
 		self
 	}
 

@@ -4,7 +4,10 @@ use std::{
 	marker::PhantomData,
 };
 
-use crate::System;
+use hecs::World;
+use micro::Micro;
+
+use crate::Queues;
 
 pub struct Systems<Globals> {
 	systems: HashMap<TypeId, Box<dyn Any>>,
@@ -19,15 +22,18 @@ impl<Globals> Systems<Globals> {
 		}
 	}
 
-	pub fn for_event<Event>(&mut self) -> &mut Vec<System<Globals, Event>>
+	pub fn for_event<Event>(&mut self) -> &mut Vec<BoxedSystem<Globals, Event>>
 	where
 		Globals: 'static,
 		Event: 'static,
 	{
 		self.systems
 			.entry(TypeId::of::<Event>())
-			.or_insert_with(|| Box::<Vec<System<Globals, Event>>>::new(vec![]))
+			.or_insert_with(|| Box::<Vec<BoxedSystem<Globals, Event>>>::new(vec![]))
 			.downcast_mut()
 			.unwrap()
 	}
 }
+
+type BoxedSystem<Globals, Event> =
+	Box<dyn FnMut(&mut Micro, &mut Globals, &mut World, &mut Queues<Globals>, &Event) + 'static>;

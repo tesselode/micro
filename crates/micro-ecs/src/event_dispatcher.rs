@@ -3,13 +3,15 @@ use std::{any::Any, marker::PhantomData};
 use hecs::World;
 use micro::Micro;
 
-use crate::{Queues, systems::Systems};
+use crate::{Queues, Resources, systems::Systems};
 
 pub trait EventDispatcherTrait<Globals> {
+	#[allow(clippy::too_many_arguments)]
 	fn dispatch(
 		&self,
 		micro: &mut Micro,
 		globals: &mut Globals,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<Globals>,
 		systems: &mut Systems<Globals>,
@@ -38,6 +40,7 @@ impl<Globals: 'static, Event: 'static> EventDispatcherTrait<Globals>
 		&self,
 		micro: &mut Micro,
 		globals: &mut Globals,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<Globals>,
 		systems: &mut Systems<Globals>,
@@ -45,7 +48,7 @@ impl<Globals: 'static, Event: 'static> EventDispatcherTrait<Globals>
 	) {
 		let event = event.downcast_ref::<Event>().unwrap();
 		for system in systems.for_event() {
-			system(micro, globals, world, queues, event);
+			system(micro, globals, resources, world, queues, event);
 		}
 	}
 }

@@ -1,13 +1,14 @@
 use std::{any::TypeId, collections::HashMap};
 
-use hecs::{Component, World};
+use hecs::World;
 use micro::Micro;
 
-use crate::{HasResources, Queues, event_dispatcher::EventDispatcherTrait, systems::Systems};
+use crate::{Queues, Resources, event_dispatcher::EventDispatcherTrait, systems::Systems};
 
 pub struct Ecs<Globals> {
 	pub world: World,
 	pub queues: Queues<Globals>,
+	pub resources: Resources,
 	systems: Systems<Globals>,
 	event_dispatchers: HashMap<TypeId, Box<dyn EventDispatcherTrait<Globals>>>,
 }
@@ -17,6 +18,7 @@ impl<Globals> Ecs<Globals> {
 		Self {
 			world: World::new(),
 			queues: Queues::new(),
+			resources: Resources::new(),
 			systems: Systems::new(),
 			event_dispatchers: HashMap::new(),
 		}
@@ -24,7 +26,14 @@ impl<Globals> Ecs<Globals> {
 
 	pub fn system<Event>(
 		mut self,
-		system: impl FnMut(&mut Micro, &mut Globals, &mut World, &mut Queues<Globals>, &Event) + 'static,
+		system: impl FnMut(
+			&mut Micro,
+			&mut Globals,
+			&mut Resources,
+			&mut World,
+			&mut Queues<Globals>,
+			&Event,
+		) + 'static,
 	) -> Self
 	where
 		Globals: 'static,
@@ -34,8 +43,11 @@ impl<Globals> Ecs<Globals> {
 		self
 	}
 
-	pub fn resource<R: Component>(mut self, resource: R) -> Self {
-		self.world.insert_resource(resource);
+	pub fn resource<R>(mut self, resource: R) -> Self
+	where
+		R: 'static,
+	{
+		self.resources.insert(resource);
 		self
 	}
 
@@ -45,7 +57,14 @@ impl<Globals> Ecs<Globals> {
 		Event: 'static,
 	{
 		for system in self.systems.for_event::<Event>() {
-			system(micro, globals, &mut self.world, &mut self.queues, &event);
+			system(
+				micro,
+				globals,
+				&mut self.resources,
+				&mut self.world,
+				&mut self.queues,
+				&event,
+			);
 		}
 		self.flush_events(micro, globals);
 	}
@@ -62,6 +81,7 @@ impl<Globals> Ecs<Globals> {
 			self.event_dispatchers[&type_id].dispatch(
 				micro,
 				globals,
+				&mut self.resources,
 				&mut self.world,
 				&mut self.queues,
 				&mut self.systems,

@@ -50,10 +50,10 @@ impl<Globals> Ecs<Globals> {
 	}
 
 	fn flush_events(&mut self, micro: &mut Micro, globals: &mut Globals) {
-		for (type_id, event_dispatcher) in self.queues.drain_event_dispatchers() {
-			self.event_dispatchers.insert(type_id, event_dispatcher);
-		}
 		while let Some((type_id, event)) = self.queues.pop_event() {
+			for (type_id, event_dispatcher) in self.queues.drain_event_dispatchers() {
+				self.event_dispatchers.insert(type_id, event_dispatcher);
+			}
 			self.event_dispatchers[&type_id].dispatch(
 				micro,
 				globals,

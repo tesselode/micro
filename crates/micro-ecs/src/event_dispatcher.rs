@@ -48,7 +48,7 @@ impl<Globals: 'static, Event: 'static> EventDispatcherTrait<Globals>
 	) {
 		let event = event.downcast_ref::<Event>().unwrap();
 		for system in systems.for_event() {
-			system.run(micro, globals, resources, world, queues, event);
+			system(micro, globals, resources, world, queues, event);
 		}
 	}
 }

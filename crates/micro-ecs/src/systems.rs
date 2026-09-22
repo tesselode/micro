@@ -4,7 +4,10 @@ use std::{
 	marker::PhantomData,
 };
 
-use crate::System;
+use hecs::World;
+use micro::Micro;
+
+use crate::{Queues, Resources};
 
 pub struct Systems<Globals> {
 	systems: HashMap<TypeId, Box<dyn Any>>,
@@ -32,4 +35,7 @@ impl<Globals> Systems<Globals> {
 	}
 }
 
-type BoxedSystem<Globals, Event> = Box<dyn System<Globals, Event>>;
+type BoxedSystem<Globals, Event> = Box<
+	dyn FnMut(&mut Micro, &mut Globals, &mut Resources, &mut World, &mut Queues<Globals>, &Event)
+		+ 'static,
+>;

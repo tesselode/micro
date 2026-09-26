@@ -307,60 +307,28 @@ impl GraphicsContext {
 		self.create_render_pipelines();
 
 		let mut encoder = self.device.create_command_encoder(&Default::default());
-		let frame = match self.surface.get_current_texture() {
-			CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
-			CurrentSurfaceTexture::Suboptimal(surface_texture) => {
-				self.surface.configure(&self.device, &self.config);
-				surface_texture
-			}
-			error => panic!("error getting surface texture: {:?}", error),
+		let (frame, should_reconfigure) = match self.surface.get_current_texture() {
+			CurrentSurfaceTexture::Success(surface_texture) => (Some(surface_texture), false),
+			CurrentSurfaceTexture::Suboptimal(surface_texture) => (Some(surface_texture), true),
+			CurrentSurfaceTexture::Timeout => (None, false),
+			CurrentSurfaceTexture::Occluded => (None, false),
+			CurrentSurfaceTexture::Outdated => (None, true),
+			CurrentSurfaceTexture::Lost => panic!("surface lost"),
+			CurrentSurfaceTexture::Validation => panic!("surface validation error"),
 		};
-		let output = frame.texture.create_view(&TextureViewDescriptor::default());
 
-		// clear the main surface to the specified clear color
-		{
-			let _render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-				label: Some("Main Surface Render Pass"),
-				color_attachments: &[Some(RenderPassColorAttachment {
-					view: &output,
-					resolve_target: None,
-					ops: Operations {
-						load: LoadOp::Clear(lin_srgb_to_wgpu_color(self.clear_color)),
-						store: StoreOp::Store,
-					},
-					depth_slice: None,
-				})],
-				depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-					view: &self.main_surface_depth_stencil_texture.view,
-					depth_ops: Some(Operations {
-						load: LoadOp::Clear(1.0),
-						store: StoreOp::Store,
-					}),
-					stencil_ops: Some(Operations {
-						load: LoadOp::Clear(0),
-						store: StoreOp::Store,
-					}),
-				}),
-				timestamp_writes: None,
-				occlusion_query_set: None,
-				multiview_mask: None,
-			});
-		}
+		if let Some(frame) = frame {
+			let output = frame.texture.create_view(&TextureViewDescriptor::default());
 
-		// run render passes
-		for RenderPass {
-			kind,
-			mut draw_commands,
-		} in self.render_passes.drain(..)
-		{
-			let render_pass_descriptor = match &kind {
-				RenderPassKind::MainSurface => RenderPassDescriptor {
+			// clear the main surface to the specified clear color
+			{
+				let _render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
 					label: Some("Main Surface Render Pass"),
 					color_attachments: &[Some(RenderPassColorAttachment {
 						view: &output,
 						resolve_target: None,
 						ops: Operations {
-							load: LoadOp::Load,
+							load: LoadOp::Clear(lin_srgb_to_wgpu_color(self.clear_color)),
 							store: StoreOp::Store,
 						},
 						depth_slice: None,
@@ -379,73 +347,112 @@ impl GraphicsContext {
 					timestamp_writes: None,
 					occlusion_query_set: None,
 					multiview_mask: None,
-				},
-				RenderPassKind::Canvas {
-					canvas, settings, ..
-				} => RenderPassDescriptor {
-					label: Some(&settings.render_pass_label),
-					color_attachments: &[Some(RenderPassColorAttachment {
-						view: match &canvas.kind {
-							CanvasKind::Normal { texture }
-							| CanvasKind::Multisampled { texture, .. } => &texture.view,
-						},
-						resolve_target: match &canvas.kind {
-							CanvasKind::Normal { .. } => None,
-							CanvasKind::Multisampled {
-								resolve_texture, ..
-							} => Some(&resolve_texture.view),
-						},
-						ops: Operations {
-							load: match settings.clear_color {
-								Some(clear_color) => {
-									LoadOp::Clear(lin_srgba_to_wgpu_color(clear_color))
-								}
-								None => LoadOp::Load,
+				});
+			}
+
+			// run render passes
+			for RenderPass {
+				kind,
+				mut draw_commands,
+			} in self.render_passes.drain(..)
+			{
+				let render_pass_descriptor = match &kind {
+					RenderPassKind::MainSurface => RenderPassDescriptor {
+						label: Some("Main Surface Render Pass"),
+						color_attachments: &[Some(RenderPassColorAttachment {
+							view: &output,
+							resolve_target: None,
+							ops: Operations {
+								load: LoadOp::Load,
+								store: StoreOp::Store,
 							},
-							store: StoreOp::Store,
-						},
-						depth_slice: None,
-					})],
-					depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-						view: &canvas.depth_stencil_texture.view,
-						depth_ops: Some(Operations {
-							load: match settings.clear_depth_buffer {
-								true => LoadOp::Clear(1.0),
-								false => LoadOp::Load,
-							},
-							store: StoreOp::Store,
+							depth_slice: None,
+						})],
+						depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+							view: &self.main_surface_depth_stencil_texture.view,
+							depth_ops: Some(Operations {
+								load: LoadOp::Clear(1.0),
+								store: StoreOp::Store,
+							}),
+							stencil_ops: Some(Operations {
+								load: LoadOp::Clear(0),
+								store: StoreOp::Store,
+							}),
 						}),
-						stencil_ops: Some(Operations {
-							load: match settings.clear_stencil_value {
-								true => LoadOp::Clear(0),
-								false => LoadOp::Load,
+						timestamp_writes: None,
+						occlusion_query_set: None,
+						multiview_mask: None,
+					},
+					RenderPassKind::Canvas {
+						canvas, settings, ..
+					} => RenderPassDescriptor {
+						label: Some(&settings.render_pass_label),
+						color_attachments: &[Some(RenderPassColorAttachment {
+							view: match &canvas.kind {
+								CanvasKind::Normal { texture }
+								| CanvasKind::Multisampled { texture, .. } => &texture.view,
 							},
-							store: StoreOp::Store,
+							resolve_target: match &canvas.kind {
+								CanvasKind::Normal { .. } => None,
+								CanvasKind::Multisampled {
+									resolve_texture, ..
+								} => Some(&resolve_texture.view),
+							},
+							ops: Operations {
+								load: match settings.clear_color {
+									Some(clear_color) => {
+										LoadOp::Clear(lin_srgba_to_wgpu_color(clear_color))
+									}
+									None => LoadOp::Load,
+								},
+								store: StoreOp::Store,
+							},
+							depth_slice: None,
+						})],
+						depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+							view: &canvas.depth_stencil_texture.view,
+							depth_ops: Some(Operations {
+								load: match settings.clear_depth_buffer {
+									true => LoadOp::Clear(1.0),
+									false => LoadOp::Load,
+								},
+								store: StoreOp::Store,
+							}),
+							stencil_ops: Some(Operations {
+								load: match settings.clear_stencil_value {
+									true => LoadOp::Clear(0),
+									false => LoadOp::Load,
+								},
+								store: StoreOp::Store,
+							}),
 						}),
-					}),
-					timestamp_writes: None,
-					occlusion_query_set: None,
-					multiview_mask: None,
-				},
-			};
-			let default_scissor_size = match &kind {
-				RenderPassKind::MainSurface => uvec2(self.config.width, self.config.height),
-				RenderPassKind::Canvas { canvas, .. } => canvas.size(),
-			};
-			let render_pass = encoder.begin_render_pass(&render_pass_descriptor);
-			run_draw_commands(
-				&self.device,
-				&mut self.layouts,
-				&self.cached_resources.render_pipelines,
-				&mut draw_commands,
-				render_pass,
-				URect::new(UVec2::ZERO, default_scissor_size),
-			);
+						timestamp_writes: None,
+						occlusion_query_set: None,
+						multiview_mask: None,
+					},
+				};
+				let default_scissor_size = match &kind {
+					RenderPassKind::MainSurface => uvec2(self.config.width, self.config.height),
+					RenderPassKind::Canvas { canvas, .. } => canvas.size(),
+				};
+				let render_pass = encoder.begin_render_pass(&render_pass_descriptor);
+				run_draw_commands(
+					&self.device,
+					&mut self.layouts,
+					&self.cached_resources.render_pipelines,
+					&mut draw_commands,
+					render_pass,
+					URect::new(UVec2::ZERO, default_scissor_size),
+				);
+			}
+
+			self.queue.submit([encoder.finish()]);
+			self.queue.present(frame);
 		}
 
-		self.queue.submit([encoder.finish()]);
-		self.queue.present(frame);
-
+		if should_reconfigure {
+			self.surface.configure(&self.device, &self.config);
+		}
 		self.graphics_state_stack.clear();
 		self.graphics_state_stack
 			.push(self.default_graphics_state());

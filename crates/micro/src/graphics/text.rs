@@ -184,8 +184,8 @@ struct TextInner {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextBuilder {
 	pub font_family: String,
-	pub text: String,
 	pub font_size: f32,
+	pub text: String,
 	pub line_height: f32,
 	pub stretch: TextStretch,
 	pub style: TextStyle,
@@ -195,11 +195,11 @@ pub struct TextBuilder {
 }
 
 impl TextBuilder {
-	pub fn new(font_family: impl Into<String>, text: impl Into<String>) -> Self {
+	pub fn new(font_family: impl Into<String>, font_size: f32, text: impl Into<String>) -> Self {
 		Self {
 			font_family: font_family.into(),
 			text: text.into(),
-			font_size: 16.0,
+			font_size,
 			line_height: 1.0,
 			stretch: TextStretch::Normal,
 			style: TextStyle::Normal,
@@ -216,15 +216,15 @@ impl TextBuilder {
 		}
 	}
 
+	pub fn font_size(self, font_size: f32) -> Self {
+		Self { font_size, ..self }
+	}
+
 	pub fn text(self, text: impl Into<String>) -> Self {
 		Self {
 			text: text.into(),
 			..self
 		}
-	}
-
-	pub fn font_size(self, font_size: f32) -> Self {
-		Self { font_size, ..self }
 	}
 
 	pub fn line_height(self, line_height: f32) -> Self {

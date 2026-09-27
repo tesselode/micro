@@ -31,11 +31,11 @@ pub struct TextWidget {
 }
 
 impl TextWidget {
-	pub fn new(font_family: impl Into<String>, text: impl Into<String>) -> Self {
+	pub fn new(font_family: impl Into<String>, font_size: f32, text: impl Into<String>) -> Self {
 		Self {
 			id: None,
 			inspector: None,
-			builder: TextBuilder::new(font_family, text),
+			builder: TextBuilder::new(font_family, font_size, text),
 			sizing: Sizing::SHRINK,
 			align: TextAlign::Left,
 			color: LinSrgba::WHITE,

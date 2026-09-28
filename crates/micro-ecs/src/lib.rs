@@ -1,68 +1,48 @@
 pub mod prelude;
 mod queues;
+mod resources;
 mod system;
 
 pub use queues::*;
+pub use resources::*;
 pub use system::*;
 
 pub use hecs::*;
 
-use std::time::Duration;
+use std::{any::Any, time::Duration};
 
 use indexmap::IndexMap;
 use micro::{Event, Micro};
 
-pub struct Ecs<Globals, EcsContext, EcsEvent> {
-	world: World,
-	queues: Queues<EcsEvent>,
-	systems: Systems<Globals, EcsContext, EcsEvent>,
+pub struct Ecs<Globals, EcsEvent> {
+	pub world: World,
+	pub queues: Queues<EcsEvent>,
+	pub resources: Resources,
+	systems: Systems<Globals, EcsEvent>,
 }
 
-impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
-	pub fn world(&self) -> &World {
-		&self.world
-	}
-
-	pub fn world_mut(&mut self) -> &mut World {
-		&mut self.world
-	}
-
-	pub fn queues(&self) -> &Queues<EcsEvent> {
-		&self.queues
-	}
-
-	pub fn queues_mut(&mut self) -> &mut Queues<EcsEvent> {
-		&mut self.queues
-	}
-
+impl<Globals, EcsEvent> Ecs<Globals, EcsEvent> {
 	pub fn debug_ui(
 		&mut self,
 		micro: &mut Micro,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
 	) {
 		self.systems.debug_ui(
 			micro,
 			egui_ctx,
 			globals,
-			ecs_ctx,
+			&mut self.resources,
 			&mut self.world,
 			&mut self.queues,
 		)
 	}
 
-	pub fn event(
-		&mut self,
-		micro: &mut Micro,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-		event: &Event,
-	) {
+	pub fn event(&mut self, micro: &mut Micro, globals: &mut Globals, event: &Event) {
 		self.systems.event(
 			micro,
 			globals,
-			ecs_ctx,
+			&mut self.resources,
 			&mut self.world,
 			&mut self.queues,
 			event,
@@ -73,30 +53,24 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+
 		event: &EcsEvent,
 	) {
 		self.systems.ecs_event(
 			micro,
 			globals,
-			ecs_ctx,
+			&mut self.resources,
 			&mut self.world,
 			&mut self.queues,
 			event,
 		)
 	}
 
-	pub fn update(
-		&mut self,
-		micro: &mut Micro,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-		delta_time: Duration,
-	) {
+	pub fn update(&mut self, micro: &mut Micro, globals: &mut Globals, delta_time: Duration) {
 		self.systems.update(
 			micro,
 			globals,
-			ecs_ctx,
+			&mut self.resources,
 			&mut self.world,
 			&mut self.queues,
 			delta_time,
@@ -107,47 +81,67 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+
 		delta_time: Duration,
 	) {
 		self.systems.update_cosmetic(
 			micro,
 			globals,
-			ecs_ctx,
+			&mut self.resources,
 			&mut self.world,
 			&mut self.queues,
 			delta_time,
 		)
 	}
 
-	pub fn pause(&mut self, micro: &mut Micro, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
-		self.systems
-			.pause(micro, globals, ecs_ctx, &mut self.world, &mut self.queues)
+	pub fn pause(&mut self, micro: &mut Micro, globals: &mut Globals) {
+		self.systems.pause(
+			micro,
+			globals,
+			&mut self.resources,
+			&mut self.world,
+			&mut self.queues,
+		)
 	}
 
-	pub fn resume(&mut self, micro: &mut Micro, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
-		self.systems
-			.resume(micro, globals, ecs_ctx, &mut self.world, &mut self.queues)
+	pub fn resume(&mut self, micro: &mut Micro, globals: &mut Globals) {
+		self.systems.resume(
+			micro,
+			globals,
+			&mut self.resources,
+			&mut self.world,
+			&mut self.queues,
+		)
 	}
 
-	pub fn leave(&mut self, micro: &mut Micro, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
-		self.systems
-			.leave(micro, globals, ecs_ctx, &mut self.world, &mut self.queues)
+	pub fn leave(&mut self, micro: &mut Micro, globals: &mut Globals) {
+		self.systems.leave(
+			micro,
+			globals,
+			&mut self.resources,
+			&mut self.world,
+			&mut self.queues,
+		)
 	}
 
-	pub fn draw(&mut self, micro: &mut Micro, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
-		self.systems
-			.draw(micro, globals, ecs_ctx, &mut self.world, &mut self.queues)
+	pub fn draw(&mut self, micro: &mut Micro, globals: &mut Globals) {
+		self.systems.draw(
+			micro,
+			globals,
+			&mut self.resources,
+			&mut self.world,
+			&mut self.queues,
+		)
 	}
 
-	pub fn post_draw(
-		&mut self,
-		micro: &mut Micro,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-	) {
-		self.systems
-			.post_draw(micro, globals, ecs_ctx, &mut self.world, &mut self.queues);
+	pub fn post_draw(&mut self, micro: &mut Micro, globals: &mut Globals) {
+		self.systems.post_draw(
+			micro,
+			globals,
+			&mut self.resources,
+			&mut self.world,
+			&mut self.queues,
+		);
 		self.queues.flush_world_queue(&mut self.world);
 	}
 
@@ -160,46 +154,54 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 		self.systems.show_systems_window(open, egui_ctx, presets);
 	}
 
-	fn init(&mut self, micro: &mut Micro, globals: &mut Globals, ecs_ctx: &mut EcsContext) {
-		self.systems
-			.init(micro, globals, ecs_ctx, &mut self.world, &mut self.queues);
+	fn init(&mut self, micro: &mut Micro, globals: &mut Globals) {
+		self.systems.init(
+			micro,
+			globals,
+			&mut self.resources,
+			&mut self.world,
+			&mut self.queues,
+		);
 		self.queues.flush_world_queue(&mut self.world);
 	}
 }
 
-pub struct EcsBuilder<Globals, EcsContext, EcsEvent> {
-	systems: Systems<Globals, EcsContext, EcsEvent>,
+pub struct EcsBuilder<Globals, EcsEvent> {
+	systems: Systems<Globals, EcsEvent>,
+	resources: Resources,
 }
 
-impl<Globals, EcsContext, EcsEvent> EcsBuilder<Globals, EcsContext, EcsEvent> {
+impl<Globals, EcsEvent> EcsBuilder<Globals, EcsEvent> {
 	pub fn new() -> Self {
 		Self {
 			systems: Systems::new(),
+			resources: Resources::new(),
 		}
 	}
 
-	pub fn system(mut self, system: impl System<Globals, EcsContext, EcsEvent> + 'static) -> Self {
+	pub fn system(mut self, system: impl System<Globals, EcsEvent> + 'static) -> Self {
 		self.systems.add(system);
 		self
 	}
 
-	pub fn build(
-		self,
-		micro: &mut Micro,
-		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
-	) -> Ecs<Globals, EcsContext, EcsEvent> {
+	pub fn resource(mut self, resource: impl Any + 'static) -> Self {
+		self.resources.insert(resource);
+		self
+	}
+
+	pub fn build(self, micro: &mut Micro, globals: &mut Globals) -> Ecs<Globals, EcsEvent> {
 		let mut ecs = Ecs {
 			world: World::new(),
 			queues: Queues::new(),
+			resources: self.resources,
 			systems: self.systems,
 		};
-		ecs.init(micro, globals, ecs_ctx);
+		ecs.init(micro, globals);
 		ecs
 	}
 }
 
-impl<Globals, EcsContext, EcsEvent> Default for EcsBuilder<Globals, EcsContext, EcsEvent> {
+impl<Globals, EcsEvent> Default for EcsBuilder<Globals, EcsEvent> {
 	fn default() -> Self {
 		Self::new()
 	}

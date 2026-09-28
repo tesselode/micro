@@ -3,15 +3,15 @@ use std::time::Duration;
 use hecs::World;
 use micro::{Event, Micro};
 
-use crate::{Queues, System};
+use crate::{Queues, Resources, System};
 
-pub(super) struct SystemWrapper<Globals, EcsContext, EcsEvent> {
-	system: Box<dyn System<Globals, EcsContext, EcsEvent>>,
+pub(super) struct SystemWrapper<Globals, EcsEvent> {
+	system: Box<dyn System<Globals, EcsEvent>>,
 	pub enabled: bool,
 }
 
-impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent> {
-	pub fn new(system: impl System<Globals, EcsContext, EcsEvent> + 'static) -> Self {
+impl<Globals, EcsEvent> SystemWrapper<Globals, EcsEvent> {
+	pub fn new(system: impl System<Globals, EcsEvent> + 'static) -> Self {
 		Self {
 			system: Box::new(system),
 			enabled: true,
@@ -26,14 +26,14 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 	) {
 		if !self.enabled {
 			return;
 		}
-		self.system.init(micro, globals, ecs_ctx, world, queues);
+		self.system.init(micro, globals, resources, world, queues);
 	}
 
 	pub fn debug_ui(
@@ -41,7 +41,7 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 		micro: &mut Micro,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 	) {
@@ -49,14 +49,14 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 			return;
 		}
 		self.system
-			.debug_ui(micro, egui_ctx, globals, ecs_ctx, world, queues);
+			.debug_ui(micro, egui_ctx, globals, resources, world, queues);
 	}
 
 	pub fn event(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &Event,
@@ -65,14 +65,14 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 			return;
 		}
 		self.system
-			.event(micro, globals, ecs_ctx, world, queues, event);
+			.event(micro, globals, resources, world, queues, event);
 	}
 
 	pub fn ecs_event(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		event: &EcsEvent,
@@ -81,14 +81,14 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 			return;
 		}
 		self.system
-			.ecs_event(micro, globals, ecs_ctx, world, queues, event);
+			.ecs_event(micro, globals, resources, world, queues, event);
 	}
 
 	pub fn update(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
@@ -97,14 +97,14 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 			return;
 		}
 		self.system
-			.update(micro, globals, ecs_ctx, world, queues, delta_time);
+			.update(micro, globals, resources, world, queues, delta_time);
 	}
 
 	pub fn update_cosmetic(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 		delta_time: Duration,
@@ -113,70 +113,70 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 			return;
 		}
 		self.system
-			.update_cosmetic(micro, globals, ecs_ctx, world, queues, delta_time);
+			.update_cosmetic(micro, globals, resources, world, queues, delta_time);
 	}
 
 	pub fn pause(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 	) {
 		if !self.enabled {
 			return;
 		}
-		self.system.pause(micro, globals, ecs_ctx, world, queues);
+		self.system.pause(micro, globals, resources, world, queues);
 	}
 
 	pub fn resume(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 	) {
 		if !self.enabled {
 			return;
 		}
-		self.system.resume(micro, globals, ecs_ctx, world, queues);
+		self.system.resume(micro, globals, resources, world, queues);
 	}
 
 	pub fn leave(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 	) {
 		if !self.enabled {
 			return;
 		}
-		self.system.leave(micro, globals, ecs_ctx, world, queues);
+		self.system.leave(micro, globals, resources, world, queues);
 	}
 
 	pub fn draw(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 	) {
 		if !self.enabled {
 			return;
 		}
-		self.system.draw(micro, globals, ecs_ctx, world, queues);
+		self.system.draw(micro, globals, resources, world, queues);
 	}
 
 	pub fn post_draw(
 		&mut self,
 		micro: &mut Micro,
 		globals: &mut Globals,
-		ecs_ctx: &mut EcsContext,
+		resources: &mut Resources,
 		world: &mut World,
 		queues: &mut Queues<EcsEvent>,
 	) {
@@ -184,6 +184,6 @@ impl<Globals, EcsContext, EcsEvent> SystemWrapper<Globals, EcsContext, EcsEvent>
 			return;
 		}
 		self.system
-			.post_draw(micro, globals, ecs_ctx, world, queues);
+			.post_draw(micro, globals, resources, world, queues);
 	}
 }

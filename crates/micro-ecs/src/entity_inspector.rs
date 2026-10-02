@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use hecs::{Entity, EntityRef, World};
 use indexmap::{IndexMap, IndexSet};
-use micro::egui::Ui;
+use micro::egui::{TextEdit, Ui};
 
 use crate::Ecs;
 
@@ -63,10 +63,17 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 				}
 			}
 		});
+		ui.add(TextEdit::singleline(&mut self.inspector_search).hint_text("Search for components"));
 		micro::egui::Grid::new("filters")
 			.min_col_width(1.0)
 			.show(ui, |ui| {
 				for (_, &InspectableComponent { name, count, .. }) in &self.inspectable_components {
+					if !name
+						.to_lowercase()
+						.contains(&self.inspector_search.to_lowercase())
+					{
+						continue;
+					}
 					let count = count(&mut self.world);
 					let mut enabled = self.inspector_filter.contains(name);
 					ui.checkbox(&mut enabled, name);

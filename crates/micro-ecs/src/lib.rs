@@ -24,6 +24,7 @@ pub struct Ecs<Globals, EcsContext, EcsEvent> {
 	systems: Systems<Globals, EcsContext, EcsEvent>,
 	inspectable_components: IndexMap<&'static str, InspectableComponent>,
 	inspector_filter: IndexSet<&'static str>,
+	inspector_search: String,
 	inspecting_entities: IndexSet<Entity>,
 }
 
@@ -204,6 +205,7 @@ impl<Globals, EcsContext, EcsEvent> EcsBuilder<Globals, EcsContext, EcsEvent> {
 			systems: self.systems,
 			inspectable_components: inspectable_components(),
 			inspector_filter: IndexSet::new(),
+			inspector_search: "".into(),
 			inspecting_entities: IndexSet::new(),
 		};
 		ecs.init(micro, globals, ecs_ctx);

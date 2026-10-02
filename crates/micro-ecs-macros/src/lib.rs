@@ -11,6 +11,8 @@ pub fn derive_component(item: TokenStream) -> TokenStream {
 		micro_ecs::inventory::submit! {
 			micro_ecs::InspectableComponent {
 				name: stringify!(#ident),
+				count: |world| world.query_mut::<()>().with::<&#ident>().into_iter().count(),
+				exists: |entity_ref| entity_ref.get::<&#ident>().is_some(),
 				inspect: |ui, entity_ref| {
 					if let Some(component) = entity_ref.get::<&#ident>() {
 						ui.collapsing(stringify!(#ident), |ui| {

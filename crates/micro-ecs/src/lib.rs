@@ -22,7 +22,8 @@ pub struct Ecs<Globals, EcsContext, EcsEvent> {
 	world: World,
 	queues: Queues<EcsEvent>,
 	systems: Systems<Globals, EcsContext, EcsEvent>,
-	inspectable_components: Vec<InspectableComponent>,
+	inspectable_components: IndexMap<&'static str, InspectableComponent>,
+	inspector_filter: IndexSet<&'static str>,
 	inspecting_entities: IndexSet<Entity>,
 }
 
@@ -202,6 +203,7 @@ impl<Globals, EcsContext, EcsEvent> EcsBuilder<Globals, EcsContext, EcsEvent> {
 			queues: Queues::new(),
 			systems: self.systems,
 			inspectable_components: inspectable_components(),
+			inspector_filter: IndexSet::new(),
 			inspecting_entities: IndexSet::new(),
 		};
 		ecs.init(micro, globals, ecs_ctx);

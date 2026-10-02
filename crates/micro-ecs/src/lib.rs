@@ -1,21 +1,29 @@
+mod entity_inspector;
 pub mod prelude;
 mod queues;
 mod system;
 
+pub use entity_inspector::*;
 pub use queues::*;
 pub use system::*;
 
 pub use hecs::*;
+pub use inventory;
+
+#[cfg(feature = "macros")]
+pub use micro_ecs_macros::Component;
 
 use std::time::Duration;
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use micro::{Event, Micro};
 
 pub struct Ecs<Globals, EcsContext, EcsEvent> {
 	world: World,
 	queues: Queues<EcsEvent>,
 	systems: Systems<Globals, EcsContext, EcsEvent>,
+	inspectable_components: Vec<InspectableComponent>,
+	inspecting_entities: IndexSet<Entity>,
 }
 
 impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
@@ -49,7 +57,7 @@ impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
 			ecs_ctx,
 			&mut self.world,
 			&mut self.queues,
-		)
+		);
 	}
 
 	pub fn event(
@@ -193,6 +201,8 @@ impl<Globals, EcsContext, EcsEvent> EcsBuilder<Globals, EcsContext, EcsEvent> {
 			world: World::new(),
 			queues: Queues::new(),
 			systems: self.systems,
+			inspectable_components: inspectable_components(),
+			inspecting_entities: IndexSet::new(),
 		};
 		ecs.init(micro, globals, ecs_ctx);
 		ecs

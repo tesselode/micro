@@ -6,9 +6,11 @@ edition = "2024"
 [dependencies]
 hecs = { git = "https://github.com/Ralith/hecs/", rev = "27c32ef" }
 indexmap = "2.11.4"
+inventory = "0.3.24"
 micro = { version = "0.1.0", path = "../micro" }
+micro-ecs-macros = { path = "../micro-ecs-macros", optional = true }
 
 [features]
 column-serialize = ["hecs/column-serialize"]
-macros = ["hecs/macros"]
+macros = ["hecs/macros", "micro-ecs-macros"]
 row-serialize = ["hecs/row-serialize"]

@@ -34,7 +34,7 @@
 	"world.query_mut": {
 		"prefix": "wqm",
 		"body": [
-			"for (${3:_}, $4) in world.query_mut::<$1>()$2 {",
+			"for $3 in world.query_mut::<$1>()$2 {",
 			"\t$0",
 			"}"
 		]
@@ -42,10 +42,14 @@
 	"world.query": {
 		"prefix": "wq",
 		"body": [
-			"for (${3:_}, $4) in world.query::<$1>()$2.iter() {",
+			"for $3 in world.query::<$1>()$2.iter() {",
 			"\t$0",
 			"}"
 		]
+	},
+	"delta_time.as_secs_f32()": {
+		"prefix": "dt",
+		"body": "delta_time.as_secs_f32()"
 	},
 	"mesh builder": {
 		"prefix": "mb",

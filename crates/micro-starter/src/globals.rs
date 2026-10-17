@@ -22,7 +22,7 @@ impl Globals {
 }
 
 fn first_connected_gamepad(micro: &mut Micro) -> Option<Gamepad> {
-	let first_gamepad_id = match micro.connected_gamepad_ids() {
+	let first_gamepad_id = match micro.gamepad_ids() {
 		Ok(ids) => Some(ids),
 		Err(err) => {
 			warn!("error getting connected gamepad IDs: {}", err);

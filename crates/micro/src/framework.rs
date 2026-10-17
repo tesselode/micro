@@ -499,7 +499,7 @@ impl Micro {
 	}
 
 	/// Gets the IDs of the currently connected gamepads.
-	pub fn connected_gamepad_ids(&self) -> Result<Vec<GamepadId>, sdl3::Error> {
+	pub fn gamepad_ids(&self) -> Result<Vec<GamepadId>, sdl3::Error> {
 		self.gamepad.gamepads()
 	}
 

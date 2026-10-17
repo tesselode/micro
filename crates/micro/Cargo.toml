@@ -7,11 +7,11 @@ edition = "2024"
 bytemuck = { version = "1.21.0", features = ["derive"] }
 cosmic-text = "0.19.0"
 derive_more = { version = "2.0.1", features = ["display", "error", "from"] }
-egui = "0.36.1"
+egui = { version = "0.37.0", features = ["default_fonts"] }
 etagere = "0.3.0"
 exhaust = { version = "0.2.1", optional = true }
 generational-arena = "0.2.9"
-glam = { version = "0.33.2", features = ["bytemuck"] }
+glam = { version = "0.34.1", features = ["bytemuck"] }
 image = { version = "0.25.0", default-features = false }
 itertools = "0.15.0"
 lyon_tessellation = "1.0.15"
@@ -46,6 +46,6 @@ wgpu = { version = "30.0.0", default-features = false, features = [
 default = ["png"]
 png = ["image/png"]
 jpeg = ["image/jpeg"]
-mint = ["glam/mint"]
-rand = ["dep:rand", "glam/rand", "palette/random"]
+mint = ["glam/mint-05"]
+rand = ["dep:rand", "glam/rand-010", "palette/random"]
 serializing = ["serde", "palette/serializing", "glam/serde", "wgpu/serde"]

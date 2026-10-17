@@ -190,6 +190,7 @@ fn sdl3_event_to_egui_event(
 			modifiers,
 		}),
 		sdl3::event::Event::MouseWheel { x, y, .. } => Some(egui::Event::MouseWheel {
+			source: egui::MouseWheelSource::Wheel,
 			unit: egui::MouseWheelUnit::Point,
 			delta: egui::vec2(x * SCROLL_SPEED, y * SCROLL_SPEED),
 			phase: TouchPhase::Move,

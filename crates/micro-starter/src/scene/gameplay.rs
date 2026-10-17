@@ -31,7 +31,7 @@ impl Scene<Globals> for Gameplay {
 	fn debug_stats(&mut self, _micro: &mut Micro, _globals: &mut Globals) -> Option<Vec<String>> {
 		Some(vec![format!(
 			"Number of entities: {}",
-			self.ecs.world().len()
+			self.ecs.world.len()
 		)])
 	}
 

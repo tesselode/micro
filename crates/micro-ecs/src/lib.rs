@@ -19,8 +19,8 @@ use indexmap::{IndexMap, IndexSet};
 use micro::{Event, Micro};
 
 pub struct Ecs<Globals, EcsContext, EcsEvent> {
-	world: World,
-	queues: Queues<EcsEvent>,
+	pub world: World,
+	pub queues: Queues<EcsEvent>,
 	systems: Systems<Globals, EcsContext, EcsEvent>,
 	inspectable_components: IndexMap<&'static str, InspectableComponent>,
 	inspector_filter: IndexSet<&'static str>,
@@ -29,22 +29,6 @@ pub struct Ecs<Globals, EcsContext, EcsEvent> {
 }
 
 impl<Globals, EcsContext, EcsEvent> Ecs<Globals, EcsContext, EcsEvent> {
-	pub fn world(&self) -> &World {
-		&self.world
-	}
-
-	pub fn world_mut(&mut self) -> &mut World {
-		&mut self.world
-	}
-
-	pub fn queues(&self) -> &Queues<EcsEvent> {
-		&self.queues
-	}
-
-	pub fn queues_mut(&mut self) -> &mut Queues<EcsEvent> {
-		&mut self.queues
-	}
-
 	pub fn debug_ui(
 		&mut self,
 		micro: &mut Micro,

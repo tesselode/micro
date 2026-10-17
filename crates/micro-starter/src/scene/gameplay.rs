@@ -1,70 +1,25 @@
-mod component;
 mod context;
-mod entity;
-mod event;
-mod system;
 
 use std::time::Duration;
 
-use hecs::World;
-use micro::{Context, Event};
+use micro::{Event, Micro};
+use micro_ecs::{Ecs, EcsBuilder};
 use micro_scene_manager::{Scene, SceneChange};
 
-use crate::globals::Globals;
+use crate::{event::GameEvent, globals::Globals};
 
-use self::{context::GameplayContext, system::System};
+use self::context::GameplayContext;
 
 pub struct Gameplay {
 	gameplay_ctx: GameplayContext,
-	world: World,
-	systems: Vec<Box<dyn System>>,
+	ecs: Ecs<Globals, GameplayContext, GameEvent>,
 }
 
 impl Gameplay {
-	pub fn new(micro: &mut Context, globals: &mut Globals) -> anyhow::Result<Self> {
-		let gameplay_ctx = GameplayContext::new();
-		macro_rules! systems {
-			($($system:expr),*$(,)?) => {
-				vec![
-					$(Box::new($system)),*
-				]
-			};
-		}
-		let systems: Vec<Box<dyn System>> = systems![];
-		let mut gameplay = Self {
-			gameplay_ctx,
-			world: World::new(),
-			systems,
-		};
-		for system in &mut gameplay.systems {
-			system.init(
-				micro,
-				globals,
-				&mut gameplay.gameplay_ctx,
-				&mut gameplay.world,
-			)?;
-		}
-		gameplay.dispatch_gameplay_events(micro, globals)?;
-		Ok(gameplay)
-	}
-
-	fn dispatch_gameplay_events(
-		&mut self,
-		micro: &mut Context,
-		globals: &mut Globals,
-	) -> anyhow::Result<()> {
-		while let Some(event) = self.gameplay_ctx.event_queue.pop_front() {
-			for system in &mut self.systems {
-				system.gameplay_event(
-					micro,
-					globals,
-					&mut self.gameplay_ctx,
-					&mut self.world,
-					&event,
-				)?;
-			}
-		}
-		Ok(())
+	pub fn new(micro: &mut Micro, globals: &mut Globals) -> Self {
+		let mut gameplay_ctx = GameplayContext::new();
+		let ecs = EcsBuilder::new().build(micro, globals, &mut gameplay_ctx);
+		Self { gameplay_ctx, ecs }
 	}
 }
 
@@ -73,92 +28,41 @@ impl Scene<Globals> for Gameplay {
 		"Gameplay"
 	}
 
-	fn debug_stats(&mut self, micro: &mut Context, globals: &mut Globals) -> Option<Vec<String>> {
-		let mut stats = vec![format!("Number of entities: {}", self.world.len())];
-		for system in &mut self.systems {
-			if let Some(mut system_stats) =
-				system.debug_stats(micro, globals, &mut self.gameplay_ctx, &mut self.world)
-			{
-				stats.append(&mut system_stats);
-			}
-		}
-		Some(stats)
-	}
-
-	fn debug_menu(
-		&mut self,
-		micro: &mut Context,
-		ui: &mut micro::egui::Ui,
-		globals: &mut Globals,
-	) -> anyhow::Result<()> {
-		for system in &mut self.systems {
-			system.debug_menu(micro, ui, globals, &mut self.gameplay_ctx, &mut self.world)?;
-		}
-		self.dispatch_gameplay_events(micro, globals)
+	fn debug_stats(&mut self, _micro: &mut Micro, _globals: &mut Globals) -> Option<Vec<String>> {
+		Some(vec![format!(
+			"Number of entities: {}",
+			self.ecs.world().len()
+		)])
 	}
 
 	fn debug_ui(
 		&mut self,
-		micro: &mut Context,
+		micro: &mut Micro,
 		egui_ctx: &micro::egui::Context,
 		globals: &mut Globals,
-	) -> anyhow::Result<()> {
-		for system in &mut self.systems {
-			system.debug_ui(
-				micro,
-				egui_ctx,
-				globals,
-				&mut self.gameplay_ctx,
-				&mut self.world,
-			)?;
-		}
-		self.dispatch_gameplay_events(micro, globals)
+	) {
+		self.ecs
+			.debug_ui(micro, egui_ctx, globals, &mut self.gameplay_ctx);
 	}
 
-	fn event(
-		&mut self,
-		micro: &mut Context,
-		globals: &mut Globals,
-		event: &Event,
-	) -> anyhow::Result<()> {
-		for system in &mut self.systems {
-			system.event(
-				micro,
-				globals,
-				&mut self.gameplay_ctx,
-				&mut self.world,
-				event,
-			)?;
-		}
-		self.dispatch_gameplay_events(micro, globals)
+	fn event(&mut self, micro: &mut Micro, globals: &mut Globals, event: &Event) {
+		self.ecs
+			.event(micro, globals, &mut self.gameplay_ctx, event);
 	}
 
-	fn update(
-		&mut self,
-		micro: &mut Context,
-		globals: &mut Globals,
-		delta_time: Duration,
-	) -> anyhow::Result<()> {
-		for system in &mut self.systems {
-			system.update(
-				micro,
-				globals,
-				&mut self.gameplay_ctx,
-				&mut self.world,
-				delta_time,
-			)?;
-		}
-		self.dispatch_gameplay_events(micro, globals)
+	fn update(&mut self, micro: &mut Micro, globals: &mut Globals, delta_time: Duration) {
+		self.ecs
+			.update(micro, globals, &mut self.gameplay_ctx, delta_time);
+		self.ecs
+			.update_cosmetic(micro, globals, &mut self.gameplay_ctx, delta_time);
 	}
 
-	fn draw(&mut self, micro: &mut Context, globals: &mut Globals) -> anyhow::Result<()> {
-		for system in &mut self.systems {
-			system.draw(micro, globals, &mut self.gameplay_ctx, &mut self.world)?;
-		}
-		self.gameplay_ctx
-			.world_command_buffer
-			.run_on(&mut self.world);
-		Ok(())
+	fn draw(&mut self, micro: &mut Micro, globals: &mut Globals) {
+		self.ecs.draw(micro, globals, &mut self.gameplay_ctx);
+	}
+
+	fn post_draw(&mut self, micro: &mut Micro, globals: &mut Globals) {
+		self.ecs.post_draw(micro, globals, &mut self.gameplay_ctx);
 	}
 
 	fn scene_change(&mut self) -> Option<SceneChange<Globals>> {

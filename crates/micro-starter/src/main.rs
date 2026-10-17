@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod dirs;
+mod event;
 mod globals;
 mod input;
 mod log;
@@ -11,9 +12,9 @@ use std::time::Duration;
 use backtrace::Backtrace;
 use globals::Globals;
 use log::setup_logging;
-use micro::log_if_err;
 use micro::math::UVec2;
-use micro::{App, Context, ContextSettings, Event, WindowMode, input::Scancode};
+use micro::{App, Event, WindowMode, input::Scancode};
+use micro::{Micro, MicroSettings};
 use micro_scene_manager::SceneManager;
 use scene::gameplay::Gameplay;
 
@@ -26,8 +27,8 @@ fn main() {
 		tracing::error!("{}\n{:?}", info, Backtrace::new())
 	}));
 
-	log_if_err!(micro::run(
-		ContextSettings {
+	micro::run(
+		MicroSettings {
 			window_title: "Game".to_string(),
 			window_mode: WindowMode::Windowed {
 				size: UVec2::new(1920, 1080),
@@ -36,7 +37,7 @@ fn main() {
 			..Default::default()
 		},
 		Game::new,
-	));
+	);
 }
 
 struct Game {
@@ -45,31 +46,31 @@ struct Game {
 }
 
 impl Game {
-	fn new(micro: &mut Context) -> anyhow::Result<Self> {
+	fn new(micro: &mut Micro) -> Self {
 		let mut globals = Globals::new(micro);
-		let gameplay = Gameplay::new(micro, &mut globals)?;
-		Ok(Self {
+		let gameplay = Gameplay::new(micro, &mut globals);
+		Self {
 			globals,
 			scene_manager: SceneManager::new(gameplay),
-		})
+		}
 	}
 }
 
 impl App for Game {
-	fn debug_stats(&mut self, micro: &mut Context) -> Option<Vec<String>> {
+	fn debug_stats(&mut self, micro: &mut Micro) -> Option<Vec<String>> {
 		self.scene_manager.debug_stats(micro, &mut self.globals)
 	}
 
-	fn debug_ui(
-		&mut self,
-		micro: &mut Context,
-		egui_ctx: &micro::egui::Context,
-	) -> anyhow::Result<()> {
+	fn debug_menu(&mut self, micro: &mut Micro, ui: &mut micro::egui::Ui) {
+		self.scene_manager.debug_menu(micro, ui, &mut self.globals)
+	}
+
+	fn debug_ui(&mut self, micro: &mut Micro, egui_ctx: &micro::egui::Context) {
 		self.scene_manager
 			.debug_ui(micro, egui_ctx, &mut self.globals)
 	}
 
-	fn event(&mut self, micro: &mut Context, event: Event) -> anyhow::Result<()> {
+	fn event(&mut self, micro: &mut Micro, event: Event) {
 		if let Event::KeyPressed {
 			key: Scancode::Escape,
 			..
@@ -80,13 +81,17 @@ impl App for Game {
 		self.scene_manager.event(micro, &mut self.globals, event)
 	}
 
-	fn update(&mut self, micro: &mut Context, delta_time: Duration) -> anyhow::Result<()> {
+	fn update(&mut self, micro: &mut Micro, delta_time: Duration) {
 		self.globals.input.update(micro);
 		self.scene_manager
 			.update(micro, &mut self.globals, delta_time)
 	}
 
-	fn draw(&mut self, micro: &mut Context) -> anyhow::Result<()> {
+	fn draw(&mut self, micro: &mut Micro) {
 		self.scene_manager.draw(micro, &mut self.globals)
+	}
+
+	fn post_draw(&mut self, micro: &mut Micro) {
+		self.scene_manager.post_draw(micro, &mut self.globals)
 	}
 }

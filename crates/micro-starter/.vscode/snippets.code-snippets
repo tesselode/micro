@@ -18,34 +18,15 @@
 	"System template": {
 		"prefix": "template:system",
 		"body": [
-			"use super::prelude::*;",
+			"use micro_ecs::prelude::*;",
 			"",
 			"pub struct $1System {$2}",
 			"",
-			"impl System for $1System {",
-			"\t$0",
-			"}"
-		]
-	},
-	"Entity template": {
-		"prefix": "template:entity",
-		"body": [
-			"use hecs::DynamicBundle;",
+			"impl System<Globals, GameplayContext, GameplayEvent> for $1System {",
+			"\tfn name(&self) -> &'static str {",
+			"\t\t\"$3\"",
+			"\t}",
 			"",
-			"use super::super::system::prelude::*;",
-			"",
-			"pub fn new($2) -> impl DynamicBundle {",
-			"\t(",
-			"\t\t$3",
-			"\t\t$1Component,",
-			"\t)",
-			"}",
-			"",
-			"pub struct $1Component;",
-			"",
-			"pub struct $1System {}",
-			"",
-			"impl System for $1System {",
 			"\t$0",
 			"}"
 		]
@@ -74,4 +55,15 @@
 			"mesh_builder.build(micro).draw(micro);",
 		]
 	},
+	"egui window": {
+		"prefix": "window",
+		"body": [
+			"micro::egui::Window::new(\"$1\")",
+			"\t.open(&mut $2)",
+			"\t.scroll(true)",
+			"\t.show(egui_ctx, |ui| {",
+			"\t\t$0",
+			"\t});"
+		]
+	}
 }

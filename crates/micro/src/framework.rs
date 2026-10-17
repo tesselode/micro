@@ -500,7 +500,7 @@ impl Micro {
 
 	/// Gets the IDs of the currently connected gamepads.
 	pub fn connected_gamepad_ids(&self) -> Result<Vec<GamepadId>, sdl3::Error> {
-		Ok(std::mem::take(&mut self.gamepad.gamepads()?))
+		self.gamepad.gamepads()
 	}
 
 	/// Gets the gamepad with the specified ID.

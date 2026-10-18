@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use glam::{Mat4, Vec2};
 use palette::LinSrgba;
 use wgpu::{
-	Buffer, BufferUsages,
+	Buffer, BufferUsages, PolygonMode, PrimitiveTopology,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -34,6 +34,7 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 	pub(crate) vertex_buffer: Buffer,
 	pub(crate) index_buffer: Buffer,
 	pub(crate) num_indices: u32,
+	kind: MeshKind,
 	_phantom_data: PhantomData<V>,
 
 	// draw params
@@ -58,38 +59,14 @@ pub struct Mesh<V: Vertex = Vertex2d> {
 }
 
 impl<V: Vertex> Mesh<V> {
-	/// Creates a new mesh with the specified vertices and indices.
-	pub fn new(micro: &Micro, vertices: &[V], indices: &[u32]) -> Self {
-		let _span = tracy_client::span!();
-		let vertex_buffer = micro
-			.graphics
-			.device
-			.create_buffer_init(&BufferInitDescriptor {
-				label: Some("Mesh Vertex Buffer"),
-				contents: bytemuck::cast_slice(vertices),
-				usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-			});
-		let index_buffer = micro
-			.graphics
-			.device
-			.create_buffer_init(&BufferInitDescriptor {
-				label: Some("Mesh Index Buffer"),
-				contents: bytemuck::cast_slice(indices),
-				usage: BufferUsages::INDEX,
-			});
-		let num_indices = indices.len() as u32;
-		Self {
-			vertex_buffer,
-			index_buffer,
-			num_indices,
-			_phantom_data: PhantomData,
-			texture: None,
-			transform: Mat4::IDENTITY,
-			color: LinSrgba::WHITE,
-			blend_mode: BlendMode::default(),
-			range: None,
-			instances: (0, 1),
-		}
+	/// Creates a new triangle mesh with the specified vertices and indices.
+	pub fn triangle(micro: &Micro, vertices: &[V], indices: &[u32]) -> Self {
+		Self::new(micro, vertices, indices, MeshKind::Triangle)
+	}
+
+	/// Creates a new line mesh with the specified vertices and indices.
+	pub fn line(micro: &Micro, vertices: &[V], indices: &[u32]) -> Self {
+		Self::new(micro, vertices, indices, MeshKind::Line)
 	}
 
 	standard_draw_param_methods!();
@@ -147,6 +124,14 @@ impl<V: Vertex> Mesh<V> {
 				index_buffer: self.index_buffer.clone(),
 				range: self.range.unwrap_or((0, self.num_indices)),
 				instances: self.instances,
+				primitive_topology: match &self.kind {
+					MeshKind::Triangle => PrimitiveTopology::TriangleList,
+					MeshKind::Line => PrimitiveTopology::LineList,
+				},
+				polygon_mode: match &self.kind {
+					MeshKind::Triangle => PolygonMode::Fill,
+					MeshKind::Line => PolygonMode::Line,
+				},
 				texture: self
 					.texture
 					.as_ref()
@@ -156,6 +141,40 @@ impl<V: Vertex> Mesh<V> {
 				color: self.color,
 				blend_mode: self.blend_mode,
 			});
+	}
+
+	fn new(micro: &Micro, vertices: &[V], indices: &[u32], kind: MeshKind) -> Self {
+		let _span = tracy_client::span!();
+		let vertex_buffer = micro
+			.graphics
+			.device
+			.create_buffer_init(&BufferInitDescriptor {
+				label: Some("Mesh Vertex Buffer"),
+				contents: bytemuck::cast_slice(vertices),
+				usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+			});
+		let index_buffer = micro
+			.graphics
+			.device
+			.create_buffer_init(&BufferInitDescriptor {
+				label: Some("Mesh Index Buffer"),
+				contents: bytemuck::cast_slice(indices),
+				usage: BufferUsages::INDEX,
+			});
+		let num_indices = indices.len() as u32;
+		Self {
+			kind,
+			vertex_buffer,
+			index_buffer,
+			num_indices,
+			_phantom_data: PhantomData,
+			texture: None,
+			transform: Mat4::IDENTITY,
+			color: LinSrgba::WHITE,
+			blend_mode: BlendMode::default(),
+			range: None,
+			instances: (0, 1),
+		}
 	}
 }
 
@@ -185,7 +204,7 @@ impl Mesh<Vertex2d> {
 				color: LinSrgba::WHITE,
 			})
 			.collect::<Vec<_>>();
-		Self::new(micro, &vertices, &[0, 1, 3, 1, 2, 3])
+		Self::triangle(micro, &vertices, &[0, 1, 3, 1, 2, 3])
 	}
 
 	/// Creates a new outlined rectangle mesh.
@@ -269,4 +288,10 @@ impl Mesh<Vertex2d> {
 			.with_simple_polyline(stroke_width, points, LinSrgba::WHITE)
 			.build(micro)
 	}
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum MeshKind {
+	Triangle,
+	Line,
 }

@@ -73,7 +73,7 @@ impl SpriteBatch {
 				sprites: Arena::with_capacity(capacity),
 			})),
 			texture: texture.clone(),
-			mesh: Mesh::new(micro, &vertices, &indices),
+			mesh: Mesh::triangle(micro, &vertices, &indices),
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),

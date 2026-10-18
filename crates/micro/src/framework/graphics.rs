@@ -15,10 +15,11 @@ use sdl3::video::Window;
 use wgpu::{
 	BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, Buffer, BufferUsages,
 	CompositeAlphaMode, CurrentSurfaceTexture, DepthBiasState, Device, DeviceDescriptor,
-	IndexFormat, Instance, InstanceDescriptor, LoadOp, Operations, PowerPreference, PresentMode,
-	Queue, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor,
-	RenderPipeline, RequestAdapterOptions, StoreOp, Surface, SurfaceColorSpace,
-	SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat, TextureUsages, TextureViewDescriptor,
+	IndexFormat, Instance, InstanceDescriptor, LoadOp, Operations, PolygonMode, PowerPreference,
+	PresentMode, PrimitiveTopology, Queue, RenderPassColorAttachment,
+	RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline, RequestAdapterOptions,
+	StoreOp, Surface, SurfaceColorSpace, SurfaceConfiguration, SurfaceTargetUnsafe, TextureFormat,
+	TextureUsages, TextureViewDescriptor,
 	util::{BufferInitDescriptor, DeviceExt},
 };
 
@@ -242,6 +243,8 @@ impl GraphicsContext {
 			stencil_reference: graphics_state.stencil_state.reference,
 			render_pipeline_settings: RenderPipelineSettings {
 				vertex_type,
+				primitive_topology: settings.primitive_topology,
+				polygon_mode: settings.polygon_mode,
 				shader_name: graphics_state.shader.name.clone(),
 				shader_source: graphics_state.shader.source.clone(),
 				blend_mode: settings.blend_mode,
@@ -497,6 +500,8 @@ pub(crate) struct QueueDrawCommandSettings {
 	pub(crate) index_buffer: Buffer,
 	pub(crate) range: (u32, u32),
 	pub(crate) instances: (u32, u32),
+	pub(crate) primitive_topology: PrimitiveTopology,
+	pub(crate) polygon_mode: PolygonMode,
 	pub(crate) texture: Texture,
 	pub(crate) transform: Mat4,
 	pub(crate) color: LinSrgba,

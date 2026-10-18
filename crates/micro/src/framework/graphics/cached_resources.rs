@@ -4,9 +4,9 @@ use wgpu::{
 	BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
 	ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device,
 	FragmentState, MultisampleState, PipelineCompilationOptions, PipelineLayoutDescriptor,
-	PrimitiveState, RenderPipeline, RenderPipelineDescriptor, SamplerBindingType, ShaderStages,
-	TextureFormat, TextureSampleType, TextureViewDimension, VertexAttribute, VertexBufferLayout,
-	VertexState, VertexStepMode,
+	PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipeline, RenderPipelineDescriptor,
+	SamplerBindingType, ShaderStages, TextureFormat, TextureSampleType, TextureViewDimension,
+	VertexAttribute, VertexBufferLayout, VertexState, VertexStepMode,
 };
 
 use crate::{
@@ -78,6 +78,8 @@ impl VertexInfo {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(super) struct RenderPipelineSettings {
 	pub(super) vertex_type: TypeId,
+	pub(super) primitive_topology: PrimitiveTopology,
+	pub(super) polygon_mode: PolygonMode,
 	pub(super) shader_name: String,
 	pub(super) shader_source: String,
 	pub(super) blend_mode: BlendMode,
@@ -143,7 +145,11 @@ fn create_render_pipeline(
 				attributes: &vertex_info.attributes,
 			})],
 		},
-		primitive: PrimitiveState::default(),
+		primitive: PrimitiveState {
+			topology: settings.primitive_topology,
+			polygon_mode: settings.polygon_mode,
+			..Default::default()
+		},
 		depth_stencil: Some(DepthStencilState {
 			format: TextureFormat::Depth24PlusStencil8,
 			depth_write_enabled: Some(settings.enable_depth_testing),

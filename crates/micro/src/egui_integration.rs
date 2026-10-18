@@ -328,7 +328,7 @@ fn egui_mesh_to_micro_mesh(micro: &mut Micro, egui_mesh: egui::Mesh) -> Mesh<Ver
 		.copied()
 		.map(egui_vertex_to_micro_vertex_2d)
 		.collect::<Vec<_>>();
-	Mesh::new(micro, &vertices, &egui_mesh.indices)
+	Mesh::triangle(micro, &vertices, &egui_mesh.indices)
 }
 
 fn egui_vertex_to_micro_vertex_2d(vertex: egui::epaint::Vertex) -> Vertex2d {

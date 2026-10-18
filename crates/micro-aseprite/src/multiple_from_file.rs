@@ -10,6 +10,11 @@ use super::{
 };
 
 impl AnimationData {
+	/// Loads animation data exported from multiple Aseprite files with the following CLI flags:
+	/// ```bash
+	/// aseprite [input_files] --batch --sheet [image_path] --data [data_path] --format json-array --list-tags
+	/// ```
+	/// This is useful if multiple images and animations are being exported a single sprite atlas.
 	pub fn multiple_from_file(
 		path: impl AsRef<Path>,
 	) -> Result<HashMap<String, Self>, LoadAnimationDataError> {

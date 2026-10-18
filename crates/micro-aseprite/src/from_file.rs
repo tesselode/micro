@@ -32,6 +32,10 @@ pub enum LoadAnimationDataError {
 }
 
 impl AnimationData {
+	/// Loads animation data exported from Aseprite with the following CLI flags:
+	/// ```bash
+	/// aseprite [input_file] --batch --sheet [image_path] --data [data_path] --format json-array --list-tags
+	/// ```
 	pub fn from_file(path: impl AsRef<Path>) -> Result<Self, LoadAnimationDataError> {
 		Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
 	}

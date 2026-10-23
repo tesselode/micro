@@ -1,8 +1,12 @@
 mod from_file;
+#[cfg(feature = "loader")]
+mod loader;
 mod multiple_from_file;
 mod player;
 
 pub use from_file::LoadAnimationDataError;
+#[cfg(feature = "loader")]
+pub use loader::*;
 pub use player::*;
 
 use std::{collections::HashMap, time::Duration};

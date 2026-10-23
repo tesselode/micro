@@ -1,8 +1,8 @@
 use std::{collections::HashMap, path::Path};
 
-use crate::animation::{AnimationData, LoadAnimationDataError};
+use micro_asset::AssetLoader;
 
-use super::AssetLoader;
+use crate::{AnimationData, LoadAnimationDataError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct AnimationDataLoader;

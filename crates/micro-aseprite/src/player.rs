@@ -105,12 +105,9 @@ impl AnimationPlayer {
 	}
 
 	pub fn draw(&self, micro: &mut Micro, texture: &Texture) {
+		let inner = self.inner.try_lock().unwrap();
 		texture
-			.region(
-				self.inner.try_lock().unwrap().animation_data.frames
-					[self.inner.try_lock().unwrap().current_frame_index]
-					.texture_region,
-			)
+			.region(inner.animation_data.frames[inner.current_frame_index].texture_region)
 			.transformed(self.transform)
 			.color(self.color)
 			.blend_mode(self.blend_mode)

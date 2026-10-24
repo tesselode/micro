@@ -7,8 +7,8 @@ use micro::{
 	graphics::{
 		sprite_batch::SpriteParams,
 		text::{
-			GlyphTransformInfo, Text, TextAlign, TextBuilder, TextHorizontalSizing, TextStretch,
-			TextStyle, TextWeight,
+			FontStretch, FontWeight, GlyphTransformInfo, Text, TextAlign, TextBuilder,
+			TextHorizontalSizing, TextStyle,
 		},
 	},
 	math::Vec2,
@@ -81,7 +81,7 @@ impl TextWidget {
 		}
 	}
 
-	pub fn stretch(self, stretch: TextStretch) -> Self {
+	pub fn stretch(self, stretch: FontStretch) -> Self {
 		Self {
 			builder: self.builder.stretch(stretch),
 			..self
@@ -95,7 +95,7 @@ impl TextWidget {
 		}
 	}
 
-	pub fn weight(self, weight: TextWeight) -> Self {
+	pub fn weight(self, weight: FontWeight) -> Self {
 		Self {
 			builder: self.builder.weight(weight),
 			..self

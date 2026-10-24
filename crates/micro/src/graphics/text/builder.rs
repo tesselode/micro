@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use cosmic_text::{Stretch as TextStretch, Style as TextStyle, Weight as TextWeight};
+use cosmic_text::{Stretch as FontStretch, Style as TextStyle, Weight as FontWeight};
 use glam::Vec2;
 
 use crate::{
@@ -19,9 +19,9 @@ pub struct TextBuilder {
 	pub font_size: f32,
 	pub text: String,
 	pub line_height: f32,
-	pub stretch: TextStretch,
+	pub stretch: FontStretch,
 	pub style: TextStyle,
-	pub weight: TextWeight,
+	pub weight: FontWeight,
 	pub letter_spacing: Option<f32>,
 	pub horizontal_sizing: TextHorizontalSizing,
 	pub glyph_transform: Option<GlyphTransformFunction>,
@@ -34,9 +34,9 @@ impl TextBuilder {
 			text: text.into(),
 			font_size,
 			line_height: 1.0,
-			stretch: TextStretch::Normal,
+			stretch: FontStretch::Normal,
 			style: TextStyle::Normal,
-			weight: TextWeight::NORMAL,
+			weight: FontWeight::NORMAL,
 			letter_spacing: None,
 			horizontal_sizing: TextHorizontalSizing::default(),
 			glyph_transform: None,
@@ -68,7 +68,7 @@ impl TextBuilder {
 		}
 	}
 
-	pub fn stretch(self, stretch: TextStretch) -> Self {
+	pub fn stretch(self, stretch: FontStretch) -> Self {
 		Self { stretch, ..self }
 	}
 
@@ -76,7 +76,7 @@ impl TextBuilder {
 		Self { style, ..self }
 	}
 
-	pub fn weight(self, weight: TextWeight) -> Self {
+	pub fn weight(self, weight: FontWeight) -> Self {
 		Self { weight, ..self }
 	}
 

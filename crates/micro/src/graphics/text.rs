@@ -5,7 +5,7 @@ mod builder;
 pub use builder::*;
 
 pub use cosmic_text::{
-	Align as TextAlign, Stretch as TextStretch, Style as TextStyle, Weight as TextWeight,
+	Align as TextAlign, Stretch as FontStretch, Style as TextStyle, Weight as FontWeight,
 };
 use cosmic_text::{Attrs, Family, LetterSpacing, Metrics, Shaping};
 

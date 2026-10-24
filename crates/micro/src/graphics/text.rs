@@ -248,21 +248,27 @@ fn create_text_sprite_batch(
 		glyph_index,
 	} in &sprites
 	{
-		let sprite_params = SpriteParams {
-			transform: Affine2::from_translation(*position),
-			..Default::default()
-		};
 		let glyph_transform_info = GlyphTransformInfo {
 			character_index: *character_index,
 			glyph_index: *glyph_index,
 			position: *position,
+			glyph_size: texture_rect.size,
 		};
-		let transformed_sprite_params = glyph_transform
+		let sprite_params = glyph_transform
 			.as_ref()
-			.map(|f| f(glyph_transform_info, sprite_params))
-			.unwrap_or(sprite_params);
+			.map(|f| {
+				f(
+					glyph_transform_info,
+					SpriteParams::new().translated(-texture_rect.size.as_vec2() / 2.0),
+				)
+				.translated(texture_rect.size.as_vec2() / 2.0 + *position)
+			})
+			.unwrap_or(SpriteParams {
+				transform: Affine2::from_translation(*position),
+				..Default::default()
+			});
 		sprite_batch
-			.add_region(micro, texture_rect.as_rect(), transformed_sprite_params)
+			.add_region(micro, texture_rect.as_rect(), sprite_params)
 			.expect("sprite batch is full");
 	}
 

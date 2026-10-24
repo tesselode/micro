@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use cosmic_text::{Stretch as FontStretch, Style as TextStyle, Weight as FontWeight};
-use glam::Vec2;
+use glam::{IVec2, Vec2};
 
 use crate::{
 	Micro,
@@ -94,6 +94,15 @@ impl TextBuilder {
 		}
 	}
 
+	/// A callback that lets you transform each glyph before it's added to the internal
+	/// sprite batch. This is useful for per-character motion, scaling, rotation, etc.
+	///
+	/// The default [`SpriteParams`] passed into this function has the glyph centered
+	/// around (0, 0) for ease of writing transformations. Later, the glyph will have
+	/// its origin moved to the top-left and will be translated to the correct position
+	/// for the character. If you do a translation for the sake of changing the origin
+	/// of scaling or rotation, be sure to undo the translation before the end of the
+	/// callback.
 	pub fn glyph_transform(
 		self,
 		glyph_transform: impl Fn(GlyphTransformInfo, SpriteParams) -> SpriteParams + 'static,
@@ -130,5 +139,7 @@ pub struct GlyphTransformInfo {
 	pub character_index: usize,
 	// The index of the visible character in the text (not including spaces).
 	pub glyph_index: usize,
+	// The size of the glyph (in pixels).
+	pub glyph_size: IVec2,
 	pub position: Vec2,
 }

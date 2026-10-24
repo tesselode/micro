@@ -11,13 +11,13 @@ use cosmic_text::{Attrs, Family, LetterSpacing, Metrics, Shaping};
 
 use std::sync::Arc;
 
-use glam::{Mat4, Vec2, vec2};
+use glam::{Affine2, Mat4, Vec2, vec2};
 use palette::LinSrgba;
 
 use crate::{
 	Micro,
 	color::ColorConstants,
-	graphics::BlendMode,
+	graphics::{BlendMode, sprite_batch::SpriteParams},
 	math::{IRect, Rect},
 	standard_draw_param_methods,
 	text::GlyphInfo,
@@ -48,12 +48,12 @@ impl Text {
 	/// Creates a new [`Text`].
 	pub fn new(micro: &mut Micro, builder: TextBuilder) -> Self {
 		let _span = tracy_client::span!();
-		let buffer = create_cosmic_text_buffer(micro, builder);
+		let buffer = create_cosmic_text_buffer(micro, &builder);
 		let SpriteBatchWithInfo {
 			sprite_batch,
 			glyph_bounds,
 			line_bounds,
-		} = create_text_sprite_batch(micro, buffer);
+		} = create_text_sprite_batch(micro, buffer, builder.glyph_transform);
 		let num_glyphs = sprite_batch.len();
 		Self {
 			inner: Arc::new(TextInner {
@@ -138,7 +138,7 @@ struct SpriteBatchWithInfo {
 	line_bounds: Option<Rect>,
 }
 
-fn create_cosmic_text_buffer(micro: &mut Micro, builder: TextBuilder) -> cosmic_text::Buffer {
+fn create_cosmic_text_buffer(micro: &mut Micro, builder: &TextBuilder) -> cosmic_text::Buffer {
 	let mut buffer = cosmic_text::Buffer::new(
 		&mut micro.text.font_system,
 		Metrics::relative(builder.font_size, builder.line_height),
@@ -165,16 +165,27 @@ fn create_cosmic_text_buffer(micro: &mut Micro, builder: TextBuilder) -> cosmic_
 	buffer
 }
 
-fn create_text_sprite_batch(micro: &mut Micro, buffer: cosmic_text::Buffer) -> SpriteBatchWithInfo {
-	struct Sprite {
+fn create_text_sprite_batch(
+	micro: &mut Micro,
+	buffer: cosmic_text::Buffer,
+	glyph_transform: Option<GlyphTransformFunction>,
+) -> SpriteBatchWithInfo {
+	struct SpriteInfo {
 		position: Vec2,
 		texture_rect: IRect,
+		character_index: usize,
+		glyph_index: usize,
 	}
 
-	let mut sprites: Vec<Sprite> = vec![];
+	let mut sprites: Vec<SpriteInfo> = vec![];
 	let mut glyph_bounds: Option<Rect> = None;
 	let mut line_bounds: Option<Rect> = None;
+	let mut current_character_index: usize = 0;
+	let mut current_glyph_index: usize = 0;
 
+	// for each glyph in the buffer layout runs, get info needed
+	// to add the corresponding sprite to the sprite batch.
+	// while we're here, we also calculate the bounds of the text.
 	for run in buffer.layout_runs() {
 		for glyph in run.glyphs {
 			// create a sprite for this glyph
@@ -188,15 +199,18 @@ fn create_text_sprite_batch(micro: &mut Micro, buffer: cosmic_text::Buffer) -> S
 				physical_glyph.cache_key,
 			)
 			else {
+				current_character_index += 1;
 				continue;
 			};
 			let position = vec2(
 				physical_glyph.x as f32,
 				run.line_y + physical_glyph.y as f32,
 			) + offset.as_vec2();
-			sprites.push(Sprite {
+			sprites.push(SpriteInfo {
 				position,
 				texture_rect,
+				character_index: current_character_index,
+				glyph_index: current_glyph_index,
 			});
 
 			// update the total glyph bounds
@@ -206,6 +220,9 @@ fn create_text_sprite_batch(micro: &mut Micro, buffer: cosmic_text::Buffer) -> S
 			} else {
 				glyph_bounds = Some(individual_glyph_bounds);
 			}
+
+			current_character_index += 1;
+			current_glyph_index += 1;
 		}
 
 		// update the total line bounds
@@ -224,13 +241,28 @@ fn create_text_sprite_batch(micro: &mut Micro, buffer: cosmic_text::Buffer) -> S
 
 	// create sprite batch
 	let mut sprite_batch = SpriteBatch::new(micro, &micro.text.texture, sprites.len());
-	for Sprite {
+	for SpriteInfo {
 		position,
 		texture_rect,
+		character_index,
+		glyph_index,
 	} in &sprites
 	{
+		let sprite_params = SpriteParams {
+			transform: Affine2::from_translation(*position),
+			..Default::default()
+		};
+		let glyph_transform_info = GlyphTransformInfo {
+			character_index: *character_index,
+			glyph_index: *glyph_index,
+			position: *position,
+		};
+		let transformed_sprite_params = glyph_transform
+			.as_ref()
+			.map(|f| f(glyph_transform_info, sprite_params))
+			.unwrap_or(sprite_params);
 		sprite_batch
-			.add_region(micro, texture_rect.as_rect(), *position)
+			.add_region(micro, texture_rect.as_rect(), transformed_sprite_params)
 			.expect("sprite batch is full");
 	}
 

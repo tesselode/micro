@@ -4,8 +4,12 @@ use micro::{
 	Micro,
 	color::{ColorConstants, LinSrgba},
 	egui::{self, color_preview},
-	graphics::text::{
-		Text, TextAlign, TextBuilder, TextHorizontalSizing, TextStretch, TextStyle, TextWeight,
+	graphics::{
+		sprite_batch::SpriteParams,
+		text::{
+			GlyphTransformInfo, Text, TextAlign, TextBuilder, TextHorizontalSizing, TextStretch,
+			TextStyle, TextWeight,
+		},
 	},
 	math::Vec2,
 };
@@ -17,7 +21,7 @@ use crate::{
 
 use super::{LayoutResult, Widget};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct TextWidget {
 	id: Option<String>,
 	inspector: Option<WidgetInspector>,
@@ -101,6 +105,16 @@ impl TextWidget {
 	pub fn letter_spacing(self, letter_spacing: impl Into<Option<f32>>) -> Self {
 		Self {
 			builder: self.builder.letter_spacing(letter_spacing),
+			..self
+		}
+	}
+
+	pub fn glyph_transform(
+		self,
+		glyph_transform: impl Fn(GlyphTransformInfo, SpriteParams) -> SpriteParams + 'static,
+	) -> Self {
+		Self {
+			builder: self.builder.glyph_transform(glyph_transform),
 			..self
 		}
 	}

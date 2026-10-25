@@ -19,14 +19,17 @@ use sdl3::{
 	EventPump, GamepadSubsystem, IntegerOrSdlError,
 	video::{FullscreenType, Window, WindowPos},
 };
-use wgpu::{Features, PresentMode, TextureFormat};
+use wgpu::{Features, FilterMode, PresentMode, TextureFormat};
 
 use crate::{
 	App, Event, FrameTimeTracker, WindowMode, build_window,
 	color::ColorConstants,
 	egui_integration::{draw_egui_output, egui_raw_input, egui_took_sdl3_event},
 	framework::graphics::GraphicsContext,
-	graphics::{Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings},
+	graphics::{
+		Canvas, CanvasSettings, IntoScale2d, IntoScale3d, RenderToCanvasSettings,
+		texture::TextureSettings,
+	},
 	input::{Gamepad, GamepadId, MouseButton, Scancode},
 	text::TextContext,
 };
@@ -47,7 +50,7 @@ where
 	video.text_input().start(&window);
 	let event_pump = sdl.event_pump().expect("error creating event pump");
 	let graphics = GraphicsContext::new(&window, &settings);
-	let text = TextContext::new(&graphics);
+	let text = TextContext::new(&graphics, settings.font_atlas_texture_settings);
 	let main_canvas = settings.main_canvas.map(|settings| {
 		Canvas::new_from_graphics_micro(&graphics, settings.size, CanvasSettings::default())
 	});
@@ -542,7 +545,7 @@ impl Micro {
 }
 
 /// Settings for starting an application.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MicroSettings {
 	/// The title of the application window.
 	pub window_title: String,
@@ -557,6 +560,8 @@ pub struct MicroSettings {
 	/// ahead of time. Higher values can stabilize framerates, but increase
 	/// input lag.
 	pub desired_maximum_frame_latency: u32,
+	/// The texture settings used for text rendering.
+	pub font_atlas_texture_settings: TextureSettings,
 	/// A bitset of graphics features the application will use.
 	pub required_graphics_features: Features,
 	/// Whether dev tools should be enabled or not.
@@ -572,6 +577,11 @@ impl Default for MicroSettings {
 			main_canvas: None,
 			present_mode: PresentMode::AutoVsync,
 			desired_maximum_frame_latency: 1,
+			font_atlas_texture_settings: TextureSettings {
+				minifying_filter: FilterMode::Linear,
+				magnifying_filter: FilterMode::Linear,
+				..Default::default()
+			},
 			required_graphics_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
 			dev_tools_mode: DevToolsMode::default(),
 		}

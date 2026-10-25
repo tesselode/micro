@@ -5,7 +5,7 @@ use etagere::{Allocation, BucketedAtlasAllocator, size2};
 use glam::{IVec2, UVec2, ivec2};
 use image::RgbaImage;
 use tracing::warn;
-use wgpu::{Device, FilterMode, Queue, TextureFormat};
+use wgpu::{Device, Queue, TextureFormat};
 
 use crate::{
 	framework::graphics::GraphicsContext,
@@ -26,7 +26,7 @@ pub(crate) struct TextContext {
 }
 
 impl TextContext {
-	pub fn new(graphics: &GraphicsContext) -> Self {
+	pub fn new(graphics: &GraphicsContext, atlas_texture_settings: TextureSettings) -> Self {
 		Self {
 			font_system: FontSystem::new_with_locale_and_db("en-US".to_string(), Database::new()),
 			swash_cache: SwashCache::new(),
@@ -41,11 +41,7 @@ impl TextContext {
 				UVec2::splat(STARTING_ATLAS_SIZE),
 				1,
 				None,
-				TextureSettings {
-					minifying_filter: FilterMode::Linear,
-					magnifying_filter: FilterMode::Linear,
-					..Default::default()
-				},
+				atlas_texture_settings,
 				InternalTextureSettings {
 					format: TextureFormat::Rgba8UnormSrgb,
 					sample_count: 1,

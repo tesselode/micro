@@ -8,7 +8,6 @@ mod into_instance_range;
 mod into_scale;
 pub mod mesh;
 mod shader;
-pub mod sprite_batch;
 mod stencil;
 mod storage_buffer;
 pub mod text;

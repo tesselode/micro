@@ -1,7 +1,68 @@
 use glam::{Affine2, Vec2};
 use palette::LinSrgba;
 
-use crate::{color::ColorConstants, graphics::IntoScale2d};
+use crate::{
+	Micro,
+	color::ColorConstants,
+	graphics::{IntoScale2d, Vertex2d, mesh::Mesh, texture::Texture},
+	math::Rect,
+};
+
+pub struct SpriteBatchBuilder {
+	texture: Texture,
+	vertices: Vec<Vertex2d>,
+	indices: Vec<u32>,
+	num_sprites: usize,
+}
+
+impl SpriteBatchBuilder {
+	pub fn new(texture: &Texture) -> Self {
+		Self {
+			texture: texture.clone(),
+			vertices: vec![],
+			indices: vec![],
+			num_sprites: 0,
+		}
+	}
+
+	pub fn add(&mut self, params: impl Into<SpriteParams>) {
+		let size = self.texture.size().as_vec2();
+		self.add_region(Rect::new(Vec2::ZERO, size), params)
+	}
+
+	pub fn add_region(&mut self, region: Rect, params: impl Into<SpriteParams>) {
+		let params: SpriteParams = params.into();
+		let start_index = self.vertices.len();
+		let untransformed_display_rect = Rect::new(Vec2::ZERO, region.size);
+		let relative_texture_region = self.texture.relative_rect(region);
+		let transform = params.transform;
+		let corners = untransformed_display_rect.corners();
+		self.vertices.extend(
+			corners
+				.iter()
+				.copied()
+				.zip(relative_texture_region.corners())
+				.map(|(position, texture_coords)| Vertex2d {
+					position: transform.transform_point2(position),
+					texture_coords,
+					color: params.color,
+				}),
+		);
+		self.indices.extend_from_slice(&[
+			start_index as u32,
+			(start_index + 1) as u32,
+			(start_index + 3) as u32,
+			(start_index + 1) as u32,
+			(start_index + 2) as u32,
+			(start_index + 3) as u32,
+		]);
+		self.num_sprites += 1;
+	}
+
+	pub fn build(&self, micro: &Micro) -> Mesh {
+		Mesh::triangle(micro, &self.vertices, &self.indices).texture(&self.texture)
+	}
+}
 
 /// Settings for a sprite in a [`SpriteBatch`](super::SpriteBatch).
 #[derive(Debug, Clone, Copy)]

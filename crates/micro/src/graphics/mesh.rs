@@ -1,8 +1,10 @@
 //! Types for drawing shapes with the GPU.
 
 mod builder;
+mod sprite_batch_builder;
 
 pub use builder::*;
+pub use sprite_batch_builder::*;
 
 use std::marker::PhantomData;
 

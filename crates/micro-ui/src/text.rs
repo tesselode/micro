@@ -5,7 +5,7 @@ use micro::{
 	color::{ColorConstants, LinSrgba},
 	egui::{self, color_preview},
 	graphics::{
-		sprite_batch::SpriteParams,
+		mesh::SpriteParams,
 		text::{
 			FontStretch, FontWeight, GlyphTransformInfo, Text, TextAlign, TextBuilder,
 			TextHorizontalSizing, TextStyle,

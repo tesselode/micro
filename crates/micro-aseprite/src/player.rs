@@ -8,7 +8,7 @@ use micro::{
 	color::{ColorConstants, LinSrgba},
 	graphics::{
 		BlendMode,
-		sprite_batch::{SpriteBatch, SpriteId, SpriteLimitReached, SpriteParams},
+		mesh::{SpriteBatchBuilder, SpriteParams},
 		texture::Texture,
 	},
 	math::Mat4,
@@ -108,15 +108,14 @@ impl AnimationPlayer {
 		}
 	}
 
-	pub fn add_to_sprite_batch(
+	pub fn add_to_sprite_batch_builder(
 		&self,
-		micro: &Micro,
-		sprite_batch: &mut SpriteBatch,
+		sprite_batch_builder: &mut SpriteBatchBuilder,
 		params: impl Into<SpriteParams>,
-	) -> Result<SpriteId, SpriteLimitReached> {
+	) {
 		let inner = self.inner.try_lock().unwrap();
 		let region = inner.animation_data.frames[inner.current_frame_index].texture_region;
-		sprite_batch.add_region(micro, region, params)
+		sprite_batch_builder.add_region(region, params)
 	}
 
 	pub fn draw(&self, micro: &mut Micro, texture: &Texture) {

@@ -6,7 +6,7 @@ use glam::{IVec2, Vec2};
 use crate::{
 	Micro,
 	graphics::{
-		sprite_batch::SpriteParams,
+		mesh::SpriteParams,
 		text::{Text, TextHorizontalSizing},
 	},
 };

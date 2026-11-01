@@ -7,28 +7,32 @@ pub use builder::*;
 pub use cosmic_text::{
 	Align as TextAlign, Stretch as FontStretch, Style as TextStyle, Weight as FontWeight,
 };
+
 use cosmic_text::{Attrs, Family, LetterSpacing, Metrics, Shaping};
-
-use std::sync::Arc;
-
 use glam::{Affine2, Mat4, Vec2, vec2};
 use palette::LinSrgba;
 
 use crate::{
 	Micro,
 	color::ColorConstants,
-	graphics::{BlendMode, sprite_batch::SpriteParams},
+	graphics::{
+		BlendMode,
+		mesh::{Mesh, SpriteBatchBuilder, SpriteParams},
+	},
 	math::{IRect, Rect},
 	standard_draw_param_methods,
 	text::GlyphInfo,
 };
 
-use super::{IntoIndexRange, sprite_batch::SpriteBatch};
+use super::IntoIndexRange;
 
 /// A block of text rendered into a texture.
 #[derive(Debug, Clone)]
 pub struct Text {
-	inner: Arc<TextInner>,
+	pub(crate) mesh: Mesh,
+	pub(crate) glyph_bounds: Option<Rect>,
+	pub(crate) line_bounds: Option<Rect>,
+	pub(crate) num_glyphs: u32,
 
 	// params
 	/// The transform to use when drawing this text.
@@ -48,20 +52,115 @@ impl Text {
 	/// Creates a new [`Text`].
 	pub fn new(micro: &mut Micro, builder: TextBuilder) -> Self {
 		let _span = tracy_client::span!();
+
 		let buffer = create_cosmic_text_buffer(micro, &builder);
-		let SpriteBatchWithInfo {
-			sprite_batch,
+
+		struct SpriteInfo {
+			position: Vec2,
+			texture_rect: IRect,
+			character_index: usize,
+			glyph_index: usize,
+		}
+
+		let mut sprites: Vec<SpriteInfo> = vec![];
+		let mut glyph_bounds: Option<Rect> = None;
+		let mut line_bounds: Option<Rect> = None;
+		let mut current_character_index: usize = 0;
+		let mut current_glyph_index: usize = 0;
+
+		// for each glyph in the buffer layout runs, get info needed
+		// to add the corresponding sprite to the sprite batch.
+		// while we're here, we also calculate the bounds of the text.
+		for run in buffer.layout_runs() {
+			for glyph in run.glyphs {
+				// create a sprite for this glyph
+				let physical_glyph = glyph.physical((0.0, 0.0), 1.0);
+				let Some(GlyphInfo {
+					texture_rect,
+					offset,
+				}) = micro.text.glyph_rect(
+					&micro.graphics.device,
+					&micro.graphics.queue,
+					physical_glyph.cache_key,
+				)
+				else {
+					current_character_index += 1;
+					continue;
+				};
+				let position = vec2(
+					physical_glyph.x as f32,
+					run.line_y + physical_glyph.y as f32,
+				) + offset.as_vec2();
+				sprites.push(SpriteInfo {
+					position,
+					texture_rect,
+					character_index: current_character_index,
+					glyph_index: current_glyph_index,
+				});
+
+				// update the total glyph bounds
+				let individual_glyph_bounds = Rect::new(position, texture_rect.size.as_vec2());
+				if let Some(glyph_bounds) = &mut glyph_bounds {
+					*glyph_bounds = glyph_bounds.union(individual_glyph_bounds);
+				} else {
+					glyph_bounds = Some(individual_glyph_bounds);
+				}
+
+				current_character_index += 1;
+				current_glyph_index += 1;
+			}
+
+			// update the total line bounds
+			if let Some(first_character_x) = run.glyphs.first().map(|glyph| glyph.x) {
+				let individual_line_bounds = Rect::new(
+					vec2(first_character_x, run.line_top),
+					vec2(run.line_w, run.line_y - run.line_top),
+				);
+				if let Some(line_bounds) = &mut line_bounds {
+					*line_bounds = line_bounds.union(individual_line_bounds);
+				} else {
+					line_bounds = Some(individual_line_bounds);
+				}
+			}
+		}
+
+		// create sprite batch
+		let mut sprite_batch_builder = SpriteBatchBuilder::new(&micro.text.texture);
+		for SpriteInfo {
+			position,
+			texture_rect,
+			character_index,
+			glyph_index,
+		} in &sprites
+		{
+			let glyph_transform_info = GlyphTransformInfo {
+				character_index: *character_index,
+				glyph_index: *glyph_index,
+				position: *position,
+				glyph_size: texture_rect.size,
+			};
+			let sprite_params = builder
+				.glyph_transform
+				.as_ref()
+				.map(|f| {
+					f(
+						glyph_transform_info,
+						SpriteParams::new().translated(-texture_rect.size.as_vec2() / 2.0),
+					)
+					.translated(texture_rect.size.as_vec2() / 2.0 + *position)
+				})
+				.unwrap_or(SpriteParams {
+					transform: Affine2::from_translation(*position),
+					..Default::default()
+				});
+			sprite_batch_builder.add_region(texture_rect.as_rect(), sprite_params);
+		}
+
+		Self {
+			mesh: sprite_batch_builder.build(micro),
 			glyph_bounds,
 			line_bounds,
-		} = create_text_sprite_batch(micro, buffer, builder.glyph_transform);
-		let num_glyphs = sprite_batch.len();
-		Self {
-			inner: Arc::new(TextInner {
-				sprite_batch,
-				glyph_bounds,
-				line_bounds,
-				num_glyphs: num_glyphs as u32,
-			}),
+			num_glyphs: current_glyph_index as u32,
 			transform: Mat4::IDENTITY,
 			color: LinSrgba::WHITE,
 			blend_mode: BlendMode::default(),
@@ -77,20 +176,20 @@ impl Text {
 	/// When `None`, all the characters are drawn.
 	pub fn range(&self, range: impl IntoIndexRange) -> Self {
 		let mut new = self.clone();
-		new.range = range.into_index_range(self.inner.num_glyphs);
+		new.range = range.into_index_range(self.num_glyphs);
 		new
 	}
 
 	/// Returns the number of glyphs this text contains.
 	pub fn num_glyphs(&self) -> u32 {
-		self.inner.num_glyphs
+		self.num_glyphs
 	}
 
 	/// Returns a rectangle that surrounds all the glyphs in the text.
 	///
 	/// Returns `None` if there's no characters in this [`Text`].
 	pub fn glyph_bounds(&self) -> Option<Rect> {
-		self.inner.glyph_bounds
+		self.glyph_bounds
 	}
 
 	/// Returns a rectangle that surrounds all the lines of the text.
@@ -98,18 +197,17 @@ impl Text {
 	///
 	/// Returns `None` if there's no characters in this [`Text`].
 	pub fn line_bounds(&self) -> Option<Rect> {
-		self.inner.line_bounds
+		self.line_bounds
 	}
 
 	/// Draws the text.
 	pub fn draw(&self, micro: &mut Micro) {
 		let _span = tracy_client::span!();
-		self.inner
-			.sprite_batch
+		self.mesh
 			.transformed(self.transform)
 			.color(self.color)
 			.blend_mode(self.blend_mode)
-			.range(self.range)
+			.range(self.range.map(|(start, end)| (start * 6, end * 6)))
 			.draw(micro);
 	}
 }
@@ -122,20 +220,6 @@ pub enum TextHorizontalSizing {
 		width: f32,
 		align: TextAlign,
 	},
-}
-
-#[derive(Debug)]
-struct TextInner {
-	pub(crate) sprite_batch: SpriteBatch,
-	pub(crate) glyph_bounds: Option<Rect>,
-	pub(crate) line_bounds: Option<Rect>,
-	pub(crate) num_glyphs: u32,
-}
-
-struct SpriteBatchWithInfo {
-	sprite_batch: SpriteBatch,
-	glyph_bounds: Option<Rect>,
-	line_bounds: Option<Rect>,
 }
 
 fn create_cosmic_text_buffer(micro: &mut Micro, builder: &TextBuilder) -> cosmic_text::Buffer {
@@ -163,118 +247,4 @@ fn create_cosmic_text_buffer(micro: &mut Micro, builder: &TextBuilder) -> cosmic
 	buffer.set_size(width, None);
 	buffer.shape_until_scroll(&mut micro.text.font_system, true);
 	buffer
-}
-
-fn create_text_sprite_batch(
-	micro: &mut Micro,
-	buffer: cosmic_text::Buffer,
-	glyph_transform: Option<GlyphTransformFunction>,
-) -> SpriteBatchWithInfo {
-	struct SpriteInfo {
-		position: Vec2,
-		texture_rect: IRect,
-		character_index: usize,
-		glyph_index: usize,
-	}
-
-	let mut sprites: Vec<SpriteInfo> = vec![];
-	let mut glyph_bounds: Option<Rect> = None;
-	let mut line_bounds: Option<Rect> = None;
-	let mut current_character_index: usize = 0;
-	let mut current_glyph_index: usize = 0;
-
-	// for each glyph in the buffer layout runs, get info needed
-	// to add the corresponding sprite to the sprite batch.
-	// while we're here, we also calculate the bounds of the text.
-	for run in buffer.layout_runs() {
-		for glyph in run.glyphs {
-			// create a sprite for this glyph
-			let physical_glyph = glyph.physical((0.0, 0.0), 1.0);
-			let Some(GlyphInfo {
-				texture_rect,
-				offset,
-			}) = micro.text.glyph_rect(
-				&micro.graphics.device,
-				&micro.graphics.queue,
-				physical_glyph.cache_key,
-			)
-			else {
-				current_character_index += 1;
-				continue;
-			};
-			let position = vec2(
-				physical_glyph.x as f32,
-				run.line_y + physical_glyph.y as f32,
-			) + offset.as_vec2();
-			sprites.push(SpriteInfo {
-				position,
-				texture_rect,
-				character_index: current_character_index,
-				glyph_index: current_glyph_index,
-			});
-
-			// update the total glyph bounds
-			let individual_glyph_bounds = Rect::new(position, texture_rect.size.as_vec2());
-			if let Some(glyph_bounds) = &mut glyph_bounds {
-				*glyph_bounds = glyph_bounds.union(individual_glyph_bounds);
-			} else {
-				glyph_bounds = Some(individual_glyph_bounds);
-			}
-
-			current_character_index += 1;
-			current_glyph_index += 1;
-		}
-
-		// update the total line bounds
-		if let Some(first_character_x) = run.glyphs.first().map(|glyph| glyph.x) {
-			let individual_line_bounds = Rect::new(
-				vec2(first_character_x, run.line_top),
-				vec2(run.line_w, run.line_y - run.line_top),
-			);
-			if let Some(line_bounds) = &mut line_bounds {
-				*line_bounds = line_bounds.union(individual_line_bounds);
-			} else {
-				line_bounds = Some(individual_line_bounds);
-			}
-		}
-	}
-
-	// create sprite batch
-	let mut sprite_batch = SpriteBatch::new(micro, &micro.text.texture, sprites.len());
-	for SpriteInfo {
-		position,
-		texture_rect,
-		character_index,
-		glyph_index,
-	} in &sprites
-	{
-		let glyph_transform_info = GlyphTransformInfo {
-			character_index: *character_index,
-			glyph_index: *glyph_index,
-			position: *position,
-			glyph_size: texture_rect.size,
-		};
-		let sprite_params = glyph_transform
-			.as_ref()
-			.map(|f| {
-				f(
-					glyph_transform_info,
-					SpriteParams::new().translated(-texture_rect.size.as_vec2() / 2.0),
-				)
-				.translated(texture_rect.size.as_vec2() / 2.0 + *position)
-			})
-			.unwrap_or(SpriteParams {
-				transform: Affine2::from_translation(*position),
-				..Default::default()
-			});
-		sprite_batch
-			.add_region(micro, texture_rect.as_rect(), sprite_params)
-			.expect("sprite batch is full");
-	}
-
-	SpriteBatchWithInfo {
-		sprite_batch,
-		glyph_bounds,
-		line_bounds,
-	}
 }

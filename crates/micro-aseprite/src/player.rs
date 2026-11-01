@@ -6,7 +6,11 @@ use std::{
 use micro::{
 	Micro,
 	color::{ColorConstants, LinSrgba},
-	graphics::{BlendMode, texture::Texture},
+	graphics::{
+		BlendMode,
+		sprite_batch::{SpriteBatch, SpriteId, SpriteLimitReached, SpriteParams},
+		texture::Texture,
+	},
 	math::Mat4,
 	standard_draw_param_methods,
 };
@@ -102,6 +106,17 @@ impl AnimationPlayer {
 				break;
 			}
 		}
+	}
+
+	pub fn add_to_sprite_batch(
+		&self,
+		micro: &Micro,
+		sprite_batch: &mut SpriteBatch,
+		params: impl Into<SpriteParams>,
+	) -> Result<SpriteId, SpriteLimitReached> {
+		let inner = self.inner.try_lock().unwrap();
+		let region = inner.animation_data.frames[inner.current_frame_index].texture_region;
+		sprite_batch.add_region(micro, region, params)
 	}
 
 	pub fn draw(&self, micro: &mut Micro, texture: &Texture) {

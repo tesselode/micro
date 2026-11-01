@@ -68,6 +68,12 @@ impl Default for SpriteParams {
 	}
 }
 
+impl From<Affine2> for SpriteParams {
+	fn from(transform: Affine2) -> Self {
+		Self::new().transformed(transform)
+	}
+}
+
 impl From<Vec2> for SpriteParams {
 	fn from(translation: Vec2) -> Self {
 		Self::new().translated(translation)

@@ -4,6 +4,7 @@ use super::{Circle, LineSegment, Rect};
 
 /// A 2D polygon.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct Polygon {
 	/// The points that make up the polygon.
 	pub points: Vec<Vec2>,
@@ -113,7 +114,8 @@ impl Polygon {
 				((s.y > point.y) != (e.y > point.y))
 					&& (point.x < (e.x - s.x) * (point.y - s.y) / (e.y - s.y) + s.x)
 			})
-			.count() % 2
+			.count()
+			% 2
 			== 1
 	}
 

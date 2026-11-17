@@ -4,6 +4,7 @@ use super::Circle;
 
 /// A line that starts from an origin and extends infinitely in a direction.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct Ray {
 	/// The starting point of the ray.
 	pub origin: Vec2,

@@ -4,6 +4,7 @@ use super::{Circle, Lerp};
 
 /// A 2D line segment with a start and end point.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct LineSegment {
 	/// The coordinates of the start of the line segment.
 	pub start: Vec2,

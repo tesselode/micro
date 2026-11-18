@@ -37,7 +37,8 @@ impl AnimationData {
 	/// aseprite [input_file] --batch --sheet [image_path] --data [data_path] --format json-array --list-tags
 	/// ```
 	pub fn from_file(path: impl AsRef<Path>) -> Result<Self, LoadAnimationDataError> {
-		Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
+		let raw: RawAnimationData = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+		raw.try_into()
 	}
 }
 
